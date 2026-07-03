@@ -6,7 +6,7 @@ import {
   type PointLedgerEntry,
 } from '@/types'
 import type { Payload, PayloadRequest } from 'payload'
-import type { PointLedger, User } from '@/payload-types'
+import type { PointLedger, Customer } from '@/payload-types'
 
 /**
  * Loyalty Domain Service
@@ -157,7 +157,7 @@ export class LoyaltyService {
    */
   async evaluateTier(userId: number, req?: PayloadRequest): Promise<LoyaltyTier> {
     const user = await this.payload.findByID({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       req,
     })
@@ -176,7 +176,7 @@ export class LoyaltyService {
     // Only upgrade, never downgrade
     if (this.getTierLevel(newTier) > this.getTierLevel(currentTier)) {
       await this.payload.update({
-        collection: 'users',
+        collection: 'customers',
         id: userId,
         data: {
           loyalty: {
@@ -255,13 +255,13 @@ export class LoyaltyService {
    */
   private async updateCachedBalance(userId: number, balance: number, req?: PayloadRequest): Promise<void> {
     const user = await this.payload.findByID({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       req,
     })
 
     await this.payload.update({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       data: {
         loyalty: {
