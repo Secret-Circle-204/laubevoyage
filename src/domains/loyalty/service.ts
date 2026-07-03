@@ -226,7 +226,7 @@ export class LoyaltyService {
       limit,
     })
 
-    return result.docs.map((doc: any) => ({
+    return result.docs.map((doc: PointLedger) => ({
       id: String(doc.id),
       userId: typeof doc.user === 'object' ? String(doc.user?.id) : String(doc.user),
       type: doc.type as PointTransactionType,

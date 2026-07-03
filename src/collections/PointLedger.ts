@@ -81,8 +81,5 @@ export const PointLedger: CollectionConfig = {
       type: 'json',
     },
   ],
-  timestamps: {
-    createdAt: true,
-    updatedAt: false, // Immutable
-  },
+  timestamps: true,
 }
