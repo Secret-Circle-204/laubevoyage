@@ -22,7 +22,7 @@ export class DestinationService {
   /**
    * Get all active countries
    */
-  async getCountries(locale?: string) {
+  async getCountries(locale?: 'en' | 'ar' | 'fr' | 'all') {
     return this.payload.find({
       collection: 'countries',
       where: {
@@ -38,7 +38,7 @@ export class DestinationService {
   /**
    * Get country by slug
    */
-  async getCountry(slug: string, locale?: string) {
+  async getCountry(slug: string, locale?: 'en' | 'ar' | 'fr' | 'all') {
     const result = await this.payload.find({
       collection: 'countries',
       where: {
@@ -54,7 +54,7 @@ export class DestinationService {
   /**
    * Get cities by country
    */
-  async getCitiesByCountry(countryId: number, locale?: string) {
+  async getCitiesByCountry(countryId: number, locale?: 'en' | 'ar' | 'fr' | 'all') {
     return this.payload.find({
       collection: 'cities',
       where: {
@@ -68,7 +68,7 @@ export class DestinationService {
   /**
    * Get city by slug
    */
-  async getCity(slug: string, locale?: string) {
+  async getCity(slug: string, locale?: 'en' | 'ar' | 'fr' | 'all') {
     const result = await this.payload.find({
       collection: 'cities',
       where: {
@@ -90,7 +90,7 @@ export class DestinationService {
       type?: ExperienceType
       page?: number
       limit?: number
-      locale?: string
+      locale?: 'en' | 'ar' | 'fr' | 'all'
       currency?: CurrencyCode
     } = {},
   ) {
@@ -150,7 +150,7 @@ export class DestinationService {
   async getExperience(
     slug: string,
     options: {
-      locale?: string
+      locale?: 'en' | 'ar' | 'fr' | 'all'
       currency?: CurrencyCode
     } = {},
   ) {
@@ -196,7 +196,7 @@ export class DestinationService {
       type?: ExperienceType
       page?: number
       limit?: number
-      locale?: string
+      locale?: 'en' | 'ar' | 'fr' | 'all'
       currency?: CurrencyCode
     } = {},
   ) {
@@ -258,7 +258,7 @@ export class DestinationService {
   async getFeaturedExperiences(
     options: {
       limit?: number
-      locale?: string
+      locale?: 'en' | 'ar' | 'fr' | 'all'
       currency?: CurrencyCode
     } = {},
   ) {

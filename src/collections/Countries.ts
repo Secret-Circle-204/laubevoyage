@@ -45,7 +45,6 @@ export const Countries: CollectionConfig = {
       name: 'hero',
       type: 'upload',
       relationTo: 'media',
-      required: true,
     },
     {
       name: 'gallery',

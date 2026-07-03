@@ -231,7 +231,7 @@ export interface Country {
     };
     [k: string]: unknown;
   } | null;
-  hero: number | Media;
+  hero?: (number | null) | Media;
   gallery?:
     | {
         image: number | Media;
@@ -271,7 +271,7 @@ export interface City {
     };
     [k: string]: unknown;
   } | null;
-  hero: number | Media;
+  hero?: (number | null) | Media;
   gallery?:
     | {
         image: number | Media;
@@ -297,7 +297,7 @@ export interface Experience {
   slug: string;
   type: 'package' | 'daily_tour';
   city: number | City;
-  description: {
+  description?: {
     root: {
       type: string;
       children: {
@@ -311,8 +311,8 @@ export interface Experience {
       version: number;
     };
     [k: string]: unknown;
-  };
-  hero: number | Media;
+  } | null;
+  hero?: (number | null) | Media;
   gallery?:
     | {
         image: number | Media;

@@ -49,19 +49,16 @@ export const Experiences: CollectionConfig = {
     {
       name: 'description',
       type: 'richText',
-      required: true,
       localized: true,
     },
     {
       name: 'hero',
       type: 'upload',
       relationTo: 'media',
-      required: true,
     },
     {
       name: 'gallery',
       type: 'array',
-      minRows: 1,
       fields: [
         {
           name: 'image',

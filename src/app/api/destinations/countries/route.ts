@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const payload = await getPayload({ config })
     const services = getDomainServices(payload)
 
-    const locale = request.nextUrl.searchParams.get('locale') || 'en'
+    const locale = (request.nextUrl.searchParams.get('locale') || 'en') as 'en' | 'ar' | 'fr' | 'all'
     const countries = await services.destination.getCountries(locale)
 
     return NextResponse.json(countries)

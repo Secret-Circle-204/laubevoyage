@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as ExperienceType | null
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
-    const locale = searchParams.get('locale') || 'en'
+    const locale = (searchParams.get('locale') || 'en') as 'en' | 'ar' | 'fr' | 'all'
     const currency = (searchParams.get('currency') || 'EGP') as CurrencyCode
 
     // Search
