@@ -1,6 +1,6 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
-import { CurrencyCode } from '@/types'
+import type { CurrencyCode } from '@/types'
 
 /**
  * Seed database with initial data
@@ -13,11 +13,11 @@ async function seed() {
   // 1. Seed Exchange Rates
   console.log('💱 Seeding exchange rates...')
   const rates = [
-    { from: CurrencyCode.EGP, to: CurrencyCode.USD, rate: 0.032 },
-    { from: CurrencyCode.EGP, to: CurrencyCode.EUR, rate: 0.03 },
-    { from: CurrencyCode.EGP, to: CurrencyCode.AED, rate: 0.12 },
-    { from: CurrencyCode.EGP, to: CurrencyCode.SAR, rate: 0.12 },
-    { from: CurrencyCode.EGP, to: CurrencyCode.EGP, rate: 1 },
+    { from: 'EGP', to: 'USD', rate: 0.032 },
+    { from: 'EGP', to: 'EUR', rate: 0.03 },
+    { from: 'EGP', to: 'AED', rate: 0.12 },
+    { from: 'EGP', to: 'SAR', rate: 0.12 },
+    { from: 'EGP', to: 'EGP', rate: 1 },
   ]
 
   for (const rate of rates) {
@@ -27,7 +27,10 @@ async function seed() {
         fromCurrency: rate.from,
         toCurrency: rate.to,
         rate: rate.rate,
-        isActive: true,
+        source: 'Manual',
+        syncStatus: 'synced',
+        lastUpdate: new Date().toISOString(),
+        lastSuccess: new Date().toISOString(),
       },
     })
   }

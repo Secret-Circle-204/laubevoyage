@@ -163,7 +163,8 @@ export class NotificationService {
       month: 'long',
       day: 'numeric',
     })
-    const totalPrice = booking.pricing.totalAmount
+    const pricingSnapshot = booking.pricingSnapshot as any
+    const totalPrice = pricingSnapshot?.totalAmountEGP || 0
     const pointsEarned = booking.pointsEarned || 0
 
     await this.send(userId, NotificationTemplate.BOOKING_CONFIRMED, NotificationChannel.EMAIL, {

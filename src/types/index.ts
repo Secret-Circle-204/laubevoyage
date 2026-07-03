@@ -118,20 +118,7 @@ export const WELCOME_BONUS = 100
 // CURRENCY DOMAIN
 // ============================================================================
 
-export enum CurrencyCode {
-  EGP = 'EGP', // Base currency
-  USD = 'USD',
-  EUR = 'EUR',
-  AED = 'AED',
-  SAR = 'SAR',
-}
-
-export interface ExchangeRate {
-  from: CurrencyCode
-  to: CurrencyCode
-  rate: number
-  lastUpdated: Date
-}
+export type CurrencyCode = string
 
 export interface Money {
   amount: number

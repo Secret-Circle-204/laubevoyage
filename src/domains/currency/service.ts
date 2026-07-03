@@ -1,22 +1,16 @@
-import { CurrencyCode, type ExchangeRate, type Money } from '@/types'
-import type { Payload } from 'payload'
+import type { CurrencyCode, Money } from '@/types'
+import { rateRegistry } from './rate-registry'
 
 /**
  * Currency Domain Service
- * Single source of truth for all currency operations
+ * Single source of truth for all currency operations.
  * Base currency: EGP
  */
 export class CurrencyService {
-  private payload: Payload
-  private rateCache: Map<string, ExchangeRate> = new Map()
-  private cacheExpiry = 1000 * 60 * 60 // 1 hour
-
-  constructor(payload: Payload) {
-    this.payload = payload
-  }
+  constructor() {}
 
   /**
-   * Convert amount from one currency to another
+   * Convert amount from one currency to another using the Rate Registry
    */
   async convert(from: CurrencyCode, to: CurrencyCode, amount: number): Promise<number> {
     if (from === to) return amount
@@ -29,38 +23,16 @@ export class CurrencyService {
    * Get exchange rate between two currencies
    */
   async getRate(from: CurrencyCode, to: CurrencyCode): Promise<number> {
-    const cacheKey = `${from}_${to}`
-    const cached = this.rateCache.get(cacheKey)
-
-    if (cached && Date.now() - cached.lastUpdated.getTime() < this.cacheExpiry) {
-      return cached.rate
+    if (from !== 'EGP') {
+      throw new Error('Base currency must be EGP')
     }
 
-    const rateDoc = await this.payload.find({
-      collection: 'exchange-rates',
-      where: {
-        and: [
-          { fromCurrency: { equals: from } },
-          { toCurrency: { equals: to } },
-          { isActive: { equals: true } },
-        ],
-      },
-      limit: 1,
-    })
-
-    if (rateDoc.docs.length === 0) {
-      throw new Error(`Exchange rate not found for ${from} to ${to}`)
+    const rateData = await rateRegistry.getRate(to)
+    if (!rateData) {
+      throw new Error(`Exchange rate not found for EGP to ${to}`)
     }
 
-    const rate: ExchangeRate = {
-      from,
-      to,
-      rate: rateDoc.docs[0].rate,
-      lastUpdated: new Date(rateDoc.docs[0].updatedAt),
-    }
-
-    this.rateCache.set(cacheKey, rate)
-    return rate.rate
+    return rateData.rate
   }
 
   /**
@@ -80,32 +52,13 @@ export class CurrencyService {
    */
   async pointsToCurrency(points: number, currency: CurrencyCode): Promise<number> {
     const egpValue = points * 0.5
-    return this.convert(CurrencyCode.EGP, currency, egpValue)
-  }
-
-  /**
-   * Update exchange rate
-   */
-  async updateRate(from: CurrencyCode, to: CurrencyCode, rate: number): Promise<void> {
-    await this.payload.update({
-      collection: 'exchange-rates',
-      where: {
-        and: [{ fromCurrency: { equals: from } }, { toCurrency: { equals: to } }],
-      },
-      data: {
-        rate,
-        isActive: true,
-      },
-    })
-
-    // Clear cache
-    this.rateCache.delete(`${from}_${to}`)
+    return this.convert('EGP', currency, egpValue)
   }
 
   /**
    * Format money for display
    */
-  formatMoney(money: Money, locale: string = 'en'): string {
+  formatMoney(money: Money, locale: string = 'en-US'): string {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: money.currency,

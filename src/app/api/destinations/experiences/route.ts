@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { getDomainServices } from '@/domains'
-import { CurrencyCode, ExperienceType } from '@/types'
+import { ExperienceType } from '@/types'
+import type { CurrencyCode } from '@/types'
 
 /**
  * GET /api/destinations/experiences
@@ -28,8 +29,6 @@ export async function GET(request: NextRequest) {
         type: type || undefined,
         page,
         limit,
-        locale,
-        currency,
       })
       return NextResponse.json(results)
     }
@@ -40,8 +39,6 @@ export async function GET(request: NextRequest) {
         type: type || undefined,
         page,
         limit,
-        locale,
-        currency,
       })
       return NextResponse.json(results)
     }
@@ -49,8 +46,6 @@ export async function GET(request: NextRequest) {
     // Featured experiences
     const featured = await services.destination.getFeaturedExperiences({
       limit,
-      locale,
-      currency,
     })
 
     return NextResponse.json({ docs: featured, total: featured.length })

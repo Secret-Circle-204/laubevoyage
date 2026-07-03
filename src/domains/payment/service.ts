@@ -1,4 +1,5 @@
-import { PaymentProvider, PaymentStatus, CurrencyCode } from '@/types'
+import { PaymentProvider, PaymentStatus } from '@/types'
+import type { CurrencyCode } from '@/types'
 import type { Payload } from 'payload'
 import { BookingService } from '../booking/service'
 import { CurrencyService } from '../currency/service'
@@ -30,7 +31,7 @@ export class PaymentService {
   constructor(payload: Payload) {
     this.payload = payload
     this.bookingService = new BookingService(payload)
-    this.currencyService = new CurrencyService(payload)
+    this.currencyService = new CurrencyService()
   }
 
   /**
@@ -47,19 +48,17 @@ export class PaymentService {
       ? (booking.experience as Experience)
       : await this.payload.findByID({ collection: 'experiences', id: Number(booking.experience) })
 
-    const currency = booking.pricing.currency || 'EGP'
-    const totalAmountEGP = booking.pricing.totalAmount
+    const pricingSnapshot = booking.pricingSnapshot as any
+    const currency = pricingSnapshot?.displayCurrency || 'EGP'
+    const displayAmount = pricingSnapshot?.displayAmount || 0
 
-    if (totalAmountEGP <= 0) {
+    if (displayAmount <= 0) {
       throw new Error('Total price must be greater than zero for Stripe payment')
     }
 
-    // Convert EGP amount to booking payment currency
-    const targetAmount = await this.currencyService.convert(
-      CurrencyCode.EGP,
-      currency as CurrencyCode,
-      totalAmountEGP
-    )
+    // Payment Provider is completely ignorant of exchange rates.
+    // It blindly executes the frozen displayAmount from the Booking Snapshot.
+    const targetAmount = displayAmount
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

@@ -1,7 +1,8 @@
-import { BookingStatus, CurrencyCode, LoyaltyTier, PointTransactionType } from '@/types'
+import { BookingStatus, LoyaltyTier, PointTransactionType } from '@/types'
+import type { CurrencyCode } from '@/types'
 import type { Payload } from 'payload'
 import { LoyaltyService } from '../loyalty/service'
-import { CurrencyService } from '../currency/service'
+import { PricingPipeline } from '../currency/pipeline'
 
 /**
  * Booking Domain Service
@@ -11,7 +12,7 @@ import { CurrencyService } from '../currency/service'
 export class BookingService {
   private payload: Payload
   private loyaltyService: LoyaltyService
-  private currencyService: CurrencyService
+  private pricingPipeline: PricingPipeline
 
   // Valid state transitions
   private readonly VALID_TRANSITIONS = [
@@ -26,7 +27,7 @@ export class BookingService {
   constructor(payload: Payload) {
     this.payload = payload
     this.loyaltyService = new LoyaltyService(payload)
-    this.currencyService = new CurrencyService(payload)
+    this.pricingPipeline = new PricingPipeline()
   }
 
   /**
@@ -60,7 +61,7 @@ export class BookingService {
 
     const basePrice = experience.price
     let pointsRedeemed = 0
-    let pointsValue = 0
+    let pointsValueEGP = 0
 
     // Handle points redemption
     if (data.pointsToRedeem && data.pointsToRedeem > 0) {
@@ -69,10 +70,17 @@ export class BookingService {
         throw new Error('Insufficient loyalty points')
       }
       pointsRedeemed = data.pointsToRedeem
-      pointsValue = await this.currencyService.pointsToCurrency(pointsRedeemed, CurrencyCode.EGP)
+      pointsValueEGP = pointsRedeemed * 0.5 // 1 point = 0.5 EGP
     }
 
-    const totalAmount = Math.max(0, basePrice - pointsValue)
+    const targetCurrency = data.currency || user.preferences?.preferredCurrency || 'EGP'
+
+    // Generate pricing snapshot via pipeline
+    const { snapshot } = await this.pricingPipeline.execute({
+      basePriceEGP: basePrice,
+      loyaltyDiscount: pointsValueEGP,
+      targetCurrency,
+    })
 
     const booking = await this.payload.create({
       collection: 'bookings',
@@ -84,13 +92,7 @@ export class BookingService {
         travelers: data.travelers,
         startDate: data.startDate,
         endDate: data.endDate,
-        pricing: {
-          basePrice,
-          pointsRedeemed,
-          pointsValue,
-          totalAmount,
-          currency: data.currency || user.preferences?.currency || CurrencyCode.EGP,
-        },
+        pricingSnapshot: snapshot as any, // Cast to any to bypass strict payload typing until types are re-generated
         pointsEarned: 0, // Calculated on confirmation
       },
     })
@@ -114,7 +116,6 @@ export class BookingService {
       id: bookingId,
     })
 
-    // Validate transition
     if (booking.status !== BookingStatus.PAID) {
       throw new Error(`Cannot confirm booking in ${booking.status} status`)
     }
@@ -129,22 +130,12 @@ export class BookingService {
       id: userId,
     })
 
-    // Redeem points if any
-    if (booking.pricing?.pointsRedeemed && booking.pricing.pointsRedeemed > 0) {
-      await this.loyaltyService.redeem(
-        userId,
-        booking.pricing.pointsRedeemed,
-        bookingId,
-        `Redeemed for booking ${booking.bookingNumber}`,
-      )
-    }
+    const pricingSnapshot = booking.pricingSnapshot as any
 
     // Calculate points earned
     const tier = (user.loyalty?.tier || 'explorer') as LoyaltyTier
-    const pointsEarned = this.loyaltyService.calculateEarnedPoints(
-      booking.pricing?.totalAmount || 0,
-      tier,
-    )
+    const totalAmountEGP = pricingSnapshot?.totalAmountEGP || 0
+    const pointsEarned = this.loyaltyService.calculateEarnedPoints(totalAmountEGP, tier)
 
     // Grant earned points
     await this.loyaltyService.earn(
@@ -156,7 +147,7 @@ export class BookingService {
     )
 
     // Update total spent
-    const totalSpent = (user.loyalty?.totalSpent || 0) + (booking.pricing?.totalAmount || 0)
+    const totalSpent = (user.loyalty?.totalSpent || 0) + totalAmountEGP
     await this.payload.update({
       collection: 'customers',
       id: userId,
@@ -196,11 +187,6 @@ export class BookingService {
       typeof booking.user === 'object' && booking.user !== null
         ? Number(booking.user.id)
         : Number(booking.user)
-
-    // Refund redeemed points
-    if (booking.pricing?.pointsRedeemed && booking.pricing.pointsRedeemed > 0) {
-      await this.loyaltyService.refund(userId, booking.pricing.pointsRedeemed, bookingId)
-    }
 
     // Reverse earned points if confirmed
     if (
@@ -298,4 +284,3 @@ export class BookingService {
     return `${prefix}${timestamp}${random}`
   }
 }
-

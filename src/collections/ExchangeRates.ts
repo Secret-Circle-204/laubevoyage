@@ -3,38 +3,32 @@ import type { CollectionConfig } from 'payload'
 export const ExchangeRates: CollectionConfig = {
   slug: 'exchange-rates',
   admin: {
-    useAsTitle: 'id',
-    defaultColumns: ['fromCurrency', 'toCurrency', 'rate', 'updatedAt'],
-    description: 'Currency exchange rates - EGP is base currency',
+    useAsTitle: 'toCurrency',
+    defaultColumns: ['fromCurrency', 'toCurrency', 'rate', 'source', 'syncStatus', 'lastUpdate'],
+    description: 'Live Financial Data for Exchange Rates',
   },
   access: {
-    read: () => true,
+    read: () => true, // Publicly readable for conversion
   },
   fields: [
     {
       name: 'fromCurrency',
-      type: 'select',
+      type: 'text',
       required: true,
       defaultValue: 'EGP',
-      options: [
-        { label: 'EGP', value: 'EGP' },
-        { label: 'USD', value: 'USD' },
-        { label: 'EUR', value: 'EUR' },
-        { label: 'AED', value: 'AED' },
-        { label: 'SAR', value: 'SAR' },
-      ],
+      index: true,
+      admin: {
+        description: 'Base currency ISO code (e.g. EGP)',
+      },
     },
     {
       name: 'toCurrency',
-      type: 'select',
+      type: 'text',
       required: true,
-      options: [
-        { label: 'EGP', value: 'EGP' },
-        { label: 'USD', value: 'USD' },
-        { label: 'EUR', value: 'EUR' },
-        { label: 'AED', value: 'AED' },
-        { label: 'SAR', value: 'SAR' },
-      ],
+      index: true,
+      admin: {
+        description: 'Target currency ISO code (e.g. USD)',
+      },
     },
     {
       name: 'rate',
@@ -46,10 +40,42 @@ export const ExchangeRates: CollectionConfig = {
       },
     },
     {
-      name: 'isActive',
-      type: 'checkbox',
-      defaultValue: true,
+      name: 'source',
+      type: 'select',
+      options: [
+        { label: 'OpenExchange', value: 'OpenExchange' },
+        { label: 'ECB', value: 'ECB' },
+        { label: 'Fixer', value: 'Fixer' },
+        { label: 'Manual', value: 'Manual' },
+      ],
+      defaultValue: 'OpenExchange',
+      required: true,
+    },
+    {
+      name: 'lastUpdate',
+      type: 'date',
+      admin: {
+        description: 'Actual timestamp the rate was fetched/changed',
+      },
+    },
+    {
+      name: 'lastSuccess',
+      type: 'date',
+    },
+    {
+      name: 'lastError',
+      type: 'date',
+    },
+    {
+      name: 'syncStatus',
+      type: 'select',
+      options: [
+        { label: 'Synced', value: 'synced' },
+        { label: 'Failed', value: 'failed' },
+        { label: 'Stale', value: 'stale' },
+      ],
+      defaultValue: 'synced',
     },
   ],
-  timestamps: true,
+  timestamps: true, // Payload createdAt/updatedAt
 }

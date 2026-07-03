@@ -4,9 +4,6 @@ import type { TranslationProvider } from './providers/types'
 import { GoogleTranslateProvider } from './providers/google'
 import { LibreTranslateProvider } from './providers/libre'
 
-/** Default TTL for cached translations: 30 days */
-const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30
-
 /**
  * Translation Domain Service
  *
@@ -65,8 +62,7 @@ export class TranslationService {
         and: [
           { originalHash: { equals: originalHash } },
           { language: { equals: to } },
-          { version: { greater_than_equal: version } },
-          { expiresAt: { greater_than: new Date().toISOString() } },
+          { version: { equals: version } },
         ],
       },
       limit: 1,
@@ -74,6 +70,15 @@ export class TranslationService {
     })
 
     if (cached.docs.length > 0) {
+      // Async background update of lastVerifiedAt
+      this.payload.update({
+        collection: 'translation-cache',
+        id: cached.docs[0].id,
+        data: {
+          lastVerifiedAt: new Date().toISOString(),
+        },
+      }).catch(err => console.error('[TranslationService] Failed to update lastVerifiedAt', err))
+
       return cached.docs[0].translatedText
     }
 
@@ -98,8 +103,6 @@ export class TranslationService {
     }
 
     // 4. Persist to cache
-    const expiresAt = new Date(Date.now() + CACHE_TTL_MS).toISOString()
-
     await this.payload.create({
       collection: 'translation-cache',
       data: {
@@ -109,7 +112,7 @@ export class TranslationService {
         translatedText,
         provider: usedProvider,
         version,
-        expiresAt,
+        lastVerifiedAt: new Date().toISOString(),
       },
       req,
     })

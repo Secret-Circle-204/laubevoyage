@@ -58,12 +58,10 @@ export const TranslationCache: CollectionConfig = {
       },
     },
     {
-      name: 'expiresAt',
+      name: 'lastVerifiedAt',
       type: 'date',
-      required: true,
-      index: true,
       admin: {
-        description: 'Cache TTL expiry date. Re-translation is triggered after this date.',
+        description: 'Last time this translation was verified against the source version/hash',
       },
     },
   ],

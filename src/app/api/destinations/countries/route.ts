@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const services = getDomainServices(payload)
 
     const locale = (request.nextUrl.searchParams.get('locale') || 'en') as 'en' | 'ar' | 'fr' | 'all'
-    const countries = await services.destination.getCountries(locale)
+    const countries = await services.destination.getCountries()
 
     return NextResponse.json(countries)
   } catch (error) {

@@ -77,6 +77,7 @@ export interface Config {
     bookings: Booking;
     'point-ledger': PointLedger;
     'exchange-rates': ExchangeRate;
+    currencies: Currency;
     'translation-cache': TranslationCache;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -94,6 +95,7 @@ export interface Config {
     bookings: BookingsSelect<false> | BookingsSelect<true>;
     'point-ledger': PointLedgerSelect<false> | PointLedgerSelect<true>;
     'exchange-rates': ExchangeRatesSelect<false> | ExchangeRatesSelect<true>;
+    currencies: CurrenciesSelect<false> | CurrenciesSelect<true>;
     'translation-cache': TranslationCacheSelect<false> | TranslationCacheSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -206,8 +208,17 @@ export interface Customer {
     tierAchievedAt?: string | null;
   };
   preferences?: {
-    locale?: ('en' | 'ar' | 'fr') | null;
-    currency?: ('EGP' | 'USD' | 'EUR' | 'AED' | 'SAR') | null;
+    /**
+     * E.g., en-US, ar-EG. Controls dates, numbers, and separators.
+     */
+    preferredLocale?: string | null;
+    preferredLanguage?: string | null;
+    /**
+     * Must match an active ISO Code in Currencies catalog
+     */
+    preferredCurrency?: string | null;
+    preferredTimezone?: string | null;
+    measurementSystem?: ('metric' | 'imperial') | null;
     notifications?: {
       email?: boolean | null;
       sms?: boolean | null;
@@ -438,37 +449,26 @@ export interface Booking {
   }[];
   startDate: string;
   endDate: string;
-  pricing: {
-    /**
-     * Base price in EGP
-     */
-    basePrice: number;
-    pointsRedeemed?: number | null;
-    /**
-     * Value in EGP
-     */
-    pointsValue?: number | null;
-    /**
-     * Final amount in EGP after points redemption
-     */
-    totalAmount: number;
-    currency: 'EGP' | 'USD' | 'EUR' | 'AED' | 'SAR';
-    /**
-     * Original base price in EGP at time of booking
-     */
-    basePriceEGP?: number | null;
-    /**
-     * Exchange rate used at time of booking
-     */
-    exchangeRateUsed?: number | null;
-    /**
-     * Converted amount shown to the traveler
-     */
-    displayAmount?: number | null;
-    /**
-     * Currency code shown to the traveler
-     */
-    displayCurrency?: string | null;
+  /**
+   * Immutable financial record of the booking
+   */
+  pricingSnapshot: {
+    version?: number | null;
+    basePriceEGP: number;
+    promotionDiscountEGP?: number | null;
+    couponDiscountEGP?: number | null;
+    loyaltyDiscountEGP?: number | null;
+    subtotalEGP: number;
+    taxes?: number | null;
+    fees?: number | null;
+    totalAmountEGP: number;
+    displayCurrency: string;
+    displayAmount: number;
+    exchangeRate: number;
+    exchangeProvider?: string | null;
+    exchangeRateTimestamp?: string | null;
+    roundingStrategy?: string | null;
+    currencyDecimals?: number | null;
   };
   /**
    * Calculated by LoyaltyService
@@ -528,20 +528,83 @@ export interface PointLedger {
   createdAt: string;
 }
 /**
- * Currency exchange rates - EGP is base currency
+ * Live Financial Data for Exchange Rates
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "exchange-rates".
  */
 export interface ExchangeRate {
   id: number;
-  fromCurrency: 'EGP' | 'USD' | 'EUR' | 'AED' | 'SAR';
-  toCurrency: 'EGP' | 'USD' | 'EUR' | 'AED' | 'SAR';
+  /**
+   * Base currency ISO code (e.g. EGP)
+   */
+  fromCurrency: string;
+  /**
+   * Target currency ISO code (e.g. USD)
+   */
+  toCurrency: string;
   /**
    * Exchange rate from base currency
    */
   rate: number;
+  source: 'OpenExchange' | 'ECB' | 'Fixer' | 'Manual';
+  /**
+   * Actual timestamp the rate was fetched/changed
+   */
+  lastUpdate?: string | null;
+  lastSuccess?: string | null;
+  lastError?: string | null;
+  syncStatus?: ('synced' | 'failed' | 'stale') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Master Catalog of Currencies (Identity only, no live rates)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "currencies".
+ */
+export interface Currency {
+  id: number;
+  /**
+   * ISO 4217 Currency Code (e.g., USD, EUR, JPY)
+   */
+  isoCode: string;
+  /**
+   * ISO 4217 Numeric Code (e.g., 840 for USD)
+   */
+  numericCode: number;
+  /**
+   * Full name (e.g., US Dollar)
+   */
+  name: string;
+  /**
+   * Common symbol (e.g., $)
+   */
+  symbol: string;
+  /**
+   * Native symbol (e.g., US$)
+   */
+  nativeSymbol?: string | null;
+  /**
+   * Number of decimal places (e.g., 2 for USD, 0 for JPY)
+   */
+  decimals: number;
+  /**
+   * ISO 3166-1 alpha-2 Country Codes where this currency is used
+   */
+  countryCodes?:
+    | {
+        code: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Enable or disable this currency in the frontend
+   */
   isActive?: boolean | null;
+  displayOrder?: number | null;
+  isDefault?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -572,9 +635,9 @@ export interface TranslationCache {
    */
   version: number;
   /**
-   * Cache TTL expiry date. Re-translation is triggered after this date.
+   * Last time this translation was verified against the source version/hash
    */
-  expiresAt: string;
+  lastVerifiedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -637,6 +700,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'exchange-rates';
         value: number | ExchangeRate;
+      } | null)
+    | ({
+        relationTo: 'currencies';
+        value: number | Currency;
       } | null)
     | ({
         relationTo: 'translation-cache';
@@ -739,8 +806,11 @@ export interface CustomersSelect<T extends boolean = true> {
   preferences?:
     | T
     | {
-        locale?: T;
-        currency?: T;
+        preferredLocale?: T;
+        preferredLanguage?: T;
+        preferredCurrency?: T;
+        preferredTimezone?: T;
+        measurementSystem?: T;
         notifications?:
           | T
           | {
@@ -911,18 +981,25 @@ export interface BookingsSelect<T extends boolean = true> {
       };
   startDate?: T;
   endDate?: T;
-  pricing?:
+  pricingSnapshot?:
     | T
     | {
-        basePrice?: T;
-        pointsRedeemed?: T;
-        pointsValue?: T;
-        totalAmount?: T;
-        currency?: T;
+        version?: T;
         basePriceEGP?: T;
-        exchangeRateUsed?: T;
-        displayAmount?: T;
+        promotionDiscountEGP?: T;
+        couponDiscountEGP?: T;
+        loyaltyDiscountEGP?: T;
+        subtotalEGP?: T;
+        taxes?: T;
+        fees?: T;
+        totalAmountEGP?: T;
         displayCurrency?: T;
+        displayAmount?: T;
+        exchangeRate?: T;
+        exchangeProvider?: T;
+        exchangeRateTimestamp?: T;
+        roundingStrategy?: T;
+        currencyDecimals?: T;
       };
   pointsEarned?: T;
   paymentId?: T;
@@ -955,7 +1032,34 @@ export interface ExchangeRatesSelect<T extends boolean = true> {
   fromCurrency?: T;
   toCurrency?: T;
   rate?: T;
+  source?: T;
+  lastUpdate?: T;
+  lastSuccess?: T;
+  lastError?: T;
+  syncStatus?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "currencies_select".
+ */
+export interface CurrenciesSelect<T extends boolean = true> {
+  isoCode?: T;
+  numericCode?: T;
+  name?: T;
+  symbol?: T;
+  nativeSymbol?: T;
+  decimals?: T;
+  countryCodes?:
+    | T
+    | {
+        code?: T;
+        id?: T;
+      };
   isActive?: T;
+  displayOrder?: T;
+  isDefault?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -970,7 +1074,7 @@ export interface TranslationCacheSelect<T extends boolean = true> {
   translatedText?: T;
   provider?: T;
   version?: T;
-  expiresAt?: T;
+  lastVerifiedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

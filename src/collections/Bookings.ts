@@ -108,84 +108,30 @@ export const Bookings: CollectionConfig = {
       required: true,
     },
     {
-      name: 'pricing',
+      name: 'pricingSnapshot',
       type: 'group',
+      admin: {
+        description: 'Immutable financial record of the booking',
+      },
       fields: [
-        {
-          name: 'basePrice',
-          type: 'number',
-          required: true,
-          admin: {
-            description: 'Base price in EGP',
-          },
-        },
-        {
-          name: 'pointsRedeemed',
-          type: 'number',
-          defaultValue: 0,
-        },
-        {
-          name: 'pointsValue',
-          type: 'number',
-          defaultValue: 0,
-          admin: {
-            description: 'Value in EGP',
-          },
-        },
-        {
-          name: 'totalAmount',
-          type: 'number',
-          required: true,
-          admin: {
-            description: 'Final amount in EGP after points redemption',
-          },
-        },
-        {
-          name: 'currency',
-          type: 'select',
-          required: true,
-          defaultValue: 'EGP',
-          options: [
-            { label: 'EGP', value: 'EGP' },
-            { label: 'USD', value: 'USD' },
-            { label: 'EUR', value: 'EUR' },
-            { label: 'AED', value: 'AED' },
-            { label: 'SAR', value: 'SAR' },
-          ],
-        },
-        // Currency Snapshot — frozen at booking creation
-        {
-          name: 'basePriceEGP',
-          type: 'number',
-          admin: {
-            readOnly: true,
-            description: 'Original base price in EGP at time of booking',
-          },
-        },
-        {
-          name: 'exchangeRateUsed',
-          type: 'number',
-          admin: {
-            readOnly: true,
-            description: 'Exchange rate used at time of booking',
-          },
-        },
-        {
-          name: 'displayAmount',
-          type: 'number',
-          admin: {
-            readOnly: true,
-            description: 'Converted amount shown to the traveler',
-          },
-        },
-        {
-          name: 'displayCurrency',
-          type: 'text',
-          admin: {
-            readOnly: true,
-            description: 'Currency code shown to the traveler',
-          },
-        },
+        { name: 'version', type: 'number', defaultValue: 1, admin: { readOnly: true } },
+        { name: 'basePriceEGP', type: 'number', required: true, admin: { readOnly: true } },
+        { name: 'promotionDiscountEGP', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+        { name: 'couponDiscountEGP', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+        { name: 'loyaltyDiscountEGP', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+        { name: 'subtotalEGP', type: 'number', required: true, admin: { readOnly: true } },
+        { name: 'taxes', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+        { name: 'fees', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+        { name: 'totalAmountEGP', type: 'number', required: true, admin: { readOnly: true } },
+        
+        // Currency & Exchange Data
+        { name: 'displayCurrency', type: 'text', required: true, admin: { readOnly: true } },
+        { name: 'displayAmount', type: 'number', required: true, admin: { readOnly: true } },
+        { name: 'exchangeRate', type: 'number', required: true, admin: { readOnly: true } },
+        { name: 'exchangeProvider', type: 'text', admin: { readOnly: true } },
+        { name: 'exchangeRateTimestamp', type: 'date', admin: { readOnly: true } },
+        { name: 'roundingStrategy', type: 'text', admin: { readOnly: true } },
+        { name: 'currencyDecimals', type: 'number', admin: { readOnly: true } },
       ],
     },
     {

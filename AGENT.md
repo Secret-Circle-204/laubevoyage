@@ -705,3 +705,26 @@ When in doubt:
 - **Staff / Admins**: Reside in the `users` collection. This is used exclusively for Payload CMS Admin Dashboard access. They have roles (`admin`, `super_admin`) but have zero customer fields (no loyalty points, no tier caching, no welcome point hooks, and no booking relationships).
 - **Customers / Travelers**: Reside in the `customers` collection. This is used exclusively for the customer facing web application, profile preferences, bookings, reviews, and loyalty ledger tracking. They have NO administrative access or roles.
 
+
+---
+
+# 21. CROSS-CUTTING INFRASTRUCTURE LAYER & DOMAIN AGNOSTICISM
+
+- **The Golden Rule of Domains**: NO Domain (Booking, Package, Destination) is allowed to know about Localization, Translation, or Currency conversion. They are strictly forbidden from calling 	ranslate() or convertCurrency(). 
+- **Internal Storage**: All core domains MUST store and operate on **EGP** and **English** exclusively. They must return raw DTOs.
+- **The Localization Layer**: The Localization Layer (Presentation Gateway) is the ONLY layer that intercepts the DTO, translates fields, converts currencies, and formats dates/numbers based on the LocaleContext before returning the final response to the Frontend.
+
+---
+
+# 22. FINANCIAL IMMUTABILITY
+
+- **Zero Recalculation**: Financial data is strictly immutable. Invoices, Receipts, Payments, and Booking Prices (Pricing Snapshot) are NEVER recalculated after creation.
+- **Immutable Snapshots**: A Booking Pricing Snapshot represents a historical financial record and cannot be changed, even if exchange rates, base prices, or currency catalogs are altered later.
+
+---
+
+# 23. PAYMENT ADAPTER INDEPENDENCE
+
+- **Zero Knowledge Adapters**: Payment Adapters (e.g., Stripe, PayPal) must have Zero Knowledge of exchange rates or currency conversions. 
+- **Execution Only**: They only receive the finalized PricingSnapshot amounts and execute the transaction.
+

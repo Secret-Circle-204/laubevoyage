@@ -25,7 +25,7 @@ export class DomainServices {
   public readonly localization: LocalizationService
 
   constructor(payload: Payload) {
-    this.currency = new CurrencyService(payload)
+    this.currency = new CurrencyService()
     this.loyalty = new LoyaltyService(payload)
     this.booking = new BookingService(payload)
     this.customer = new CustomerService(payload)
@@ -46,7 +46,7 @@ export function getDomainServices(payload: Payload): DomainServices {
 
 // Export individual services for direct imports
 export { BookingService } from './booking/service'
-export { CurrencyCode } from '@/types'
+export type { CurrencyCode } from '@/types'
 export { CurrencyService } from './currency/service'
 export { DestinationService } from './destination/service'
 export { LoyaltyService } from './loyalty/service'

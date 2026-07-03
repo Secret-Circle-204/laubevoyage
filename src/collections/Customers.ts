@@ -94,25 +94,38 @@ export const Customers: CollectionConfig = {
       type: 'group',
       fields: [
         {
-          name: 'locale',
-          type: 'select',
-          defaultValue: 'en',
-          options: [
-            { label: 'English', value: 'en' },
-            { label: 'العربية', value: 'ar' },
-            { label: 'Français', value: 'fr' },
-          ],
+          name: 'preferredLocale',
+          type: 'text',
+          defaultValue: 'en-US',
+          admin: {
+            description: 'E.g., en-US, ar-EG. Controls dates, numbers, and separators.',
+          },
         },
         {
-          name: 'currency',
-          type: 'select',
+          name: 'preferredLanguage',
+          type: 'text',
+          defaultValue: 'en',
+        },
+        {
+          name: 'preferredCurrency',
+          type: 'text',
           defaultValue: 'EGP',
+          admin: {
+            description: 'Must match an active ISO Code in Currencies catalog',
+          },
+        },
+        {
+          name: 'preferredTimezone',
+          type: 'text',
+          defaultValue: 'Africa/Cairo',
+        },
+        {
+          name: 'measurementSystem',
+          type: 'select',
+          defaultValue: 'metric',
           options: [
-            { label: 'EGP', value: 'EGP' },
-            { label: 'USD', value: 'USD' },
-            { label: 'EUR', value: 'EUR' },
-            { label: 'AED', value: 'AED' },
-            { label: 'SAR', value: 'SAR' },
+            { label: 'Metric', value: 'metric' },
+            { label: 'Imperial', value: 'imperial' },
           ],
         },
         {

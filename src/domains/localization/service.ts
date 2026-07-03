@@ -1,12 +1,10 @@
 import type { Payload, PayloadRequest } from 'payload'
 import { TranslationService } from '../translation/service'
-import { CurrencyService } from '../currency/service'
-import { CurrencyCode } from '@/types'
-import type {
-  LocaleContext,
-  PricingResult,
-} from '@/types/locale'
+import { PricingPipeline } from '../currency/pipeline'
+import type { CurrencyCode } from '@/types'
+import type { LocaleContext } from '@/types/locale'
 import { DEFAULT_LOCALE_CONTEXT } from '@/types/locale'
+import type { PricingResult } from '../currency/pipeline'
 
 /**
  * Localization Domain Service — Presentation Gateway
@@ -14,21 +12,18 @@ import { DEFAULT_LOCALE_CONTEXT } from '@/types/locale'
  * Central orchestrator for all locale-dependent operations:
  * - Determines and manages the traveler's Locale Context
  * - Delegates text translation to the Translation Domain
- * - Delegates price conversion to the Currency Domain
+ * - Delegates price conversion to the Pricing Pipeline
  * - Formats dates, numbers, and money on the server
- *
- * Other domains (Packages, Booking, Dashboard, Loyalty) call this service
- * to receive display-ready data. They never manage locale concerns themselves.
  */
 export class LocalizationService {
   private payload: Payload
   private translationService: TranslationService
-  private currencyService: CurrencyService
+  private pricingPipeline: PricingPipeline
 
   constructor(payload: Payload) {
     this.payload = payload
     this.translationService = new TranslationService(payload)
-    this.currencyService = new CurrencyService(payload)
+    this.pricingPipeline = new PricingPipeline()
   }
 
   /**
@@ -84,42 +79,16 @@ export class LocalizationService {
   ): Promise<PricingResult> {
     const targetCurrency = ctx.currency
 
-    if (targetCurrency === CurrencyCode.EGP) {
-      return {
-        displayPrice: basePriceEGP,
-        displayCurrency: CurrencyCode.EGP,
-        formattedPrice: this.formatMoney(basePriceEGP, CurrencyCode.EGP, ctx.language),
-      }
-    }
-
-    const displayPrice = await this.currencyService.convert(
-      CurrencyCode.EGP,
-      targetCurrency,
+    return this.pricingPipeline.execute({
       basePriceEGP,
-    )
-
-    return {
-      displayPrice,
-      displayCurrency: targetCurrency,
-      formattedPrice: this.formatMoney(displayPrice, targetCurrency, ctx.language),
-    }
+      targetCurrency,
+      locale: ctx.language,
+    })
   }
 
   // =========================================================================
   // Formatting Utilities
   // =========================================================================
-
-  /**
-   * Format money server-side using Intl.NumberFormat.
-   */
-  formatMoney(amount: number, currency: string, locale: string = 'en'): string {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount)
-  }
 
   /**
    * Format a date server-side using Intl.DateTimeFormat.

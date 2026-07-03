@@ -1,4 +1,4 @@
-import { CurrencyCode } from './index'
+import type { CurrencyCode } from './index'
 
 // ============================================================================
 // LOCALIZATION DOMAIN — Locale Context
@@ -50,33 +50,9 @@ export interface LocaleContext {
  */
 export const DEFAULT_LOCALE_CONTEXT: LocaleContext = {
   language: Language.EN,
-  currency: CurrencyCode.EGP,
+  currency: 'EGP',
   country: 'EG',
   timezone: 'Africa/Cairo',
   measurement: MeasurementSystem.METRIC,
   weekStart: 6, // Saturday in Egypt
-}
-
-/**
- * Pricing result returned by the Pricing Pipeline.
- * The frontend only sees these display-ready values.
- */
-export interface PricingResult {
-  /** Converted amount in the traveler's currency */
-  displayPrice: number
-  /** ISO 4217 currency code (e.g. 'USD') */
-  displayCurrency: string
-  /** Server-formatted string (e.g. '$480.00') */
-  formattedPrice: string
-}
-
-/**
- * Currency Snapshot — frozen at booking creation time.
- * Prevents retroactive price shifts when exchange rates change.
- */
-export interface CurrencySnapshot {
-  basePriceEGP: number
-  exchangeRateUsed: number
-  displayAmount: number
-  displayCurrency: string
 }
