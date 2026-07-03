@@ -153,6 +153,39 @@ export const Bookings: CollectionConfig = {
             { label: 'SAR', value: 'SAR' },
           ],
         },
+        // Currency Snapshot — frozen at booking creation
+        {
+          name: 'basePriceEGP',
+          type: 'number',
+          admin: {
+            readOnly: true,
+            description: 'Original base price in EGP at time of booking',
+          },
+        },
+        {
+          name: 'exchangeRateUsed',
+          type: 'number',
+          admin: {
+            readOnly: true,
+            description: 'Exchange rate used at time of booking',
+          },
+        },
+        {
+          name: 'displayAmount',
+          type: 'number',
+          admin: {
+            readOnly: true,
+            description: 'Converted amount shown to the traveler',
+          },
+        },
+        {
+          name: 'displayCurrency',
+          type: 'text',
+          admin: {
+            readOnly: true,
+            description: 'Currency code shown to the traveler',
+          },
+        },
       ],
     },
     {

@@ -104,6 +104,14 @@ export class PaymentService {
 
         if (bookingIdRaw) {
           const bookingId = Number(bookingIdRaw)
+
+          // Idempotency guard: check if this booking was already processed
+          const booking = await this.bookingService.getById(bookingId)
+          if (booking.paymentId) {
+            console.log(`[PaymentService] Idempotency: Booking #${bookingId} already processed (paymentId: ${booking.paymentId}). Skipping.`)
+            return
+          }
+
           await this.bookingService.markAsPaid(bookingId)
           await this.bookingService.confirm(bookingId, session.payment_intent || 'unknown')
         }

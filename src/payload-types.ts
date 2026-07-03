@@ -453,6 +453,22 @@ export interface Booking {
      */
     totalAmount: number;
     currency: 'EGP' | 'USD' | 'EUR' | 'AED' | 'SAR';
+    /**
+     * Original base price in EGP at time of booking
+     */
+    basePriceEGP?: number | null;
+    /**
+     * Exchange rate used at time of booking
+     */
+    exchangeRateUsed?: number | null;
+    /**
+     * Converted amount shown to the traveler
+     */
+    displayAmount?: number | null;
+    /**
+     * Currency code shown to the traveler
+     */
+    displayCurrency?: string | null;
   };
   /**
    * Calculated by LoyaltyService
@@ -530,17 +546,35 @@ export interface ExchangeRate {
   createdAt: string;
 }
 /**
- * Persistent cache repository for translated text segments
+ * Persistent versioned cache for translated text segments with TTL
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "translation-cache".
  */
 export interface TranslationCache {
   id: number;
+  /**
+   * SHA-256 hash of the original English source text
+   */
+  originalHash: string;
   sourceText: string;
-  fromLanguage: string;
-  toLanguage: string;
+  /**
+   * Target locale code (e.g. ar, fr)
+   */
+  language: string;
   translatedText: string;
+  /**
+   * Translation engine used (e.g. google, libre, deepl)
+   */
+  provider: string;
+  /**
+   * Source document version at the time of translation
+   */
+  version: number;
+  /**
+   * Cache TTL expiry date. Re-translation is triggered after this date.
+   */
+  expiresAt: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -885,6 +919,10 @@ export interface BookingsSelect<T extends boolean = true> {
         pointsValue?: T;
         totalAmount?: T;
         currency?: T;
+        basePriceEGP?: T;
+        exchangeRateUsed?: T;
+        displayAmount?: T;
+        displayCurrency?: T;
       };
   pointsEarned?: T;
   paymentId?: T;
@@ -926,10 +964,13 @@ export interface ExchangeRatesSelect<T extends boolean = true> {
  * via the `definition` "translation-cache_select".
  */
 export interface TranslationCacheSelect<T extends boolean = true> {
+  originalHash?: T;
   sourceText?: T;
-  fromLanguage?: T;
-  toLanguage?: T;
+  language?: T;
   translatedText?: T;
+  provider?: T;
+  version?: T;
+  expiresAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

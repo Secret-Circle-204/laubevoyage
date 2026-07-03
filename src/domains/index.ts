@@ -7,6 +7,7 @@ import { CustomerService } from './customer/service'
 import { PaymentService } from './payment/service'
 import { NotificationService } from './notification/service'
 import { TranslationService } from './translation/service'
+import { LocalizationService } from './localization/service'
 
 /**
  * Domain Services Factory
@@ -21,6 +22,7 @@ export class DomainServices {
   public readonly payment: PaymentService
   public readonly notification: NotificationService
   public readonly translation: TranslationService
+  public readonly localization: LocalizationService
 
   constructor(payload: Payload) {
     this.currency = new CurrencyService(payload)
@@ -31,6 +33,7 @@ export class DomainServices {
     this.payment = new PaymentService(payload)
     this.notification = new NotificationService(payload)
     this.translation = new TranslationService(payload)
+    this.localization = new LocalizationService(payload)
   }
 }
 
@@ -51,3 +54,4 @@ export { CustomerService } from './customer/service'
 export { PaymentService } from './payment/service'
 export { NotificationService } from './notification/service'
 export { TranslationService } from './translation/service'
+export { LocalizationService } from './localization/service'

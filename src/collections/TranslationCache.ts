@@ -4,8 +4,8 @@ export const TranslationCache: CollectionConfig = {
   slug: 'translation-cache',
   admin: {
     useAsTitle: 'sourceText',
-    defaultColumns: ['sourceText', 'fromLanguage', 'toLanguage', 'translatedText'],
-    description: 'Persistent cache repository for translated text segments',
+    defaultColumns: ['originalHash', 'language', 'provider', 'version', 'expiresAt'],
+    description: 'Persistent versioned cache for translated text segments with TTL',
   },
   access: {
     read: () => true,
@@ -13,27 +13,58 @@ export const TranslationCache: CollectionConfig = {
   },
   fields: [
     {
+      name: 'originalHash',
+      type: 'text',
+      required: true,
+      index: true,
+      admin: {
+        description: 'SHA-256 hash of the original English source text',
+      },
+    },
+    {
       name: 'sourceText',
       type: 'textarea',
       required: true,
-      index: true,
     },
     {
-      name: 'fromLanguage',
+      name: 'language',
       type: 'text',
       required: true,
       index: true,
-    },
-    {
-      name: 'toLanguage',
-      type: 'text',
-      required: true,
-      index: true,
+      admin: {
+        description: 'Target locale code (e.g. ar, fr)',
+      },
     },
     {
       name: 'translatedText',
       type: 'textarea',
       required: true,
+    },
+    {
+      name: 'provider',
+      type: 'text',
+      required: true,
+      admin: {
+        description: 'Translation engine used (e.g. google, libre, deepl)',
+      },
+    },
+    {
+      name: 'version',
+      type: 'number',
+      required: true,
+      defaultValue: 1,
+      admin: {
+        description: 'Source document version at the time of translation',
+      },
+    },
+    {
+      name: 'expiresAt',
+      type: 'date',
+      required: true,
+      index: true,
+      admin: {
+        description: 'Cache TTL expiry date. Re-translation is triggered after this date.',
+      },
     },
   ],
   timestamps: true,
