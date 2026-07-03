@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Users } from './collections/Users'
+import { Customers } from './collections/Customers'
 import { Media } from './collections/Media'
 import { Countries } from './collections/Countries'
 import { Cities } from './collections/Cities'
@@ -24,7 +25,17 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Countries, Cities, Experiences, Bookings, PointLedger, ExchangeRates],
+  collections: [
+    Users,
+    Customers,
+    Media,
+    Countries,
+    Cities,
+    Experiences,
+    Bookings,
+    PointLedger,
+    ExchangeRates,
+  ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

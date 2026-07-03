@@ -29,7 +29,7 @@ export const Bookings: CollectionConfig = {
     {
       name: 'user',
       type: 'relationship',
-      relationTo: 'users',
+      relationTo: 'customers',
       required: true,
       admin: {
         position: 'sidebar',

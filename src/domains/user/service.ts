@@ -1,10 +1,10 @@
-import { UserRole, UserStatus } from '@/types'
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import { LoyaltyService } from '../loyalty/service'
+import type { Customer } from '@/payload-types'
 
 /**
  * User Domain Service
- * Handles user lifecycle and authentication
+ * Handles customer/traveler lifecycle and authentication
  */
 export class UserService {
   private payload: Payload
@@ -16,25 +16,27 @@ export class UserService {
   }
 
   /**
-   * Register new user
+   * Register new customer
    */
-  async register(data: {
-    email: string
-    password: string
-    firstName: string
-    lastName: string
-    phone?: string
-  }): Promise<number> {
-    // Create user
-    const user = await this.payload.create({
-      collection: 'users',
+  async register(
+    data: {
+      email: string
+      password: string
+      firstName: string
+      lastName: string
+      phone?: string
+    },
+    req?: PayloadRequest,
+  ): Promise<number> {
+    // Create customer
+    const customer = await this.payload.create({
+      collection: 'customers',
       data: {
         email: data.email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone || null,
-        role: 'customer',
         status: 'pending_verification',
         loyalty: {
           tier: 'explorer',
@@ -42,51 +44,51 @@ export class UserService {
           totalSpent: 0,
         },
       },
+      req,
     })
 
-    // Grant welcome bonus
-    await this.loyaltyService.grantWelcomeBonus(user.id)
-
-    return user.id
+    return customer.id
   }
 
   /**
-   * Verify user email
+   * Verify customer email
    */
-  async verifyEmail(userId: number): Promise<void> {
+  async verifyEmail(userId: number, req?: PayloadRequest): Promise<void> {
     await this.payload.update({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       data: {
         status: 'active',
         _verified: true,
       },
+      req,
     })
   }
 
   /**
-   * Get user profile
+   * Get customer profile
    */
-  async getProfile(userId: number) {
-    const user = await this.payload.findByID({
-      collection: 'users',
+  async getProfile(userId: number, req?: PayloadRequest) {
+    const customer = await this.payload.findByID({
+      collection: 'customers',
       id: userId,
+      req,
     })
 
     // Get real-time points balance from ledger
-    const realBalance = await this.loyaltyService.getBalance(userId)
+    const realBalance = await this.loyaltyService.getBalance(userId, req)
 
     return {
-      ...user,
+      ...customer,
       loyalty: {
-        ...user.loyalty,
+        ...customer.loyalty,
         points: realBalance, // Use real balance from ledger
       },
     }
   }
 
   /**
-   * Update user profile
+   * Update customer profile
    */
   async updateProfile(
     userId: number,
@@ -104,55 +106,59 @@ export class UserService {
         }
       }
     },
+    req?: PayloadRequest,
   ) {
     return this.payload.update({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       data,
+      req,
     })
   }
 
   /**
-   * Get user by email
+   * Get customer by email
    */
-  async getByEmail(email: string) {
+  async getByEmail(email: string, req?: PayloadRequest) {
     const result = await this.payload.find({
-      collection: 'users',
+      collection: 'customers',
       where: {
         email: {
           equals: email,
         },
       },
       limit: 1,
+      req,
     })
 
     return result.docs[0] || null
   }
 
   /**
-   * Suspend user account
+   * Suspend customer account
    */
-  async suspend(userId: number, reason: string): Promise<void> {
+  async suspend(userId: number, reason: string, req?: PayloadRequest): Promise<void> {
     await this.payload.update({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       data: {
         status: 'suspended',
       },
+      req,
     })
   }
 
   /**
-   * Reactivate user account
+   * Reactivate customer account
    */
-  async reactivate(userId: number): Promise<void> {
+  async reactivate(userId: number, req?: PayloadRequest): Promise<void> {
     await this.payload.update({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       data: {
         status: 'active',
       },
+      req,
     })
   }
 }
-

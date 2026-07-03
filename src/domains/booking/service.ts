@@ -54,7 +54,7 @@ export class BookingService {
     })
 
     const user = await this.payload.findByID({
-      collection: 'users',
+      collection: 'customers',
       id: data.userId,
     })
 
@@ -125,7 +125,7 @@ export class BookingService {
         : Number(booking.user)
 
     const user = await this.payload.findByID({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
     })
 
@@ -158,7 +158,7 @@ export class BookingService {
     // Update total spent
     const totalSpent = (user.loyalty?.totalSpent || 0) + (booking.pricing?.totalAmount || 0)
     await this.payload.update({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       data: {
         loyalty: {

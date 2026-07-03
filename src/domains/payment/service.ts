@@ -1,6 +1,9 @@
-import { PaymentProvider, PaymentStatus } from '@/types'
+import { PaymentProvider, PaymentStatus, CurrencyCode } from '@/types'
 import type { Payload } from 'payload'
 import { BookingService } from '../booking/service'
+import { CurrencyService } from '../currency/service'
+import { stripe } from '@/lib/stripe'
+import type { User, Experience } from '@/payload-types'
 
 interface StripeWebhookEvent {
   type: string
@@ -22,10 +25,12 @@ interface StripeWebhookEvent {
 export class PaymentService {
   private payload: Payload
   private bookingService: BookingService
+  private currencyService: CurrencyService
 
   constructor(payload: Payload) {
     this.payload = payload
     this.bookingService = new BookingService(payload)
+    this.currencyService = new CurrencyService(payload)
   }
 
   /**
@@ -34,12 +39,57 @@ export class PaymentService {
   async createStripeSession(bookingId: number, successUrl: string, cancelUrl: string) {
     const booking = await this.bookingService.getById(bookingId)
 
-    // TODO: Implement Stripe session creation
-    // This is a placeholder for Stripe integration
+    const userDoc = typeof booking.user === 'object' && booking.user !== null
+      ? (booking.user as User)
+      : await this.payload.findByID({ collection: 'users', id: Number(booking.user) })
+
+    const experienceDoc = typeof booking.experience === 'object' && booking.experience !== null
+      ? (booking.experience as Experience)
+      : await this.payload.findByID({ collection: 'experiences', id: Number(booking.experience) })
+
+    const currency = booking.pricing.currency || 'EGP'
+    const totalAmountEGP = booking.pricing.totalAmount
+
+    if (totalAmountEGP <= 0) {
+      throw new Error('Total price must be greater than zero for Stripe payment')
+    }
+
+    // Convert EGP amount to booking payment currency
+    const targetAmount = await this.currencyService.convert(
+      CurrencyCode.EGP,
+      currency as CurrencyCode,
+      totalAmountEGP
+    )
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      customer_email: userDoc.email || undefined,
+      line_items: [
+        {
+          price_data: {
+            currency: currency.toLowerCase(),
+            product_data: {
+              name: experienceDoc.title,
+              description: `Booking #${booking.bookingNumber} - L'Aube Voyage`,
+            },
+            unit_amount: Math.round(targetAmount * 100), // scale to sub-units
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        bookingId: String(booking.id),
+        userId: String(userDoc.id),
+      },
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 minutes session expiry
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    })
 
     return {
-      sessionId: 'mock_session_id',
-      url: 'https://checkout.stripe.com/mock',
+      sessionId: session.id,
+      url: session.url,
     }
   }
 
@@ -78,4 +128,3 @@ export class PaymentService {
     await this.bookingService.confirm(bookingId, 'bnpl_' + Date.now())
   }
 }
-

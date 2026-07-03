@@ -5,7 +5,7 @@ import {
   WELCOME_BONUS,
   type PointLedgerEntry,
 } from '@/types'
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import type { PointLedger, User } from '@/payload-types'
 
 /**
@@ -24,8 +24,8 @@ export class LoyaltyService {
   /**
    * Grant welcome bonus to new user
    */
-  async grantWelcomeBonus(userId: number): Promise<number> {
-    return this.earn(userId, WELCOME_BONUS, PointTransactionType.WELCOME_BONUS, 'Welcome bonus')
+  async grantWelcomeBonus(userId: number, req?: PayloadRequest): Promise<number> {
+    return this.earn(userId, WELCOME_BONUS, PointTransactionType.WELCOME_BONUS, 'Welcome bonus', undefined, req)
   }
 
   /**
@@ -37,8 +37,9 @@ export class LoyaltyService {
     type: PointTransactionType,
     reason: string,
     bookingId?: number,
+    req?: PayloadRequest,
   ): Promise<number> {
-    const currentBalance = await this.getBalance(userId)
+    const currentBalance = await this.getBalance(userId, req)
     const newBalance = currentBalance + amount
 
     // Create ledger entry
@@ -54,10 +55,11 @@ export class LoyaltyService {
         expiresAt:
           type === PointTransactionType.EARNED ? this.calculateExpiry().toISOString() : undefined,
       },
+      req,
     })
 
     // Update cached balance
-    await this.updateCachedBalance(userId, newBalance)
+    await this.updateCachedBalance(userId, newBalance, req)
 
     return newBalance
   }
@@ -65,8 +67,8 @@ export class LoyaltyService {
   /**
    * Redeem points for booking
    */
-  async redeem(userId: number, amount: number, bookingId: number, reason: string): Promise<number> {
-    const currentBalance = await this.getBalance(userId)
+  async redeem(userId: number, amount: number, bookingId: number, reason: string, req?: PayloadRequest): Promise<number> {
+    const currentBalance = await this.getBalance(userId, req)
 
     if (amount > currentBalance) {
       throw new Error(`Insufficient points. Available: ${currentBalance}, Requested: ${amount}`)
@@ -85,10 +87,11 @@ export class LoyaltyService {
         reason,
         booking: bookingId,
       },
+      req,
     })
 
     // Update cached balance
-    await this.updateCachedBalance(userId, newBalance)
+    await this.updateCachedBalance(userId, newBalance, req)
 
     return newBalance
   }
@@ -96,21 +99,22 @@ export class LoyaltyService {
   /**
    * Refund redeemed points when booking is cancelled
    */
-  async refund(userId: number, amount: number, bookingId: number): Promise<number> {
+  async refund(userId: number, amount: number, bookingId: number, req?: PayloadRequest): Promise<number> {
     return this.earn(
       userId,
       amount,
       PointTransactionType.REFUNDED,
       `Refund for cancelled booking ${bookingId}`,
       bookingId,
+      req,
     )
   }
 
   /**
    * Reverse earned points when booking is cancelled
    */
-  async reverse(userId: number, amount: number, bookingId: number): Promise<number> {
-    const currentBalance = await this.getBalance(userId)
+  async reverse(userId: number, amount: number, bookingId: number, req?: PayloadRequest): Promise<number> {
+    const currentBalance = await this.getBalance(userId, req)
     const newBalance = currentBalance - amount
 
     await this.payload.create({
@@ -123,20 +127,21 @@ export class LoyaltyService {
         reason: `Reversal for cancelled booking ${bookingId}`,
         booking: bookingId,
       },
+      req,
     })
 
-    await this.updateCachedBalance(userId, newBalance)
+    await this.updateCachedBalance(userId, newBalance, req)
     return newBalance
   }
 
   /**
    * Grant tier upgrade bonus
    */
-  async grantTierBonus(userId: number, tier: LoyaltyTier): Promise<number> {
+  async grantTierBonus(userId: number, tier: LoyaltyTier, req?: PayloadRequest): Promise<number> {
     const bonus = TIER_CONFIG[tier].bonus
-    if (bonus === 0) return await this.getBalance(userId)
+    if (bonus === 0) return await this.getBalance(userId, req)
 
-    return this.earn(userId, bonus, PointTransactionType.TIER_UPGRADE, `${tier} tier upgrade bonus`)
+    return this.earn(userId, bonus, PointTransactionType.TIER_UPGRADE, `${tier} tier upgrade bonus`, undefined, req)
   }
 
   /**
@@ -150,10 +155,11 @@ export class LoyaltyService {
   /**
    * Evaluate and upgrade tier if eligible
    */
-  async evaluateTier(userId: number): Promise<LoyaltyTier> {
+  async evaluateTier(userId: number, req?: PayloadRequest): Promise<LoyaltyTier> {
     const user = await this.payload.findByID({
       collection: 'users',
       id: userId,
+      req,
     })
 
     const totalSpent = user.loyalty?.totalSpent || 0
@@ -179,10 +185,11 @@ export class LoyaltyService {
             tierAchievedAt: new Date().toISOString(),
           },
         },
+        req,
       })
 
       // Grant tier bonus
-      await this.grantTierBonus(userId, newTier)
+      await this.grantTierBonus(userId, newTier, req)
     }
 
     return newTier
@@ -191,7 +198,7 @@ export class LoyaltyService {
   /**
    * Get current points balance from ledger
    */
-  async getBalance(userId: number): Promise<number> {
+  async getBalance(userId: number, req?: PayloadRequest): Promise<number> {
     const latestEntry = await this.payload.find({
       collection: 'point-ledger',
       where: {
@@ -201,6 +208,7 @@ export class LoyaltyService {
       },
       sort: '-createdAt',
       limit: 1,
+      req,
     })
 
     return latestEntry.docs.length > 0 ? latestEntry.docs[0].balance : 0
@@ -213,6 +221,7 @@ export class LoyaltyService {
     userId: number,
     page: number = 1,
     limit: number = 20,
+    req?: PayloadRequest,
   ): Promise<PointLedgerEntry[]> {
     const result = await this.payload.find({
       collection: 'point-ledger',
@@ -224,6 +233,7 @@ export class LoyaltyService {
       sort: '-createdAt',
       page,
       limit,
+      req,
     })
 
     return result.docs.map((doc: PointLedger) => ({
@@ -243,10 +253,11 @@ export class LoyaltyService {
   /**
    * Update cached balance in user record
    */
-  private async updateCachedBalance(userId: number, balance: number): Promise<void> {
+  private async updateCachedBalance(userId: number, balance: number, req?: PayloadRequest): Promise<void> {
     const user = await this.payload.findByID({
       collection: 'users',
       id: userId,
+      req,
     })
 
     await this.payload.update({
@@ -258,6 +269,7 @@ export class LoyaltyService {
           points: balance,
         },
       },
+      req,
     })
   }
 
@@ -282,4 +294,3 @@ export class LoyaltyService {
     return levels[tier]
   }
 }
-

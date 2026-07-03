@@ -9,10 +9,10 @@ export const afterUserCreate: CollectionAfterChangeHook = async ({ doc, req, ope
     const services = getDomainServices(req.payload)
 
     // Grant welcome bonus
-    await services.loyalty.grantWelcomeBonus(Number(doc.id))
+    await services.loyalty.grantWelcomeBonus(Number(doc.id), req)
 
     // Send welcome email
-    await services.notification.sendWelcomeEmail(Number(doc.id))
+    await services.notification.sendWelcomeEmail(Number(doc.id), req)
   }
 
   return doc

@@ -78,23 +78,23 @@ async function seed() {
   })
 
   // 5. Create Admin User
-  console.log('👤 Creating admin user...')
-  await payload.create({
-    collection: 'users',
-    data: {
-      email: 'admin@laubevoyage.com',
-      password: 'Admin@123',
-      firstName: 'Admin',
-      lastName: 'User',
-      role: 'super_admin',
-      status: 'active',
-      loyalty: {
-        tier: 'elite',
-        points: 0,
-        totalSpent: 0,
-      },
-    },
-  })
+  // console.log('👤 Creating admin user...')
+  // await payload.create({
+  //   collection: 'users',
+  //   data: {
+  //     email: 'admin@laubevoyage.com',
+  //     password: 'Admin@123',
+  //     firstName: 'Admin',
+  //     lastName: 'User',
+  //     role: 'super_admin',
+  //     status: 'active',
+  //     loyalty: {
+  //       tier: 'elite',
+  //       points: 0,
+  //       totalSpent: 0,
+  //     },
+  //   },
+  // })
 
   console.log('✅ Seed completed successfully!')
   process.exit(0)

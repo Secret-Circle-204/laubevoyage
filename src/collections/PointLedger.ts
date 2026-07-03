@@ -24,7 +24,7 @@ export const PointLedger: CollectionConfig = {
     {
       name: 'user',
       type: 'relationship',
-      relationTo: 'users',
+      relationTo: 'customers',
       required: true,
       index: true,
     },
