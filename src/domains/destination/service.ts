@@ -2,9 +2,8 @@ import {
   ExperienceType,
   ExperienceAvailability,
   CurrencyCode,
-  type PaginatedResponse,
 } from '@/types'
-import type { Payload } from 'payload'
+import type { Payload, Where } from 'payload'
 import { CurrencyService } from '../currency/service'
 
 /**
@@ -55,7 +54,7 @@ export class DestinationService {
   /**
    * Get cities by country
    */
-  async getCitiesByCountry(countryId: string, locale?: string) {
+  async getCitiesByCountry(countryId: number, locale?: string) {
     return this.payload.find({
       collection: 'cities',
       where: {
@@ -86,7 +85,7 @@ export class DestinationService {
    * Get experiences by city
    */
   async getExperiencesByCity(
-    cityId: string,
+    cityId: number,
     options: {
       type?: ExperienceType
       page?: number
@@ -97,16 +96,18 @@ export class DestinationService {
   ) {
     const { type, page = 1, limit = 10, locale = 'en', currency = CurrencyCode.EGP } = options
 
-    const where: any = {
-      and: [
-        { city: { equals: cityId } },
-        { isActive: { equals: true } },
-        { availability: { equals: ExperienceAvailability.AVAILABLE } },
-      ],
-    }
+    const andConditions: Where[] = [
+      { city: { equals: cityId } },
+      { isActive: { equals: true } },
+      { availability: { equals: ExperienceAvailability.AVAILABLE } },
+    ]
 
     if (type) {
-      where.and.push({ type: { equals: type } })
+      andConditions.push({ type: { equals: type } })
+    }
+
+    const where: Where = {
+      and: andConditions,
     }
 
     const result = await this.payload.find({
@@ -201,18 +202,20 @@ export class DestinationService {
   ) {
     const { type, page = 1, limit = 10, locale = 'en', currency = CurrencyCode.EGP } = options
 
-    const where: any = {
-      and: [
-        { isActive: { equals: true } },
-        { availability: { equals: ExperienceAvailability.AVAILABLE } },
-        {
-          or: [{ title: { contains: query } }, { description: { contains: query } }],
-        },
-      ],
-    }
+    const andConditions: Where[] = [
+      { isActive: { equals: true } },
+      { availability: { equals: ExperienceAvailability.AVAILABLE } },
+      {
+        or: [{ title: { contains: query } }, { description: { contains: query } }],
+      },
+    ]
 
     if (type) {
-      where.and.push({ type: { equals: type } })
+      andConditions.push({ type: { equals: type } })
+    }
+
+    const where: Where = {
+      and: andConditions,
     }
 
     const result = await this.payload.find({

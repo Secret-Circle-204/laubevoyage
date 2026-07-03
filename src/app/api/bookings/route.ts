@@ -13,20 +13,25 @@ export async function POST(request: NextRequest) {
     const services = getDomainServices(payload)
 
     // TODO: Get authenticated user from session
-    const userId = request.headers.get('x-user-id')
-    if (!userId) {
+    const userIdStr = request.headers.get('x-user-id')
+    if (!userIdStr) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const userId = Number(userIdStr)
+    if (isNaN(userId)) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
 
     const body = await request.json()
 
     const bookingId = await services.booking.create({
       userId,
-      experienceId: body.experienceId,
+      experienceId: Number(body.experienceId),
       travelers: body.travelers,
       startDate: body.startDate,
       endDate: body.endDate,
-      pointsToRedeem: body.pointsToRedeem,
+      pointsToRedeem: body.pointsToRedeem ? Number(body.pointsToRedeem) : undefined,
       currency: body.currency,
     })
 
@@ -51,9 +56,14 @@ export async function GET(request: NextRequest) {
     const payload = await getPayload({ config })
     const services = getDomainServices(payload)
 
-    const userId = request.headers.get('x-user-id')
-    if (!userId) {
+    const userIdStr = request.headers.get('x-user-id')
+    if (!userIdStr) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const userId = Number(userIdStr)
+    if (isNaN(userId)) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
 
     const searchParams = request.nextUrl.searchParams

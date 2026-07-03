@@ -51,30 +51,30 @@ async function seed() {
     data: {
       name: 'Cairo',
       slug: 'cairo',
-      country: egypt.id as any,
+      country: egypt.id,
       isActive: true,
     },
   })
 
   // 4. Seed Experiences
-  console.log('� Seeding experiences...')
+  console.log(' Seeding experiences...')
   await payload.create({
     collection: 'experiences',
     data: {
       title: 'Cairo & Pyramids - 3 Days Package',
       slug: 'cairo-pyramids-3-days',
       type: 'package',
-      city: cairo.id as any,
+      city: cairo.id,
       duration: {
         days: 3,
         nights: 2,
       },
       price: 15000,
       availability: 'available',
-      included: [{ item: 'Hotel accommodation' }, { item: 'Airport transfers' }],
+      included: [{ item: 'Hotel accommodation' }],
       excluded: [{ item: 'International flights' }],
       isActive: true,
-    } as any,
+    },
   })
 
   // 5. Create Admin User
@@ -93,7 +93,7 @@ async function seed() {
         points: 0,
         totalSpent: 0,
       },
-    } as any,
+    },
   })
 
   console.log('✅ Seed completed successfully!')

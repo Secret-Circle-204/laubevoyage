@@ -12,9 +12,14 @@ export async function GET(request: NextRequest) {
     const payload = await getPayload({ config })
     const services = getDomainServices(payload)
 
-    const userId = request.headers.get('x-user-id')
-    if (!userId) {
+    const userIdStr = request.headers.get('x-user-id')
+    if (!userIdStr) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const userId = Number(userIdStr)
+    if (isNaN(userId)) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
 
     const balance = await services.loyalty.getBalance(userId)

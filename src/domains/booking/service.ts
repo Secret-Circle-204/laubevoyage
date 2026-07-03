@@ -1,4 +1,4 @@
-import { BookingStatus, CurrencyCode, type BookingTransition } from '@/types'
+import { BookingStatus, CurrencyCode, LoyaltyTier, PointTransactionType } from '@/types'
 import type { Payload } from 'payload'
 import { LoyaltyService } from '../loyalty/service'
 import { CurrencyService } from '../currency/service'
@@ -33,8 +33,8 @@ export class BookingService {
    * Create new booking in draft state
    */
   async create(data: {
-    userId: string
-    experienceId: string
+    userId: number
+    experienceId: number
     travelers: Array<{
       firstName: string
       lastName: string
@@ -47,7 +47,7 @@ export class BookingService {
     endDate: string
     pointsToRedeem?: number
     currency?: CurrencyCode
-  }): Promise<string> {
+  }): Promise<number> {
     const experience = await this.payload.findByID({
       collection: 'experiences',
       id: data.experienceId,
@@ -78,10 +78,10 @@ export class BookingService {
       collection: 'bookings',
       data: {
         bookingNumber: await this.generateBookingNumber(),
-        user: data.userId as any,
-        experience: data.experienceId as any,
-        status: BookingStatus.DRAFT,
-        travelers: data.travelers as any,
+        user: data.userId,
+        experience: data.experienceId,
+        status: 'draft',
+        travelers: data.travelers,
         startDate: data.startDate,
         endDate: data.endDate,
         pricing: {
@@ -95,20 +95,20 @@ export class BookingService {
       },
     })
 
-    return String(booking.id)
+    return Number(booking.id)
   }
 
   /**
    * Move booking to pending payment
    */
-  async moveToPendingPayment(bookingId: string): Promise<void> {
+  async moveToPendingPayment(bookingId: number): Promise<void> {
     await this.transitionStatus(bookingId, BookingStatus.DRAFT, BookingStatus.PENDING_PAYMENT)
   }
 
   /**
    * Confirm booking after successful payment
    */
-  async confirm(bookingId: string, paymentId: string): Promise<void> {
+  async confirm(bookingId: number, paymentId: string): Promise<void> {
     const booking = await this.payload.findByID({
       collection: 'bookings',
       id: bookingId,
@@ -121,8 +121,9 @@ export class BookingService {
 
     const userId =
       typeof booking.user === 'object' && booking.user !== null
-        ? String(booking.user.id)
-        : String(booking.user)
+        ? Number(booking.user.id)
+        : Number(booking.user)
+
     const user = await this.payload.findByID({
       collection: 'users',
       id: userId,
@@ -139,17 +140,17 @@ export class BookingService {
     }
 
     // Calculate points earned
-    const tier = user.loyalty?.tier || 'explorer'
+    const tier = (user.loyalty?.tier || 'explorer') as LoyaltyTier
     const pointsEarned = this.loyaltyService.calculateEarnedPoints(
       booking.pricing?.totalAmount || 0,
-      tier as any,
+      tier,
     )
 
     // Grant earned points
     await this.loyaltyService.earn(
       userId,
       pointsEarned,
-      'earned' as any,
+      PointTransactionType.EARNED,
       `Earned from booking ${booking.bookingNumber}`,
       bookingId,
     )
@@ -164,7 +165,7 @@ export class BookingService {
           ...user.loyalty,
           totalSpent,
         },
-      } as any,
+      },
     })
 
     // Evaluate tier upgrade
@@ -175,7 +176,7 @@ export class BookingService {
       collection: 'bookings',
       id: bookingId,
       data: {
-        status: BookingStatus.CONFIRMED,
+        status: 'confirmed',
         pointsEarned,
         paymentId,
       },
@@ -185,7 +186,7 @@ export class BookingService {
   /**
    * Cancel booking
    */
-  async cancel(bookingId: string, reason: string): Promise<void> {
+  async cancel(bookingId: number, reason: string): Promise<void> {
     const booking = await this.payload.findByID({
       collection: 'bookings',
       id: bookingId,
@@ -193,8 +194,8 @@ export class BookingService {
 
     const userId =
       typeof booking.user === 'object' && booking.user !== null
-        ? String(booking.user.id)
-        : String(booking.user)
+        ? Number(booking.user.id)
+        : Number(booking.user)
 
     // Refund redeemed points
     if (booking.pricing?.pointsRedeemed && booking.pricing.pointsRedeemed > 0) {
@@ -214,7 +215,7 @@ export class BookingService {
       collection: 'bookings',
       id: bookingId,
       data: {
-        status: BookingStatus.CANCELLED,
+        status: 'cancelled',
         notes: reason,
       },
     })
@@ -223,21 +224,21 @@ export class BookingService {
   /**
    * Complete booking after trip ends
    */
-  async complete(bookingId: string): Promise<void> {
+  async complete(bookingId: number): Promise<void> {
     await this.transitionStatus(bookingId, BookingStatus.CONFIRMED, BookingStatus.COMPLETED)
   }
 
   /**
    * Mark as paid (called by PaymentService)
    */
-  async markAsPaid(bookingId: string): Promise<void> {
+  async markAsPaid(bookingId: number): Promise<void> {
     await this.transitionStatus(bookingId, BookingStatus.PENDING_PAYMENT, BookingStatus.PAID)
   }
 
   /**
    * Get booking by ID
    */
-  async getById(bookingId: string) {
+  async getById(bookingId: number) {
     return this.payload.findByID({
       collection: 'bookings',
       id: bookingId,
@@ -247,7 +248,7 @@ export class BookingService {
   /**
    * Get user bookings
    */
-  async getUserBookings(userId: string, page: number = 1, limit: number = 10) {
+  async getUserBookings(userId: number, page: number = 1, limit: number = 10) {
     return this.payload.find({
       collection: 'bookings',
       where: {
@@ -265,7 +266,7 @@ export class BookingService {
    * Validate and perform state transition
    */
   private async transitionStatus(
-    bookingId: string,
+    bookingId: number,
     from: BookingStatus,
     to: BookingStatus,
   ): Promise<void> {
@@ -282,7 +283,7 @@ export class BookingService {
       collection: 'bookings',
       id: bookingId,
       data: {
-        status: to,
+        status: to as 'draft' | 'pending_payment' | 'paid' | 'confirmed' | 'completed' | 'cancelled' | 'refunded',
       },
     })
   }
@@ -297,3 +298,4 @@ export class BookingService {
     return `${prefix}${timestamp}${random}`
   }
 }
+

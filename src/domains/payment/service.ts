@@ -2,6 +2,19 @@ import { PaymentProvider, PaymentStatus } from '@/types'
 import type { Payload } from 'payload'
 import { BookingService } from '../booking/service'
 
+interface StripeWebhookEvent {
+  type: string
+  data: {
+    object: {
+      id: string
+      metadata?: {
+        bookingId?: string | number
+      } | null
+      payment_intent?: string | null
+    }
+  }
+}
+
 /**
  * Payment Domain Service
  * Handles payment processing with multiple providers
@@ -18,7 +31,7 @@ export class PaymentService {
   /**
    * Create payment session (Stripe)
    */
-  async createStripeSession(bookingId: string, successUrl: string, cancelUrl: string) {
+  async createStripeSession(bookingId: number, successUrl: string, cancelUrl: string) {
     const booking = await this.bookingService.getById(bookingId)
 
     // TODO: Implement Stripe session creation
@@ -33,15 +46,19 @@ export class PaymentService {
   /**
    * Handle Stripe webhook
    */
-  async handleStripeWebhook(event: any) {
+  async handleStripeWebhook(event: StripeWebhookEvent) {
     switch (event.type) {
-      case 'checkout.session.completed':
+      case 'checkout.session.completed': {
         const session = event.data.object
-        const bookingId = session.metadata.bookingId
+        const bookingIdRaw = session.metadata?.bookingId
 
-        await this.bookingService.markAsPaid(bookingId)
-        await this.bookingService.confirm(bookingId, session.payment_intent)
+        if (bookingIdRaw) {
+          const bookingId = Number(bookingIdRaw)
+          await this.bookingService.markAsPaid(bookingId)
+          await this.bookingService.confirm(bookingId, session.payment_intent || 'unknown')
+        }
         break
+      }
 
       case 'payment_intent.payment_failed':
         // Handle failed payment
@@ -55,9 +72,10 @@ export class PaymentService {
   /**
    * Process Book Now Pay Later
    */
-  async processBookNowPayLater(bookingId: string) {
+  async processBookNowPayLater(bookingId: number) {
     // Mark as paid immediately for BNPL
     await this.bookingService.markAsPaid(bookingId)
     await this.bookingService.confirm(bookingId, 'bnpl_' + Date.now())
   }
 }
+

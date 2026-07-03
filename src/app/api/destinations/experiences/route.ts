@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     // List by city
     if (cityId) {
-      const results = await services.destination.getExperiencesByCity(cityId, {
+      const results = await services.destination.getExperiencesByCity(Number(cityId), {
         type: type || undefined,
         page,
         limit,

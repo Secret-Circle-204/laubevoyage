@@ -1,0 +1,278 @@
+@import 'tailwindcss';
+
+/* بعد ذلك يمكنك استخدام الطبقات بشكل طبيعي */
+/* @layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+} */
+/* Configure dark mode to use class-based selector - Tailwind CSS 4 */
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-hornbill: var(--font-hornbill), var(--font-serif);
+
+  /* L'AUBE VOYAGE Brand Colors */
+  --color-primary: #2e3192; /* Deep Blue/Indigo - Main brand color */
+  --color-primary-light: #4448b0;
+  --color-primary-dark: #1e2166;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #00aeef; /* Bright Cyan/Sky Blue - Accent */
+  --color-secondary-light: #33bef2;
+  --color-secondary-dark: #008bc0;
+  --color-secondary-foreground: #ffffff;
+
+  --color-accent: #f58220; /* Vibrant Orange - CTA & Highlights */
+  --color-accent-light: #f79b4d;
+  --color-accent-dark: #d66a0a;
+  --color-accent-foreground: #ffffff;
+
+  --color-dark: #231f20; /* Almost Black - Text & Dark backgrounds */
+  --color-gray: #a7aaac; /* Neutral Gray */
+  --color-gray-light: #e5e7eb;
+
+  --color-background: #fafafa;
+  --color-foreground: #231f20;
+
+  /* Animation Timing */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Custom Utilities */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Smooth transitions for all interactive elements */
+  .transition-smooth {
+    transition: all 0.3s var(--ease-smooth);
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    transition:
+      transform 0.3s var(--ease-smooth),
+      box-shadow 0.3s var(--ease-smooth);
+  }
+  .hover-lift:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(46, 49, 146, 0.15);
+  }
+
+  /* Hover glow effect */
+  .hover-glow {
+    transition: box-shadow 0.3s var(--ease-smooth);
+  }
+  .hover-glow:hover {
+    box-shadow: 0 0 30px rgba(0, 174, 239, 0.4);
+  }
+
+  /* Scale on hover */
+  .hover-scale {
+    transition: transform 0.3s var(--ease-elastic);
+  }
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+
+  /* Underline animation */
+  .underline-animate {
+    position: relative;
+  }
+  .underline-animate::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-accent);
+    transition: width 0.3s var(--ease-smooth);
+  }
+  .underline-animate:hover::after {
+    width: 100%;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glassmorphism */
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Shimmer effect for loading states */
+  .shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Fade in animation */
+  .animate-fade-in {
+    animation: fadeIn 0.6s var(--ease-smooth) forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Slide in from left */
+  .animate-slide-left {
+    animation: slideLeft 0.5s var(--ease-smooth) forwards;
+  }
+
+  @keyframes slideLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Slide in from right */
+  .animate-slide-right {
+    animation: slideRight 0.5s var(--ease-smooth) forwards;
+  }
+
+  @keyframes slideRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Pulse glow */
+  .animate-pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%,
+    100% {
+      box-shadow: 0 0 20px rgba(0, 174, 239, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(0, 174, 239, 0.6);
+    }
+  }
+
+  /* Float animation */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+}
+
+:root {
+  --background: #fafafa;
+  --foreground: #231f20;
+  --dark-background: #0a0a0a;
+  --dark-foreground: #f5f5f5;
+  --dark-card: #1a1718;
+}
+
+/* Dark mode overrides - activates when 'dark' class is on html */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --dark-card: #1a1718;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-hornbill);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection styling */
+::selection {
+  background: var(--color-secondary);
+  color: white;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-gray-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}

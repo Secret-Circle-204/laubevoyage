@@ -16,7 +16,7 @@ cp .env.example .env
 pnpm generate:types
 
 # Run migrations
-pnpm db:migrate
+# pnpm db:migrate
 
 # Seed database
 pnpm seed
@@ -26,6 +26,7 @@ pnpm dev
 ```
 
 Visit `http://localhost:3000/admin` and login with:
+
 - Email: `admin@laubevoyage.com`
 - Password: `Admin@123`
 
@@ -52,14 +53,14 @@ export async function POST(request: NextRequest) {
   const booking = await payload.update({
     collection: 'bookings',
     id: bookingId,
-    data: { status: 'confirmed' }
+    data: { status: 'confirmed' },
   })
-  
+
   // Update points directly
   await payload.update({
     collection: 'users',
     id: userId,
-    data: { loyalty: { points: newPoints } }
+    data: { loyalty: { points: newPoints } },
   })
 }
 
@@ -69,7 +70,7 @@ function BookingButton() {
     // Direct database update
     await fetch('/api/bookings', {
       method: 'POST',
-      body: JSON.stringify({ status: 'confirmed' })
+      body: JSON.stringify({ status: 'confirmed' }),
     })
   }
 }
@@ -84,7 +85,7 @@ import { getDomainServices } from '@/domains'
 export async function POST(request: NextRequest) {
   const payload = await getPayload({ config })
   const services = getDomainServices(payload)
-  
+
   // Let the service handle all business logic
   await services.booking.confirm(bookingId, paymentId)
 }
@@ -94,7 +95,7 @@ function BookingButton() {
   const handleBook = async () => {
     await fetch('/api/bookings/confirm', {
       method: 'POST',
-      body: JSON.stringify({ bookingId, paymentId })
+      body: JSON.stringify({ bookingId, paymentId }),
     })
   }
 }
@@ -160,16 +161,13 @@ export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config })
     const services = getDomainServices(payload)
-    
+
     const body = await request.json()
     const result = await services.myDomain.myMethod(body)
-    
+
     return NextResponse.json(result)
   } catch (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 ```
@@ -191,9 +189,9 @@ describe('BookingService', () => {
   })
 
   it('should not allow invalid state transition', async () => {
-    await expect(
-      service.confirm('draft-booking-id', 'payment-id')
-    ).rejects.toThrow('Invalid transition')
+    await expect(service.confirm('draft-booking-id', 'payment-id')).rejects.toThrow(
+      'Invalid transition',
+    )
   })
 })
 ```
@@ -240,9 +238,9 @@ await services.currency.updateRate(CurrencyCode.EGP, CurrencyCode.GBP, 0.025)
 // Add logging to service methods
 async confirm(bookingId: string, paymentId: string) {
   console.log('[BookingService] Confirming booking:', { bookingId, paymentId })
-  
+
   // ... rest of logic
-  
+
   console.log('[BookingService] Booking confirmed successfully')
 }
 ```
@@ -309,14 +307,14 @@ src/
 for (const booking of bookings) {
   const user = await payload.findByID({
     collection: 'users',
-    id: booking.user
+    id: booking.user,
   })
 }
 
 // ✅ Use depth parameter
 const bookings = await payload.find({
   collection: 'bookings',
-  depth: 2  // Populates relations
+  depth: 2, // Populates relations
 })
 ```
 

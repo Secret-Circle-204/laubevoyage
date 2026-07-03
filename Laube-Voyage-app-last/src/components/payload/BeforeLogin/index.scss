@@ -1,0 +1,95 @@
+@import '~@payloadcms/ui/scss';
+
+@layer payload-default {
+  .before-login {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100vh;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 1;
+
+    &__image-wrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      img {
+        object-fit: cover !important;
+      }
+    }
+
+    &__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(46, 49, 146, 0.7) 0%,
+        rgba(12, 18, 32, 0.85) 100%
+      );
+      z-index: 1;
+    }
+
+    &__branding {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      gap: 1rem;
+    }
+
+    &__tagline {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.9rem;
+      font-weight: 400;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    /* Target the Payload Login form container to move it to the right half and center it there */
+    @at-root {
+      .login {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        padding-left: 50vw !important;
+        background-color: var(--body-bg) !important;
+        min-height: 100vh !important;
+
+        &__wrap {
+          width: 100% !important;
+          max-width: 500px !important;
+          margin: 0 !important;
+          padding: 0 base(2) !important;
+        }
+
+        &__form {
+          width: 100% !important;
+        }
+      }
+    }
+
+    /* Responsive - stack on mobile */
+    @include mid-break {
+      position: relative;
+      width: 100%;
+      height: 40vh;
+      border-right: 0;
+
+      @at-root {
+        .login {
+          display: block !important;
+          padding-left: 0 !important;
+          &__wrap {
+            width: 100% !important;
+            padding: base(2) !important;
+          }
+        }
+      }
+    }
+  }
+}
