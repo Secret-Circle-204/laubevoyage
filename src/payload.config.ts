@@ -14,6 +14,7 @@ import { Experiences } from './collections/Experiences'
 import { Bookings } from './collections/Bookings'
 import { PointLedger } from './collections/PointLedger'
 import { ExchangeRates } from './collections/ExchangeRates'
+import { TranslationCache } from './collections/TranslationCache'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -35,6 +36,7 @@ export default buildConfig({
     Bookings,
     PointLedger,
     ExchangeRates,
+    TranslationCache,
   ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',

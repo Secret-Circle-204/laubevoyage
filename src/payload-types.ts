@@ -77,6 +77,7 @@ export interface Config {
     bookings: Booking;
     'point-ledger': PointLedger;
     'exchange-rates': ExchangeRate;
+    'translation-cache': TranslationCache;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -93,6 +94,7 @@ export interface Config {
     bookings: BookingsSelect<false> | BookingsSelect<true>;
     'point-ledger': PointLedgerSelect<false> | PointLedgerSelect<true>;
     'exchange-rates': ExchangeRatesSelect<false> | ExchangeRatesSelect<true>;
+    'translation-cache': TranslationCacheSelect<false> | TranslationCacheSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -528,6 +530,21 @@ export interface ExchangeRate {
   createdAt: string;
 }
 /**
+ * Persistent cache repository for translated text segments
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "translation-cache".
+ */
+export interface TranslationCache {
+  id: number;
+  sourceText: string;
+  fromLanguage: string;
+  toLanguage: string;
+  translatedText: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -586,6 +603,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'exchange-rates';
         value: number | ExchangeRate;
+      } | null)
+    | ({
+        relationTo: 'translation-cache';
+        value: number | TranslationCache;
       } | null);
   globalSlug?: string | null;
   user:
@@ -897,6 +918,18 @@ export interface ExchangeRatesSelect<T extends boolean = true> {
   toCurrency?: T;
   rate?: T;
   isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "translation-cache_select".
+ */
+export interface TranslationCacheSelect<T extends boolean = true> {
+  sourceText?: T;
+  fromLanguage?: T;
+  toLanguage?: T;
+  translatedText?: T;
   updatedAt?: T;
   createdAt?: T;
 }
