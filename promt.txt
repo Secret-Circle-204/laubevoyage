@@ -1,0 +1,912 @@
+# Project Migration Directive
+
+We are NOT performing a traditional code migration.
+
+We are performing a complete software rebuild.
+
+The old project located at:
+
+\Laube-Voyage-app-last
+
+exists ONLY as a visual and business reference.
+
+The new project located at:
+
+\Rebuild-Laube-Voyage-app-last
+
+must be treated as an entirely new software system.
+
+--------------------------------------------------
+PRIMARY GOAL
+--------------------------------------------------
+
+Preserve ONLY:
+
+• The product idea
+• The user experience
+• The UI design
+• The visual appearance
+• The page layouts
+• The navigation flow
+• The business goals
+• The customer journey
+
+Everything else must be reconsidered and rebuilt from scratch.
+
+--------------------------------------------------
+THE OLD CODEBASE IS NOT A SOURCE OF TRUTH
+--------------------------------------------------
+
+The old implementation contains accumulated technical debt, architectural flaws, duplicated business logic, inconsistent services, security issues, performance bottlenecks, and poor separation of concerns.
+
+Therefore:
+
+DO NOT copy code.
+
+DO NOT copy services.
+
+DO NOT copy APIs.
+
+DO NOT copy helper functions.
+
+DO NOT copy utilities.
+
+DO NOT copy hooks.
+
+DO NOT copy folder structure.
+
+DO NOT copy database queries.
+
+DO NOT copy naming.
+
+DO NOT copy caching logic.
+
+DO NOT copy business implementation.
+
+DO NOT copy authentication flow.
+
+DO NOT copy payment implementation.
+
+DO NOT copy loyalty implementation.
+
+DO NOT copy dashboard implementation.
+
+DO NOT reuse existing architecture.
+
+The old project is a specification of WHAT the application does.
+
+It is NOT a specification of HOW it should be built.
+
+--------------------------------------------------
+WHAT MAY BE REUSED
+--------------------------------------------------
+
+The old project may only be used as a reference for the following:
+
+• Visual Design
+• Layouts
+• Formatting
+• Colors
+• Typography
+• Icons
+• Animation
+• Component Appearance
+• Responsiveness
+• User Interaction
+• Navigation
+• Page Structure (excluding Destination Logic). Destination will contain countries, each country will contain cities, and each city will contain a Tour Package or Daily Tour.
+
+↓
+
+Country
+
+↓
+
+City
+
+↓
+
+Experiences
+
+Within Experiences, there are only two types:
+
+Package
+
+Daily Tour
+
+This means the system does not recognize a separate Excursion.
+
+It does recognize:
+
+Experience
+
+And each has a type.
+
+Experience
+
+Type
+
+Package
+
+Daily Tour
+
+This makes searching easier.
+
+• Functional Requirements
+• Workflow
+
+
+
+However, all data retrieval, state management, services, caching, and rendering logic must be newly designed.
+
+--------------------------------------------------
+ARCHITECTURE PRINCIPLES
+--------------------------------------------------
+
+The new project must follow modern Clean Architecture principles.
+
+Business logic must be separated into independent domains.
+
+Suggested domains include:
+
+Destination Domain
+
+Package Domain
+
+Booking Domain
+
+Payment Domain
+
+Loyalty Domain
+
+Dashboard Domain
+
+User Domain
+
+Review Domain
+
+Notification Domain
+
+Localization Domain
+
+Currency Domain
+
+Media Domain
+
+Admin Domain
+
+Each domain owns:
+
+• Services
+• Policies
+• Repository layer
+• Validation
+• Events
+• Business rules
+
+No business logic duplication is allowed.
+
+--------------------------------------------------
+SINGLE SOURCE OF TRUTH
+--------------------------------------------------
+
+Every business rule must exist in exactly one location.
+
+Examples:
+
+Booking lifecycle
+
+Loyalty calculations
+
+Payment validation
+
+Currency conversion
+
+Email sending
+
+Invoice generation
+
+Reward calculations
+
+Discount calculations
+
+Status transitions
+
+must each have exactly one owner.
+
+--------------------------------------------------
+THE UI MUST REMAIN IDENTICAL
+--------------------------------------------------
+
+The customer should feel that nothing has visually changed.
+
+Pixel-perfect reproduction is required.
+
+Buttons should remain where they are.
+
+Pages should look identical.
+
+The overall experience should feel the same.
+
+Only the internal implementation changes.
+
+--------------------------------------------------
+DATA FLOW
+--------------------------------------------------
+
+Never attempt to preserve the old execution flow.
+
+Instead:
+
+Understand the business requirement.
+
+Design the optimal architecture.
+
+Implement using modern patterns.
+
+--------------------------------------------------
+NO LEGACY LOGIC
+--------------------------------------------------
+
+If the old implementation is incorrect,
+poorly designed,
+duplicated,
+or inefficient,
+
+DO NOT recreate it.
+
+Replace it with the best possible engineering solution while preserving the same external behavior.
+
+--------------------------------------------------
+ENGINEERING PHILOSOPHY
+--------------------------------------------------
+
+Build the system as if Laube Voyage were starting today.
+
+Use everything learned from the previous project.
+
+Avoid every previous architectural mistake.
+
+Optimize for:
+
+• Maintainability
+• Scalability
+• Performance
+• Security
+• Reliability
+• Observability
+• Type safety
+• Clear ownership
+• Long-term evolution
+
+--------------------------------------------------
+FINAL RULE
+--------------------------------------------------
+
+Whenever there is a conflict between:
+
+1. Keeping old code
+
+or
+
+2. Building a better architecture
+
+Always choose the better architecture.
+
+Preserve the PRODUCT.
+
+Do not preserve the IMPLEMENTATION.
+
+
+Example:
+ 1) فلسفة النظام
+
+L'Aube Voyage عبارة عن منصة عالمية لبيع الخدمات السياحية.
+
+وليست مجرد متجر.
+
+لذلك النظام يتكون من Domains مستقلة.
+
+كل Domain مسؤول عن نفسه.
+
+ولا يجوز لأي Domain أن يغير بيانات Domain آخر مباشرة.
+
+بل يتم ذلك من خلال Services واضحة.
+
+Domains
+
+أقسم النظام إلى 12 Domain.
+
+Content Domain
+Destination Domain
+Booking Domain
+Payment Domain
+Loyalty Domain
+Dashboard Domain
+User Domain
+Notification Domain
+Currency Domain
+Translation Domain
+Maintenance Domain
+
+كل Domain له مسؤوليات واضحة.
+
+2) Destination Domain
+
+هو مسؤول عن كل شيء يتعلق بالسفر.
+
+الهيكل سيكون هكذا:
+
+Destination
+
+↓
+
+Country
+
+↓
+
+City
+
+↓
+
+Experiences
+
+داخل Experiences يوجد نوعان فقط
+
+Package
+
+Daily Tour
+
+أي أن النظام لا يعرف شيئاً اسمه Excursion منفصل.
+
+بل يعرف
+
+Experience
+
+وله نوع.
+
+Experience
+
+type
+
+Package
+
+DailyTour
+
+وهذا يجعل البحث أسهل.
+
+كل Experience تحتوي
+Title
+
+Slug
+
+Description
+
+Hero
+
+Gallery
+
+Duration
+
+Price
+
+Currency (Base Currency)
+
+Availability
+
+Included
+
+Excluded
+
+Policies
+
+SEO
+
+Translations
+3) Booking Domain
+
+هذا أهم Domain في النظام كله.
+
+الحجز عبارة عن Transaction.
+
+وليس مجرد Row في Database.
+
+حالات الحجز
+Draft
+
+↓
+
+Pending Payment
+
+↓
+
+Paid
+
+↓
+
+Confirmed
+
+↓
+
+Completed
+
+أو
+
+Pending
+
+↓
+
+Cancelled
+
+أو
+
+Refunded
+
+ولا يسمح بالقفز بين الحالات.
+
+مثلاً
+
+Draft
+
+↓
+
+Completed
+
+ممنوع.
+
+من يغير الحالة؟
+
+ليس Stripe.
+
+وليس الصفحة.
+
+وليس Dashboard.
+
+يوجد شيء واحد فقط.
+
+BookingService
+
+وهو الوحيد المسموح له بعمل
+
+confirm()
+
+cancel()
+
+refund()
+
+complete()
+
+ولا يوجد أي update خارج هذه الخدمة.
+
+4) Payment Domain
+
+هذا Domain لا يعرف شيئاً عن الحجوزات.
+
+هو يعرف فقط
+
+Payment Session
+
+ويقول
+
+Payment Success
+
+↓
+
+BookingService.confirm()
+
+انتهى.
+
+طرق الدفع
+Stripe
+
+Book Now Pay Later
+
+كل واحدة تعتبر Provider.
+
+5) Loyalty Domain
+
+هذا أهم جزء بعد الحجز.
+
+وهنا أختلف مع معظم المشاريع.
+
+أنا لا أحب أن يكون
+
+User.loyaltyPoints
+
+هو المصدر.
+
+المصدر الحقيقي يجب أن يكون
+
+Point Ledger
+
+مثل البنوك.
+
+كل حركة عبارة عن سجل.
+
++100
+
+Welcome Bonus
+
+------------
+
++250
+
+Trip Reward
+
+------------
+
+-80
+
+Redeemed
+
+------------
+
++80
+
+Refund
+
+------------
+
++500
+
+Tier Upgrade
+
+الرصيد الحالي مجرد Cache.
+
+وليس الحقيقة.
+
+الحقيقة هي Ledger.
+
+من يغير النقاط؟
+
+ممنوع أي ملف يكتب في جدول النقاط.
+
+حتى Stripe.
+
+حتى Booking.
+
+الا الادمن هو ايضا  يمكنه  ذلك   Admin.
+
+كلهم يستدعون
+
+LoyaltyService
+
+فقط.
+
+العمليات المسموحة
+earn()
+
+redeem()
+
+refund()
+
+reverse()
+
+expire()
+
+grantBonus()
+
+ولا يوجد غيرها.
+
+6) Dashboard Domain
+
+الداشبورد ليس مجرد صفحات.
+
+بل هو
+
+Customer Portal
+
+يعرض
+
+Profile
+
+Bookings
+
+Invoices
+
+Loyalty
+
+Tier
+
+Wallet
+
+Notifications
+
+Settings
+
+ولا يحتوي أي Business Logic.
+
+كل شيء يأتي من Services.
+
+7) Currency Domain
+
+هذا Domain مستقل تماماً.
+
+العملة الأساسية
+
+EGP
+
+فقط.
+
+كل الأسعار تخزن بالجنيه.
+
+ولا تخزن بالدولار.
+
+ثم يوجد
+
+Exchange Service
+
+هو الذي يحول
+
+EGP
+
+↓
+
+USD
+
+↓
+
+EUR
+
+↓
+
+AED
+
+↓
+
+SAR
+
+حسب الدولة أو اختيار المستخدم.
+
+حتى النقاط تعتمد عليه.
+
+مثلاً
+
+100 Point
+
+=
+
+50 EGP
+
+إذا دخل المستخدم من أمريكا
+
+يحصل
+
+100 Point
+
+=
+
+1 USD
+
+حسب سعر الصرف.
+
+8) Translation Domain
+
+أنا لا أحب تخزين عشرات الترجمات.
+
+أفضل
+
+Original
+
+↓
+
+Translation Cache
+
+↓
+
+Google
+
+or
+
+LibreTranslate
+
+↓
+
+Cache
+
+أي
+
+أول مرة فقط
+
+يترجم.
+
+ثم يخزن.
+
+ثم يستخدم الكاش.
+
+9) Notification Domain
+
+كل الرسائل
+
+Email
+
+SMS
+
+Push
+
+WhatsApp
+
+تمر من مكان واحد.
+
+ولا يجوز لأي Service إرسال Email مباشرة.
+
+10) Maintenance Domain
+
+أنا لا أحب Cron الذي يلف على آلاف الحجوزات.
+
+أفضل Event-driven.
+
+لكن إذا استخدمنا Cron
+
+يكون هكذا.
+
+كل ساعة مثلاً
+
+SELECT
+
+status=confirmed
+
+AND
+
+endDate < now()
+
+ثم
+
+LIMIT 20
+
+ثم
+
+Complete Booking
+
+ثم
+
+Sleep
+
+ثم
+
+20 أخرى.
+
+وليس
+
+1000 Booking
+
+مرة واحدة.
+
+11) User Journey
+
+المستخدم الجديد
+
+Register
+
+↓
+
+Verify Email
+
+↓
+
+Grant Welcome Bonus (100)
+
+↓
+
+Dashboard
+
+الحجز
+
+Choose Experience
+
+↓
+
+Choose Travelers
+
+↓
+
+Choose Extras
+
+↓
+
+Redeem Points
+
+↓
+
+Calculate Total
+
+↓
+
+Payment
+
+↓
+
+Booking Confirmed
+
+↓
+
+Grant Earned Points
+
+↓
+
+Invoice
+
+↓
+
+Dashboard
+
+إلغاء الحجز
+
+Cancel
+
+↓
+
+BookingService
+
+↓
+
+Refund
+
+↓
+
+Restore Redeemed Points
+
+↓
+
+Reverse Earned Points
+
+↓
+
+Notification
+
+اكتمال الرحلة
+
+Trip End
+
+↓
+
+Booking Completed
+
+↓
+
+Tier Evaluation
+
+↓
+
+Bonus Check
+
+↓
+
+Dashboard Updated
+12) نظام الترقيات
+
+مثلاً
+
+Explorer
+
+↓
+
+5000 EGP
+
+↓
+
++500 Bonus
+
+------------
+
+Voyager
+
+↓
+
+15000 EGP
+
+↓
+
++1000 Bonus
+
+------------
+
+Elite
+
+والترقية تحدث مرة واحدة فقط.
+
+ولا يمكن الحصول على نفس المكافأة مرتين.
+
+أهم قاعدة في الدستور كله
+
+لا يجوز لأي صفحة (Page)، أو API Route، أو Hook، أو Webhook، أو Component أن يحتوي على منطق عمل (Business Logic). جميع قواعد العمل يجب أن تكون داخل Services/Domain واحدة، بحيث يكون لكل عملية مصدر حقيقة واحد (Single Source of Truth)، ولا يُسمح بتكرار نفس المنطق في أكثر من مكان.
