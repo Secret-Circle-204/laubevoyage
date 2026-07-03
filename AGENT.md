@@ -693,11 +693,15 @@ Always optimize for:
 - Long-term system health
 
 When in doubt:
+  STOP.
+  Analyze.
+  Understand.
+  Then implement the root-cause solution.
 
-STOP.
+---
 
-Analyze.
+# 20. ARCHITECTURAL SEPARATION OF CUSTOMERS & STAFF
 
-Understand.
+- **Staff / Admins**: Reside in the `users` collection. This is used exclusively for Payload CMS Admin Dashboard access. They have roles (`admin`, `super_admin`) but have zero customer fields (no loyalty points, no tier caching, no welcome point hooks, and no booking relationships).
+- **Customers / Travelers**: Reside in the `customers` collection. This is used exclusively for the customer facing web application, profile preferences, bookings, reviews, and loyalty ledger tracking. They have NO administrative access or roles.
 
-Then implement the root-cause solution.

@@ -43,7 +43,7 @@ export class NotificationService {
     req?: PayloadRequest,
   ) {
     const user = await this.payload.findByID({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       req,
     })
@@ -147,7 +147,7 @@ export class NotificationService {
         : Number(booking.user)
 
     const user = await this.payload.findByID({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       req,
     })
@@ -180,7 +180,7 @@ export class NotificationService {
    */
   async sendWelcomeEmail(userId: number, req?: PayloadRequest) {
     const user = await this.payload.findByID({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       req,
     })
@@ -195,7 +195,7 @@ export class NotificationService {
    */
   async sendTierUpgrade(userId: number, newTier: string, req?: PayloadRequest) {
     const user = await this.payload.findByID({
-      collection: 'users',
+      collection: 'customers',
       id: userId,
       req,
     })

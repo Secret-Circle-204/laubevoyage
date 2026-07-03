@@ -306,7 +306,7 @@ src/
 // ❌ N+1 queries
 for (const booking of bookings) {
   const user = await payload.findByID({
-    collection: 'users',
+    collection: 'customers',
     id: booking.user,
   })
 }
@@ -327,6 +327,12 @@ const bookings = await payload.find({
 private rateCache: Map<string, ExchangeRate> = new Map()
 private cacheExpiry = 1000 * 60 * 60 // 1 hour
 ```
+
+### Customer & Admin/Staff Separation
+
+We separate system administrators and travelers into two different collections:
+* **Customers** (slug: `'customers'`): Represents customers/travelers. Handles registration, traveler preferences, bookings, reviews, point ledgers, and welcome point hooks. They have no administration console access.
+* **Users** (slug: `'users'`): Represents Administrators/Staff. They access the CMS dashboard and hold the roles `admin` or `super_admin`. They do not have loyalty points, cached tiers, welcome bonus hooks, or booking relationships.
 
 ## Resources
 

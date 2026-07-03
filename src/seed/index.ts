@@ -57,7 +57,7 @@ async function seed() {
   })
 
   // 4. Seed Experiences
-  console.log(' Seeding experiences...')
+  console.log('🌴 Seeding experiences...')
   await payload.create({
     collection: 'experiences',
     data: {
@@ -77,24 +77,38 @@ async function seed() {
     },
   })
 
-  // 5. Create Admin User
-  // console.log('👤 Creating admin user...')
-  // await payload.create({
-  //   collection: 'users',
-  //   data: {
-  //     email: 'admin@laubevoyage.com',
-  //     password: 'Admin@123',
-  //     firstName: 'Admin',
-  //     lastName: 'User',
-  //     role: 'super_admin',
-  //     status: 'active',
-  //     loyalty: {
-  //       tier: 'elite',
-  //       points: 0,
-  //       totalSpent: 0,
-  //     },
-  //   },
-  // })
+  // 5. Create Admin User (Staff)
+  console.log('👤 Creating admin user...')
+  await payload.create({
+    collection: 'users',
+    data: {
+      email: 'admin@laubevoyage.com',
+      password: 'Admin@123',
+      firstName: 'Admin',
+      lastName: 'User',
+      role: 'super_admin',
+    },
+  })
+
+  // 6. Create Customer (Traveler)
+  console.log('👤 Creating customer traveler...')
+  await payload.create({
+    collection: 'customers',
+    data: {
+      email: 'customer@laubevoyage.com',
+      password: 'Customer@123',
+      firstName: 'John',
+      lastName: 'Doe',
+      phone: '+1234567890',
+      status: 'active',
+      _verified: true,
+      loyalty: {
+        tier: 'explorer',
+        points: 100, // starts with welcome bonus
+        totalSpent: 0,
+      },
+    },
+  })
 
   console.log('✅ Seed completed successfully!')
   process.exit(0)

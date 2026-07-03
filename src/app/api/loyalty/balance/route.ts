@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     const balance = await services.loyalty.getBalance(userId)
-    const user = await services.user.getProfile(userId)
+    const user = await services.customer.getProfile(userId)
 
     return NextResponse.json({
       balance,

@@ -9,14 +9,15 @@ export const PointLedger: CollectionConfig = {
   },
   access: {
     read: ({ req: { user } }) => {
-      if (user?.role === 'admin' || user?.role === 'super_admin') return true
+      if (user && 'role' in user && (user.role === 'admin' || user.role === 'super_admin')) return true
       return {
         user: {
           equals: user?.id,
         },
       }
     },
-    create: ({ req: { user } }) => user?.role === 'admin' || user?.role === 'super_admin',
+    create: ({ req: { user } }) =>
+      !!(user && 'role' in user && (user.role === 'admin' || user.role === 'super_admin')),
     update: () => false, // Immutable
     delete: () => false, // Immutable
   },

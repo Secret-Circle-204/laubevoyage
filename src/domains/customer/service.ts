@@ -3,10 +3,10 @@ import { LoyaltyService } from '../loyalty/service'
 import type { Customer } from '@/payload-types'
 
 /**
- * User Domain Service
- * Handles customer/traveler lifecycle and authentication
+ * Customer Domain Service
+ * Handles customer/traveler lifecycle and profiles
  */
-export class UserService {
+export class CustomerService {
   private payload: Payload
   private loyaltyService: LoyaltyService
 

@@ -3,7 +3,7 @@ import type { Payload } from 'payload'
 import { BookingService } from '../booking/service'
 import { CurrencyService } from '../currency/service'
 import { stripe } from '@/lib/stripe'
-import type { User, Experience } from '@/payload-types'
+import type { Customer, Experience } from '@/payload-types'
 
 interface StripeWebhookEvent {
   type: string
@@ -40,8 +40,8 @@ export class PaymentService {
     const booking = await this.bookingService.getById(bookingId)
 
     const userDoc = typeof booking.user === 'object' && booking.user !== null
-      ? (booking.user as User)
-      : await this.payload.findByID({ collection: 'users', id: Number(booking.user) })
+      ? (booking.user as Customer)
+      : await this.payload.findByID({ collection: 'customers', id: Number(booking.user) })
 
     const experienceDoc = typeof booking.experience === 'object' && booking.experience !== null
       ? (booking.experience as Experience)

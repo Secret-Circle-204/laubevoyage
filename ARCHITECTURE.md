@@ -134,22 +134,25 @@ All prices stored in EGP, converted on-demand.
 - `getRate()` - Fetch exchange rate (cached 1 hour)
 - `pointsToCurrency()` - Convert points to money (1 point = 0.5 EGP)
 
-### 5. User Domain
+### 5. User / Customer Domain
 
-**User Journey:**
+This domain is architecturally separated into two distinct collections:
+1. **Customers** (slug: `'customers'`): Traveler profiles with loyalty points, preferences, bookings, reviews, and post-create registration hooks.
+2. **Users** (slug: `'users'`): Admin/Staff members who manage the portal via Payload Admin panel with administrative roles (`admin`, `super_admin`). They do not have loyalty records or personal bookings.
+
+**Customer Journey:**
 ```
-Register → Verify Email → Grant Welcome Bonus → Active
+Register → Verify Email (Hook: Grant Welcome Bonus) → Active
 ```
 
 **Services:**
-- `register()` - Create user + welcome bonus
-- `verifyEmail()` - Activate account
-- `getProfile()` - Get user with real-time points
-- `updateProfile()` - Update preferences
+- `UserService.register()` - Create customer profile
+- `UserService.verifyEmail()` - Activate customer account
+- `UserService.getProfile()` - Get customer with real-time points
+- `UserService.updateProfile()` - Update customer preferences
 
-**User Data:**
+**Customer Data:**
 - Basic info (name, email, phone)
-- Role (customer, admin, super_admin)
 - Status (active, suspended, pending_verification)
 - Loyalty (tier, points cache, total spent)
 - Preferences (locale, currency, notifications)
