@@ -552,7 +552,17 @@ export interface ExchangeRate {
    * Actual timestamp the rate was fetched/changed
    */
   lastUpdate?: string | null;
+  /**
+   * Last time this rate was successfully synced
+   */
   lastSuccess?: string | null;
+  /**
+   * Last time a sync was attempted (whether success or fail)
+   */
+  lastAttempt?: string | null;
+  /**
+   * Reason for the last sync failure (e.g. Timeout)
+   */
   lastError?: string | null;
   syncStatus?: ('synced' | 'failed' | 'stale') | null;
   updatedAt: string;
@@ -1035,6 +1045,7 @@ export interface ExchangeRatesSelect<T extends boolean = true> {
   source?: T;
   lastUpdate?: T;
   lastSuccess?: T;
+  lastAttempt?: T;
   lastError?: T;
   syncStatus?: T;
   updatedAt?: T;

@@ -13,6 +13,9 @@ class ExchangeRateRegistry {
   private static instance: ExchangeRateRegistry
   private cache: Map<string, ExchangeRateData> = new Map() // Key: toCurrency
   private initialized = false
+  private lastLoadedAt = 0
+  private readonly TTL_MS = 15 * 60 * 1000 // 15 minutes TTL
+
   private baseCurrency = 'EGP'
 
   private constructor() {}
@@ -59,10 +62,12 @@ class ExchangeRateRegistry {
 
     this.cache = newCache
     this.initialized = true
+    this.lastLoadedAt = Date.now()
   }
 
   public async getRate(targetCurrency: string): Promise<ExchangeRateData | undefined> {
-    if (!this.initialized) {
+    const isStale = Date.now() - this.lastLoadedAt > this.TTL_MS
+    if (!this.initialized || isStale) {
       await this.load()
     }
     return this.cache.get(targetCurrency)

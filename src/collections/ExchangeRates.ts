@@ -59,12 +59,37 @@ export const ExchangeRates: CollectionConfig = {
       },
     },
     {
-      name: 'lastSuccess',
-      type: 'date',
-    },
-    {
-      name: 'lastError',
-      type: 'date',
+      type: 'collapsible',
+      label: 'Sync Diagnostics',
+      admin: {
+        initCollapsed: false,
+      },
+      fields: [
+        {
+          name: 'lastSuccess',
+          type: 'date',
+          admin: {
+            description: 'Last time this rate was successfully synced',
+            readOnly: true,
+          }
+        },
+        {
+          name: 'lastAttempt',
+          type: 'date',
+          admin: {
+            description: 'Last time a sync was attempted (whether success or fail)',
+            readOnly: true,
+          }
+        },
+        {
+          name: 'lastError',
+          type: 'text',
+          admin: {
+            description: 'Reason for the last sync failure (e.g. Timeout)',
+            readOnly: true,
+          }
+        },
+      ]
     },
     {
       name: 'syncStatus',
@@ -75,6 +100,9 @@ export const ExchangeRates: CollectionConfig = {
         { label: 'Stale', value: 'stale' },
       ],
       defaultValue: 'synced',
+      admin: {
+        position: 'sidebar',
+      }
     },
   ],
   timestamps: true, // Payload createdAt/updatedAt

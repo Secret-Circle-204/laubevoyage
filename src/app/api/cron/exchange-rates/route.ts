@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     try {
       // 1. Try Primary Provider
       rates = await provider.fetchRates('EGP')
-    } catch (primaryError) {
+    } catch (primaryError: any) {
       console.error('[Exchange Rate Cron] Primary Provider Failed:', primaryError)
       
       try {
@@ -41,25 +41,51 @@ export async function GET(request: NextRequest) {
         // rates = await secondaryProvider.fetchRates('EGP')
         // source = 'ECB'
         throw new Error('Secondary Provider not implemented yet')
-      } catch (secondaryError) {
+      } catch (secondaryError: any) {
         console.error('[Exchange Rate Cron] Secondary Provider Failed:', secondaryError)
         
-        // 3. Absolute Failure: KEEP OLD RATES
-        console.error('CRITICAL: All providers failed. Keeping old rates intact.')
-        // We could alert an admin here (e.g. Sentry, Email, Slack)
+        // 3. Absolute Failure: KEEP OLD RATES but mark as STALE
+        console.error('CRITICAL: All providers failed. Keeping old rates intact but marking as STALE.')
         
-        // Return success=false but 200 OK so the cron doesn't infinitely retry unnecessarily
-        // depending on cron runner configuration.
+        const errorMessage = primaryError?.message || secondaryError?.message || 'Unknown timeout or connection error'
+        const attemptTime = new Date().toISOString()
+
+        try {
+          // Find all existing rates and mark their syncStatus as 'stale'
+          const existingRates = await payload.find({
+            collection: 'exchange-rates',
+            limit: 1000,
+            depth: 0,
+          })
+
+          for (const doc of existingRates.docs) {
+            await payload.update({
+              collection: 'exchange-rates',
+              id: doc.id,
+              data: {
+                syncStatus: 'stale',
+                lastAttempt: attemptTime,
+                lastError: errorMessage,
+              },
+            })
+          }
+          
+          // Invalidate registry so next request sees 'stale' status if they check it
+          rateRegistry.invalidate()
+        } catch (dbError) {
+          console.error('Failed to mark rates as stale:', dbError)
+        }
+
         return NextResponse.json({
           success: false,
-          message: 'All providers failed. Kept old rates.',
-          timestamp: new Date().toISOString(),
+          message: 'All providers failed. Kept old rates but marked as STALE.',
+          timestamp: attemptTime,
         })
       }
     }
 
     let updated = 0
-    const now = new Date()
+    const now = new Date().toISOString()
 
     // 4. Omnivorous Update: Update ALL currencies returned by the provider (170+)
     for (const [currency, rate] of Object.entries(rates)) {
@@ -83,8 +109,10 @@ export async function GET(request: NextRequest) {
           data: {
             rate,
             source,
-            lastUpdate: now.toISOString(),
-            lastSuccess: now.toISOString(),
+            lastUpdate: now,
+            lastSuccess: now,
+            lastAttempt: now,
+            lastError: null,
             syncStatus,
           },
         })
@@ -96,8 +124,10 @@ export async function GET(request: NextRequest) {
             toCurrency: currency,
             rate,
             source,
-            lastUpdate: now.toISOString(),
-            lastSuccess: now.toISOString(),
+            lastUpdate: now,
+            lastSuccess: now,
+            lastAttempt: now,
+            lastError: null,
             syncStatus,
           },
         })
@@ -111,7 +141,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Updated ${updated} exchange rates`,
-      timestamp: now.toISOString(),
+      timestamp: now,
     })
   } catch (error) {
     console.error('[Exchange Rate Cron] Fatal Error:', error)
