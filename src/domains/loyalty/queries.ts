@@ -20,4 +20,9 @@ export class LoyaltyQueries {
   async getAggregateAndProjection(customerId: number): Promise<{ aggregate: LoyaltyAggregate; projection: LoyaltyProjection }> {
     return this.repository.getCustomerAggregate(customerId)
   }
+
+  async getProjection(customerId: number): Promise<LoyaltyProjection> {
+    const res = await this.repository.getCustomerAggregate(customerId)
+    return res.projection
+  }
 }

@@ -1,30 +1,35 @@
 import type { Payload } from 'payload'
 import { EventBus } from '../event-bus'
-import type { TierUpgradedEvent, LoyaltyEarnedEvent } from '../loyalty-events'
-import { NotificationQueue } from '../../notification/queue'
+import type { TierUpgradedEvent } from '../loyalty-events'
+import { NotificationService } from '../../notification/service'
 
 /**
  * Loyalty Notification Subscriber
- * Listens to TierUpgradedEvent and LoyaltyEarnedEvent to enqueue notification jobs.
+ * Listens to TierUpgradedEvent to enqueue notification jobs.
  */
 export function registerLoyaltyNotificationSubscriber(payload: Payload): void {
   const eventBus = EventBus.getInstance()
-  const notificationQueue = NotificationQueue.getInstance()
+  const notificationService = new NotificationService(payload)
 
   eventBus.subscribe<TierUpgradedEvent>('TIER_UPGRADED', async (event) => {
-    await notificationQueue.enqueue({
-      id: `notif_tier_${Date.now()}`,
-      bookingId: 0,
-      recipientEmail: `customer_${event.customerId}@example.com`,
-      type: 'TIER_UPGRADED',
-      payload: {
-        customerId: event.customerId,
-        newTier: event.newTier,
-        bonusGranted: event.bonusGranted,
-      },
-      status: 'pending',
-      attempts: 0,
-      createdAt: event.timestamp,
-    })
+    try {
+      await notificationService.enqueueNotification({
+        referenceType: 'LOYALTY_TIER',
+        referenceId: `${event.customerId}_${event.newTier}`,
+        recipient: `customer_${event.customerId}@example.com`,
+        channel: 'email',
+        category: 'loyalty',
+        priority: 'normal',
+        templateId: 'tier_upgraded',
+        translationKey: 'loyalty.tier_upgraded',
+        templateData: {
+          customerId: event.customerId,
+          newTier: event.newTier,
+          bonusGranted: event.bonusGranted,
+        },
+      })
+    } catch (err: any) {
+      console.error(`[LoyaltyNotificationSubscriber] Error enqueuing tier upgrade notification:`, err.message)
+    }
   })
 }

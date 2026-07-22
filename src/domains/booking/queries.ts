@@ -28,4 +28,9 @@ export class BookingQueries {
   ): Promise<PaginatedResponse<BookingAggregate>> {
     return this.repository.findByUser(userId, page, limit)
   }
+
+  async getByCustomerId(customerId: number): Promise<BookingAggregate[]> {
+    const res = await this.repository.findByUser(customerId, 1, 100)
+    return res.data
+  }
 }

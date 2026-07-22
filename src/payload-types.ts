@@ -191,7 +191,13 @@ export interface Customer {
   firstName: string;
   lastName: string;
   phone?: string | null;
-  status: 'active' | 'inactive' | 'suspended' | 'pending_verification';
+  status: 'active' | 'inactive' | 'suspended' | 'pending_verification' | 'pending_deletion' | 'deleted';
+  failedLoginAttempts?: number | null;
+  lockedUntil?: string | null;
+  lastLoginAt?: string | null;
+  emailVerifiedAt?: string | null;
+  phoneVerifiedAt?: string | null;
+  deletedAt?: string | null;
   loyalty: {
     /**
      * Tier is managed by LoyaltyService
@@ -476,6 +482,80 @@ export interface Booking {
   pointsEarned?: number | null;
   paymentId?: string | null;
   notes?: string | null;
+  source?: ('website' | 'admin' | 'api' | 'partner' | 'affiliate') | null;
+  version?: number | null;
+  /**
+   * Active/Committed capacity hold entity
+   */
+  capacityHold?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Active/Committed loyalty point hold entity
+   */
+  pointHold?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Ledger of all payment attempts
+   */
+  paymentAttempts?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Customer-facing lifecycle timeline
+   */
+  timeline?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * System audit log entries
+   */
+  auditTrail?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * References to generated documents (Invoice, Voucher, Receipt)
+   */
+  documents?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Additional booking data
    */
@@ -500,9 +580,25 @@ export interface Booking {
 export interface PointLedger {
   id: number;
   user: number | Customer;
-  type: 'earned' | 'redeemed' | 'refunded' | 'reversed' | 'bonus' | 'expired' | 'tier_upgrade' | 'welcome_bonus';
+  ledgerVersion: number;
+  referenceType?: ('booking' | 'admin_ticket' | 'system_welcome' | 'expiration_scan') | null;
+  referenceId?: string | null;
+  type:
+    | 'earn'
+    | 'earned'
+    | 'redeem'
+    | 'redeemed'
+    | 'refund'
+    | 'refunded'
+    | 'reverse'
+    | 'reversed'
+    | 'welcome_bonus'
+    | 'tier_bonus'
+    | 'manual_adjustment'
+    | 'expiration'
+    | 'expired';
   /**
-   * Positive for earning, negative for spending
+   * Positive for earning/bonus, negative for spending/reversal
    */
   amount: number;
   /**
@@ -805,6 +901,12 @@ export interface CustomersSelect<T extends boolean = true> {
   lastName?: T;
   phone?: T;
   status?: T;
+  failedLoginAttempts?: T;
+  lockedUntil?: T;
+  lastLoginAt?: T;
+  emailVerifiedAt?: T;
+  phoneVerifiedAt?: T;
+  deletedAt?: T;
   loyalty?:
     | T
     | {
@@ -1014,6 +1116,14 @@ export interface BookingsSelect<T extends boolean = true> {
   pointsEarned?: T;
   paymentId?: T;
   notes?: T;
+  source?: T;
+  version?: T;
+  capacityHold?: T;
+  pointHold?: T;
+  paymentAttempts?: T;
+  timeline?: T;
+  auditTrail?: T;
+  documents?: T;
   metadata?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1024,6 +1134,9 @@ export interface BookingsSelect<T extends boolean = true> {
  */
 export interface PointLedgerSelect<T extends boolean = true> {
   user?: T;
+  ledgerVersion?: T;
+  referenceType?: T;
+  referenceId?: T;
   type?: T;
   amount?: T;
   balance?: T;

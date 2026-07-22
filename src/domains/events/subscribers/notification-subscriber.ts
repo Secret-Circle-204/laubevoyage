@@ -1,62 +1,54 @@
+import type { Payload } from 'payload'
 import { EventBus } from '../event-bus'
-import type { BookingConfirmedEvent, BookingCancelledEvent, BookingExpiredEvent } from '../booking-events'
-import { NotificationQueue } from '../../notification/queue'
-import { NotificationChannel, NotificationTemplate } from '@/types'
+import type { BookingConfirmedEvent } from '../booking-events'
+import type { PaymentCompletedEvent, PaymentFailedEvent } from '../payment-events'
+import { NotificationService } from '../../notification/service'
 
 /**
- * Notification Event Subscriber
- * Listens to domain events and enqueues jobs into NotificationQueue without blocking caller.
+ * Multi-Domain Notification Subscriber
+ * Listens to Booking, Payment, and Loyalty domain events and enqueues notifications idempotently.
  */
-export function registerNotificationSubscriber(): void {
+export function registerNotificationSubscribers(payload: Payload): void {
   const eventBus = EventBus.getInstance()
-  const queue = NotificationQueue.getInstance()
+  const notificationService = new NotificationService(payload)
 
-  // 1. Handle Booking Confirmation
-  eventBus.subscribe<BookingConfirmedEvent>('BOOKING_CONFIRMED', (event) => {
-    const primaryTraveler = event.booking.travelers[0]
-    if (!primaryTraveler?.email) return
-
-    queue.enqueue({
-      recipient: primaryTraveler.email,
-      channel: NotificationChannel.EMAIL,
-      template: NotificationTemplate.BOOKING_CONFIRMED,
-      payload: {
-        bookingNumber: event.booking.bookingNumber,
-        totalAmountEGP: event.booking.pricingSnapshot.totalAmountEGP,
-        startDate: event.booking.startDate,
-      },
-    })
+  // 1. Booking Confirmed Event
+  eventBus.subscribe<BookingConfirmedEvent>('BOOKING_CONFIRMED', async (event) => {
+    try {
+      await notificationService.enqueueNotification({
+        referenceType: 'BOOKING',
+        referenceId: String(event.bookingId),
+        recipient: 'customer@laube.com',
+        channel: 'email',
+        category: 'booking',
+        priority: 'high',
+        templateId: 'booking_confirmation',
+        translationKey: 'booking.confirmed',
+        templateData: { bookingNumber: event.bookingNumber },
+      })
+    } catch (err: any) {
+      console.error(`[NotificationSubscriber] Failed to enqueue booking confirmation notification:`, err.message)
+    }
   })
 
-  // 2. Handle Booking Cancellation
-  eventBus.subscribe<BookingCancelledEvent>('BOOKING_CANCELLED', (event) => {
-    const primaryTraveler = event.booking.travelers[0]
-    if (!primaryTraveler?.email) return
-
-    queue.enqueue({
-      recipient: primaryTraveler.email,
-      channel: NotificationChannel.EMAIL,
-      template: NotificationTemplate.BOOKING_CANCELLED,
-      payload: {
-        bookingNumber: event.booking.bookingNumber,
-        reason: event.reason,
-      },
-    })
-  })
-
-  // 3. Handle Booking Expiry
-  eventBus.subscribe<BookingExpiredEvent>('BOOKING_EXPIRED', (event) => {
-    const primaryTraveler = event.booking.travelers[0]
-    if (!primaryTraveler?.email) return
-
-    queue.enqueue({
-      recipient: primaryTraveler.email,
-      channel: NotificationChannel.EMAIL,
-      template: NotificationTemplate.PAYMENT_FAILED,
-      payload: {
-        bookingNumber: event.booking.bookingNumber,
-        reason: event.reason,
-      },
-    })
+  // 2. Payment Completed Event
+  eventBus.subscribe<PaymentCompletedEvent>('PAYMENT_COMPLETED', async (event) => {
+    try {
+      await notificationService.enqueueNotification({
+        referenceType: 'PAYMENT',
+        referenceId: event.paymentId,
+        recipient: 'customer@laube.com',
+        channel: 'email',
+        category: 'payment',
+        priority: 'high',
+        templateId: 'payment_receipt',
+        translationKey: 'payment.completed',
+        templateData: { amount: event.amount, currency: event.currency },
+      })
+    } catch (err: any) {
+      console.error(`[NotificationSubscriber] Failed to enqueue payment receipt notification:`, err.message)
+    }
   })
 }
+
+export const registerNotificationSubscriber = registerNotificationSubscribers
