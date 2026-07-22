@@ -1,0 +1,135 @@
+import { BookingStatus } from '@/types'
+import type { BookingAggregate } from './types'
+import { BookingRepository } from './repository'
+import { CapacityHoldService } from './capacity-hold'
+import { PointHoldService } from '../loyalty/point-hold'
+import { BookingHistoryService } from './history'
+import { EventBus } from '../events/event-bus'
+
+/**
+ * Booking Expiration Sub-Service
+ * Executes the 7-step expiration pipeline with exponential backoff retries, Dead Letter Queue (DLQ), and Admin Security Alerts.
+ */
+export class BookingExpiration {
+  private repository: BookingRepository
+  private eventBus: EventBus
+  private deadLetterQueue: BookingAggregate[] = []
+
+  constructor(repository: BookingRepository) {
+    this.repository = repository
+    this.eventBus = EventBus.getInstance()
+  }
+
+  /**
+   * Scan and expire uncompleted draft or pending payment bookings past expiration window.
+   */
+  async processExpiredBookings(expirationWindowMinutes: number = 15): Promise<number> {
+    const cutoffDate = new Date(Date.now() - expirationWindowMinutes * 60 * 1000).toISOString()
+    const expiredDrafts = await this.repository.findExpiredDrafts(cutoffDate)
+
+    let expiredCount = 0
+    for (const booking of expiredDrafts) {
+      const success = await this.expireBookingWithRetry(booking, 3)
+      if (success) expiredCount += 1
+    }
+
+    return expiredCount
+  }
+
+  /**
+   * Execute 7-step expiration pipeline with retry and DLQ fallback.
+   */
+
+  private async expireBookingWithRetry(booking: BookingAggregate, maxRetries: number = 3): Promise<boolean> {
+    let attempt = 0
+    let lastError: Error | null = null
+
+    while (attempt < maxRetries) {
+      try {
+        attempt += 1
+        await this.executeExpirationPipeline(booking)
+        return true
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+        console.warn(`[BookingExpiration] Retry ${attempt}/${maxRetries} failed for booking #${booking.bookingNumber}:`, lastError.message)
+        
+        // Exponential backoff wait
+        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 100))
+      }
+    }
+
+    // Max retries exceeded -> Dead Letter Queue & Admin Security Alert
+    console.error(`[BookingExpiration] CRITICAL: Max retries exceeded for booking #${booking.bookingNumber}. Moving to DLQ.`)
+    this.deadLetterQueue.push(booking)
+    this.emitAdminSecurityAlert(booking, lastError)
+    return false
+  }
+
+  /**
+   * 7-Step Sequential Expiration Pipeline:
+   * 1. Expire Booking Status
+   * 2. Release Capacity Hold
+   * 3. Release Loyalty Point Hold
+   * 4. Append Customer Timeline Entry
+   * 5. Append System Audit Record
+   * 6. Emit BookingExpiredEvent
+   * 7. Trigger Notification
+   */
+  private async executeExpirationPipeline(booking: BookingAggregate): Promise<BookingAggregate> {
+    // Step 2 & 3: Release holds
+    const expiredCapacity = booking.capacityHold
+      ? CapacityHoldService.expireHold(booking.capacityHold)
+      : null
+
+    const expiredPointHold = booking.pointHold
+      ? PointHoldService.expireHold(booking.pointHold)
+      : null
+
+    // Step 4: Append Customer Timeline
+    const updatedTimeline = BookingHistoryService.appendTimelineEntry(booking.timeline, {
+      stepKey: 'booking_expired',
+      title: 'Booking Expired',
+      description: 'Your booking draft expired due to payment window timeout.',
+    })
+
+    // Step 5: Append System Audit
+    const updatedAudit = BookingHistoryService.appendAuditEntry(booking.auditTrail, {
+      actor: { id: 'system', type: 'system', name: 'Expiration Worker' },
+      action: 'BOOKING_EXPIRED',
+      reason: 'Payment window timed out',
+      previousValue: booking.status,
+      newValue: BookingStatus.CANCELLED,
+    })
+
+    // Step 1: Update status in repository
+    const expiredBooking = await this.repository.update(booking.id, {
+      status: BookingStatus.CANCELLED,
+      capacityHold: expiredCapacity,
+      pointHold: expiredPointHold,
+      notes: 'Auto-expired: Payment window timed out',
+      timeline: updatedTimeline,
+      auditTrail: updatedAudit,
+    })
+
+    // Step 6 & 7: Emit BookingExpiredEvent to trigger notification subscriber
+    await this.eventBus.publish({
+      type: 'BOOKING_EXPIRED',
+      booking: expiredBooking,
+      reason: 'Payment window timed out',
+      timestamp: new Date().toISOString(),
+    })
+
+    return expiredBooking
+  }
+
+  /**
+   * Dispatch urgent security alert to administrators if expiration cleanup fails.
+   */
+  private emitAdminSecurityAlert(booking: BookingAggregate, error: Error | null): void {
+    console.error(`🚨 [ADMIN ALERT] Security/Capacity Release Lock Failure on Booking ID #${booking.id} (${booking.bookingNumber}). Error: ${error?.message}`)
+  }
+
+  getDeadLetterQueue(): BookingAggregate[] {
+    return this.deadLetterQueue
+  }
+}

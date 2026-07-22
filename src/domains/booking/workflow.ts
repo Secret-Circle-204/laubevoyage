@@ -1,0 +1,82 @@
+import type { Payload } from 'payload'
+import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
+import { BookingRepository } from './repository'
+import { BookingCreator } from './creator'
+import { BookingConfirmation } from './confirmation'
+import { BookingCancellation } from './cancellation'
+import { BookingExpiration } from './expiration'
+import { BookingCompletion } from './completion'
+import { BookingQueries } from './queries'
+
+/**
+ * Booking Workflow Engine
+ * Central deterministic orchestrator for all booking lifecycle workflows.
+ * Ensures sequential step execution without sub-services calling each other directly.
+ */
+export class BookingWorkflowEngine {
+  public repository: BookingRepository
+  public creator: BookingCreator
+  public confirmation: BookingConfirmation
+  public cancellation: BookingCancellation
+  public expiration: BookingExpiration
+  public completion: BookingCompletion
+  public queries: BookingQueries
+
+  constructor(payload: Payload) {
+    this.repository = new BookingRepository(payload)
+    this.creator = new BookingCreator(payload, this.repository)
+    this.confirmation = new BookingConfirmation(this.repository)
+    this.cancellation = new BookingCancellation(this.repository)
+    this.expiration = new BookingExpiration(this.repository)
+    this.completion = new BookingCompletion(this.repository)
+    this.queries = new BookingQueries(this.repository)
+  }
+
+  /**
+   * Deterministic Checkout Workflow:
+   * Policy check -> Seat Hold -> Point Hold -> Freeze Snapshot -> Create Draft
+   */
+  async executeCheckoutWorkflow(params: CreateBookingParams): Promise<BookingAggregate> {
+    return this.creator.createDraft(params)
+  }
+
+  /**
+   * Deterministic Payment Processing Workflow:
+   * Record Attempt -> Mark Paid -> Transition to Paid
+   */
+  async executePaymentWorkflow(bookingId: number, paymentAttempt: PaymentAttempt, actor?: Actor): Promise<BookingAggregate> {
+    return this.confirmation.markAsPaid(bookingId, paymentAttempt, actor)
+  }
+
+  /**
+   * Deterministic Confirmation Workflow:
+   * Confirm Status -> Commit Holds -> Emit BookingConfirmedEvent (Triggers Loyalty & Notification async queue)
+   */
+  async executeConfirmationWorkflow(bookingId: number, actor?: Actor): Promise<BookingAggregate> {
+    return this.confirmation.confirm(bookingId, actor)
+  }
+
+  /**
+   * Deterministic Cancellation Workflow:
+   * Policy check -> Release Holds -> Transition Status -> Emit BookingCancelledEvent
+   */
+  async executeCancellationWorkflow(bookingId: number, actor: Actor, reason: string): Promise<BookingAggregate> {
+    return this.cancellation.cancel(bookingId, actor, reason)
+  }
+
+  /**
+   * Deterministic Expiration Workflow:
+   * Scan -> 7-Step Expiration Pipeline -> Retry -> DLQ/Admin Alert
+   */
+  async executeExpirationWorkflow(expirationWindowMinutes: number = 15): Promise<number> {
+    return this.expiration.processExpiredBookings(expirationWindowMinutes)
+  }
+
+  /**
+   * Deterministic Completion Workflow:
+   * Policy Check -> Complete Status -> Emit BookingCompletedEvent
+   */
+  async executeCompletionWorkflow(bookingId: number, actor?: Actor): Promise<BookingAggregate> {
+    return this.completion.complete(bookingId, actor)
+  }
+}

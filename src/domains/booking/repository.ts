@@ -1,12 +1,11 @@
 import type { Payload, PayloadRequest } from 'payload'
-import type { Booking } from '@/payload-types'
+import type { BookingStatus, PaginatedResponse } from '@/types'
+import type { BookingAggregate } from './types'
 
 /**
  * Booking Repository
- *
- * Decouples the BookingService from the Payload persistence layer.
- * All database queries for the bookings collection go through this repository.
- * If Payload is replaced in the future, only this file changes.
+ * Sole data persistence layer for the Booking Domain.
+ * All database operations for the 'bookings' collection MUST pass through this repository.
  */
 export class BookingRepository {
   private payload: Payload
@@ -15,33 +14,89 @@ export class BookingRepository {
     this.payload = payload
   }
 
-  async findById(id: number, req?: PayloadRequest): Promise<Booking> {
-    return this.payload.findByID({
+  /**
+   * Find a booking aggregate by ID.
+   */
+  async findById(id: number, req?: PayloadRequest): Promise<BookingAggregate> {
+    const doc = await this.payload.findByID({
       collection: 'bookings',
       id,
       req,
     })
+
+    return this.mapDocToAggregate(doc)
   }
 
-  async create(data: any, req?: PayloadRequest): Promise<Booking> {
-    return this.payload.create({
+  /**
+   * Find a booking aggregate by human-readable booking number.
+   */
+  async findByBookingNumber(bookingNumber: string, req?: PayloadRequest): Promise<BookingAggregate | null> {
+    const result = await this.payload.find({
       collection: 'bookings',
-      data,
+      where: {
+        bookingNumber: { equals: bookingNumber },
+      },
+      limit: 1,
       req,
     })
+
+    const doc = result.docs[0]
+    return doc ? this.mapDocToAggregate(doc) : null
   }
 
-  async update(id: number, data: any, req?: PayloadRequest): Promise<Booking> {
-    return this.payload.update({
+  /**
+   * Create a new booking aggregate document.
+   */
+  async create(data: Record<string, unknown>, req?: PayloadRequest): Promise<BookingAggregate> {
+    const doc = await this.payload.create({
+      collection: 'bookings',
+      data: data as any,
+      req,
+    })
+
+    return this.mapDocToAggregate(doc)
+  }
+
+  /**
+   * Update an existing booking aggregate.
+   */
+  async update(id: number, data: Record<string, unknown>, req?: PayloadRequest): Promise<BookingAggregate> {
+    const doc = await this.payload.update({
       collection: 'bookings',
       id,
-      data,
+      data: data as any,
       req,
     })
+
+    return this.mapDocToAggregate(doc)
   }
 
-  async findByUser(userId: number, page: number = 1, limit: number = 10, req?: PayloadRequest) {
-    return this.payload.find({
+  /**
+   * Update booking status exclusively.
+   */
+  async updateStatus(id: number, status: BookingStatus, req?: PayloadRequest): Promise<BookingAggregate> {
+    const doc = await this.payload.update({
+      collection: 'bookings',
+      id,
+      data: {
+        status: status as any,
+      },
+      req,
+    })
+
+    return this.mapDocToAggregate(doc)
+  }
+
+  /**
+   * Retrieve customer bookings with pagination.
+   */
+  async findByUser(
+    userId: number,
+    page: number = 1,
+    limit: number = 10,
+    req?: PayloadRequest,
+  ): Promise<PaginatedResponse<BookingAggregate>> {
+    const result = await this.payload.find({
       collection: 'bookings',
       where: {
         user: { equals: userId },
@@ -51,17 +106,70 @@ export class BookingRepository {
       sort: '-createdAt',
       req,
     })
+
+    return {
+      data: result.docs.map((doc) => this.mapDocToAggregate(doc)),
+      total: result.totalDocs,
+      page: result.page || 1,
+      limit: result.limit || 10,
+      totalPages: result.totalPages || 1,
+    }
   }
 
-  async findByBookingNumber(bookingNumber: string, req?: PayloadRequest): Promise<Booking | null> {
+  /**
+   * Find uncompleted draft or pending payment bookings created before cutoff date.
+   */
+  async findExpiredDrafts(cutoffIso: string, req?: PayloadRequest): Promise<BookingAggregate[]> {
     const result = await this.payload.find({
       collection: 'bookings',
       where: {
-        bookingNumber: { equals: bookingNumber },
+        or: [
+          { status: { equals: 'draft' } },
+          { status: { equals: 'pending_payment' } },
+        ],
+        createdAt: { less_than: cutoffIso },
       },
-      limit: 1,
+      limit: 100,
       req,
     })
-    return result.docs[0] || null
+
+    return result.docs.map((doc) => this.mapDocToAggregate(doc))
+  }
+
+  /**
+   * Map Payload document to strongly-typed BookingAggregate.
+   */
+  private mapDocToAggregate(doc: any): BookingAggregate {
+    const customerId =
+      typeof doc.user === 'object' && doc.user !== null ? Number(doc.user.id) : Number(doc.user)
+    const experienceId =
+      typeof doc.experience === 'object' && doc.experience !== null
+        ? Number(doc.experience.id)
+        : Number(doc.experience)
+
+    return {
+      id: Number(doc.id),
+      bookingNumber: doc.bookingNumber || '',
+      version: doc.version || 1,
+      source: doc.source || 'website',
+      status: doc.status as BookingStatus,
+      customerId,
+      experienceId,
+      travelers: doc.travelers || [],
+      startDate: doc.startDate || '',
+      endDate: doc.endDate || '',
+      pricingSnapshot: doc.pricingSnapshot || {},
+      capacityHold: doc.capacityHold || null,
+      pointHold: doc.pointHold || null,
+      pointsEarned: doc.pointsEarned || 0,
+      paymentId: doc.paymentId,
+      notes: doc.notes,
+      paymentAttempts: doc.paymentAttempts || [],
+      timeline: doc.timeline || [],
+      auditTrail: doc.auditTrail || [],
+      documents: doc.documents || {},
+      createdAt: doc.createdAt ? (typeof doc.createdAt === 'string' ? doc.createdAt : new Date(doc.createdAt).toISOString()) : new Date().toISOString(),
+      updatedAt: doc.updatedAt ? (typeof doc.updatedAt === 'string' ? doc.updatedAt : new Date(doc.updatedAt).toISOString()) : new Date().toISOString(),
+    }
   }
 }

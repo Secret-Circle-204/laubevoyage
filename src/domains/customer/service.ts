@@ -1,164 +1,53 @@
-import type { Payload, PayloadRequest } from 'payload'
-import { LoyaltyService } from '../loyalty/service'
-import type { Customer } from '@/payload-types'
+import type { Payload } from 'payload'
+import { CustomerWorkflowEngine } from './workflow'
+import type { CustomerAggregate } from './aggregate'
+import type { CompanionTravelerEntity, CustomerAddressEntity, DeviceSessionEntity } from './types'
 
 /**
- * Customer Domain Service
- * Handles customer/traveler lifecycle and profiles
+ * Customer Domain Service (Enterprise Thin Facade)
+ * Single entry point for all Customer & Identity operations.
+ * Delegated to CustomerWorkflowEngine for single-responsibility orchestration.
  */
 export class CustomerService {
-  private payload: Payload
-  private loyaltyService: LoyaltyService
+  private workflowEngine: CustomerWorkflowEngine
 
   constructor(payload: Payload) {
-    this.payload = payload
-    this.loyaltyService = new LoyaltyService(payload)
+    this.workflowEngine = new CustomerWorkflowEngine(payload)
   }
 
-  /**
-   * Register new customer
-   */
-  async register(
-    data: {
-      email: string
-      password: string
-      firstName: string
-      lastName: string
-      phone?: string
-    },
-    req?: PayloadRequest,
-  ): Promise<number> {
-    // Create customer
-    const customer = await this.payload.create({
-      collection: 'customers',
-      data: {
-        email: data.email,
-        password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone || null,
-        status: 'pending_verification',
-        loyalty: {
-          tier: 'explorer',
-          points: 0,
-          totalSpent: 0,
-        },
-      },
-      req,
-    })
-
-    return customer.id
+  async registerCustomer(email: string, firstName: string, lastName: string): Promise<CustomerAggregate> {
+    return this.workflowEngine.executeRegisterWorkflow(email, firstName, lastName)
   }
 
-  /**
-   * Verify customer email
-   */
-  async verifyEmail(userId: number, req?: PayloadRequest): Promise<void> {
-    await this.payload.update({
-      collection: 'customers',
-      id: userId,
-      data: {
-        status: 'active',
-        _verified: true,
-      },
-      req,
-    })
+  async verifyEmail(customerId: number, rawToken: string): Promise<CustomerAggregate> {
+    return this.workflowEngine.executeVerifyEmailWorkflow(customerId, rawToken)
   }
 
-  /**
-   * Get customer profile
-   */
-  async getProfile(userId: number, req?: PayloadRequest) {
-    const customer = await this.payload.findByID({
-      collection: 'customers',
-      id: userId,
-      req,
-    })
-
-    // Get real-time points balance from ledger
-    const realBalance = await this.loyaltyService.getBalance(userId, req)
-
-    return {
-      ...customer,
-      loyalty: {
-        ...customer.loyalty,
-        points: realBalance, // Use real balance from ledger
-      },
-    }
+  async login(email: string): Promise<CustomerAggregate> {
+    return this.workflowEngine.identity.login(email)
   }
 
-  /**
-   * Update customer profile
-   */
-  async updateProfile(
-    userId: number,
-    data: {
-      firstName?: string
-      lastName?: string
-      phone?: string
-      preferences?: {
-        locale?: 'en' | 'ar' | 'fr'
-        currency?: 'EGP' | 'USD' | 'EUR' | 'AED' | 'SAR'
-        notifications?: {
-          email?: boolean
-          sms?: boolean
-          push?: boolean
-        }
-      }
-    },
-    req?: PayloadRequest,
-  ) {
-    return this.payload.update({
-      collection: 'customers',
-      id: userId,
-      data,
-      req,
-    })
+  async getById(customerId: number): Promise<CustomerAggregate> {
+    return this.workflowEngine.queries.getById(customerId)
   }
 
-  /**
-   * Get customer by email
-   */
-  async getByEmail(email: string, req?: PayloadRequest) {
-    const result = await this.payload.find({
-      collection: 'customers',
-      where: {
-        email: {
-          equals: email,
-        },
-      },
-      limit: 1,
-      req,
-    })
-
-    return result.docs[0] || null
+  async getTravelers(customerId: number): Promise<CompanionTravelerEntity[]> {
+    return this.workflowEngine.profileManager.getTravelers(customerId)
   }
 
-  /**
-   * Suspend customer account
-   */
-  async suspend(userId: number, reason: string, req?: PayloadRequest): Promise<void> {
-    await this.payload.update({
-      collection: 'customers',
-      id: userId,
-      data: {
-        status: 'suspended',
-      },
-      req,
-    })
+  async addTraveler(traveler: Omit<CompanionTravelerEntity, 'travelerId'>): Promise<CompanionTravelerEntity> {
+    return this.workflowEngine.profileManager.addTraveler(traveler)
   }
 
-  /**
-   * Reactivate customer account
-   */
-  async reactivate(userId: number, req?: PayloadRequest): Promise<void> {
-    await this.payload.update({
-      collection: 'customers',
-      id: userId,
-      data: {
-        status: 'active',
-      },
-      req,
-    })
+  async getAddresses(customerId: number): Promise<CustomerAddressEntity[]> {
+    return this.workflowEngine.profileManager.getAddresses(customerId)
+  }
+
+  async addAddress(address: Omit<CustomerAddressEntity, 'addressId'>): Promise<CustomerAddressEntity> {
+    return this.workflowEngine.profileManager.addAddress(address)
+  }
+
+  async getActiveDeviceSessions(customerId: number): Promise<DeviceSessionEntity[]> {
+    return this.workflowEngine.sessionManager.getActiveSessions(customerId)
   }
 }

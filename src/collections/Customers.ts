@@ -38,10 +38,46 @@ export const Customers: CollectionConfig = {
         { label: 'Inactive', value: 'inactive' },
         { label: 'Suspended', value: 'suspended' },
         { label: 'Pending Verification', value: 'pending_verification' },
+        { label: 'Pending Deletion', value: 'pending_deletion' },
+        { label: 'Deleted', value: 'deleted' },
       ],
       admin: {
         position: 'sidebar',
       },
+    },
+    {
+      name: 'failedLoginAttempts',
+      type: 'number',
+      defaultValue: 0,
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'lockedUntil',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'lastLoginAt',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'emailVerifiedAt',
+      type: 'date',
+    },
+    {
+      name: 'phoneVerifiedAt',
+      type: 'date',
+    },
+    {
+      name: 'deletedAt',
+      type: 'date',
     },
     {
       name: 'loyalty',

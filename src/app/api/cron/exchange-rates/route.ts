@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     try {
       // 1. Try Primary Provider
       rates = await provider.fetchRates('EGP')
-    } catch (primaryError: any) {
+    } catch (primaryError) {
       console.error('[Exchange Rate Cron] Primary Provider Failed:', primaryError)
       
       try {
@@ -41,13 +41,15 @@ export async function GET(request: NextRequest) {
         // rates = await secondaryProvider.fetchRates('EGP')
         // source = 'ECB'
         throw new Error('Secondary Provider not implemented yet')
-      } catch (secondaryError: any) {
+      } catch (secondaryError) {
         console.error('[Exchange Rate Cron] Secondary Provider Failed:', secondaryError)
         
         // 3. Absolute Failure: KEEP OLD RATES but mark as STALE
         console.error('CRITICAL: All providers failed. Keeping old rates intact but marking as STALE.')
         
-        const errorMessage = primaryError?.message || secondaryError?.message || 'Unknown timeout or connection error'
+        const primaryMsg = primaryError instanceof Error ? primaryError.message : String(primaryError)
+        const secondaryMsg = secondaryError instanceof Error ? secondaryError.message : String(secondaryError)
+        const errorMessage = primaryMsg || secondaryMsg || 'Unknown timeout or connection error'
         const attemptTime = new Date().toISOString()
 
         try {

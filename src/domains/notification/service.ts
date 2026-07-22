@@ -163,7 +163,7 @@ export class NotificationService {
       month: 'long',
       day: 'numeric',
     })
-    const pricingSnapshot = booking.pricingSnapshot as any
+    const pricingSnapshot = booking.pricingSnapshot
     const totalPrice = pricingSnapshot?.totalAmountEGP || 0
     const pointsEarned = booking.pointsEarned || 0
 

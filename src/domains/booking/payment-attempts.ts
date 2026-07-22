@@ -1,0 +1,37 @@
+import type { PaymentAttempt } from './types'
+
+/**
+ * Payment Attempts Service
+ * Records and maintains an immutable ledger of all payment attempts for a booking.
+ */
+export class PaymentAttemptsService {
+  /**
+   * Append a new payment attempt record to the attempts ledger.
+   */
+  static recordAttempt(
+    existingAttempts: PaymentAttempt[] = [],
+    params: {
+      provider: 'stripe' | 'bnpl' | 'manual'
+      amount: number
+      currency: string
+      status: 'initiated' | 'successful' | 'failed' | 'timed_out'
+      transactionReference?: string
+      failureReason?: string
+    },
+  ): PaymentAttempt[] {
+    const nextAttemptNumber = existingAttempts.length + 1
+    const newAttempt: PaymentAttempt = {
+      attemptId: `pay_att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      attemptNumber: nextAttemptNumber,
+      provider: params.provider,
+      amount: params.amount,
+      currency: params.currency,
+      status: params.status,
+      transactionReference: params.transactionReference,
+      failureReason: params.failureReason,
+      timestamp: new Date().toISOString(),
+    }
+
+    return [...existingAttempts, newAttempt]
+  }
+}

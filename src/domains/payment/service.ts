@@ -1,137 +1,122 @@
-import { PaymentProvider, PaymentStatus } from '@/types'
-import type { CurrencyCode } from '@/types'
 import type { Payload } from 'payload'
-import { BookingService } from '../booking/service'
-import { CurrencyService } from '../currency/service'
-import { stripe } from '@/lib/stripe'
 import type { Customer, Experience } from '@/payload-types'
-
-interface StripeWebhookEvent {
-  type: string
-  data: {
-    object: {
-      id: string
-      metadata?: {
-        bookingId?: string | number
-      } | null
-      payment_intent?: string | null
-    }
-  }
-}
+import type { CreateSessionParams, PaymentProviderType, RefundParams, RefundResult } from './types'
+import type { PaymentAggregate } from './aggregate'
+import { PaymentWorkflowEngine } from './workflow'
+import { registerBookingPaymentSubscriber } from '../events/subscribers/payment-subscriber'
+import { BookingRepository } from '../booking/repository'
 
 /**
- * Payment Domain Service
- * Handles payment processing with multiple providers
+ * Payment Domain Service (Enterprise Thin Facade)
+ * Single entry point for all payment operations.
+ * Delegated to PaymentWorkflowEngine for single-responsibility orchestration.
  */
 export class PaymentService {
+  private workflowEngine: PaymentWorkflowEngine
+  private bookingRepository: BookingRepository
   private payload: Payload
-  private bookingService: BookingService
-  private currencyService: CurrencyService
 
   constructor(payload: Payload) {
     this.payload = payload
-    this.bookingService = new BookingService(payload)
-    this.currencyService = new CurrencyService()
+    this.workflowEngine = new PaymentWorkflowEngine(payload)
+    this.bookingRepository = new BookingRepository(payload)
+
+    // Register event subscriber on initialization
+    registerBookingPaymentSubscriber(payload)
   }
 
   /**
-   * Create payment session (Stripe)
+   * Create a checkout session (Stripe, BNPL, or Manual).
    */
   async createStripeSession(bookingId: number, successUrl: string, cancelUrl: string) {
-    const booking = await this.bookingService.getById(bookingId)
+    const booking = await this.bookingRepository.findById(bookingId)
 
-    const userDoc = typeof booking.user === 'object' && booking.user !== null
-      ? (booking.user as Customer)
-      : await this.payload.findByID({ collection: 'customers', id: Number(booking.user) })
+    const userDoc = typeof booking.customerId === 'number'
+      ? await this.payload.findByID({ collection: 'customers', id: booking.customerId })
+      : (booking.customerId as Customer)
 
-    const experienceDoc = typeof booking.experience === 'object' && booking.experience !== null
-      ? (booking.experience as Experience)
-      : await this.payload.findByID({ collection: 'experiences', id: Number(booking.experience) })
+    const experienceDoc = typeof booking.experienceId === 'number'
+      ? await this.payload.findByID({ collection: 'experiences', id: booking.experienceId })
+      : (booking.experienceId as Experience)
 
-    const pricingSnapshot = booking.pricingSnapshot as any
-    const currency = pricingSnapshot?.displayCurrency || 'EGP'
-    const displayAmount = pricingSnapshot?.displayAmount || 0
+    const pricingSnapshot = booking.pricingSnapshot
+    const displayCurrency = pricingSnapshot.displayCurrency || 'EGP'
+    const displayAmount = pricingSnapshot.displayAmount || 0
 
-    if (displayAmount <= 0) {
-      throw new Error('Total price must be greater than zero for Stripe payment')
+    const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+
+    const params: CreateSessionParams = {
+      transactionId,
+      bookingId: booking.id,
+      customerId: userDoc.id,
+      bookingNumber: booking.bookingNumber,
+      basePriceEGP: pricingSnapshot.basePriceEGP,
+      displayCurrency,
+      displayAmount,
+      successUrl,
+      cancelUrl,
+      customerEmail: userDoc.email || undefined,
+      experienceTitle: experienceDoc.title || `Booking #${booking.bookingNumber}`,
     }
 
-    // Payment Provider is completely ignorant of exchange rates.
-    // It blindly executes the frozen displayAmount from the Booking Snapshot.
-    const targetAmount = displayAmount
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      customer_email: userDoc.email || undefined,
-      line_items: [
-        {
-          price_data: {
-            currency: currency.toLowerCase(),
-            product_data: {
-              name: experienceDoc.title,
-              description: `Booking #${booking.bookingNumber} - L'Aube Voyage`,
-            },
-            unit_amount: Math.round(targetAmount * 100), // scale to sub-units
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        bookingId: String(booking.id),
-        userId: String(userDoc.id),
-      },
-      expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 minutes session expiry
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-    })
+    const paymentAggregate = await this.workflowEngine.executeCreateSessionWorkflow('stripe', params, booking.status)
 
     return {
-      sessionId: session.id,
-      url: session.url,
+      sessionId: paymentAggregate.session.sessionId,
+      url: paymentAggregate.session.url,
+      transactionId: paymentAggregate.transactionId,
     }
   }
 
   /**
-   * Handle Stripe webhook
+   * Handle Stripe Webhook idempotently.
    */
-  async handleStripeWebhook(event: StripeWebhookEvent) {
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object
-        const bookingIdRaw = session.metadata?.bookingId
-
-        if (bookingIdRaw) {
-          const bookingId = Number(bookingIdRaw)
-
-          // Idempotency guard: check if this booking was already processed
-          const booking = await this.bookingService.getById(bookingId)
-          if (booking.paymentId) {
-            console.log(`[PaymentService] Idempotency: Booking #${bookingId} already processed (paymentId: ${booking.paymentId}). Skipping.`)
-            return
-          }
-
-          await this.bookingService.markAsPaid(bookingId)
-          await this.bookingService.confirm(bookingId, session.payment_intent || 'unknown')
-        }
-        break
-      }
-
-      case 'payment_intent.payment_failed':
-        // Handle failed payment
-        break
-
-      default:
-        console.log(`Unhandled event type ${event.type}`)
-    }
+  async handleStripeWebhook(rawBody: string | Buffer, signature: string) {
+    return this.workflowEngine.executeWebhookWorkflow(rawBody, signature, 'stripe')
   }
 
   /**
-   * Process Book Now Pay Later
+   * Process Book Now Pay Later.
    */
-  async processBookNowPayLater(bookingId: number) {
-    // Mark as paid immediately for BNPL
-    await this.bookingService.markAsPaid(bookingId)
-    await this.bookingService.confirm(bookingId, 'bnpl_' + Date.now())
+  async processBookNowPayLater(bookingId: number): Promise<PaymentAggregate> {
+    const booking = await this.bookingRepository.findById(bookingId)
+
+    const transactionId = `tx_bnpl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+
+    const params: CreateSessionParams = {
+      transactionId,
+      bookingId: booking.id,
+      customerId: booking.customerId,
+      bookingNumber: booking.bookingNumber,
+      basePriceEGP: booking.pricingSnapshot.basePriceEGP,
+      displayCurrency: booking.pricingSnapshot.displayCurrency || 'EGP',
+      displayAmount: booking.pricingSnapshot.displayAmount || 0,
+      successUrl: '',
+      cancelUrl: '',
+      experienceTitle: `Booking #${booking.bookingNumber}`,
+    }
+
+    return this.workflowEngine.executeCreateSessionWorkflow('bnpl', params, booking.status)
+  }
+
+  /**
+   * Issue a payment refund.
+   */
+  async refund(params: RefundParams): Promise<{ result: RefundResult; transaction: PaymentAggregate }> {
+    return this.workflowEngine.executeRefundWorkflow(params)
+  }
+
+  /**
+   * Query transaction by transaction ID.
+   */
+  async getByTransactionId(transactionId: string): Promise<PaymentAggregate | null> {
+    return this.workflowEngine.queries.getByTransactionId(transactionId)
+  }
+
+  /**
+   * Query transaction by booking ID.
+   */
+  async getByBookingId(bookingId: number): Promise<PaymentAggregate | null> {
+    return this.workflowEngine.queries.getByBookingId(bookingId)
   }
 }

@@ -1,0 +1,84 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { BookingWorkflowEngine } from '@/domains/booking/workflow'
+import { BookingStatus } from '@/types'
+
+describe('Layer 5: BookingWorkflowEngine Integration Tests', () => {
+  let mockPayload: any
+  let workflowEngine: BookingWorkflowEngine
+
+  beforeEach(() => {
+    mockPayload = {
+      create: vi.fn(),
+      findByID: vi.fn(),
+      find: vi.fn(),
+      update: vi.fn(),
+    }
+    workflowEngine = new BookingWorkflowEngine(mockPayload)
+  })
+
+  it('should execute full checkout workflow creating draft booking with holds & snapshot', async () => {
+    const mockExperience = { id: 12, price: 5000, availability: 'available' }
+    const mockCustomer = { id: 5, status: 'active', fullName: 'John Doe', preferences: { preferredCurrency: 'EGP' } }
+
+    mockPayload.findByID.mockImplementation(({ collection }: { collection: string }) => {
+      if (collection === 'experiences') return Promise.resolve(mockExperience)
+      if (collection === 'customers') return Promise.resolve(mockCustomer)
+      return Promise.resolve(null)
+    })
+
+    const mockCreatedDoc = {
+      id: 101,
+      bookingNumber: 'LBV-260723-00042',
+      status: 'draft',
+      user: 5,
+      experience: 12,
+      pricingSnapshot: { totalAmountEGP: 5000, basePriceEGP: 5000, subtotalEGP: 5000, displayCurrency: 'EGP', displayAmount: 5000, exchangeRate: 1, version: 1 },
+      timeline: [{ stepKey: 'booking_created', title: 'Booking Created' }],
+      auditTrail: [{ action: 'BOOKING_CREATED' }],
+      createdAt: '2026-07-22T12:00:00.000Z',
+      updatedAt: '2026-07-22T12:00:00.000Z',
+    }
+
+    mockPayload.create.mockResolvedValue(mockCreatedDoc)
+    mockPayload.update.mockImplementation((params: any) => Promise.resolve({ ...mockCreatedDoc, ...params.data }))
+
+    const result = await workflowEngine.executeCheckoutWorkflow({
+      userId: 5,
+      experienceId: 12,
+      travelers: [{ firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '+123456789' }],
+      startDate: '2026-08-01',
+      endDate: '2026-08-05',
+    })
+
+    expect(result.id).toBe(101)
+    expect(result.status).toBe(BookingStatus.DRAFT)
+    expect(result.capacityHold).not.toBeNull()
+    expect(result.capacityHold?.status).toBe('active')
+  })
+
+  it('should execute payment & confirmation workflows successfully', async () => {
+    const mockDraftDoc = {
+      id: 101,
+      bookingNumber: 'LBV-260723-00042',
+      status: 'paid',
+      user: 5,
+      experience: 12,
+      pricingSnapshot: { totalAmountEGP: 5000 },
+      capacityHold: { holdId: 'h1', status: 'active' },
+      paymentAttempts: [],
+      timeline: [],
+      auditTrail: [],
+      travelers: [{ email: 'john@example.com' }],
+      createdAt: '2026-07-22T12:00:00.000Z',
+      updatedAt: '2026-07-22T12:00:00.000Z',
+    }
+
+    mockPayload.findByID.mockResolvedValue(mockDraftDoc)
+    mockPayload.update.mockImplementation((params: any) => Promise.resolve({ ...mockDraftDoc, ...params.data }))
+
+    const confirmedBooking = await workflowEngine.executeConfirmationWorkflow(101)
+
+    expect(confirmedBooking.status).toBe(BookingStatus.CONFIRMED)
+    expect(confirmedBooking.capacityHold?.status).toBe('committed')
+  })
+})

@@ -156,6 +156,72 @@ export const Bookings: CollectionConfig = {
       type: 'textarea',
     },
     {
+      name: 'source',
+      type: 'select',
+      defaultValue: 'website',
+      options: [
+        { label: 'Website', value: 'website' },
+        { label: 'Admin', value: 'admin' },
+        { label: 'API', value: 'api' },
+        { label: 'Partner', value: 'partner' },
+        { label: 'Affiliate', value: 'affiliate' },
+      ],
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'version',
+      type: 'number',
+      defaultValue: 1,
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+      },
+    },
+    {
+      name: 'capacityHold',
+      type: 'json',
+      admin: {
+        description: 'Active/Committed capacity hold entity',
+      },
+    },
+    {
+      name: 'pointHold',
+      type: 'json',
+      admin: {
+        description: 'Active/Committed loyalty point hold entity',
+      },
+    },
+    {
+      name: 'paymentAttempts',
+      type: 'json',
+      admin: {
+        description: 'Ledger of all payment attempts',
+      },
+    },
+    {
+      name: 'timeline',
+      type: 'json',
+      admin: {
+        description: 'Customer-facing lifecycle timeline',
+      },
+    },
+    {
+      name: 'auditTrail',
+      type: 'json',
+      admin: {
+        description: 'System audit log entries',
+      },
+    },
+    {
+      name: 'documents',
+      type: 'json',
+      admin: {
+        description: 'References to generated documents (Invoice, Voucher, Receipt)',
+      },
+    },
+    {
       name: 'metadata',
       type: 'json',
       admin: {

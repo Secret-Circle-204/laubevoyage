@@ -1,121 +1,114 @@
-import type { CurrencyCode } from '@/types'
-import { rateRegistry } from './rate-registry'
-import { catalogRegistry } from './catalog-registry'
-import { roundForCurrency, getCurrencyDecimals } from './rounding'
+import type { PricingContext, PricingAuditStep } from '../experience/types'
+import { PricingRuleEngine } from '../experience/pricing-rules'
+import { PromotionEngine } from '../experience/promotion-engine'
+import { TaxEngine } from '../experience/tax-engine'
+import { DefaultRateProvider, type IExchangeRateProvider } from './providers/rate-provider'
 
-export interface PricingSnapshot {
-  version: number
+export interface PricingSnapshotData {
+  snapshotId: string
+  snapshotVersion: string
+  pricingRuleVersion: string
+  exchangeRateVersion: string
   basePriceEGP: number
-  promotionDiscountEGP: number
-  couponDiscountEGP: number
-  loyaltyDiscountEGP: number
-  subtotalEGP: number
-  taxes: number
-  fees: number
-  totalAmountEGP: number
   displayCurrency: string
   displayAmount: number
-  exchangeRate: number
-  exchangeProvider: string
-  exchangeRateTimestamp: Date | null
-  roundingStrategy: string
-  currencyDecimals: number
-  createdAt: Date
-}
-
-export interface PricingResult {
-  snapshot: PricingSnapshot
-  formattedPrice: string
+  exchangeRateUsed: number
+  exchangeRateTimestamp: string
+  taxesApplied: number
+  feesApplied: number
+  couponId?: string
+  campaignId?: string
+  auditTrace: PricingAuditStep[]
+  calculatedAt: string
 }
 
 /**
- * Pricing Pipeline
- *
- * Strict execution order:
- * Package -> Pricing Domain -> Discount Engine -> Coupon Engine -> Loyalty Engine -> Tax Engine -> Pricing Snapshot -> Stripe Adapter
+ * Pricing Pipeline Engine
+ * Modular pricing pipeline executing:
+ * Base Price (EGP) -> PricingRuleEngine -> PromotionEngine -> TaxEngine -> ExchangeRateProvider -> Versioned PricingSnapshotData
  */
-export class PricingPipeline {
-  /**
-   * Execute the full pricing pipeline.
-   * Returns a display-ready PricingResult and the exhaustive Immutable Snapshot.
-   */
-  async execute(params: {
-    basePriceEGP: number
-    promotionDiscount?: number
-    couponDiscount?: number
-    loyaltyDiscount?: number
-    taxes?: number
-    fees?: number
-    targetCurrency: CurrencyCode
-    locale?: string
-  }): Promise<PricingResult> {
-    // 1. Core calculation in EGP
-    const promotionDiscountEGP = params.promotionDiscount || 0
-    const couponDiscountEGP = params.couponDiscount || 0
-    const loyaltyDiscountEGP = params.loyaltyDiscount || 0
-    
-    let subtotalEGP = params.basePriceEGP - promotionDiscountEGP - couponDiscountEGP - loyaltyDiscountEGP
-    subtotalEGP = Math.max(0, subtotalEGP) // Never go negative
+export class PricingPipelineEngine {
+  private rateProvider: IExchangeRateProvider
 
-    const taxesEGP = params.taxes || 0
-    const feesEGP = params.fees || 0
-    const totalAmountEGP = subtotalEGP + taxesEGP + feesEGP
+  constructor(rateProvider?: IExchangeRateProvider) {
+    this.rateProvider = rateProvider || new DefaultRateProvider()
+  }
 
-    // 2. Rate Resolver (from Rate Registry)
-    let exchangeRate = 1
-    let exchangeProvider = 'System'
-    let exchangeRateTimestamp: Date | null = new Date()
-    
-    if (params.targetCurrency !== 'EGP') {
-      const rateData = await rateRegistry.getRate(params.targetCurrency)
-      if (rateData) {
-        exchangeRate = rateData.rate
-        exchangeProvider = rateData.source
-        exchangeRateTimestamp = new Date(rateData.lastUpdate)
-      } else {
-        // Fallback if not found in registry (shouldn't happen in prod if cron ran)
-        console.warn(`[PricingPipeline] Rate not found for ${params.targetCurrency}. Defaulting to 1.`)
-      }
+  async calculatePricingSnapshot(
+    basePriceEGP: number,
+    context: PricingContext,
+  ): Promise<PricingSnapshotData> {
+    const auditTrace: PricingAuditStep[] = []
+
+    // Step 1: Base Price
+    auditTrace.push({
+      stepName: 'BASE_CATALOG_PRICE',
+      amountChangeEGP: basePriceEGP,
+      reason: 'Base experience catalog departure price in EGP',
+      resultingSubtotalEGP: basePriceEGP,
+    })
+
+    // Step 2: PricingRuleEngine (Passenger Tiers, Weekend Surge, Resident Discount)
+    const ruleResult = PricingRuleEngine.evaluateRules(basePriceEGP, context)
+    let currentSubtotalEGP = ruleResult.subtotalEGP
+    auditTrace.push(...ruleResult.auditSteps)
+
+    // Step 3: PromotionEngine (Coupons, Flash Sales)
+    const promoResult = PromotionEngine.evaluatePromotions(currentSubtotalEGP, context)
+    if (promoResult.discountAmountEGP > 0 && promoResult.auditStep) {
+      currentSubtotalEGP -= promoResult.discountAmountEGP
+      auditTrace.push(promoResult.auditStep)
     }
 
-    // 3. Conversion & Rounding
-    const unroundedDisplayAmount = totalAmountEGP * exchangeRate
-    const displayAmount = await roundForCurrency(unroundedDisplayAmount, params.targetCurrency)
-    const currencyDecimals = await getCurrencyDecimals(params.targetCurrency)
+    // Step 4: TaxEngine (14% VAT & Tourism Fees)
+    const taxResult = TaxEngine.calculateTaxesAndFees(currentSubtotalEGP)
+    const finalAmountEGP = currentSubtotalEGP + taxResult.taxAmountEGP + taxResult.feeAmountEGP
+    auditTrace.push(...taxResult.auditSteps)
 
-    // 4. Create the Immutable Snapshot
-    const snapshot: PricingSnapshot = {
-      version: 1,
-      basePriceEGP: params.basePriceEGP,
-      promotionDiscountEGP,
-      couponDiscountEGP,
-      loyaltyDiscountEGP,
-      subtotalEGP,
-      taxes: taxesEGP,
-      fees: feesEGP,
-      totalAmountEGP,
-      displayCurrency: params.targetCurrency,
-      displayAmount,
-      exchangeRate,
-      exchangeProvider,
-      exchangeRateTimestamp,
-      roundingStrategy: 'HALF_UP',
-      currencyDecimals,
-      createdAt: new Date(),
-    }
+    // Step 5: Multi-Currency Exchange Conversion
+    const targetCurrency = context.displayCurrency.toUpperCase()
+    const rate = await this.rateProvider.getExchangeRate('EGP', targetCurrency)
+    const unroundedDisplay = finalAmountEGP * rate
+    const displayAmount = Math.round(unroundedDisplay * 100) / 100 // Round to 2 decimals
 
-    // 5. Currency Formatter (Localized String)
-    const locale = params.locale || 'en-US'
-    const formattedPrice = new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: params.targetCurrency,
-      minimumFractionDigits: currencyDecimals,
-      maximumFractionDigits: currencyDecimals,
-    }).format(displayAmount)
+    const snapshotId = `snap_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
 
     return {
-      snapshot,
-      formattedPrice,
+      snapshotId,
+      snapshotVersion: 'v1',
+      pricingRuleVersion: 'v1.0.0',
+      exchangeRateVersion: 'v1.0.0',
+      basePriceEGP: finalAmountEGP,
+      displayCurrency: targetCurrency,
+      displayAmount,
+      exchangeRateUsed: rate,
+      exchangeRateTimestamp: new Date().toISOString(),
+      taxesApplied: taxResult.taxAmountEGP,
+      feesApplied: taxResult.feeAmountEGP,
+      couponId: promoResult.couponId,
+      campaignId: promoResult.campaignId,
+      auditTrace,
+      calculatedAt: new Date().toISOString(),
     }
   }
+
+  async execute(params: {
+    basePriceEGP: number
+    loyaltyDiscount?: number
+    targetCurrency?: string
+  }): Promise<{ snapshot: PricingSnapshotData }> {
+    const netBasePrice = Math.max(0, params.basePriceEGP - (params.loyaltyDiscount || 0))
+    const context: PricingContext = {
+      departureId: 'dep_101',
+      experienceId: 1,
+      displayCurrency: params.targetCurrency || 'EGP',
+      travelers: { adults: 1 },
+      bookingDate: new Date().toISOString(),
+    }
+
+    const snapshot = await this.calculatePricingSnapshot(netBasePrice, context)
+    return { snapshot }
+  }
 }
+
+export { PricingPipelineEngine as PricingPipeline }
