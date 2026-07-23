@@ -1,17 +1,14 @@
-import type { Payload } from 'payload'
 import { CustomerService } from '../customer/service'
-import { CustomerRepository } from '../customer/repository'
 
 /**
  * Admin Customer Operations Sub-Service
- * Customer account status toggling (active ↔ suspended).
+ * Customer account status toggling (active ↔ suspended) via Dependency Injection.
  */
 export class AdminCustomerOperations {
-  private customerService: CustomerService
+  private customerService?: CustomerService
 
-  constructor(payload: Payload) {
-    const customerRepo = new CustomerRepository(payload)
-    this.customerService = new CustomerService(customerRepo)
+  constructor(customerService?: CustomerService) {
+    this.customerService = customerService
   }
 
   async toggleCustomerStatusByStaff(customerId: number, status: 'active' | 'suspended', reason: string): Promise<boolean> {

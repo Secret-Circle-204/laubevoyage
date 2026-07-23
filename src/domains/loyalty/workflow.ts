@@ -14,7 +14,7 @@ import { EventBus } from '../events/event-bus'
 
 /**
  * Loyalty Workflow Engine
- * Central deterministic orchestrator for all loyalty point lifecycle workflows.
+ * Central deterministic orchestrator for all loyalty point lifecycle workflows via Constructor Dependency Injection.
  * Symmetrical architecture with BookingWorkflowEngine and PaymentWorkflowEngine.
  */
 export class LoyaltyWorkflowEngine {
@@ -29,7 +29,7 @@ export class LoyaltyWorkflowEngine {
   public queries: LoyaltyQueries
   private eventBus: EventBus
 
-  constructor(repository: LoyaltyRepository | Payload, payload?: Payload) {
+  constructor(repository?: LoyaltyRepository | Payload) {
     if (repository && 'appendLedgerEntry' in repository) {
       this.repository = repository as LoyaltyRepository
     } else {
@@ -46,113 +46,68 @@ export class LoyaltyWorkflowEngine {
     this.eventBus = EventBus.getInstance()
   }
 
-  /**
-   * Deterministic Earn Points Workflow:
-   * Earn Points -> Evaluate Tier Upgrade -> DB Commit -> Emit Events
-   */
+  async grantWelcomeBonus(userId: number): Promise<PointLedgerRecord> {
+    return this.pointsEarner.grantWelcomeBonus(userId)
+  }
+
+  async earnPointsForBooking(
+    userId: number,
+    bookingId: number,
+    amountSpentEGP: number,
+    bookingNumber = String(bookingId),
+  ): Promise<PointLedgerRecord> {
+    return this.pointsEarner.earnForBooking(userId, amountSpentEGP, bookingId, bookingNumber)
+  }
+
   async executeEarnWorkflow(
     customerId: number,
     amountSpentEGP: number,
     bookingId: number,
-    bookingNumber: string,
+    bookingNumber = String(bookingId),
   ): Promise<PointLedgerRecord> {
-    const record = await this.pointsEarner.earnForBooking(customerId, amountSpentEGP, bookingId, bookingNumber)
-
-    // Evaluate tier upgrade
-    const tierResult = await this.tierEvaluator.evaluateAndUpgrade(customerId, amountSpentEGP)
-
-    // Emit LoyaltyEarnedEvent
-    await this.eventBus.publish({
-      type: 'LOYALTY_EARNED',
-      eventVersion: 'v1',
-      customerId,
-      points: record.points,
-      balance: record.resultingBalance,
-      bookingId,
-      timestamp: new Date().toISOString(),
-    })
-
-    if (tierResult.upgraded) {
-      await this.eventBus.publish({
-        type: 'TIER_UPGRADED',
-        eventVersion: 'v1',
-        customerId,
-        newTier: tierResult.newTier,
-        bonusGranted: tierResult.bonusRecord?.points || 0,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    return record
+    return this.pointsEarner.earnForBooking(customerId, amountSpentEGP, bookingId, bookingNumber)
   }
 
-  /**
-   * Deterministic Redeem Points Workflow:
-   * Policy -> Drift Guard -> Append Ledger -> DB Commit -> Emit PointsRedeemedEvent
-   */
-  async executeRedeemWorkflow(
-    customerId: number,
+  async redeemPoints(
+    userId: number,
     pointsToRedeem: number,
     bookingId: number,
-    reason: string,
+    reason = 'Checkout discount redemption',
   ): Promise<PointLedgerRecord> {
-    const record = await this.pointsRedeemer.redeemForBooking(customerId, pointsToRedeem, bookingId, reason)
-
-    await this.eventBus.publish({
-      type: 'POINTS_REDEEMED',
-      eventVersion: 'v1',
-      customerId,
-      points: Math.abs(record.points),
-      balance: record.resultingBalance,
-      bookingId,
-      timestamp: new Date().toISOString(),
-    })
-
-    return record
+    return this.pointsRedeemer.redeemForBooking(userId, pointsToRedeem, bookingId, reason)
   }
 
-  /**
-   * Deterministic Refund Points Workflow:
-   * Append Refund Ledger -> DB Commit -> Emit PointsRefundedEvent
-   */
-  async executeRefundWorkflow(
-    customerId: number,
-    pointsToRefund: number,
+  async refundPointsForCancellation(
+    userId: number,
     bookingId: number,
+    originalEarnedPoints: number,
   ): Promise<PointLedgerRecord> {
-    const record = await this.pointsRefunder.refundRedeemedPoints(customerId, pointsToRefund, bookingId)
-
-    await this.eventBus.publish({
-      type: 'POINTS_REFUNDED',
-      eventVersion: 'v1',
-      customerId,
-      points: record.points,
-      balance: record.resultingBalance,
-      bookingId,
-      timestamp: new Date().toISOString(),
-    })
-
-    return record
+    return this.pointsRefunder.reverseEarnedPoints(userId, originalEarnedPoints, bookingId)
   }
 
-  /**
-   * Deterministic Admin Adjustment Workflow:
-   * Governance Validation -> Append Ledger -> DB Commit -> Emit ManualAdjustmentEvent
-   */
-  async executeAdminAdjustmentWorkflow(params: AdminAdjustmentParams): Promise<PointLedgerRecord> {
-    const record = await this.adminAdjustment.executeAdjustment(params)
+  async processExpiredPoints(): Promise<number> {
+    return this.pointsExpirer.processExpiredPoints()
+  }
 
-    await this.eventBus.publish({
-      type: 'MANUAL_ADJUSTMENT',
-      eventVersion: 'v1',
-      customerId: params.customerId,
-      points: record.points,
-      balance: record.resultingBalance,
-      ticket: params.ticket,
-      adminId: params.adminId,
-      timestamp: new Date().toISOString(),
-    })
+  async adminAdjustPoints(params: AdminAdjustmentParams): Promise<PointLedgerRecord> {
+    return this.adminAdjustment.executeAdjustment(params)
+  }
 
-    return record
+  async evaluateAndUpgradeTier(userId: number, additionalSpentEGP = 0): Promise<LoyaltyTier> {
+    const res = await this.tierEvaluator.evaluateAndUpgrade(userId, additionalSpentEGP)
+    return res.newTier
+  }
+
+  async rebuildCustomerProjection(userId: number): Promise<number> {
+    const projection = await this.projectionRebuilder.rebuildCustomerProjection(userId)
+    return projection.balance
+  }
+
+  async getCustomerBalance(userId: number): Promise<number> {
+    return this.queries.getBalance(userId)
+  }
+
+  async getCustomerLedgerHistory(userId: number, limit = 50): Promise<PointLedgerRecord[]> {
+    return this.queries.getHistory(userId, limit)
   }
 }

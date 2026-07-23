@@ -1,22 +1,18 @@
-import type { Payload, PayloadRequest } from 'payload'
+import type { PayloadRequest } from 'payload'
 import { TranslationRepository } from './repository'
 import { TranslationEngine } from './engine'
 import type { TranslationRecordEntity } from './types'
 
 /**
  * Translation Domain Service (Enterprise Thin Facade)
- * Single entry point for all multilingual translation requests via Dependency Injection.
+ * Single entry point for all multilingual translation requests via Constructor Dependency Injection.
  */
 export class TranslationService {
   private repository: TranslationRepository
   private engine: TranslationEngine
 
-  constructor(repository?: TranslationRepository | Payload) {
-    if (repository && 'findActiveLocales' in repository) {
-      this.repository = repository as TranslationRepository
-    } else {
-      this.repository = new TranslationRepository(repository as Payload)
-    }
+  constructor(repository: TranslationRepository) {
+    this.repository = repository
     this.engine = new TranslationEngine(this.repository)
   }
 

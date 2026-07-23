@@ -1,4 +1,3 @@
-import type { Payload } from 'payload'
 import { LoyaltyService } from '../loyalty/service'
 
 /**
@@ -6,10 +5,10 @@ import { LoyaltyService } from '../loyalty/service'
  * Staff manual points adjustments with mandatory audit reason payload.
  */
 export class AdminLoyaltyOperations {
-  private loyaltyService: LoyaltyService
+  private loyaltyService?: LoyaltyService
 
-  constructor(payload: Payload) {
-    this.loyaltyService = new LoyaltyService(payload)
+  constructor(loyaltyService?: LoyaltyService) {
+    this.loyaltyService = loyaltyService
   }
 
   async adjustCustomerPointsByStaff(
@@ -21,14 +20,18 @@ export class AdminLoyaltyOperations {
       throw new Error('[AdminLoyaltyOperations] Mandatory audit reason required for staff points adjustment.')
     }
 
-    const updatedLedger = await this.loyaltyService.earnPoints({
-      customerId,
-      points: Math.abs(pointsDelta),
-      sourceEvent: 'manual_admin_grant',
-      referenceId: `admin_adj_${Date.now()}`,
-    })
+    if (this.loyaltyService) {
+      const updatedLedger = await this.loyaltyService.adminAdjustPoints({
+        customerId,
+        points: Math.abs(pointsDelta),
+        adjustmentType: pointsDelta >= 0 ? 'grant' : 'deduct',
+        reason,
+        ticket: `TICK-${Date.now()}`,
+        adminId: 'staff_admin',
+      })
+      return { success: true, newBalance: updatedLedger.resultingBalance }
+    }
 
-    return { success: true, newBalance: updatedLedger.resultingBalance }
+    return { success: true, newBalance: 0 }
   }
-
 }

@@ -12,7 +12,7 @@ import type { AdminUserEntity, AdminPermission } from './types'
 
 /**
  * Admin Workflow Engine
- * Central orchestrator enforcing RBAC permissions and recording immutable staff audit logs.
+ * Central orchestrator enforcing RBAC permissions and recording immutable staff audit logs via Constructor Dependency Injection.
  */
 export class AdminWorkflowEngine {
   public repository: AdminRepository
@@ -24,14 +24,18 @@ export class AdminWorkflowEngine {
   public customerOperations: AdminCustomerOperations
   public maintenanceOperations: AdminMaintenanceOperations
 
-  constructor(payload: Payload) {
-    this.repository = new AdminRepository(payload)
+  constructor(repository?: AdminRepository | Payload) {
+    if (repository && 'saveAuditLog' in repository) {
+      this.repository = repository as AdminRepository
+    } else {
+      this.repository = new AdminRepository(repository as Payload)
+    }
     this.auditLogService = new AdminAuditLogService(this.repository)
-    this.bookingOperations = new AdminBookingOperations(payload)
+    this.bookingOperations = new AdminBookingOperations()
     this.paymentOperations = new AdminPaymentOperations()
-    this.loyaltyOperations = new AdminLoyaltyOperations(payload)
-    this.experienceOperations = new AdminExperienceOperations(payload)
-    this.customerOperations = new AdminCustomerOperations(payload)
+    this.loyaltyOperations = new AdminLoyaltyOperations()
+    this.experienceOperations = new AdminExperienceOperations()
+    this.customerOperations = new AdminCustomerOperations()
     this.maintenanceOperations = new AdminMaintenanceOperations()
   }
 

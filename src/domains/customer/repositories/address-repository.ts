@@ -6,13 +6,14 @@ import type { CustomerAddressEntity } from '../types'
  * Sole data persistence layer for the 'customer-addresses' Payload collection.
  */
 export class AddressRepository {
-  private payload: Payload
+  private payload?: Payload
 
-  constructor(payload: Payload) {
+  constructor(payload?: Payload) {
     this.payload = payload
   }
 
   async findByCustomerId(customerId: number, req?: PayloadRequest): Promise<CustomerAddressEntity[]> {
+    if (!this.payload) return []
     const result = await this.payload.find({
       collection: 'customer-addresses',
       where: {
@@ -35,6 +36,7 @@ export class AddressRepository {
   }
 
   async addAddress(address: Omit<CustomerAddressEntity, 'addressId'>, req?: PayloadRequest): Promise<CustomerAddressEntity> {
+    if (!this.payload) throw new Error('[AddressRepository] Payload instance not initialized.')
     const doc = await this.payload.create({
       collection: 'customer-addresses',
       data: {

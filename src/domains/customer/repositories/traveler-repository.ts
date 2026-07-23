@@ -6,13 +6,14 @@ import type { CompanionTravelerEntity } from '../types'
  * Sole data persistence layer for the 'customer-travelers' Payload collection.
  */
 export class TravelerRepository {
-  private payload: Payload
+  private payload?: Payload
 
-  constructor(payload: Payload) {
+  constructor(payload?: Payload) {
     this.payload = payload
   }
 
   async findByCustomerId(customerId: number, req?: PayloadRequest): Promise<CompanionTravelerEntity[]> {
+    if (!this.payload) return []
     const result = await this.payload.find({
       collection: 'customer-travelers',
       where: {
@@ -34,6 +35,7 @@ export class TravelerRepository {
   }
 
   async addTraveler(traveler: Omit<CompanionTravelerEntity, 'travelerId'>, req?: PayloadRequest): Promise<CompanionTravelerEntity> {
+    if (!this.payload) throw new Error('[TravelerRepository] Payload instance not initialized.')
     const doc = await this.payload.create({
       collection: 'customer-travelers',
       data: {

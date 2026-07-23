@@ -50,13 +50,13 @@ export class BookingCreator {
     let pointsRedeemed = 0
     let pointsValueEGP = 0
     if (params.pointsToRedeem && params.pointsToRedeem > 0) {
-      const availablePoints = await this.loyaltyService.getBalance(params.userId)
+      const availablePoints = await this.loyaltyService.getCustomerBalance(params.userId)
       const pointsPolicy = BookingPolicy.canRedeemPoints(availablePoints, params.pointsToRedeem)
       if (!pointsPolicy.allowed) {
         throw new Error(`[BookingPolicy] Redemption forbidden: ${pointsPolicy.reason}`)
       }
       pointsRedeemed = params.pointsToRedeem
-      pointsValueEGP = this.loyaltyService.calculatePointValueInEGP(pointsRedeemed)
+      pointsValueEGP = await this.loyaltyService.calculatePointValueInEGP(pointsRedeemed)
     }
 
     // 4. Generate Pricing Snapshot

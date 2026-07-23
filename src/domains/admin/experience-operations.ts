@@ -1,17 +1,14 @@
-import type { Payload } from 'payload'
 import { ExperienceService } from '../experience/service'
-import { ExperienceRepository } from '../experience/repository'
 
 /**
  * Admin Experience Operations Sub-Service
- * Publishing experiences, creating departure slots, updating capacity, and blackout dates.
+ * Publishing experiences, creating departure slots, updating capacity, and blackout dates via Dependency Injection.
  */
 export class AdminExperienceOperations {
-  private experienceService: ExperienceService
+  private experienceService?: ExperienceService
 
-  constructor(payload: Payload) {
-    const experienceRepo = new ExperienceRepository(payload)
-    this.experienceService = new ExperienceService(experienceRepo)
+  constructor(experienceService?: ExperienceService) {
+    this.experienceService = experienceService
   }
 
   async publishExperienceByStaff(experienceId: number): Promise<boolean> {

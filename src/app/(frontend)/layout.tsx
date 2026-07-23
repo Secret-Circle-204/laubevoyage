@@ -1,5 +1,4 @@
 import React from 'react'
-import '../../../public/globals.css'
 import './styles.css'
 import { AppProviders } from '@/providers'
 

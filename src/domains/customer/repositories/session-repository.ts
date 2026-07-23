@@ -6,13 +6,14 @@ import type { DeviceSessionEntity } from '../types'
  * Sole data persistence layer for the 'customer-device-sessions' Payload collection.
  */
 export class DeviceSessionRepository {
-  private payload: Payload
+  private payload?: Payload
 
-  constructor(payload: Payload) {
+  constructor(payload?: Payload) {
     this.payload = payload
   }
 
   async findActiveByCustomerId(customerId: number, req?: PayloadRequest): Promise<DeviceSessionEntity[]> {
+    if (!this.payload) return []
     const result = await this.payload.find({
       collection: 'customer-device-sessions',
       where: {
@@ -34,6 +35,7 @@ export class DeviceSessionRepository {
   }
 
   async createSession(session: DeviceSessionEntity, req?: PayloadRequest): Promise<DeviceSessionEntity> {
+    if (!this.payload) throw new Error('[DeviceSessionRepository] Payload instance not initialized.')
     const doc = await this.payload.create({
       collection: 'customer-device-sessions',
       data: {
@@ -58,6 +60,7 @@ export class DeviceSessionRepository {
   }
 
   async revokeSession(sessionId: string, req?: PayloadRequest): Promise<boolean> {
+    if (!this.payload) return false
     const result = await this.payload.find({
       collection: 'customer-device-sessions',
       where: {

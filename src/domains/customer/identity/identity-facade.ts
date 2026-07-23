@@ -1,4 +1,3 @@
-import type { Payload } from 'payload'
 import { CustomerRepository } from '../repositories/customer-repository'
 import { RegistrationService } from './registration'
 import { AuthenticationService } from './authentication'
@@ -7,7 +6,7 @@ import type { CustomerAggregate } from '../aggregate'
 
 /**
  * Identity Coordinator Facade
- * Facade coordinating Registration, Authentication, Verification, and Password sub-services.
+ * Facade coordinating Registration, Authentication, Verification, and Password sub-services via Constructor Dependency Injection.
  */
 export class IdentityCoordinatorFacade {
   public registration: RegistrationService
@@ -15,9 +14,9 @@ export class IdentityCoordinatorFacade {
   public verification: VerificationService
   public repository: CustomerRepository
 
-  constructor(payload: Payload, repository: CustomerRepository) {
+  constructor(repository: CustomerRepository) {
     this.repository = repository
-    this.registration = new RegistrationService(payload, repository)
+    this.registration = new RegistrationService(repository)
     this.authentication = new AuthenticationService(repository)
     this.verification = new VerificationService(repository)
   }

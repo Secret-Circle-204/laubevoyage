@@ -1,15 +1,14 @@
-import type { Payload } from 'payload'
 import { CustomerRepository } from '../repositories/customer-repository'
 import type { CustomerAggregate } from '../aggregate'
 
 /**
  * Registration Service
- * Handles customer account creation and duplicate checks.
+ * Handles customer account creation and duplicate checks via Constructor Dependency Injection.
  */
 export class RegistrationService {
   private repository: CustomerRepository
 
-  constructor(payload: Payload, repository: CustomerRepository) {
+  constructor(repository: CustomerRepository) {
     this.repository = repository
   }
 

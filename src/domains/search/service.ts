@@ -4,14 +4,13 @@ import type { SearchQueryDTO, SearchResponseDTO } from './types'
 
 /**
  * Search Domain Service (Enterprise Thin Facade)
- * Single entry point for all search, filtering, and discovery queries via Dependency Injection.
+ * Single entry point for all search, filtering, and discovery queries via Constructor Dependency Injection.
  */
 export class SearchService {
   private workflowEngine: SearchWorkflowEngine
 
-  constructor(repository?: SearchRepository) {
-    const repo = repository || new SearchRepository()
-    this.workflowEngine = new SearchWorkflowEngine(repo)
+  constructor(repository: SearchRepository) {
+    this.workflowEngine = new SearchWorkflowEngine(repository)
   }
 
   async search(query: SearchQueryDTO): Promise<SearchResponseDTO> {

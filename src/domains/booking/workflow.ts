@@ -1,5 +1,5 @@
 import type { Payload } from 'payload'
-import type { BookingStatus } from '@/types'
+import { BookingStatus } from '@/types'
 import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
 import { BookingRepository } from './repository'
 import { BookingCreator } from './creator'
@@ -14,7 +14,8 @@ import { LoyaltyService } from '../loyalty/service'
 
 /**
  * Booking Workflow Engine
- * Central deterministic orchestrator for all booking lifecycle workflows via Dependency Injection.
+ * Central deterministic orchestrator for all booking lifecycle workflows via Constructor Dependency Injection.
+ * Decoupled from direct LoyaltyRepository calls (uses LoyaltyService exclusively).
  */
 export class BookingWorkflowEngine {
   public repository: BookingRepository
@@ -26,24 +27,23 @@ export class BookingWorkflowEngine {
   public queries: BookingQueries
 
   constructor(
-    repository: BookingRepository | Payload,
+    repository?: BookingRepository | Payload,
     customerRepository?: CustomerRepository,
     experienceRepository?: ExperienceRepository,
     loyaltyService?: LoyaltyService,
-    payload?: Payload,
   ) {
-    let activePayload: Payload | undefined = payload
+    const activePayload = repository && 'find' in repository ? (repository as Payload) : undefined
+    const isRepo = repository && typeof repository === 'object' && 'findById' in repository
 
-    if (repository && ('find' in repository || 'findByID' in repository)) {
-      activePayload = repository as Payload
-      this.repository = new BookingRepository(activePayload)
+    if (isRepo) {
+      this.repository = repository as unknown as BookingRepository
     } else {
-      this.repository = repository as BookingRepository
+      this.repository = new BookingRepository(activePayload!)
     }
 
     const custRepo = customerRepository || (activePayload ? new CustomerRepository(activePayload) : ({} as CustomerRepository))
     const expRepo = experienceRepository || (activePayload ? new ExperienceRepository(activePayload) : ({} as ExperienceRepository))
-    const loySvc = loyaltyService || (activePayload ? new LoyaltyService(custRepo as any, activePayload) : ({} as LoyaltyService))
+    const loySvc = loyaltyService || ({} as LoyaltyService)
 
     this.creator = new BookingCreator(this.repository, custRepo, expRepo, loySvc)
     this.confirmation = new BookingConfirmation(this.repository)
@@ -53,60 +53,36 @@ export class BookingWorkflowEngine {
     this.queries = new BookingQueries(this.repository)
   }
 
-  /**
-   * Deterministic Checkout Workflow:
-   * Policy check -> Seat Hold -> Point Hold -> Freeze Snapshot -> Create Draft
-   */
-  async executeCheckoutWorkflow(params: CreateBookingParams): Promise<BookingAggregate> {
+  async executeCheckoutWorkflow(params: CreateBookingParams, actor?: Actor): Promise<BookingAggregate> {
     return this.creator.createDraft(params)
   }
 
-  /**
-   * Deterministic Pending Payment Workflow:
-   * Validate transition -> Transition status to pending_payment
-   */
   async executePendingPaymentWorkflow(bookingId: number): Promise<BookingAggregate> {
-    const booking = await this.repository.findById(bookingId)
-    return this.repository.updateStatus(booking.id, 'pending_payment' as BookingStatus)
+    return this.repository.updateStatus(bookingId, BookingStatus.PENDING_PAYMENT)
   }
 
-  /**
-   * Deterministic Payment Processing Workflow:
-   * Record Attempt -> Mark Paid -> Transition to Paid
-   */
-  async executePaymentWorkflow(bookingId: number, paymentAttempt: PaymentAttempt, actor?: Actor): Promise<BookingAggregate> {
-    return this.confirmation.markAsPaid(bookingId, paymentAttempt, actor)
+  async executePaymentWorkflow(bookingId: number, paymentAttempt: PaymentAttempt): Promise<BookingAggregate> {
+    return this.confirmation.markAsPaid(bookingId, paymentAttempt)
   }
 
-  /**
-   * Deterministic Confirmation Workflow:
-   * Confirm Status -> Commit Holds -> Emit BookingConfirmedEvent (Triggers Loyalty & Notification async queue)
-   */
   async executeConfirmationWorkflow(bookingId: number, actor?: Actor): Promise<BookingAggregate> {
     return this.confirmation.confirm(bookingId, actor)
   }
 
-  /**
-   * Deterministic Cancellation Workflow:
-   * Policy check -> Release Holds -> Transition Status -> Emit BookingCancelledEvent
-   */
-  async executeCancellationWorkflow(bookingId: number, actor: Actor, reason: string): Promise<BookingAggregate> {
-    return this.cancellation.cancel(bookingId, actor, reason)
+  async executeCancellationWorkflow(bookingId: number, actor?: Actor, reason = 'Cancelled'): Promise<BookingAggregate> {
+    const currentActor = actor || { id: 'system', type: 'system' as const, name: 'System Worker' }
+    return this.cancellation.cancel(bookingId, currentActor, reason)
   }
 
-  /**
-   * Deterministic Expiration Workflow:
-   * Scan -> 7-Step Expiration Pipeline -> Retry -> DLQ/Admin Alert
-   */
+  async executeCompletionWorkflow(bookingId: number, actor?: Actor): Promise<BookingAggregate> {
+    return this.completion.complete(bookingId, actor)
+  }
+
   async executeExpirationWorkflow(expirationWindowMinutes: number = 15): Promise<number> {
     return this.expiration.processExpiredBookings(expirationWindowMinutes)
   }
 
-  /**
-   * Deterministic Completion Workflow:
-   * Policy Check -> Complete Status -> Emit BookingCompletedEvent
-   */
-  async executeCompletionWorkflow(bookingId: number, actor?: Actor): Promise<BookingAggregate> {
-    return this.completion.complete(bookingId, actor)
+  async getById(bookingId: number): Promise<BookingAggregate> {
+    return this.queries.getById(bookingId)
   }
 }

@@ -52,7 +52,7 @@ export class BookingService {
   /**
    * Confirm booking after successful payment.
    */
-  async confirm(bookingId: number, paymentId: string): Promise<void> {
+  async confirm(bookingId: number, _paymentId?: string): Promise<void> {
     await this.workflowEngine.executeConfirmationWorkflow(bookingId)
   }
 
@@ -60,8 +60,7 @@ export class BookingService {
    * Cancel booking with reason and actor tracking.
    */
   async cancel(bookingId: number, reason: string, actor?: Actor): Promise<void> {
-    const currentActor: Actor = actor || { id: 'system', type: 'system', name: 'Cancellation Request' }
-    await this.workflowEngine.executeCancellationWorkflow(bookingId, currentActor, reason)
+    await this.workflowEngine.executeCancellationWorkflow(bookingId, actor, reason)
   }
 
   /**

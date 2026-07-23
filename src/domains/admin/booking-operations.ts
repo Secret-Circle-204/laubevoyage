@@ -1,17 +1,14 @@
-import type { Payload } from 'payload'
 import { BookingService } from '../booking/service'
-import { BookingRepository } from '../booking/repository'
 
 /**
  * Admin Booking Operations Sub-Service
- * Staff booking overrides, manual cancellation approvals, and voucher re-issuance.
+ * Staff booking overrides, manual cancellation approvals, and voucher re-issuance via Dependency Injection.
  */
 export class AdminBookingOperations {
-  private bookingService: BookingService
+  private bookingService?: BookingService
 
-  constructor(payload: Payload) {
-    const bookingRepo = new BookingRepository(payload)
-    this.bookingService = new BookingService(bookingRepo)
+  constructor(bookingService?: BookingService) {
+    this.bookingService = bookingService
   }
 
   async cancelBookingByStaff(bookingId: number, reason: string): Promise<boolean> {

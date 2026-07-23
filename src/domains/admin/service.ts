@@ -1,17 +1,17 @@
-import type { Payload } from 'payload'
 import { AdminWorkflowEngine } from './workflow'
+import { AdminRepository } from './repository'
 import type { AdminUserEntity } from './types'
 import type { MaintenanceJobName } from '../maintenance/types'
 
 /**
  * Admin Domain Service (Enterprise Thin Facade)
- * Single entry point for all administrative control panel actions.
+ * Single entry point for all administrative control panel actions via Constructor Dependency Injection.
  */
 export class AdminService {
   private workflowEngine: AdminWorkflowEngine
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new AdminWorkflowEngine(payload)
+  constructor(repository: AdminRepository) {
+    this.workflowEngine = new AdminWorkflowEngine(repository)
   }
 
   async cancelBookingByStaff(adminUser: AdminUserEntity, bookingId: number, reason: string): Promise<boolean> {

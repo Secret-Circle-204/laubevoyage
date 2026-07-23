@@ -14,7 +14,7 @@ import type { CustomerAggregate } from './aggregate'
 
 /**
  * Customer Workflow Engine
- * Central deterministic orchestrator for Customer & Identity workflows.
+ * Central deterministic orchestrator for Customer & Identity workflows via Constructor Dependency Injection.
  * Symmetrical architecture with BookingWorkflowEngine, PaymentWorkflowEngine, LoyaltyWorkflowEngine, and ExperienceWorkflowEngine.
  */
 export class CustomerWorkflowEngine {
@@ -30,18 +30,18 @@ export class CustomerWorkflowEngine {
   public queries: CustomerQueries
   private eventOutbox: EventOutboxService
 
-  constructor(repository?: CustomerRepository | Payload, payload?: Payload) {
+  constructor(repository?: CustomerRepository | Payload) {
     if (repository && 'findByEmail' in repository) {
       this.repository = repository as CustomerRepository
     } else {
       this.repository = new CustomerRepository(repository as Payload)
     }
-    const activePayload = payload || (repository && 'find' in repository ? (repository as Payload) : undefined)
-    this.travelerRepository = new TravelerRepository(activePayload as Payload)
-    this.addressRepository = new AddressRepository(activePayload as Payload)
-    this.sessionRepository = new DeviceSessionRepository(activePayload as Payload)
+    const payloadInstance = repository && 'find' in repository ? (repository as Payload) : undefined
+    this.travelerRepository = new TravelerRepository(payloadInstance)
+    this.addressRepository = new AddressRepository(payloadInstance)
+    this.sessionRepository = new DeviceSessionRepository(payloadInstance)
 
-    this.identity = new IdentityCoordinatorFacade(activePayload as Payload, this.repository)
+    this.identity = new IdentityCoordinatorFacade(this.repository)
     this.profileManager = new ProfileManager(this.travelerRepository, this.addressRepository)
     this.preferencesManager = new PreferencesManager()
     this.gdprManager = new GDPRConsentManager(this.repository)
