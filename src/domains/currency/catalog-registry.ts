@@ -1,5 +1,4 @@
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
+import type { CurrencyRepository } from './repository'
 
 export interface CurrencyIdentity {
   isoCode: string
@@ -18,7 +17,7 @@ class CurrencyCatalogRegistry {
   private cache: Map<string, CurrencyIdentity> = new Map()
   private initialized = false
   private lastLoadedAt = 0
-  private readonly TTL_MS = 60 * 60 * 1000 // 1 hour TTL (currencies don't change often)
+  private readonly TTL_MS = 60 * 60 * 1000
 
   private constructor() {
     this.cache = new Map<string, CurrencyIdentity>([
@@ -39,7 +38,7 @@ class CurrencyCatalogRegistry {
     return CurrencyCatalogRegistry.instance
   }
 
-  public async load(): Promise<void> {
+  public async load(repository?: CurrencyRepository): Promise<void> {
     const newCache = new Map<string, CurrencyIdentity>([
       ['EGP', { isoCode: 'EGP', numericCode: 818, name: 'Egyptian Pound', symbol: 'EGP', nativeSymbol: 'ج.م', decimals: 2, isActive: true, displayOrder: 1, isDefault: true }],
       ['USD', { isoCode: 'USD', numericCode: 840, name: 'US Dollar', symbol: '$', nativeSymbol: '$', decimals: 2, isActive: true, displayOrder: 2, isDefault: false }],
@@ -48,34 +47,25 @@ class CurrencyCatalogRegistry {
       ['SAR', { isoCode: 'SAR', numericCode: 682, name: 'Saudi Riyal', symbol: 'SAR', nativeSymbol: 'ر.س', decimals: 2, isActive: true, displayOrder: 5, isDefault: false }],
     ])
 
-    try {
-      const payload = await getPayload({ config: configPromise })
-      const { docs } = await payload.find({
-        collection: 'currencies',
-        where: {
-          isActive: {
-            equals: true,
-          },
-        },
-        limit: 1000,
-        depth: 0,
-      })
-
-      for (const doc of docs) {
-        newCache.set(doc.isoCode, {
-          isoCode: doc.isoCode,
-          numericCode: doc.numericCode,
-          name: doc.name,
-          symbol: doc.symbol,
-          nativeSymbol: doc.nativeSymbol,
-          decimals: doc.decimals,
-          isActive: doc.isActive ?? true,
-          displayOrder: doc.displayOrder ?? 0,
-          isDefault: doc.isDefault ?? false,
-        })
+    if (repository) {
+      try {
+        const { docs } = await repository.findActiveCurrencies()
+        for (const doc of docs) {
+          newCache.set(doc.isoCode, {
+            isoCode: doc.isoCode,
+            numericCode: doc.numericCode,
+            name: doc.name,
+            symbol: doc.symbol,
+            nativeSymbol: doc.nativeSymbol,
+            decimals: doc.decimals,
+            isActive: doc.isActive ?? true,
+            displayOrder: doc.displayOrder ?? 0,
+            isDefault: doc.isDefault ?? false,
+          })
+        }
+      } catch {
+        // Fallback for test/offline
       }
-    } catch {
-      // Graceful fallback to default in-memory currencies in test/offline environments
     }
 
     this.cache = newCache
@@ -87,22 +77,21 @@ class CurrencyCatalogRegistry {
     return Date.now() - this.lastLoadedAt > this.TTL_MS
   }
 
-  public async get(isoCode: string): Promise<CurrencyIdentity | undefined> {
+  public async get(isoCode: string, repository?: CurrencyRepository): Promise<CurrencyIdentity | undefined> {
     if (!this.initialized || this.isStale()) {
-      await this.load()
+      await this.load(repository)
     }
     return this.cache.get(isoCode)
   }
 
-  public async getAll(): Promise<CurrencyIdentity[]> {
+  public async getAll(repository?: CurrencyRepository): Promise<CurrencyIdentity[]> {
     if (!this.initialized || this.isStale()) {
-      await this.load()
+      await this.load(repository)
     }
     return Array.from(this.cache.values()).sort((a, b) => a.displayOrder - b.displayOrder)
   }
 
   public invalidate(): void {
-    // This will force a reload on the next get()
     this.initialized = false
   }
 }

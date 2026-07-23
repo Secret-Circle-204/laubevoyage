@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayload } from 'payload'
-import config from '@payload-config'
-import { getDomainServices } from '@/domains'
+import { getDomainServices } from '@/domains/factory'
 
 /**
  * GET /api/destinations/countries
@@ -9,10 +7,7 @@ import { getDomainServices } from '@/domains'
  */
 export async function GET(request: NextRequest) {
   try {
-    const payload = await getPayload({ config })
-    const services = getDomainServices(payload)
-
-    const locale = (request.nextUrl.searchParams.get('locale') || 'en') as 'en' | 'ar' | 'fr' | 'all'
+    const services = await getDomainServices()
     const countries = await services.destination.getCountries()
 
     return NextResponse.json(countries)

@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayload } from 'payload'
-import config from '@payload-config'
-import { getDomainServices } from '@/domains'
+import { getDomainServices } from '@/domains/factory'
 
-/**
- * GET /api/loyalty/balance
- * Get user loyalty points balance
- */
 export async function GET(request: NextRequest) {
   try {
-    const payload = await getPayload({ config })
-    const services = getDomainServices(payload)
+    const services = await getDomainServices()
 
     const userIdStr = request.headers.get('x-user-id')
     if (!userIdStr) {
@@ -18,18 +11,9 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = Number(userIdStr)
-    if (isNaN(userId)) {
-      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
-    }
+    const points = await services.customer.getById(userId)
 
-    const balance = await services.loyalty.getBalance(userId)
-    const user = await services.customer.getProfile(userId)
-
-    return NextResponse.json({
-      balance,
-      tier: user.loyalty?.tier,
-      totalSpent: user.loyalty?.totalSpent,
-    })
+    return NextResponse.json({ points: points.loyalty?.points || 0 })
   } catch (error) {
     console.error('Error fetching loyalty balance:', error)
     return NextResponse.json({ error: 'Failed to fetch loyalty balance' }, { status: 500 })

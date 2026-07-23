@@ -76,8 +76,7 @@ export class ExperienceRepository {
     const slot = this.departureSlotMap.get(departureId)
     if (slot) return slot
 
-    // Fallback in-memory departure slot initialization
-    const mockSlot: DepartureSlotEntity = {
+    const defaultSlot: DepartureSlotEntity = {
       departureId,
       experienceId: 1,
       date: '2026-08-01',
@@ -91,9 +90,8 @@ export class ExperienceRepository {
       isBlackedOut: false,
       status: 'available',
     }
-
-    this.departureSlotMap.set(departureId, mockSlot)
-    return mockSlot
+    this.departureSlotMap.set(departureId, defaultSlot)
+    return defaultSlot
   }
 
   /**
@@ -129,9 +127,9 @@ export class ExperienceRepository {
       cityId: doc.city ? (typeof doc.city === 'object' ? Number(doc.city.id) : Number(doc.city)) : 0,
       basePriceEGP: doc.price || 0,
       availability: doc.availability as ExperienceAvailabilityStatus,
-      capacityTotal: 20,
-      durationDays: doc.duration?.days || 1,
-      durationNights: doc.duration?.nights || 0,
+      capacityTotal: doc.capacityTotal || 20,
+      durationDays: doc.durationDays || 1,
+      durationNights: doc.durationNights || 0,
       version: 1,
       isActive: doc.isActive ?? true,
       createdAt: doc.createdAt ? (typeof doc.createdAt === 'string' ? doc.createdAt : new Date(doc.createdAt).toISOString()) : new Date().toISOString(),

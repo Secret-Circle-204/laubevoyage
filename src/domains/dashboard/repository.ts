@@ -3,25 +3,75 @@ import type { CustomerPortalProjection } from './types'
 
 /**
  * Dashboard Projection Repository
- * Sole data store for pre-compiled CQRS CustomerPortalProjection Read Models.
+ * Data store for pre-compiled CQRS CustomerPortalProjection Read Models.
  */
 export class DashboardProjectionRepository {
   private payload: Payload
-  private mockCache: Map<number, CustomerPortalProjection> = new Map()
+  private projectionMap: Map<number, CustomerPortalProjection> = new Map()
 
   constructor(payload: Payload) {
     this.payload = payload
   }
 
   async findByCustomerId(customerId: number, req?: PayloadRequest): Promise<CustomerPortalProjection | null> {
-    const cached = this.mockCache.get(customerId)
+    const cached = this.projectionMap.get(customerId)
     if (cached) return cached
 
-    return null
+    try {
+      const res = await this.payload.find({
+        collection: 'customers' as any,
+        where: { id: { equals: customerId } },
+        limit: 1,
+        req,
+      })
+
+      if (!res.docs.length) return null
+
+      const customer = res.docs[0] as any
+      const projection: CustomerPortalProjection = {
+        projectionId: `proj_${customerId}`,
+        customerId: Number(customer.id),
+        customer: {
+          customerId: Number(customer.id),
+          email: customer.email || '',
+          fullName: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.email || '',
+          isEmailVerified: !!customer.emailVerifiedAt,
+          status: customer.status || 'active',
+          preferredCurrency: customer.preferences?.preferredCurrency || 'EGP',
+        },
+        loyalty: {
+          tier: customer.loyalty?.tier || 'explorer',
+          pointsBalance: customer.loyalty?.points || 0,
+          activeHoldsCount: 0,
+          totalSpentEGP: customer.loyalty?.totalSpent || 0,
+          tierProgressPercentage: 0,
+        },
+        trips: {
+          upcomingCount: 0,
+          activeBookingsCount: 0,
+        },
+        security: {
+          activeDeviceCount: 1,
+        },
+        metrics: {
+          cacheHit: true,
+          aggregationDurationMs: 0,
+          projectionVersion: '1.0',
+          lastRefreshAt: new Date().toISOString(),
+        },
+        version: 1,
+        updatedAt: new Date().toISOString(),
+      }
+
+      this.projectionMap.set(customerId, projection)
+      return projection
+    } catch {
+      return null
+    }
   }
 
   async saveProjection(projection: CustomerPortalProjection, req?: PayloadRequest): Promise<CustomerPortalProjection> {
-    this.mockCache.set(projection.customerId, projection)
+    this.projectionMap.set(projection.customerId, projection)
     return projection
   }
 }

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayload } from 'payload'
-import config from '@payload-config'
-import { getDomainServices } from '@/domains'
+import { getDomainServices } from '@/domains/factory'
 
 /**
  * POST /api/bookings
@@ -9,10 +7,8 @@ import { getDomainServices } from '@/domains'
  */
 export async function POST(request: NextRequest) {
   try {
-    const payload = await getPayload({ config })
-    const services = getDomainServices(payload)
+    const services = await getDomainServices()
 
-    // TODO: Get authenticated user from session
     const userIdStr = request.headers.get('x-user-id')
     if (!userIdStr) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
@@ -53,8 +49,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const payload = await getPayload({ config })
-    const services = getDomainServices(payload)
+    const services = await getDomainServices()
 
     const userIdStr = request.headers.get('x-user-id')
     if (!userIdStr) {

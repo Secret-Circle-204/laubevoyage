@@ -2,7 +2,7 @@ import { EventBus } from '../event-bus'
 import type { BookingConfirmedEvent } from '../booking-events'
 import { LoyaltyService } from '../../loyalty/service'
 import { CustomerService } from '../../customer/service'
-import { PointTransactionType } from '@/types'
+import { CustomerRepository } from '../../customer/repository'
 import type { Payload } from 'payload'
 
 /**
@@ -13,6 +13,7 @@ export function registerLoyaltySubscriber(payload: Payload): void {
   const eventBus = EventBus.getInstance()
   const loyaltyService = new LoyaltyService(payload)
   const customerService = new CustomerService(payload)
+  const customerRepository = new CustomerRepository(payload)
 
   eventBus.subscribe<BookingConfirmedEvent>('BOOKING_CONFIRMED', async (event) => {
     const booking = event.booking
@@ -35,20 +36,14 @@ export function registerLoyaltySubscriber(payload: Payload): void {
       )
     }
 
-
-    // 3. Update customer total spent
+    // 3. Update customer total spent via CustomerRepository
     const newTotalSpent = (customer.loyalty?.totalSpent || 0) + totalAmountEGP
-    await payload.update({
-      collection: 'customers',
-      id: customerId,
-      data: {
-        loyalty: {
-          tier: (customer.loyalty?.tier || 'explorer') as 'explorer' | 'voyager' | 'elite',
-          totalSpent: newTotalSpent,
-        },
+    await customerRepository.update(customerId, {
+      loyalty: {
+        tier: (customer.loyalty?.tier || 'explorer') as 'explorer' | 'voyager' | 'elite',
+        totalSpent: newTotalSpent,
       },
     })
-
 
     // 4. Evaluate tier upgrade
     await loyaltyService.evaluateTier(customerId)

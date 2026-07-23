@@ -1,10 +1,11 @@
 import type { Payload } from 'payload'
-import type { Customer, Experience } from '@/payload-types'
-import type { CreateSessionParams, PaymentProviderType, RefundParams, RefundResult } from './types'
+import type { CreateSessionParams, RefundParams, RefundResult } from './types'
 import type { PaymentAggregate } from './aggregate'
 import { PaymentWorkflowEngine } from './workflow'
 import { registerBookingPaymentSubscriber } from '../events/subscribers/payment-subscriber'
 import { BookingRepository } from '../booking/repository'
+import { CustomerRepository } from '../customer/repository'
+import { ExperienceRepository } from '../experience/repository'
 
 /**
  * Payment Domain Service (Enterprise Thin Facade)
@@ -14,15 +15,24 @@ import { BookingRepository } from '../booking/repository'
 export class PaymentService {
   private workflowEngine: PaymentWorkflowEngine
   private bookingRepository: BookingRepository
-  private payload: Payload
+  private customerRepository: CustomerRepository
+  private experienceRepository: ExperienceRepository
 
   constructor(payload: Payload) {
-    this.payload = payload
     this.workflowEngine = new PaymentWorkflowEngine(payload)
     this.bookingRepository = new BookingRepository(payload)
+    this.customerRepository = new CustomerRepository(payload)
+    this.experienceRepository = new ExperienceRepository(payload)
 
     // Register event subscriber on initialization
     registerBookingPaymentSubscriber(payload)
+  }
+
+  async getAvailableGateways() {
+    return [
+      { id: 'stripe', name: 'Credit / Debit Card (Stripe)', icon: '💳', isAvailable: true },
+      { id: 'bnpl', name: 'Buy Now Pay Later', icon: '⚡', isAvailable: true },
+    ]
   }
 
   /**
@@ -30,14 +40,8 @@ export class PaymentService {
    */
   async createStripeSession(bookingId: number, successUrl: string, cancelUrl: string) {
     const booking = await this.bookingRepository.findById(bookingId)
-
-    const userDoc = typeof booking.customerId === 'number'
-      ? await this.payload.findByID({ collection: 'customers', id: booking.customerId })
-      : (booking.customerId as Customer)
-
-    const experienceDoc = typeof booking.experienceId === 'number'
-      ? await this.payload.findByID({ collection: 'experiences', id: booking.experienceId })
-      : (booking.experienceId as Experience)
+    const userDoc = await this.customerRepository.findById(booking.customerId)
+    const experienceDoc = await this.experienceRepository.findById(booking.experienceId)
 
     const pricingSnapshot = booking.pricingSnapshot
     const displayCurrency = pricingSnapshot.displayCurrency || 'EGP'
@@ -56,7 +60,7 @@ export class PaymentService {
       successUrl,
       cancelUrl,
       customerEmail: userDoc.email || undefined,
-      experienceTitle: experienceDoc.title || `Booking #${booking.bookingNumber}`,
+      experienceTitle: experienceDoc?.title || `Booking #${booking.bookingNumber}`,
     }
 
     const paymentAggregate = await this.workflowEngine.executeCreateSessionWorkflow('stripe', params, booking.status)

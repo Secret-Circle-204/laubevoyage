@@ -1,191 +1,56 @@
-import {
-  ExperienceType,
-  ExperienceAvailability,
-} from '@/types'
-import type { Payload, Where } from 'payload'
+import type { Payload } from 'payload'
+import { DestinationRepository } from './repository'
 
 /**
  * Destination Domain Service
- * Handles all destination, city, and experience queries
- *
- * Golden Rule: This domain ONLY returns data in EGP and base language.
- * It NEVER performs currency conversions or translations.
- * The Localization Layer handles that before returning to the frontend.
+ * Handles all destination, city, and experience queries.
+ * Delegated 100% to DestinationRepository.
  */
 export class DestinationService {
-  private payload: Payload
+  private repository: DestinationRepository
 
   constructor(payload: Payload) {
-    this.payload = payload
+    this.repository = new DestinationRepository(payload)
   }
 
-  /**
-   * Get all active countries
-   */
   async getCountries() {
-    return this.payload.find({
-      collection: 'countries',
-      where: {
-        isActive: {
-          equals: true,
-        },
-      },
-      sort: 'name',
-    })
+    return this.repository.findCountries()
   }
 
-  /**
-   * Get country by slug
-   */
   async getCountry(slug: string) {
-    const result = await this.payload.find({
-      collection: 'countries',
-      where: {
-        and: [{ slug: { equals: slug } }, { isActive: { equals: true } }],
-      },
-      limit: 1,
-    })
-
-    return result.docs[0] || null
+    return this.repository.findCountryBySlug(slug)
   }
 
-  /**
-   * Get cities by country
-   */
   async getCitiesByCountry(countryId: number) {
-    return this.payload.find({
-      collection: 'cities',
-      where: {
-        and: [{ country: { equals: countryId } }, { isActive: { equals: true } }],
-      },
-      sort: 'name',
-    })
+    return this.repository.findCitiesByCountry(countryId)
   }
 
-  /**
-   * Get city by slug
-   */
   async getCity(slug: string) {
-    const result = await this.payload.find({
-      collection: 'cities',
-      where: {
-        and: [{ slug: { equals: slug } }, { isActive: { equals: true } }],
-      },
-      limit: 1,
-    })
-
-    return result.docs[0] || null
+    return this.repository.findCityBySlug(slug)
   }
 
-  /**
-   * Get experiences by city
-   */
-  async getExperiencesByCity(
-    cityId: number,
-    options: {
-      type?: ExperienceType
-      page?: number
-      limit?: number
-    } = {},
-  ) {
-    const { type, page = 1, limit = 10 } = options
-
-    const andConditions: Where[] = [
-      { city: { equals: cityId } },
-      { isActive: { equals: true } },
-      { availability: { equals: ExperienceAvailability.AVAILABLE } },
-    ]
-
-    if (type) {
-      andConditions.push({ type: { equals: type } })
-    }
-
-    const where: Where = {
-      and: andConditions,
-    }
-
-    return this.payload.find({
-      collection: 'experiences',
-      where,
-      page,
-      limit,
-    })
+  async getExperiencesByCity(cityId: number, options: { page?: number; limit?: number; type?: string } = {}) {
+    return this.repository.findExperiencesByCity(cityId, options)
   }
 
-  /**
-   * Get experience by slug
-   */
-  async getExperience(slug: string) {
-    const result = await this.payload.find({
-      collection: 'experiences',
-      where: {
-        and: [{ slug: { equals: slug } }, { isActive: { equals: true } }],
-      },
-      limit: 1,
-    })
-
-    return result.docs[0] || null
+  async searchExperiences(cityId?: number | string, options: { page?: number; limit?: number; type?: string } = {}) {
+    if (cityId) {
+      return this.repository.findExperiencesByCity(Number(cityId), options)
+    }
+    return this.repository.findFeaturedExperiences(options.limit || 10)
   }
 
-  /**
-   * Search experiences
-   */
-  async searchExperiences(
-    query: string,
-    options: {
-      type?: ExperienceType
-      page?: number
-      limit?: number
-    } = {},
-  ) {
-    const { type, page = 1, limit = 10 } = options
-
-    const andConditions: Where[] = [
-      { isActive: { equals: true } },
-      { availability: { equals: ExperienceAvailability.AVAILABLE } },
-      {
-        or: [{ title: { contains: query } }, { description: { contains: query } }],
-      },
-    ]
-
-    if (type) {
-      andConditions.push({ type: { equals: type } })
-    }
-
-    const where: Where = {
-      and: andConditions,
-    }
-
-    return this.payload.find({
-      collection: 'experiences',
-      where,
-      page,
-      limit,
-    })
+  async getFeaturedExperiences(options: { limit?: number } = {}) {
+    return this.repository.findFeaturedExperiences(options.limit)
   }
 
-  /**
-   * Get featured experiences
-   */
-  async getFeaturedExperiences(
-    options: {
-      limit?: number
-    } = {},
-  ) {
-    const { limit = 6 } = options
+  async getHomePageOverview(currency: string = 'EGP') {
+    const expDocs = await this.getFeaturedExperiences({ limit: 6 })
+    const countriesRes = await this.getCountries()
 
-    const result = await this.payload.find({
-      collection: 'experiences',
-      where: {
-        and: [
-          { isActive: { equals: true } },
-          { availability: { equals: ExperienceAvailability.AVAILABLE } },
-        ],
-      },
-      limit,
-      sort: '-createdAt',
-    })
-
-    return result.docs
+    return {
+      featuredExperiences: expDocs,
+      topCountries: countriesRes.docs || [],
+    }
   }
 }

@@ -8,10 +8,8 @@ import type { CustomerAggregate } from '../aggregate'
  */
 export class RegistrationService {
   private repository: CustomerRepository
-  private payload: Payload
 
   constructor(payload: Payload, repository: CustomerRepository) {
-    this.payload = payload
     this.repository = repository
   }
 
@@ -21,16 +19,12 @@ export class RegistrationService {
       throw new Error(`[RegistrationService] Customer with email ${email} already exists.`)
     }
 
-    const doc = await this.payload.create({
-      collection: 'customers',
-      data: {
-        email: email.toLowerCase(),
-        firstName,
-        lastName,
-        status: 'pending_verification',
-      } as any,
+    const doc = await this.repository.create({
+      email: email.toLowerCase(),
+      firstName,
+      lastName,
+      status: 'pending_verification',
     })
-
 
     return this.repository.findById(Number(doc.id))
   }

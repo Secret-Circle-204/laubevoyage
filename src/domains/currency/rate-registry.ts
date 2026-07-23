@@ -1,20 +1,19 @@
-import { getPayload } from 'payload'
-import configPromise from '@payload-config'
+import type { CurrencyRepository } from './repository'
 
 export interface ExchangeRateData {
   fromCurrency: string
   toCurrency: string
   rate: number
   source: string
-  lastUpdate: string // ISO string
+  lastUpdate: string
 }
 
 class ExchangeRateRegistry {
   private static instance: ExchangeRateRegistry
-  private cache: Map<string, ExchangeRateData> = new Map() // Key: toCurrency
+  private cache: Map<string, ExchangeRateData> = new Map()
   private initialized = false
   private lastLoadedAt = 0
-  private readonly TTL_MS = 15 * 60 * 1000 // 15 minutes TTL
+  private readonly TTL_MS = 15 * 60 * 1000
 
   private baseCurrency = 'EGP'
 
@@ -37,9 +36,8 @@ class ExchangeRateRegistry {
     return ExchangeRateRegistry.instance
   }
 
-  public async load(): Promise<void> {
+  public async load(repository?: CurrencyRepository): Promise<void> {
     const newCache = new Map<string, ExchangeRateData>()
-    // Always add the base currency itself
     newCache.set(this.baseCurrency, {
       fromCurrency: this.baseCurrency,
       toCurrency: this.baseCurrency,
@@ -48,30 +46,21 @@ class ExchangeRateRegistry {
       lastUpdate: new Date().toISOString(),
     })
 
-    try {
-      const payload = await getPayload({ config: configPromise })
-      const { docs } = await payload.find({
-        collection: 'exchange-rates',
-        where: {
-          fromCurrency: {
-            equals: this.baseCurrency,
-          },
-        },
-        limit: 1000,
-        depth: 0,
-      })
-
-      for (const doc of docs) {
-        newCache.set(doc.toCurrency, {
-          fromCurrency: doc.fromCurrency,
-          toCurrency: doc.toCurrency,
-          rate: doc.rate,
-          source: doc.source || 'System',
-          lastUpdate: doc.lastUpdate || new Date().toISOString(),
-        })
+    if (repository) {
+      try {
+        const { docs } = await repository.findExchangeRates(this.baseCurrency)
+        for (const doc of docs) {
+          newCache.set(doc.toCurrency, {
+            fromCurrency: doc.fromCurrency,
+            toCurrency: doc.toCurrency,
+            rate: doc.rate,
+            source: doc.source || 'System',
+            lastUpdate: doc.lastUpdate || new Date().toISOString(),
+          })
+        }
+      } catch {
+        // Fallback for offline/test
       }
-    } catch {
-      // Graceful fallback in test/offline environments
     }
 
     this.cache = newCache
@@ -79,10 +68,10 @@ class ExchangeRateRegistry {
     this.lastLoadedAt = Date.now()
   }
 
-  public async getRate(targetCurrency: string): Promise<ExchangeRateData | undefined> {
+  public async getRate(targetCurrency: string, repository?: CurrencyRepository): Promise<ExchangeRateData | undefined> {
     const isStale = Date.now() - this.lastLoadedAt > this.TTL_MS
     if (!this.initialized || isStale) {
-      await this.load()
+      await this.load(repository)
     }
     return this.cache.get(targetCurrency)
   }

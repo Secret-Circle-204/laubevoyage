@@ -53,6 +53,23 @@ export class ExperienceService {
   }
 
   /**
+   * Get catalog with pre-computed domain facets.
+   */
+  async getCatalog(params: ExperienceSearchQueryParams) {
+    const results = await this.search(params)
+    const prices = results.map((e) => e.basePriceEGP)
+    const minPrice = prices.length > 0 ? Math.min(...prices) : 0
+    const maxPrice = prices.length > 0 ? Math.max(...prices) : 0
+    const categories = Array.from(new Set(results.map((e) => e.type)))
+
+    return {
+      experiences: results,
+      facets: { minPrice, maxPrice, categories },
+      totalItems: results.length,
+    }
+  }
+
+  /**
    * Get experience aggregate by ID.
    */
   async getById(experienceId: number): Promise<ExperienceAggregate> {

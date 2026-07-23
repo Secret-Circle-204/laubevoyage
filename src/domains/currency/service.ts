@@ -1,5 +1,7 @@
+import type { Payload } from 'payload'
 import type { CurrencyCode, Money } from '@/types'
 import { rateRegistry } from './rate-registry'
+import { CurrencyRepository } from './repository'
 
 /**
  * Currency Domain Service
@@ -7,7 +9,30 @@ import { rateRegistry } from './rate-registry'
  * Base currency: EGP
  */
 export class CurrencyService {
-  constructor() {}
+  private repository?: CurrencyRepository
+
+  constructor(payload?: Payload) {
+    if (payload) {
+      this.repository = new CurrencyRepository(payload)
+    }
+  }
+
+  async markAllStale(errorMessage: string, attemptTime: string) {
+    if (!this.repository) throw new Error('CurrencyRepository requires Payload instance')
+    return this.repository.markAllStale(errorMessage, attemptTime)
+  }
+
+  async upsertRate(params: {
+    fromCurrency: string
+    toCurrency: string
+    rate: number
+    source: 'OpenExchange' | 'ECB' | 'Fixer' | 'Manual'
+    syncStatus: 'synced' | 'failed' | 'stale'
+    timestamp: string
+  }) {
+    if (!this.repository) throw new Error('CurrencyRepository requires Payload instance')
+    return this.repository.upsertRate(params)
+  }
 
   /**
    * Convert amount from one currency to another using the Rate Registry

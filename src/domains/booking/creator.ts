@@ -9,6 +9,8 @@ import { BookingHistoryService } from './history'
 import { BookingNumberGenerator } from './number-generator'
 import { LoyaltyService } from '../loyalty/service'
 import { PricingPipeline } from '../currency/pipeline'
+import { CustomerRepository } from '../customer/repository'
+import { ExperienceRepository } from '../experience/repository'
 
 /**
  * Booking Creator Sub-Service
@@ -16,28 +18,23 @@ import { PricingPipeline } from '../currency/pipeline'
  */
 export class BookingCreator {
   private repository: BookingRepository
+  private customerRepository: CustomerRepository
+  private experienceRepository: ExperienceRepository
   private loyaltyService: LoyaltyService
   private pricingPipeline: PricingPipeline
-  private payload: Payload
 
   constructor(payload: Payload, repository: BookingRepository) {
-    this.payload = payload
     this.repository = repository
+    this.customerRepository = new CustomerRepository(payload)
+    this.experienceRepository = new ExperienceRepository(payload)
     this.loyaltyService = new LoyaltyService(payload)
     this.pricingPipeline = new PricingPipeline()
   }
 
   async createDraft(params: CreateBookingParams): Promise<BookingAggregate> {
-    // 1. Fetch experience and customer
-    const experience = await this.payload.findByID({
-      collection: 'experiences',
-      id: params.experienceId,
-    })
-
-    const customer = await this.payload.findByID({
-      collection: 'customers',
-      id: params.userId,
-    })
+    // 1. Fetch experience and customer via repositories
+    const experience = await this.experienceRepository.findById(params.experienceId)
+    const customer = await this.customerRepository.findById(params.userId)
 
     // 2. Validate policy
     const policyResult = BookingPolicy.canCreate(customer.status || 'active', experience.availability)
@@ -59,9 +56,9 @@ export class BookingCreator {
     }
 
     // 4. Generate Pricing Snapshot
-    const targetCurrency = params.currency || customer.preferences?.preferredCurrency || 'EGP'
+    const targetCurrency = params.currency || 'EGP'
     const { snapshot } = await this.pricingPipeline.execute({
-      basePriceEGP: experience.price,
+      basePriceEGP: experience.basePriceEGP,
       loyaltyDiscount: pointsValueEGP,
       targetCurrency,
     })
@@ -70,7 +67,7 @@ export class BookingCreator {
     const bookingNumber = BookingNumberGenerator.generate()
 
     // 6. Build Initial Timeline & Audit entries
-    const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer'
+    const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.email || 'Customer'
     const actor = params.actor || { id: params.userId, type: 'customer', name: customerName }
 
     const timeline = BookingHistoryService.appendTimelineEntry([], {

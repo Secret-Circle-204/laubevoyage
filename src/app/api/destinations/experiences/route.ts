@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayload } from 'payload'
-import config from '@payload-config'
-import { getDomainServices } from '@/domains'
+import { getDomainServices } from '@/domains/factory'
 import { ExperienceType } from '@/types'
-import type { CurrencyCode } from '@/types'
 
 /**
  * GET /api/destinations/experiences
@@ -11,8 +8,7 @@ import type { CurrencyCode } from '@/types'
  */
 export async function GET(request: NextRequest) {
   try {
-    const payload = await getPayload({ config })
-    const services = getDomainServices(payload)
+    const services = await getDomainServices()
 
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('q')
@@ -20,8 +16,6 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as ExperienceType | null
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
-    const locale = (searchParams.get('locale') || 'en') as 'en' | 'ar' | 'fr' | 'all'
-    const currency = (searchParams.get('currency') || 'EGP') as CurrencyCode
 
     // Search
     if (query) {

@@ -14,6 +14,14 @@ export class CustomerRepository {
     this.payload = payload
   }
 
+  async create(data: any, req?: PayloadRequest): Promise<any> {
+    return this.payload.create({
+      collection: 'customers',
+      data,
+      req,
+    })
+  }
+
   async findById(customerId: number, req?: PayloadRequest): Promise<CustomerAggregate> {
     const doc = await this.payload.findByID({
       collection: 'customers',
