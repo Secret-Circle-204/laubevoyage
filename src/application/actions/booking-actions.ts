@@ -34,10 +34,11 @@ export async function processPaymentAction(bookingId: number, gatewayId: string)
       return { success: true, transactionId: paymentAggregate.transactionId, status: paymentAggregate.status }
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
     const session = await payment.createStripeSession(
       bookingId,
-      'http://localhost:3000/dashboard/bookings',
-      'http://localhost:3000/checkout/' + bookingId,
+      `${appUrl}/dashboard/bookings`,
+      `${appUrl}/checkout/${bookingId}`,
     )
 
     return { success: true, transactionId: session.transactionId, checkoutUrl: session.url }

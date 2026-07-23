@@ -1,16 +1,15 @@
-import type { Payload } from 'payload'
 import { DestinationRepository } from './repository'
 
 /**
  * Destination Domain Service
  * Handles all destination, city, and experience queries.
- * Delegated 100% to DestinationRepository.
+ * Delegated 100% to DestinationRepository via Dependency Injection.
  */
 export class DestinationService {
   private repository: DestinationRepository
 
-  constructor(payload: Payload) {
-    this.repository = new DestinationRepository(payload)
+  constructor(repository: DestinationRepository) {
+    this.repository = repository
   }
 
   async getCountries() {

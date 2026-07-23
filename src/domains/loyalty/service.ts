@@ -1,22 +1,31 @@
 import type { Payload } from 'payload'
 import { LoyaltyTier } from '@/types'
 import { LoyaltyWorkflowEngine } from './workflow'
+import { LoyaltyRepository } from './repository'
 import { registerLoyaltyNotificationSubscriber } from '../events/subscribers/loyalty-notification-subscriber'
 import type { AdminAdjustmentParams, PointLedgerRecord } from './types'
 
 /**
  * Loyalty Domain Service (Enterprise Thin Facade)
- * Single entry point for all loyalty point operations.
+ * Single entry point for all loyalty point operations via Dependency Injection.
  * Delegated to LoyaltyWorkflowEngine for single-responsibility orchestration.
  */
 export class LoyaltyService {
   private workflowEngine: LoyaltyWorkflowEngine
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new LoyaltyWorkflowEngine(payload)
+  constructor(repository: LoyaltyRepository | Payload, payload?: Payload) {
+    let activePayload: Payload | undefined = payload
+    if (!activePayload && repository && 'find' in repository) {
+      activePayload = repository as Payload
+    } else if (!activePayload && repository && 'payload' in repository) {
+      activePayload = (repository as any).payload
+    }
 
-    // Register event subscribers
-    registerLoyaltyNotificationSubscriber(payload)
+    this.workflowEngine = new LoyaltyWorkflowEngine(repository, activePayload)
+
+    if (activePayload) {
+      registerLoyaltyNotificationSubscriber(activePayload)
+    }
   }
 
   /**
@@ -90,7 +99,6 @@ export class LoyaltyService {
     return this.workflowEngine.queries.getHistory(userId, limit)
   }
 
-
   async earnPoints(params: { customerId: number; points: number; sourceEvent?: string; referenceId?: string }): Promise<PointLedgerRecord> {
     return this.earn(params.customerId, params.points, Number(params.referenceId) || 0, String(params.referenceId || ''))
   }
@@ -99,4 +107,3 @@ export class LoyaltyService {
     return Math.floor(amountEGP * 0.1)
   }
 }
-

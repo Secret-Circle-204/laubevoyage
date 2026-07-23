@@ -5,13 +5,17 @@ import type { SearchQueryDTO, SearchResponseDTO } from './types'
 
 /**
  * Search Workflow Engine
- * Central orchestrator handling search query validation, pipeline execution, and result formatting.
+ * Central orchestrator handling search query validation, pipeline execution, and result formatting via Dependency Injection.
  */
 export class SearchWorkflowEngine {
   public repository: SearchRepository
 
-  constructor(payload: Payload) {
-    this.repository = new SearchRepository(payload)
+  constructor(repository?: SearchRepository | Payload) {
+    if (repository && 'search' in repository) {
+      this.repository = repository as SearchRepository
+    } else {
+      this.repository = new SearchRepository(repository as Payload)
+    }
   }
 
   async executeSearch(query: SearchQueryDTO): Promise<SearchResponseDTO> {

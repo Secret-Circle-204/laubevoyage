@@ -52,7 +52,8 @@ export class HomePageLoader {
           satisfactionRate: 100,
         },
       }
-    } catch {
+    } catch (err: unknown) {
+      console.error('[HomePageLoader] Failure loading home page overview:', err)
       return {
         hero: {
           title: '',

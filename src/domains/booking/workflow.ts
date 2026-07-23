@@ -7,11 +7,13 @@ import { BookingCancellation } from './cancellation'
 import { BookingExpiration } from './expiration'
 import { BookingCompletion } from './completion'
 import { BookingQueries } from './queries'
+import type { CustomerRepository } from '../customer/repository'
+import type { ExperienceRepository } from '../experience/repository'
+import type { LoyaltyService } from '../loyalty/service'
 
 /**
  * Booking Workflow Engine
- * Central deterministic orchestrator for all booking lifecycle workflows.
- * Ensures sequential step execution without sub-services calling each other directly.
+ * Central deterministic orchestrator for all booking lifecycle workflows via Dependency Injection.
  */
 export class BookingWorkflowEngine {
   public repository: BookingRepository
@@ -22,9 +24,21 @@ export class BookingWorkflowEngine {
   public completion: BookingCompletion
   public queries: BookingQueries
 
-  constructor(payload: Payload) {
-    this.repository = new BookingRepository(payload)
-    this.creator = new BookingCreator(payload, this.repository)
+  constructor(
+    repository: BookingRepository | Payload,
+    customerRepository?: CustomerRepository,
+    experienceRepository?: ExperienceRepository,
+    loyaltyService?: LoyaltyService,
+    payload?: Payload,
+  ) {
+    if (repository && 'find' in repository) {
+      const activePayload = repository as Payload
+      this.repository = new BookingRepository(activePayload)
+      this.creator = new BookingCreator(this.repository, customerRepository, experienceRepository, loyaltyService, activePayload)
+    } else {
+      this.repository = repository as BookingRepository
+      this.creator = new BookingCreator(this.repository, customerRepository, experienceRepository, loyaltyService, payload)
+    }
     this.confirmation = new BookingConfirmation(this.repository)
     this.cancellation = new BookingCancellation(this.repository)
     this.expiration = new BookingExpiration(this.repository)

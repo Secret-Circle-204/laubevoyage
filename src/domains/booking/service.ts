@@ -1,26 +1,29 @@
-import type { Payload } from 'payload'
 import type { BookingStatus } from '@/types'
 import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
 import { BookingWorkflowEngine } from './workflow'
-import { registerLoyaltySubscriber } from '../events/subscribers/loyalty-subscriber'
-import { registerNotificationSubscriber } from '../events/subscribers/notification-subscriber'
+import { BookingRepository } from './repository'
+import type { CustomerRepository } from '../customer/repository'
+import type { ExperienceRepository } from '../experience/repository'
+import type { LoyaltyService } from '../loyalty/service'
 
 /**
  * Booking Domain Service (Enterprise Facade)
- * Single entry point for all booking operations.
+ * Single entry point for all booking operations via Constructor Dependency Injection.
  * Delegated to BookingWorkflowEngine for single-responsibility orchestration.
  */
 export class BookingService {
+  private repository: BookingRepository
   private workflowEngine: BookingWorkflowEngine
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new BookingWorkflowEngine(payload)
-
-    // Register event listeners on initialization
-    registerLoyaltySubscriber(payload)
-    registerNotificationSubscriber(payload)
+  constructor(
+    repository: BookingRepository,
+    customerRepository?: CustomerRepository,
+    experienceRepository?: ExperienceRepository,
+    loyaltyService?: LoyaltyService,
+  ) {
+    this.repository = repository
+    this.workflowEngine = new BookingWorkflowEngine(repository, customerRepository, experienceRepository, loyaltyService)
   }
-
 
   /**
    * Create a new booking in draft state.
@@ -34,24 +37,17 @@ export class BookingService {
    * Move booking to pending payment.
    */
   async moveToPendingPayment(bookingId: number): Promise<void> {
-    await this.workflowEngine.repository.updateStatus(bookingId, 'pending_payment' as BookingStatus)
+    await this.repository.updateStatus(bookingId, 'pending_payment' as BookingStatus)
   }
 
   /**
    * Mark as paid (called by PaymentService webhook adapter).
    */
-  async markAsPaid(bookingId: number, paymentAttempt?: PaymentAttempt): Promise<void> {
-    const attempt: PaymentAttempt = paymentAttempt || {
-      attemptId: `pay_${Date.now()}`,
-      attemptNumber: 1,
-      provider: 'stripe',
-      amount: 0,
-      currency: 'EGP',
-      status: 'successful',
-      timestamp: new Date().toISOString(),
+  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt): Promise<void> {
+    if (!paymentAttempt) {
+      throw new Error('[BookingService] markAsPaid requires a valid PaymentAttempt object.')
     }
-
-    await this.workflowEngine.executePaymentWorkflow(bookingId, attempt)
+    await this.workflowEngine.executePaymentWorkflow(bookingId, paymentAttempt)
   }
 
   /**

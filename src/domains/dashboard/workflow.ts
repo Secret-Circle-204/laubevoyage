@@ -23,9 +23,14 @@ export class DashboardWorkflowEngine {
   public loyaltyHub: DashboardLoyaltyHub
   public profileHub: DashboardProfileHub
 
-  constructor(payload: Payload) {
-    this.queryBus = new DashboardQueryBus(payload)
-    this.repository = new DashboardProjectionRepository(payload)
+  constructor(repository?: DashboardProjectionRepository | Payload, payload?: Payload) {
+    if (repository && 'findByCustomerId' in repository) {
+      this.repository = repository as DashboardProjectionRepository
+    } else {
+      this.repository = new DashboardProjectionRepository(repository as Payload)
+    }
+    const activePayload = payload || (repository && 'find' in repository ? (repository as Payload) : undefined)
+    this.queryBus = new DashboardQueryBus(activePayload as any)
     this.overviewAggregator = new DashboardOverviewAggregator(this.queryBus)
     this.bookingHub = new DashboardBookingHub(this.queryBus)
     this.loyaltyHub = new DashboardLoyaltyHub(this.queryBus)

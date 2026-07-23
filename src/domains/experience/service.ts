@@ -1,19 +1,21 @@
-import type { Payload } from 'payload'
 import { ExperienceWorkflowEngine } from './workflow'
+import { ExperienceRepository } from './repository'
 import type { PricingContext, DepartureSlotEntity, ExperienceSearchQueryParams } from './types'
 import type { PricingSnapshotData } from '../currency/pipeline'
 import type { ExperienceAggregate } from './aggregate'
 
 /**
  * Experience Domain Service (Enterprise Thin Facade)
- * Single entry point for all Destination & Experience catalog operations.
+ * Single entry point for all Destination & Experience catalog operations via Dependency Injection.
  * Delegated to ExperienceWorkflowEngine for single-responsibility orchestration.
  */
 export class ExperienceService {
+  private repository: ExperienceRepository
   private workflowEngine: ExperienceWorkflowEngine
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new ExperienceWorkflowEngine(payload)
+  constructor(repository: ExperienceRepository) {
+    this.repository = repository
+    this.workflowEngine = new ExperienceWorkflowEngine(repository)
   }
 
   /**

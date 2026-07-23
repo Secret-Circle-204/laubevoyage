@@ -30,13 +30,18 @@ export class CustomerWorkflowEngine {
   public queries: CustomerQueries
   private eventOutbox: EventOutboxService
 
-  constructor(payload: Payload) {
-    this.repository = new CustomerRepository(payload)
-    this.travelerRepository = new TravelerRepository(payload)
-    this.addressRepository = new AddressRepository(payload)
-    this.sessionRepository = new DeviceSessionRepository(payload)
+  constructor(repository?: CustomerRepository | Payload, payload?: Payload) {
+    if (repository && 'findByEmail' in repository) {
+      this.repository = repository as CustomerRepository
+    } else {
+      this.repository = new CustomerRepository(repository as Payload)
+    }
+    const activePayload = payload || (repository && 'find' in repository ? (repository as Payload) : undefined)
+    this.travelerRepository = new TravelerRepository(activePayload as Payload)
+    this.addressRepository = new AddressRepository(activePayload as Payload)
+    this.sessionRepository = new DeviceSessionRepository(activePayload as Payload)
 
-    this.identity = new IdentityCoordinatorFacade(payload, this.repository)
+    this.identity = new IdentityCoordinatorFacade(activePayload as Payload, this.repository)
     this.profileManager = new ProfileManager(this.travelerRepository, this.addressRepository)
     this.preferencesManager = new PreferencesManager()
     this.gdprManager = new GDPRConsentManager(this.repository)

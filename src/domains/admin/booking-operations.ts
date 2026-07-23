@@ -1,5 +1,6 @@
 import type { Payload } from 'payload'
 import { BookingService } from '../booking/service'
+import { BookingRepository } from '../booking/repository'
 
 /**
  * Admin Booking Operations Sub-Service
@@ -9,7 +10,8 @@ export class AdminBookingOperations {
   private bookingService: BookingService
 
   constructor(payload: Payload) {
-    this.bookingService = new BookingService(payload)
+    const bookingRepo = new BookingRepository(payload)
+    this.bookingService = new BookingService(bookingRepo)
   }
 
   async cancelBookingByStaff(bookingId: number, reason: string): Promise<boolean> {

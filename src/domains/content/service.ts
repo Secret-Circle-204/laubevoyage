@@ -1,4 +1,3 @@
-import type { Payload } from 'payload'
 import { ContentWorkflowEngine } from './workflow'
 import { ContentSlugService } from './slug-service'
 import { ContentSearchIndexer } from './search-indexer'
@@ -14,9 +13,9 @@ export class ContentService {
   private repository: ContentRepository
   private workflowEngine: ContentWorkflowEngine
 
-  constructor(payload: Payload) {
-    this.repository = new ContentRepository(payload)
-    this.workflowEngine = new ContentWorkflowEngine(payload)
+  constructor(repository: ContentRepository) {
+    this.repository = repository
+    this.workflowEngine = new ContentWorkflowEngine(repository)
   }
 
   async getPage(slug: string): Promise<{ page: ContentPageEntity; seo: SeoMetadataDTO } | null> {

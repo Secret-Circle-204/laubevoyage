@@ -1,9 +1,11 @@
 import Stripe from 'stripe'
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY
-
-if (!stripeSecretKey && process.env.NODE_ENV === 'production') {
-  throw new Error('STRIPE_SECRET_KEY is missing in production environment!')
+export function getStripeClient(): Stripe {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+  if (!stripeSecretKey) {
+    throw new Error('[Stripe] STRIPE_SECRET_KEY is missing from environment variables!')
+  }
+  return new Stripe(stripeSecretKey)
 }
 
-export const stripe = new Stripe(stripeSecretKey || 'sk_test_placeholder')
+export const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : (null as unknown as Stripe)

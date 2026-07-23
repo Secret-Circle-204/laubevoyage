@@ -9,7 +9,20 @@ describe('Search Domain: Workflow Integration Tests', () => {
     mockPayload = {
       create: vi.fn(),
       findByID: vi.fn(),
-      find: vi.fn().mockResolvedValue({ docs: [] }),
+      find: vi.fn().mockResolvedValue({
+        docs: [
+          {
+            id: 1,
+            title: 'Luxury Nile Cruise',
+            slug: 'nile-cruise',
+            type: 'Package',
+            basePriceEGP: 15000,
+            rating: 5,
+            reviewsCount: 10,
+            availableCapacity: 5,
+          },
+        ],
+      }),
       update: vi.fn(),
     }
     workflowEngine = new SearchWorkflowEngine(mockPayload)

@@ -23,11 +23,18 @@ export class BookingCreator {
   private loyaltyService: LoyaltyService
   private pricingPipeline: PricingPipeline
 
-  constructor(payload: Payload, repository: BookingRepository) {
+  constructor(
+    repository: BookingRepository,
+    customerRepository?: CustomerRepository,
+    experienceRepository?: ExperienceRepository,
+    loyaltyService?: LoyaltyService,
+    payload?: Payload,
+  ) {
     this.repository = repository
-    this.customerRepository = new CustomerRepository(payload)
-    this.experienceRepository = new ExperienceRepository(payload)
-    this.loyaltyService = new LoyaltyService(payload)
+    const activePayload = payload || (repository as any).payload
+    this.customerRepository = customerRepository || new CustomerRepository(activePayload)
+    this.experienceRepository = experienceRepository || new ExperienceRepository(activePayload)
+    this.loyaltyService = loyaltyService || new LoyaltyService(activePayload)
     this.pricingPipeline = new PricingPipeline()
   }
 

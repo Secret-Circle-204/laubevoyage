@@ -1,5 +1,6 @@
 import type { Payload } from 'payload'
 import { CustomerService } from '../customer/service'
+import { CustomerRepository } from '../customer/repository'
 
 /**
  * Admin Customer Operations Sub-Service
@@ -9,7 +10,8 @@ export class AdminCustomerOperations {
   private customerService: CustomerService
 
   constructor(payload: Payload) {
-    this.customerService = new CustomerService(payload)
+    const customerRepo = new CustomerRepository(payload)
+    this.customerService = new CustomerService(customerRepo)
   }
 
   async toggleCustomerStatusByStaff(customerId: number, status: 'active' | 'suspended', reason: string): Promise<boolean> {

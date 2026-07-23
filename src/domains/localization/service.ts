@@ -1,28 +1,28 @@
-import type { Payload, PayloadRequest } from 'payload'
+import type { PayloadRequest } from 'payload'
 import { TranslationService } from '../translation/service'
 import { PricingPipeline } from '../currency/pipeline'
-import type { CurrencyCode } from '@/types'
 import type { LocaleContext } from '@/types/locale'
 import { DEFAULT_LOCALE_CONTEXT } from '@/types/locale'
 import type { PricingResult } from '../currency/pipeline'
 
 /**
  * Localization Domain Service — Presentation Gateway
- *
- * Central orchestrator for all locale-dependent operations:
+ * Central orchestrator for all locale-dependent operations via Dependency Injection:
  * - Determines and manages the traveler's Locale Context
  * - Delegates text translation to the Translation Domain
  * - Delegates price conversion to the Pricing Pipeline
  * - Formats dates, numbers, and money on the server
  */
 export class LocalizationService {
-  private payload: Payload
   private translationService: TranslationService
   private pricingPipeline: PricingPipeline
 
-  constructor(payload: Payload) {
-    this.payload = payload
-    this.translationService = new TranslationService(payload)
+  constructor(translationService?: TranslationService | any) {
+    if (translationService && typeof translationService.translate === 'function') {
+      this.translationService = translationService
+    } else {
+      this.translationService = new TranslationService(translationService)
+    }
     this.pricingPipeline = new PricingPipeline()
   }
 
@@ -84,7 +84,6 @@ export class LocalizationService {
       targetCurrency,
     })
   }
-
 
   // =========================================================================
   // Formatting Utilities

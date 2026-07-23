@@ -1,19 +1,31 @@
 import type { ProductionReadinessDTO } from './types'
+import { EventBus } from '../events/event-bus'
 
 /**
  * Pre-Deployment Production Readiness Checker
- * Certifies system readiness across database schemas, event subscribers, background queues, and security guards.
+ * Performs dynamic production readiness checks.
  */
 export class ReadinessChecker {
   static certifyProductionReadiness(): ProductionReadinessDTO {
+    const eventBusInstance = EventBus.getInstance()
+    const isEventBusReady = !!eventBusInstance
+
     const checks = [
-      { checkName: 'Clean Architecture Domain Boundaries', passed: true, message: 'All 11 domains follow strict Clean Architecture rules.' },
-      { checkName: 'Zero Any Data Model Compliance', passed: true, message: 'Zero any types present across entire codebase.' },
-      { checkName: 'Rule 20 Account Isolation', passed: true, message: 'Users collection (Admin/Staff) strictly isolated from Customers.' },
-      { checkName: 'Master Event Bus Cross-Wiring', passed: true, message: 'Reactive event listeners registered across all domains.' },
-      { checkName: 'CQRS Read Model Projections', passed: true, message: 'Customer portal projection cache response < 5ms.' },
-      { checkName: 'Distributed Maintenance Leases', passed: true, message: 'Worker lock leases & checkpoint tracking active.' },
-      { checkName: 'Global Error Boundary RFC 7807', passed: true, message: 'Structured problem details exception handler active.' },
+      {
+        checkName: 'Master Event Bus Status',
+        passed: isEventBusReady,
+        message: isEventBusReady ? 'Master Event Bus active' : 'Event Bus not initialized',
+      },
+      {
+        checkName: 'Node Runtime Environment',
+        passed: typeof process !== 'undefined',
+        message: 'Server runtime environment verified',
+      },
+      {
+        checkName: 'System Telemetry & Telemetry Clocks',
+        passed: typeof performance !== 'undefined' && typeof performance.now === 'function',
+        message: 'High-resolution performance clocks active',
+      },
     ]
 
     const passedChecksCount = checks.filter((c) => c.passed).length

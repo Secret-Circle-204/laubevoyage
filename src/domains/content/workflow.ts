@@ -1,9 +1,7 @@
-import type { Payload } from 'payload'
 import { ContentRepository } from './repository'
 import { ContentPolicy } from './policy'
 import { ContentSeoEngine } from './seo-engine'
 import { ContentCacheManager } from './cache-manager'
-import { ContentTranslationBridge } from './translation-bridge'
 import type { ContentPageEntity, SeoMetadataDTO } from './types'
 
 /**
@@ -12,11 +10,13 @@ import type { ContentPageEntity, SeoMetadataDTO } from './types'
  */
 export class ContentWorkflowEngine {
   public repository: ContentRepository
-  public translationBridge: ContentTranslationBridge
 
-  constructor(payload: Payload) {
-    this.repository = new ContentRepository(payload)
-    this.translationBridge = new ContentTranslationBridge(payload)
+  constructor(repository: ContentRepository | any) {
+    if (repository && typeof repository.findPageBySlug === 'function') {
+      this.repository = repository
+    } else {
+      this.repository = new ContentRepository(repository)
+    }
   }
 
   async getPageBySlug(slug: string): Promise<{ page: ContentPageEntity; seo: SeoMetadataDTO } | null> {

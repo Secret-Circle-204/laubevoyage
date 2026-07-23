@@ -1,24 +1,20 @@
-import type { Payload } from 'payload'
 import type { CurrencyCode, Money } from '@/types'
 import { rateRegistry } from './rate-registry'
 import { CurrencyRepository } from './repository'
 
 /**
  * Currency Domain Service
- * Single source of truth for all currency operations.
+ * Single source of truth for all currency operations via CurrencyRepository Dependency Injection.
  * Base currency: EGP
  */
 export class CurrencyService {
-  private repository?: CurrencyRepository
+  private repository: CurrencyRepository
 
-  constructor(payload?: Payload) {
-    if (payload) {
-      this.repository = new CurrencyRepository(payload)
-    }
+  constructor(repository: CurrencyRepository) {
+    this.repository = repository
   }
 
   async markAllStale(errorMessage: string, attemptTime: string) {
-    if (!this.repository) throw new Error('CurrencyRepository requires Payload instance')
     return this.repository.markAllStale(errorMessage, attemptTime)
   }
 
@@ -30,7 +26,6 @@ export class CurrencyService {
     syncStatus: 'synced' | 'failed' | 'stale'
     timestamp: string
   }) {
-    if (!this.repository) throw new Error('CurrencyRepository requires Payload instance')
     return this.repository.upsertRate(params)
   }
 
@@ -52,7 +47,7 @@ export class CurrencyService {
       throw new Error('Base currency must be EGP')
     }
 
-    const rateData = await rateRegistry.getRate(to)
+    const rateData = await rateRegistry.getRate(to, this.repository)
     if (!rateData) {
       throw new Error(`Exchange rate not found for EGP to ${to}`)
     }

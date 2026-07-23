@@ -6,10 +6,11 @@ import { registerBookingPaymentSubscriber } from '../events/subscribers/payment-
 import { BookingRepository } from '../booking/repository'
 import { CustomerRepository } from '../customer/repository'
 import { ExperienceRepository } from '../experience/repository'
+import { PaymentRepository } from './repository'
 
 /**
  * Payment Domain Service (Enterprise Thin Facade)
- * Single entry point for all payment operations.
+ * Single entry point for all payment operations via Dependency Injection.
  * Delegated to PaymentWorkflowEngine for single-responsibility orchestration.
  */
 export class PaymentService {
@@ -18,14 +19,28 @@ export class PaymentService {
   private customerRepository: CustomerRepository
   private experienceRepository: ExperienceRepository
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new PaymentWorkflowEngine(payload)
-    this.bookingRepository = new BookingRepository(payload)
-    this.customerRepository = new CustomerRepository(payload)
-    this.experienceRepository = new ExperienceRepository(payload)
+  constructor(
+    paymentRepository?: PaymentRepository | Payload,
+    bookingRepository?: BookingRepository,
+    customerRepository?: CustomerRepository,
+    experienceRepository?: ExperienceRepository,
+    payload?: Payload,
+  ) {
+    let activePayload: Payload | undefined = payload
+    if (!activePayload && paymentRepository && 'find' in paymentRepository) {
+      activePayload = paymentRepository as Payload
+    } else if (!activePayload && paymentRepository && 'payload' in paymentRepository) {
+      activePayload = (paymentRepository as any).payload
+    }
 
-    // Register event subscriber on initialization
-    registerBookingPaymentSubscriber(payload)
+    this.workflowEngine = new PaymentWorkflowEngine(activePayload as Payload)
+    this.bookingRepository = bookingRepository || new BookingRepository(activePayload as Payload)
+    this.customerRepository = customerRepository || new CustomerRepository(activePayload as Payload)
+    this.experienceRepository = experienceRepository || new ExperienceRepository(activePayload as Payload)
+
+    if (activePayload) {
+      registerBookingPaymentSubscriber(activePayload)
+    }
   }
 
   async getAvailableGateways() {
@@ -52,7 +67,7 @@ export class PaymentService {
     const params: CreateSessionParams = {
       transactionId,
       bookingId: booking.id,
-      customerId: userDoc.id,
+      customerId: userDoc ? (userDoc.customerId || (userDoc as any).id) : booking.customerId,
       bookingNumber: booking.bookingNumber,
       basePriceEGP: pricingSnapshot.basePriceEGP,
       displayCurrency,

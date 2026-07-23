@@ -2,6 +2,8 @@ import type { Payload } from 'payload'
 import { EventBus } from '../event-bus'
 import type { TierUpgradedEvent } from '../loyalty-events'
 import { NotificationService } from '../../notification/service'
+import { NotificationRepository } from '../../notification/repository'
+import { CustomerRepository } from '../../customer/repository'
 
 /**
  * Loyalty Notification Subscriber
@@ -9,14 +11,19 @@ import { NotificationService } from '../../notification/service'
  */
 export function registerLoyaltyNotificationSubscriber(payload: Payload): void {
   const eventBus = EventBus.getInstance()
-  const notificationService = new NotificationService(payload)
+  const notificationRepository = new NotificationRepository(payload)
+  const customerRepository = new CustomerRepository(payload)
+  const notificationService = new NotificationService(notificationRepository)
 
   eventBus.subscribe<TierUpgradedEvent>('TIER_UPGRADED', async (event) => {
     try {
+      const customer = await customerRepository.findById(event.customerId).catch(() => null)
+      if (!customer?.email) return
+
       await notificationService.enqueueNotification({
         referenceType: 'LOYALTY_TIER',
         referenceId: `${event.customerId}_${event.newTier}`,
-        recipient: `customer_${event.customerId}@example.com`,
+        recipient: customer.email,
         channel: 'email',
         category: 'loyalty',
         priority: 'normal',

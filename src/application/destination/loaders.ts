@@ -6,7 +6,7 @@ export class DestinationsCatalogLoader {
     try {
       const { destination } = await getDomainServices()
       const countriesRes = await destination.getCountries()
-      const countries = (countriesRes.docs || []).map((doc: any) => ({
+      const countries = (countriesRes.docs || []).map((doc: Record<string, any>) => ({
         id: Number(doc.id),
         name: doc.name || '',
         slug: doc.slug || '',
@@ -27,7 +27,7 @@ export class CountryLoader {
   static async loadBySlug(countrySlug: string): Promise<CountryDetailsDTO | null> {
     try {
       const { destination } = await getDomainServices()
-      const countryDoc = (await destination.getCountry(countrySlug)) as any
+      const countryDoc = (await destination.getCountry(countrySlug)) as Record<string, any> | null
       if (!countryDoc) return null
 
       const citiesRes = await destination.getCitiesByCountry(Number(countryDoc.id))
@@ -42,7 +42,7 @@ export class CountryLoader {
         experiencesCount: countryDoc.experiencesCount || 0,
       }
 
-      const cities = (citiesRes.docs || []).map((doc: any) => ({
+      const cities = (citiesRes.docs || []).map((doc: Record<string, any>) => ({
         id: Number(doc.id),
         name: doc.name || '',
         slug: doc.slug || '',
@@ -64,10 +64,10 @@ export class CityLoader {
   static async loadBySlugs(countrySlug: string, citySlug: string): Promise<CityExperiencesDTO | null> {
     try {
       const { destination } = await getDomainServices()
-      const cityDoc = (await destination.getCity(citySlug)) as any
+      const cityDoc = (await destination.getCity(citySlug)) as Record<string, any> | null
       if (!cityDoc) return null
 
-      const countryDoc = (await destination.getCountry(countrySlug)) as any
+      const countryDoc = (await destination.getCountry(countrySlug)) as Record<string, any> | null
       const experiencesRes = await destination.getExperiencesByCity(Number(cityDoc.id))
 
       const city = {
@@ -91,7 +91,7 @@ export class CityLoader {
         experiencesCount: experiencesRes.totalDocs || 0,
       }
 
-      const experiences = (experiencesRes.docs || []).map((doc: any) => ({
+      const experiences = (experiencesRes.docs || []).map((doc: Record<string, any>) => ({
         id: Number(doc.id),
         slug: doc.slug || `exp-${doc.id}`,
         title: doc.title || '',

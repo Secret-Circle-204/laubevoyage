@@ -1,4 +1,3 @@
-import type { Payload } from 'payload'
 import { ExperienceRepository } from './repository'
 import { InventoryManager } from './inventory'
 import { ExperienceSearchService } from './search'
@@ -20,8 +19,8 @@ export class ExperienceWorkflowEngine {
   public queries: ExperienceQueries
   private eventBus: EventBus
 
-  constructor(payload: Payload) {
-    this.repository = new ExperienceRepository(payload)
+  constructor(repository: ExperienceRepository) {
+    this.repository = repository
     this.pipelineEngine = new PricingPipelineEngine()
     this.inventoryManager = new InventoryManager(this.repository)
     this.searchService = new ExperienceSearchService(this.repository)

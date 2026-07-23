@@ -7,36 +7,17 @@ import { SearchAvailabilityFilter } from './availability-filter'
  * Executes multi-criteria searches in < 50ms without DB table scans.
  */
 export class SearchQueryPipeline {
-  private index: SearchResultItemDTO[] = [
-    {
-      experienceId: 1,
-      title: 'Luxury Nile Cruise Luxor to Aswan',
-      slug: 'luxury-nile-cruise',
-      countryName: 'Egypt',
-      cityName: 'Luxor',
-      category: 'Nile Cruise',
-      durationDays: 5,
-      priceEGP: 15000,
-      rating: 5,
-      reviewCount: 42,
-      thumbnailUrl: '/images/nile-cruise.jpg',
-      availableSeats: 10,
-    },
-    {
-      experienceId: 2,
-      title: 'Red Sea Scuba Diving & Beach Resort',
-      slug: 'red-sea-diving',
-      countryName: 'Egypt',
-      cityName: 'Hurghada',
-      category: 'Beach Resort',
-      durationDays: 3,
-      priceEGP: 8500,
-      rating: 4,
-      reviewCount: 28,
-      thumbnailUrl: '/images/red-sea.jpg',
-      availableSeats: 6,
-    },
-  ]
+  private index: SearchResultItemDTO[] = []
+
+  constructor(initialIndex?: SearchResultItemDTO[]) {
+    if (initialIndex) {
+      this.index = initialIndex
+    }
+  }
+
+  updateIndex(items: SearchResultItemDTO[]): void {
+    this.index = items
+  }
 
   executeSearch(query: SearchQueryDTO): SearchResponseDTO {
     const startTime = performance.now()

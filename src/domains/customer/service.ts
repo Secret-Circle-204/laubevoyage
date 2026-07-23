@@ -1,18 +1,20 @@
-import type { Payload } from 'payload'
 import { CustomerWorkflowEngine } from './workflow'
+import { CustomerRepository } from './repositories/customer-repository'
 import type { CustomerAggregate } from './aggregate'
 import type { CompanionTravelerEntity, CustomerAddressEntity, DeviceSessionEntity } from './types'
 
 /**
  * Customer Domain Service (Enterprise Thin Facade)
- * Single entry point for all Customer & Identity operations.
+ * Single entry point for all Customer & Identity operations via Dependency Injection.
  * Delegated to CustomerWorkflowEngine for single-responsibility orchestration.
  */
 export class CustomerService {
+  private repository: CustomerRepository
   private workflowEngine: CustomerWorkflowEngine
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new CustomerWorkflowEngine(payload)
+  constructor(repository: CustomerRepository) {
+    this.repository = repository
+    this.workflowEngine = new CustomerWorkflowEngine(repository)
   }
 
   async registerCustomer(email: string, firstName: string, lastName: string): Promise<CustomerAggregate> {
@@ -34,7 +36,6 @@ export class CustomerService {
   async getProfile(customerId: number): Promise<CustomerAggregate> {
     return this.getById(customerId)
   }
-
 
   async getTravelers(customerId: number): Promise<CompanionTravelerEntity[]> {
     return this.workflowEngine.profileManager.getTravelers(customerId)

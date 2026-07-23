@@ -1,17 +1,19 @@
-import type { Payload } from 'payload'
 import { DashboardWorkflowEngine } from './workflow'
+import { DashboardProjectionRepository } from './repository'
 import type { CustomerPortalProjection, DashboardWidget, CustomerDocumentItem } from './types'
 import { DashboardDocumentsHub } from './documents-hub'
 
 /**
  * Dashboard Domain Service (Enterprise Thin Facade)
- * Single entry point for all Customer Portal queries and travel hub aggregations.
+ * Single entry point for all Customer Portal queries and travel hub aggregations via Dependency Injection.
  */
 export class DashboardService {
+  private repository: DashboardProjectionRepository
   private workflowEngine: DashboardWorkflowEngine
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new DashboardWorkflowEngine(payload)
+  constructor(repository: DashboardProjectionRepository) {
+    this.repository = repository
+    this.workflowEngine = new DashboardWorkflowEngine(repository)
   }
 
   async getPortalOverview(customerId: number): Promise<CustomerPortalProjection> {

@@ -1,6 +1,7 @@
 import type { Payload, PayloadRequest } from 'payload'
 import type { BookingStatus, PaginatedResponse } from '@/types'
 import type { BookingAggregate } from './types'
+import type { Booking } from '@/payload-types'
 
 /**
  * Booking Repository
@@ -50,7 +51,7 @@ export class BookingRepository {
   async create(data: Record<string, unknown>, req?: PayloadRequest): Promise<BookingAggregate> {
     const doc = await this.payload.create({
       collection: 'bookings',
-      data: data as any,
+      data: data as unknown as Booking,
       req,
     })
 
@@ -64,7 +65,7 @@ export class BookingRepository {
     const doc = await this.payload.update({
       collection: 'bookings',
       id,
-      data: data as any,
+      data: data as unknown as Partial<Booking>,
       req,
     })
 
@@ -79,7 +80,7 @@ export class BookingRepository {
       collection: 'bookings',
       id,
       data: {
-        status: status as any,
+        status: status as Booking['status'],
       },
       req,
     })

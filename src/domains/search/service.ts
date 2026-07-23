@@ -1,16 +1,16 @@
-import type { Payload } from 'payload'
 import { SearchWorkflowEngine } from './workflow'
+import { SearchRepository } from './repository'
 import type { SearchQueryDTO, SearchResponseDTO } from './types'
 
 /**
  * Search Domain Service (Enterprise Thin Facade)
- * Single entry point for all search, filtering, and discovery queries.
+ * Single entry point for all search, filtering, and discovery queries via Dependency Injection.
  */
 export class SearchService {
   private workflowEngine: SearchWorkflowEngine
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new SearchWorkflowEngine(payload)
+  constructor(repository?: SearchRepository) {
+    this.workflowEngine = new SearchWorkflowEngine(repository)
   }
 
   async search(query: SearchQueryDTO): Promise<SearchResponseDTO> {

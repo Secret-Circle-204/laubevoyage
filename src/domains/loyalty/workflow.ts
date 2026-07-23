@@ -29,8 +29,12 @@ export class LoyaltyWorkflowEngine {
   public queries: LoyaltyQueries
   private eventBus: EventBus
 
-  constructor(payload: Payload) {
-    this.repository = new LoyaltyRepository(payload)
+  constructor(repository: LoyaltyRepository | Payload, payload?: Payload) {
+    if (repository && 'appendLedgerEntry' in repository) {
+      this.repository = repository as LoyaltyRepository
+    } else {
+      this.repository = new LoyaltyRepository(repository as Payload)
+    }
     this.pointsEarner = new PointsEarnProcessor(this.repository)
     this.pointsRedeemer = new PointsRedeemProcessor(this.repository)
     this.pointsRefunder = new PointsRefundProcessor(this.repository)

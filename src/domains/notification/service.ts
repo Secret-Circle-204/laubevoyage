@@ -1,16 +1,17 @@
 import type { Payload } from 'payload'
 import { NotificationWorkflowEngine } from './workflow'
+import { NotificationRepository } from './repository'
 import type { NotificationChannel, NotificationCategory, NotificationPriority, NotificationAttachment } from './types'
 
 /**
  * Notification Domain Service (Enterprise Thin Facade)
- * Single entry point for all system notification dispatches.
+ * Single entry point for all system notification dispatches via Dependency Injection.
  */
 export class NotificationService {
   private workflowEngine: NotificationWorkflowEngine
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new NotificationWorkflowEngine(payload)
+  constructor(repository: NotificationRepository | Payload) {
+    this.workflowEngine = new NotificationWorkflowEngine(repository)
   }
 
   async enqueueNotification(params: {

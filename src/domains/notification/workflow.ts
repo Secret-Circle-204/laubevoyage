@@ -17,8 +17,12 @@ export class NotificationWorkflowEngine {
   public queue: NotificationQueue
   public worker: NotificationWorker
 
-  constructor(payload: Payload) {
-    this.repository = new NotificationRepository(payload)
+  constructor(repository: NotificationRepository | Payload) {
+    if (repository && 'findByCompoundKey' in repository) {
+      this.repository = repository as NotificationRepository
+    } else {
+      this.repository = new NotificationRepository(repository as Payload)
+    }
     this.dispatcher = new NotificationDispatcher()
     this.queue = new NotificationQueue()
     this.worker = new NotificationWorker(this.queue, this.dispatcher, this.repository)

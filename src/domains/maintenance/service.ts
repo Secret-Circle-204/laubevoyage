@@ -6,14 +6,18 @@ import type { MaintenanceJobName, SystemHealthMetrics } from './types'
 
 /**
  * Maintenance Domain Service (Enterprise Thin Facade)
- * Single entry point for background maintenance jobs, health score telemetry, and administrative triggers.
+ * Single entry point for background maintenance jobs, health score telemetry, and administrative triggers via Dependency Injection.
  */
 export class MaintenanceService {
   private workflowEngine: MaintenanceWorkflowEngine
   private adminFacade: MaintenanceAdminFacade
 
-  constructor(payload: Payload) {
-    this.workflowEngine = new MaintenanceWorkflowEngine(payload)
+  constructor(workflowEngine?: MaintenanceWorkflowEngine | Payload) {
+    if (workflowEngine && 'executeJobWorkflow' in workflowEngine) {
+      this.workflowEngine = workflowEngine as MaintenanceWorkflowEngine
+    } else {
+      this.workflowEngine = new MaintenanceWorkflowEngine(workflowEngine as Payload)
+    }
     this.adminFacade = new MaintenanceAdminFacade(this.workflowEngine)
   }
 

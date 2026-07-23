@@ -5,14 +5,18 @@ import type { TranslationRecordEntity } from './types'
 
 /**
  * Translation Domain Service (Enterprise Thin Facade)
- * Single entry point for all multilingual translation requests.
+ * Single entry point for all multilingual translation requests via Dependency Injection.
  */
 export class TranslationService {
   private repository: TranslationRepository
   private engine: TranslationEngine
 
-  constructor(payload: Payload) {
-    this.repository = new TranslationRepository(payload)
+  constructor(repository?: TranslationRepository | Payload) {
+    if (repository && 'findTranslation' in repository) {
+      this.repository = repository as TranslationRepository
+    } else {
+      this.repository = new TranslationRepository(repository as Payload)
+    }
     this.engine = new TranslationEngine(this.repository)
   }
 
@@ -38,4 +42,3 @@ export class TranslationService {
     return result
   }
 }
-
