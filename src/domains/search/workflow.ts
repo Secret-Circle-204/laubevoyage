@@ -5,7 +5,7 @@ import type { SearchQueryDTO, SearchResponseDTO } from './types'
 
 /**
  * Search Workflow Engine
- * Central orchestrator handling search query validation, pipeline execution, and result formatting via Dependency Injection.
+ * Central orchestrator handling search query validation, pipeline execution, and result formatting via Constructor Dependency Injection.
  */
 export class SearchWorkflowEngine {
   public repository: SearchRepository

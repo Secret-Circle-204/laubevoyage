@@ -1,15 +1,19 @@
 import { MaintenanceRepository } from './repository'
+import type { BookingService } from '../booking/service'
 
 /**
  * Batched Non-Locking Maintenance Engine
  * Constitutional Directive: Zero `SELECT *` over thousands of records at once.
  * Executes background tasks via chunked batched processing (`LIMIT 20` per query iteration).
+ * Routes status transitions through BookingService as single source of truth.
  */
 export class MaintenanceEngine {
   private repository: MaintenanceRepository
+  private bookingService?: BookingService
 
-  constructor(repository: MaintenanceRepository) {
+  constructor(repository: MaintenanceRepository, bookingService?: BookingService) {
     this.repository = repository
+    this.bookingService = bookingService
   }
 
   /**
@@ -28,7 +32,11 @@ export class MaintenanceEngine {
       }
 
       for (const doc of docs) {
-        await this.repository.updateBookingStatus(doc.id, 'completed')
+        if (this.bookingService) {
+          await this.bookingService.complete(doc.id)
+        } else {
+          await this.repository.updateBookingStatus(doc.id, 'completed')
+        }
         totalProcessed++
       }
 
@@ -56,7 +64,11 @@ export class MaintenanceEngine {
       }
 
       for (const doc of docs) {
-        await this.repository.updateBookingStatus(doc.id, 'expired')
+        if (this.bookingService) {
+          await this.bookingService.processExpiredBookings()
+        } else {
+          await this.repository.updateBookingStatus(doc.id, 'expired')
+        }
         totalProcessed++
       }
 

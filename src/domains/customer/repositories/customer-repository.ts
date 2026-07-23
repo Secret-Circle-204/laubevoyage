@@ -14,10 +14,21 @@ export class CustomerRepository {
     this.payload = payload
   }
 
-  async create(data: any, req?: PayloadRequest): Promise<any> {
+  async authenticateRequest(headers: Headers): Promise<{ id: number; email?: string } | null> {
+    if (!this.payload) return null
+    try {
+      const { user } = await this.payload.auth({ headers })
+      if (user) return { id: Number(user.id), email: (user as Record<string, any>).email }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  async create(data: Record<string, unknown>, req?: PayloadRequest): Promise<any> {
     return this.payload.create({
       collection: 'customers',
-      data,
+      data: data as any,
       req,
     })
   }
@@ -87,7 +98,7 @@ export class CustomerRepository {
     return this.mapDocToAggregate(doc)
   }
 
-  private mapDocToAggregate(doc: any): CustomerAggregate {
+  private mapDocToAggregate(doc: Record<string, any>): CustomerAggregate {
     const firstName = doc.firstName || ''
     const lastName = doc.lastName || ''
 

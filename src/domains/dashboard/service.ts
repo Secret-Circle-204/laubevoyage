@@ -2,6 +2,7 @@ import { DashboardWorkflowEngine } from './workflow'
 import { DashboardProjectionRepository } from './repository'
 import type { CustomerPortalProjection, DashboardWidget, CustomerDocumentItem } from './types'
 import { DashboardDocumentsHub } from './documents-hub'
+import type { DashboardQueryBus } from './query-bus'
 
 /**
  * Dashboard Domain Service (Enterprise Thin Facade)
@@ -11,9 +12,9 @@ export class DashboardService {
   private repository: DashboardProjectionRepository
   private workflowEngine: DashboardWorkflowEngine
 
-  constructor(repository: DashboardProjectionRepository) {
+  constructor(repository: DashboardProjectionRepository, queryBus?: DashboardQueryBus) {
     this.repository = repository
-    this.workflowEngine = new DashboardWorkflowEngine(repository)
+    this.workflowEngine = new DashboardWorkflowEngine(repository, queryBus)
   }
 
   async getPortalOverview(customerId: number): Promise<CustomerPortalProjection> {

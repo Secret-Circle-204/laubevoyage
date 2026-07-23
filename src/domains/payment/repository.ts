@@ -15,6 +15,13 @@ export class PaymentRepository {
     this.payload = payload
   }
 
+  async findActiveGateways() {
+    return [
+      { id: 'stripe', name: 'Credit / Debit Card (Stripe)', icon: '💳', isAvailable: true },
+      { id: 'bnpl', name: 'Buy Now Pay Later', icon: '⚡', isAvailable: true },
+    ]
+  }
+
   /**
    * Create a new payment transaction aggregate document.
    */
@@ -187,7 +194,7 @@ export class PaymentRepository {
   /**
    * Map Payload document to strongly-typed PaymentAggregate.
    */
-  private mapDocToAggregate(doc: any): PaymentAggregate {
+  private mapDocToAggregate(doc: Record<string, any>): PaymentAggregate {
     return {
       transactionId: doc.transactionId || String(doc.id),
       bookingId: Number(doc.bookingId),

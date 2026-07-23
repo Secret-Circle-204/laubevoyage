@@ -17,6 +17,10 @@ export class CustomerService {
     this.workflowEngine = new CustomerWorkflowEngine(repository)
   }
 
+  async authenticateRequest(headers: Headers): Promise<{ id: number; email?: string } | null> {
+    return this.repository.authenticateRequest(headers)
+  }
+
   async registerCustomer(email: string, firstName: string, lastName: string): Promise<CustomerAggregate> {
     return this.workflowEngine.executeRegisterWorkflow(email, firstName, lastName)
   }

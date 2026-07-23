@@ -9,8 +9,11 @@ export async function POST(request: NextRequest) {
 
     const result = await services.payment.handleStripeWebhook(rawBody, signature)
     return NextResponse.json(result)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error handling Stripe webhook:', error)
-    return NextResponse.json({ error: error.message || 'Webhook error' }, { status: 400 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Webhook error' },
+      { status: 400 },
+    )
   }
 }

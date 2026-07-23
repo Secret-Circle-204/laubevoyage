@@ -9,10 +9,13 @@ import { DashboardPolicy } from './policy'
 import type { CustomerPortalProjection, DashboardWidget } from './types'
 import { DashboardWidgetProvider } from './widget-provider'
 import { DashboardMetrics } from './metrics'
+import { CustomerRepository } from '../customer/repositories/customer-repository'
+import { LoyaltyRepository } from '../loyalty/repository'
+import { BookingRepository } from '../booking/repository'
 
 /**
  * Dashboard Workflow Engine
- * Central deterministic orchestrator for Customer Portal assembly.
+ * Central deterministic orchestrator for Customer Portal assembly via Constructor Dependency Injection.
  * Checks CQRS Read Model projection cache first (<5ms), falling back to parallel aggregation (<50ms).
  */
 export class DashboardWorkflowEngine {
@@ -23,14 +26,26 @@ export class DashboardWorkflowEngine {
   public loyaltyHub: DashboardLoyaltyHub
   public profileHub: DashboardProfileHub
 
-  constructor(repository?: DashboardProjectionRepository | Payload, payload?: Payload) {
+  constructor(
+    repository?: DashboardProjectionRepository | Payload,
+    queryBus?: DashboardQueryBus | Payload,
+  ) {
     if (repository && 'findByCustomerId' in repository) {
       this.repository = repository as DashboardProjectionRepository
     } else {
       this.repository = new DashboardProjectionRepository(repository as Payload)
     }
-    const activePayload = payload || (repository && 'find' in repository ? (repository as Payload) : undefined)
-    this.queryBus = new DashboardQueryBus(activePayload as any)
+
+    if (queryBus && 'customerQueries' in queryBus) {
+      this.queryBus = queryBus as DashboardQueryBus
+    } else {
+      const activePayload = (queryBus || repository) as Payload
+      const customerRepo = new CustomerRepository(activePayload)
+      const loyaltyRepo = new LoyaltyRepository(activePayload)
+      const bookingRepo = new BookingRepository(activePayload)
+      this.queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo)
+    }
+
     this.overviewAggregator = new DashboardOverviewAggregator(this.queryBus)
     this.bookingHub = new DashboardBookingHub(this.queryBus)
     this.loyaltyHub = new DashboardLoyaltyHub(this.queryBus)

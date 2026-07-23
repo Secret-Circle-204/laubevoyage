@@ -233,7 +233,7 @@ export class LoyaltyRepository {
   /**
    * Map Payload document to strongly-typed PointLedgerRecord.
    */
-  private mapDocToLedgerRecord(doc: any): PointLedgerRecord {
+  private mapDocToLedgerRecord(doc: Record<string, any>): PointLedgerRecord {
     return {
       id: String(doc.id),
       customerId: typeof doc.user === 'object' ? Number(doc.user.id) : Number(doc.user),

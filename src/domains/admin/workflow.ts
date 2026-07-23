@@ -28,11 +28,11 @@ export class AdminWorkflowEngine {
     this.repository = new AdminRepository(payload)
     this.auditLogService = new AdminAuditLogService(this.repository)
     this.bookingOperations = new AdminBookingOperations(payload)
-    this.paymentOperations = new AdminPaymentOperations(payload)
+    this.paymentOperations = new AdminPaymentOperations()
     this.loyaltyOperations = new AdminLoyaltyOperations(payload)
     this.experienceOperations = new AdminExperienceOperations(payload)
     this.customerOperations = new AdminCustomerOperations(payload)
-    this.maintenanceOperations = new AdminMaintenanceOperations(payload)
+    this.maintenanceOperations = new AdminMaintenanceOperations()
   }
 
   async executeStaffAction<T>(

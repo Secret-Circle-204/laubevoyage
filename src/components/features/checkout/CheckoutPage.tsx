@@ -26,20 +26,24 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
     setIsSubmitting(true)
     try {
       const res = await processPaymentAction(Number(data.bookingId), selectedGateway)
-      if (res.success) {
+      if (res.success && 'transactionId' in res) {
+        const txId = typeof res.transactionId === 'string' ? res.transactionId : String(data.bookingId)
+        const checkoutUrl = 'checkoutUrl' in res && typeof res.checkoutUrl === 'string' ? res.checkoutUrl : undefined
         addToast({
           type: 'success',
           title: 'Payment Processed!',
-          description: `Transaction #${res.transactionId || String(data.bookingId)} initiated successfully.`,
+          description: `Transaction #${txId} initiated successfully.`,
         })
-        if (res.checkoutUrl) {
-          window.location.href = res.checkoutUrl
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl
         }
       } else {
-        addToast({ type: 'error', title: 'Payment Failed', description: res.error || 'Payment gateway failed' })
+        const errorMsg = 'error' in res && typeof res.error === 'string' ? res.error : 'Payment gateway failed'
+        addToast({ type: 'error', title: 'Payment Failed', description: errorMsg })
       }
-    } catch (err: any) {
-      addToast({ type: 'error', title: 'Error', description: err.message || 'Payment processing failed' })
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Payment processing failed'
+      addToast({ type: 'error', title: 'Error', description: errorMsg })
     } finally {
       setIsSubmitting(false)
     }

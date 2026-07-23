@@ -1,51 +1,54 @@
-import type { Payload } from 'payload'
 import type { CreateSessionParams, RefundParams, RefundResult } from './types'
 import type { PaymentAggregate } from './aggregate'
 import { PaymentWorkflowEngine } from './workflow'
-import { registerBookingPaymentSubscriber } from '../events/subscribers/payment-subscriber'
-import { BookingRepository } from '../booking/repository'
-import { CustomerRepository } from '../customer/repository'
-import { ExperienceRepository } from '../experience/repository'
+import type { BookingRepository } from '../booking/repository'
+import type { CustomerRepository } from '../customer/repository'
+import type { ExperienceRepository } from '../experience/repository'
 import { PaymentRepository } from './repository'
 
 /**
  * Payment Domain Service (Enterprise Thin Facade)
- * Single entry point for all payment operations via Dependency Injection.
+ * Single entry point for all payment operations via Constructor Dependency Injection.
  * Delegated to PaymentWorkflowEngine for single-responsibility orchestration.
  */
 export class PaymentService {
-  private workflowEngine: PaymentWorkflowEngine
+  private paymentRepository: PaymentRepository
   private bookingRepository: BookingRepository
   private customerRepository: CustomerRepository
   private experienceRepository: ExperienceRepository
+  private workflowEngine: PaymentWorkflowEngine
 
   constructor(
-    paymentRepository?: PaymentRepository | Payload,
+    paymentRepository: PaymentRepository,
     bookingRepository?: BookingRepository,
     customerRepository?: CustomerRepository,
     experienceRepository?: ExperienceRepository,
-    payload?: Payload,
   ) {
-    let activePayload: Payload | undefined = payload
-    if (!activePayload && paymentRepository && 'find' in paymentRepository) {
-      activePayload = paymentRepository as Payload
-    }
-
-    this.workflowEngine = new PaymentWorkflowEngine(activePayload as Payload)
-    this.bookingRepository = bookingRepository || new BookingRepository(activePayload as Payload)
-    this.customerRepository = customerRepository || new CustomerRepository(activePayload as Payload)
-    this.experienceRepository = experienceRepository || new ExperienceRepository(activePayload as Payload)
-
-    if (activePayload) {
-      registerBookingPaymentSubscriber(activePayload)
-    }
+    this.paymentRepository = paymentRepository
+    this.bookingRepository = bookingRepository || ({} as BookingRepository)
+    this.customerRepository = customerRepository || ({} as CustomerRepository)
+    this.experienceRepository = experienceRepository || ({} as ExperienceRepository)
+    this.workflowEngine = new PaymentWorkflowEngine(paymentRepository)
   }
 
   async getAvailableGateways() {
-    return [
-      { id: 'stripe', name: 'Credit / Debit Card (Stripe)', icon: '💳', isAvailable: true },
-      { id: 'bnpl', name: 'Buy Now Pay Later', icon: '⚡', isAvailable: true },
-    ]
+    return this.paymentRepository.findActiveGateways()
+  }
+
+  async processPaymentCheckout(params: { bookingId: number; gatewayId: string; appUrl?: string }) {
+    if (params.gatewayId === 'bnpl') {
+      const paymentAggregate = await this.processBookNowPayLater(params.bookingId)
+      return { success: true, transactionId: paymentAggregate.transactionId, status: paymentAggregate.status }
+    }
+
+    const baseUrl = params.appUrl || process.env.NEXT_PUBLIC_APP_URL || ''
+    const session = await this.createStripeSession(
+      params.bookingId,
+      `${baseUrl}/dashboard/bookings`,
+      `${baseUrl}/checkout/${params.bookingId}`,
+    )
+
+    return { success: true, transactionId: session.transactionId, checkoutUrl: session.url }
   }
 
   /**
@@ -65,7 +68,7 @@ export class PaymentService {
     const params: CreateSessionParams = {
       transactionId,
       bookingId: booking.id,
-      customerId: userDoc ? (userDoc.customerId || Number((userDoc as any).id)) : booking.customerId,
+      customerId: userDoc ? (userDoc.customerId || Number((userDoc as Record<string, any>).id)) : booking.customerId,
       bookingNumber: booking.bookingNumber,
       basePriceEGP: pricingSnapshot.basePriceEGP,
       displayCurrency,

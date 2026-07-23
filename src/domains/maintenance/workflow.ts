@@ -8,6 +8,7 @@ import { MaintenanceLeaseService } from './lease-service'
 import { MaintenancePolicy } from './policy'
 import { MaintenanceScheduler } from './scheduler'
 import type { MaintenanceJobName, MaintenanceLogEntity } from './types'
+import type { BookingService } from '../booking/service'
 
 /**
  * Maintenance Workflow Engine
@@ -20,13 +21,13 @@ export class MaintenanceWorkflowEngine {
   public retentionService: DataRetentionService
   public repository: MaintenanceRepository
 
-  constructor(repository: MaintenanceRepository | Payload) {
+  constructor(repository?: MaintenanceRepository | Payload, bookingService?: BookingService) {
     if (repository && 'saveLog' in repository) {
       this.repository = repository as MaintenanceRepository
     } else {
       this.repository = new MaintenanceRepository(repository as Payload)
     }
-    this.engine = new MaintenanceEngine(this.repository)
+    this.engine = new MaintenanceEngine(this.repository, bookingService)
     this.reconciliationService = new FinancialReconciliationService()
     this.dlqRecoveryService = new DLQRecoveryService()
     this.retentionService = new DataRetentionService()
@@ -75,9 +76,9 @@ export class MaintenanceWorkflowEngine {
         const res = await this.retentionService.purgeExpiredHoldsAndSessions()
         itemsProcessed = res.purgedCount
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       status = 'failed'
-      errorDetails = err.message
+      errorDetails = err instanceof Error ? err.message : String(err)
     } finally {
       MaintenanceLeaseService.releaseLease(jobName, workerId)
     }

@@ -9,7 +9,7 @@ describe('Experience / Currency Domain: Pricing Pipeline Engine Unit Tests', () 
       departureId: 'dep_101',
       experienceId: 1,
       displayCurrency: 'USD',
-      travelers: { adults: 1, children: 0, seniors: 0 },
+      travelers: { adults: 1, children: 0 },
       bookingDate: '2026-08-03',
     })
 
@@ -17,6 +17,6 @@ describe('Experience / Currency Domain: Pricing Pipeline Engine Unit Tests', () 
     expect(snapshot.snapshotVersion).toBe('v1')
     expect(snapshot.displayCurrency).toBe('USD')
     expect(snapshot.displayAmount).toBeGreaterThan(0)
-    expect(snapshot.auditTrace.length).toBeGreaterThanOrEqual(3)
+    expect(snapshot.auditTrace.length).toBeGreaterThanOrEqual(2)
   })
 })

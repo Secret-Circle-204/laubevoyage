@@ -1,15 +1,14 @@
-import type { Payload } from 'payload'
 import { PaymentService } from '../payment/service'
 
 /**
  * Admin Payment Operations Sub-Service
- * Staff manual refund approvals and chargeback resolution.
+ * Staff manual refund approvals and chargeback resolution via Constructor DI.
  */
 export class AdminPaymentOperations {
   private paymentService: PaymentService
 
-  constructor(payload: Payload) {
-    this.paymentService = new PaymentService(payload)
+  constructor(paymentService?: PaymentService) {
+    this.paymentService = paymentService || ({} as PaymentService)
   }
 
   async processRefundByStaff(paymentId: string, amount: number, reason: string): Promise<{ success: boolean; refundId: string }> {

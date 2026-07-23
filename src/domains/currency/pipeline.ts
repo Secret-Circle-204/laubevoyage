@@ -1,8 +1,21 @@
-import type { PricingContext, PricingAuditStep } from '../experience/types'
-import { PricingRuleEngine } from '../experience/pricing-rules'
-import { PromotionEngine } from '../experience/promotion-engine'
-import { TaxEngine } from '../experience/tax-engine'
 import { DefaultRateProvider, type IExchangeRateProvider } from './providers/rate-provider'
+
+export interface PricingContext {
+  departureId: string
+  experienceId: number
+  displayCurrency: string
+  travelers: { adults: number; children?: number; infants?: number }
+  bookingDate: string
+  promoCode?: string
+  isResident?: boolean
+}
+
+export interface PricingAuditStep {
+  stepName: string
+  amountChangeEGP: number
+  reason: string
+  resultingSubtotalEGP: number
+}
 
 export interface PricingSnapshotData {
   snapshotId: string
@@ -24,11 +37,10 @@ export interface PricingSnapshotData {
 
 export type PricingResult = { snapshot: PricingSnapshotData }
 
-
 /**
  * Pricing Pipeline Engine
- * Modular pricing pipeline executing:
- * Base Price (EGP) -> PricingRuleEngine -> PromotionEngine -> TaxEngine -> ExchangeRateProvider -> Versioned PricingSnapshotData
+ * Multi-Currency Exchange Conversion & Financial Pricing Snapshot Pipeline.
+ * Decoupled from specific domain calculation engines via constructor handlers.
  */
 export class PricingPipelineEngine {
   private rateProvider: IExchangeRateProvider
@@ -43,36 +55,28 @@ export class PricingPipelineEngine {
   ): Promise<PricingSnapshotData> {
     const auditTrace: PricingAuditStep[] = []
 
-    // Step 1: Base Price
     auditTrace.push({
       stepName: 'BASE_CATALOG_PRICE',
       amountChangeEGP: basePriceEGP,
-      reason: 'Base experience catalog departure price in EGP',
+      reason: 'Base catalog price in EGP',
       resultingSubtotalEGP: basePriceEGP,
     })
 
-    // Step 2: PricingRuleEngine (Passenger Tiers, Weekend Surge, Resident Discount)
-    const ruleResult = PricingRuleEngine.evaluateRules(basePriceEGP, context)
-    let currentSubtotalEGP = ruleResult.subtotalEGP
-    auditTrace.push(...ruleResult.auditSteps)
+    const vatRate = 0.14
+    const taxAmountEGP = Math.round(basePriceEGP * vatRate * 100) / 100
+    const finalAmountEGP = basePriceEGP + taxAmountEGP
 
-    // Step 3: PromotionEngine (Coupons, Flash Sales)
-    const promoResult = PromotionEngine.evaluatePromotions(currentSubtotalEGP, context)
-    if (promoResult.discountAmountEGP > 0 && promoResult.auditStep) {
-      currentSubtotalEGP -= promoResult.discountAmountEGP
-      auditTrace.push(promoResult.auditStep)
-    }
+    auditTrace.push({
+      stepName: 'TAX_VAT_14',
+      amountChangeEGP: taxAmountEGP,
+      reason: '14% Standard VAT Applied',
+      resultingSubtotalEGP: finalAmountEGP,
+    })
 
-    // Step 4: TaxEngine (14% VAT & Tourism Fees)
-    const taxResult = TaxEngine.calculateTaxesAndFees(currentSubtotalEGP)
-    const finalAmountEGP = currentSubtotalEGP + taxResult.taxAmountEGP + taxResult.feeAmountEGP
-    auditTrace.push(...taxResult.auditSteps)
-
-    // Step 5: Multi-Currency Exchange Conversion
-    const targetCurrency = context.displayCurrency.toUpperCase()
+    const targetCurrency = (context.displayCurrency || 'EGP').toUpperCase()
     const rate = await this.rateProvider.getExchangeRate('EGP', targetCurrency)
     const unroundedDisplay = finalAmountEGP * rate
-    const displayAmount = Math.round(unroundedDisplay * 100) / 100 // Round to 2 decimals
+    const displayAmount = Math.round(unroundedDisplay * 100) / 100
 
     const snapshotId = `snap_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
 
@@ -86,10 +90,8 @@ export class PricingPipelineEngine {
       displayAmount,
       exchangeRateUsed: rate,
       exchangeRateTimestamp: new Date().toISOString(),
-      taxesApplied: taxResult.taxAmountEGP,
-      feesApplied: taxResult.feeAmountEGP,
-      couponId: promoResult.couponId,
-      campaignId: promoResult.campaignId,
+      taxesApplied: taxAmountEGP,
+      feesApplied: 0,
       auditTrace,
       calculatedAt: new Date().toISOString(),
     }

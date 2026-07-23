@@ -6,11 +6,32 @@ import type { TranslationRecordEntity } from './types'
  * Data persistence layer for 'translations' Payload collection.
  */
 export class TranslationRepository {
-  private payload: Payload
+  private payload?: Payload
   private cacheMap: Map<string, TranslationRecordEntity> = new Map()
 
-  constructor(payload: Payload) {
+  constructor(payload?: Payload) {
     this.payload = payload
+  }
+
+  async findActiveLocales(): Promise<Array<{ code: string; name: string }>> {
+    if (!this.payload) return []
+    try {
+      const res = await this.payload.find({
+        collection: 'translations' as any,
+        limit: 100,
+      })
+      const localeSet = new Map<string, string>()
+      for (const doc of res.docs || []) {
+        const item = doc as any
+        if (item.locale) {
+          localeSet.set(item.locale, item.localeName || item.locale.toUpperCase())
+        }
+      }
+      return Array.from(localeSet.entries()).map(([code, name]) => ({ code, name }))
+    } catch (err: unknown) {
+      console.error('[TranslationRepository] Error querying active locales:', err)
+      return []
+    }
   }
 
   async findByKeyAndLocale(translationKey: string, locale: string): Promise<TranslationRecordEntity | null> {

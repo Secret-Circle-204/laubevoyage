@@ -17,6 +17,7 @@ import { CustomerRepository } from './customer/repository'
 import { CustomerService } from './customer/service'
 
 import { DashboardProjectionRepository } from './dashboard/repository'
+import { DashboardQueryBus } from './dashboard/query-bus'
 import { DashboardService } from './dashboard/service'
 
 import { PaymentRepository } from './payment/repository'
@@ -24,6 +25,7 @@ import { PaymentService } from './payment/service'
 
 import { CurrencyRepository } from './currency/repository'
 import { CurrencyService } from './currency/service'
+import { OpenExchangeProvider } from './currency/providers/openexchange'
 
 import { LoyaltyRepository } from './loyalty/repository'
 import { LoyaltyService } from './loyalty/service'
@@ -36,6 +38,7 @@ import { TranslationService } from './translation/service'
 
 import { LocalizationService } from './localization/service'
 
+import { SearchRepository } from './search/repository'
 import { SearchService } from './search/service'
 
 import { MaintenanceRepository } from './maintenance/repository'
@@ -50,7 +53,7 @@ import { MaintenanceService } from './maintenance/service'
 export async function getDomainServices() {
   const payload = await getPayload({ config })
 
-  // 1. Instantiate Repositories
+  // 1. Instantiate Repositories & Providers
   const destinationRepository = new DestinationRepository(payload)
   const experienceRepository = new ExperienceRepository(payload)
   const contentRepository = new ContentRepository(payload)
@@ -59,12 +62,14 @@ export async function getDomainServices() {
   const dashboardRepository = new DashboardProjectionRepository(payload)
   const paymentRepository = new PaymentRepository(payload)
   const currencyRepository = new CurrencyRepository(payload)
+  const openExchangeProvider = new OpenExchangeProvider()
   const loyaltyRepository = new LoyaltyRepository(payload)
   const notificationRepository = new NotificationRepository(payload)
   const translationRepository = new TranslationRepository(payload)
   const maintenanceRepository = new MaintenanceRepository(payload)
+  const searchRepository = new SearchRepository(payload)
 
-  // 2. Instantiate Base Services
+  // 2. Instantiate Base Services & Buses
   const translationService = new TranslationService(translationRepository)
   const localizationService = new LocalizationService(translationService)
   const notificationService = new NotificationService(notificationRepository)
@@ -73,11 +78,12 @@ export async function getDomainServices() {
   const experienceService = new ExperienceService(experienceRepository)
   const bookingService = new BookingService(bookingRepository, customerRepository, experienceRepository, loyaltyService)
   const paymentService = new PaymentService(paymentRepository, bookingRepository, customerRepository, experienceRepository)
-  const searchService = new SearchService()
-  const dashboardService = new DashboardService(dashboardRepository)
-  const currencyService = new CurrencyService(currencyRepository)
+  const searchService = new SearchService(searchRepository)
+  const dashboardQueryBus = new DashboardQueryBus(customerRepository, loyaltyRepository, bookingRepository)
+  const dashboardService = new DashboardService(dashboardRepository, dashboardQueryBus)
+  const currencyService = new CurrencyService(currencyRepository, openExchangeProvider)
   const destinationService = new DestinationService(destinationRepository)
-  const maintenanceService = new MaintenanceService(maintenanceRepository)
+  const maintenanceService = new MaintenanceService(maintenanceRepository, bookingService)
 
   // 3. Return Pure Injected Domain Services Container
   return {

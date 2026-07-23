@@ -1,4 +1,4 @@
-import { EventBus } from './event-bus'
+import { EventBus, type BaseDomainEvent } from './event-bus'
 
 export interface EventOutboxRecord {
   eventId: string
@@ -47,7 +47,7 @@ export class EventOutboxService {
     this.outboxStore.set(eventId, record)
 
     // Publish to in-memory EventBus subscribers
-    await this.eventBus.publish(event as any)
+    await this.eventBus.publish(event as BaseDomainEvent)
 
     record.status = 'published'
     record.publishedAt = new Date().toISOString()

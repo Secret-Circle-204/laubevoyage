@@ -29,7 +29,7 @@ export class SearchRepository {
           limit: query.limit || 50,
         })
 
-        const items: SearchResultItemDTO[] = (res.docs || []).map((doc: any) => ({
+        const items: SearchResultItemDTO[] = (res.docs || []).map((doc: Record<string, any>) => ({
           experienceId: Number(doc.id),
           title: doc.title || '',
           slug: doc.slug || '',
@@ -46,7 +46,8 @@ export class SearchRepository {
 
         this.queryPipeline.updateIndex(items)
       } catch (err: unknown) {
-        console.error('[SearchRepository] Failed querying Payload experiences collection:', err)
+        console.error('[SearchRepository] Error querying Payload experiences collection:', err)
+        throw err
       }
     }
 

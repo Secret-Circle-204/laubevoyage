@@ -10,7 +10,8 @@ export class SearchService {
   private workflowEngine: SearchWorkflowEngine
 
   constructor(repository?: SearchRepository) {
-    this.workflowEngine = new SearchWorkflowEngine(repository)
+    const repo = repository || new SearchRepository()
+    this.workflowEngine = new SearchWorkflowEngine(repo)
   }
 
   async search(query: SearchQueryDTO): Promise<SearchResponseDTO> {

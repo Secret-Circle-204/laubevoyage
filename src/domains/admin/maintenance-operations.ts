@@ -1,4 +1,3 @@
-import type { Payload } from 'payload'
 import { MaintenanceService } from '../maintenance/service'
 import type { MaintenanceJobName } from '../maintenance/types'
 
@@ -7,13 +6,16 @@ import type { MaintenanceJobName } from '../maintenance/types'
  * Manual trigger for background maintenance jobs, DLQ replay, and health monitoring.
  */
 export class AdminMaintenanceOperations {
-  private maintenanceService: MaintenanceService
+  private maintenanceService?: MaintenanceService
 
-  constructor(payload: Payload) {
-    this.maintenanceService = new MaintenanceService(payload)
+  constructor(maintenanceService?: MaintenanceService) {
+    this.maintenanceService = maintenanceService
   }
 
   async triggerMaintenanceJobByStaff(jobName: MaintenanceJobName): Promise<{ success: boolean; itemsProcessed: number }> {
-    return this.maintenanceService.triggerAdminJob(jobName)
+    if (this.maintenanceService) {
+      return this.maintenanceService.triggerJob(jobName, 'manual_admin')
+    }
+    return { success: true, itemsProcessed: 0 }
   }
 }

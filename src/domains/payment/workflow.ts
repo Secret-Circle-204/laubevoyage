@@ -9,7 +9,7 @@ import { PaymentQueries } from './queries'
 
 /**
  * Payment Workflow Engine
- * Central deterministic orchestrator for all payment lifecycle workflows.
+ * Central deterministic orchestrator for all payment lifecycle workflows via Constructor Dependency Injection.
  * Symmetrical architecture with BookingWorkflowEngine.
  */
 export class PaymentWorkflowEngine {
@@ -19,8 +19,12 @@ export class PaymentWorkflowEngine {
   public refundProcessor: RefundProcessor
   public queries: PaymentQueries
 
-  constructor(payload: Payload) {
-    this.repository = new PaymentRepository(payload)
+  constructor(repository: PaymentRepository | Payload) {
+    if (repository && 'createTransaction' in repository) {
+      this.repository = repository as PaymentRepository
+    } else {
+      this.repository = new PaymentRepository(repository as Payload)
+    }
     this.sessionCreator = new SessionCreator(this.repository)
     this.webhookProcessor = new WebhookProcessor(this.repository)
     this.refundProcessor = new RefundProcessor(this.repository)

@@ -5,10 +5,23 @@ export interface NavigationItemDTO {
   children?: NavigationItemDTO[]
 }
 
+export interface CurrencyOptionDTO {
+  code: string
+  name: string
+  symbol: string
+}
+
+export interface LocaleOptionDTO {
+  code: string
+  name: string
+}
+
 export interface LayoutDTO {
   navigationMenu: NavigationItemDTO[]
-  activeLocale: 'ar' | 'en' | 'fr'
-  activeCurrency: 'EGP' | 'USD' | 'EUR' | 'GBP' | 'SAR' | 'AED'
+  activeLocale: string
+  activeCurrency: string
+  supportedCurrencies: CurrencyOptionDTO[]
+  supportedLocales: LocaleOptionDTO[]
   userSession?: {
     isAuthenticated: boolean
     customerId?: number

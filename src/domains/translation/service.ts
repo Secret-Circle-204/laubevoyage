@@ -1,4 +1,4 @@
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import { TranslationRepository } from './repository'
 import { TranslationEngine } from './engine'
 import type { TranslationRecordEntity } from './types'
@@ -12,7 +12,7 @@ export class TranslationService {
   private engine: TranslationEngine
 
   constructor(repository?: TranslationRepository | Payload) {
-    if (repository && 'findTranslation' in repository) {
+    if (repository && 'findActiveLocales' in repository) {
       this.repository = repository as TranslationRepository
     } else {
       this.repository = new TranslationRepository(repository as Payload)
@@ -20,11 +20,15 @@ export class TranslationService {
     this.engine = new TranslationEngine(this.repository)
   }
 
+  async getSupportedLocales(): Promise<Array<{ code: string; name: string }>> {
+    return this.repository.findActiveLocales()
+  }
+
   async getTranslation(translationKey: string, locale: string): Promise<TranslationRecordEntity> {
     return this.engine.translate(translationKey, locale)
   }
 
-  async translate(text: string, locale: string, _version?: number, _req?: any): Promise<string> {
+  async translate(text: string, locale: string, _version?: number, _req?: PayloadRequest): Promise<string> {
     const record = await this.engine.translate(text, locale)
     return record.translatedText
   }
@@ -33,7 +37,7 @@ export class TranslationService {
     fields: Record<string, string>,
     locale: string,
     _version?: number,
-    _req?: any,
+    _req?: PayloadRequest,
   ): Promise<Record<string, string>> {
     const result: Record<string, string> = {}
     for (const [key, value] of Object.entries(fields)) {

@@ -19,17 +19,7 @@ class CurrencyCatalogRegistry {
   private lastLoadedAt = 0
   private readonly TTL_MS = 60 * 60 * 1000
 
-  private constructor() {
-    this.cache = new Map<string, CurrencyIdentity>([
-      ['EGP', { isoCode: 'EGP', numericCode: 818, name: 'Egyptian Pound', symbol: 'EGP', nativeSymbol: 'ج.م', decimals: 2, isActive: true, displayOrder: 1, isDefault: true }],
-      ['USD', { isoCode: 'USD', numericCode: 840, name: 'US Dollar', symbol: '$', nativeSymbol: '$', decimals: 2, isActive: true, displayOrder: 2, isDefault: false }],
-      ['EUR', { isoCode: 'EUR', numericCode: 978, name: 'Euro', symbol: '€', nativeSymbol: '€', decimals: 2, isActive: true, displayOrder: 3, isDefault: false }],
-      ['AED', { isoCode: 'AED', numericCode: 784, name: 'UAE Dirham', symbol: 'AED', nativeSymbol: 'د.إ', decimals: 2, isActive: true, displayOrder: 4, isDefault: false }],
-      ['SAR', { isoCode: 'SAR', numericCode: 682, name: 'Saudi Riyal', symbol: 'SAR', nativeSymbol: 'ر.س', decimals: 2, isActive: true, displayOrder: 5, isDefault: false }],
-    ])
-    this.initialized = true
-    this.lastLoadedAt = Date.now()
-  }
+  private constructor() {}
 
   public static getInstance(): CurrencyCatalogRegistry {
     if (!CurrencyCatalogRegistry.instance) {
@@ -39,13 +29,7 @@ class CurrencyCatalogRegistry {
   }
 
   public async load(repository?: CurrencyRepository): Promise<void> {
-    const newCache = new Map<string, CurrencyIdentity>([
-      ['EGP', { isoCode: 'EGP', numericCode: 818, name: 'Egyptian Pound', symbol: 'EGP', nativeSymbol: 'ج.م', decimals: 2, isActive: true, displayOrder: 1, isDefault: true }],
-      ['USD', { isoCode: 'USD', numericCode: 840, name: 'US Dollar', symbol: '$', nativeSymbol: '$', decimals: 2, isActive: true, displayOrder: 2, isDefault: false }],
-      ['EUR', { isoCode: 'EUR', numericCode: 978, name: 'Euro', symbol: '€', nativeSymbol: '€', decimals: 2, isActive: true, displayOrder: 3, isDefault: false }],
-      ['AED', { isoCode: 'AED', numericCode: 784, name: 'UAE Dirham', symbol: 'AED', nativeSymbol: 'د.إ', decimals: 2, isActive: true, displayOrder: 4, isDefault: false }],
-      ['SAR', { isoCode: 'SAR', numericCode: 682, name: 'Saudi Riyal', symbol: 'SAR', nativeSymbol: 'ر.س', decimals: 2, isActive: true, displayOrder: 5, isDefault: false }],
-    ])
+    const newCache = new Map<string, CurrencyIdentity>()
 
     if (repository) {
       try {
@@ -63,8 +47,8 @@ class CurrencyCatalogRegistry {
             isDefault: doc.isDefault ?? false,
           })
         }
-      } catch {
-        // Fallback for test/offline
+      } catch (err: unknown) {
+        console.error('[CurrencyCatalogRegistry] Failed loading currencies from repository:', err)
       }
     }
 

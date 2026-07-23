@@ -2,24 +2,31 @@ import type { Payload } from 'payload'
 import type { MaintenanceLogEntity } from './types'
 
 /**
- * Maintenance Repository
- * Sole data store for maintenance queries and 'maintenance-logs' Payload collection.
+ * Maintenance Domain Repository
+ * Intercepts database persistence for maintenance execution logs.
  */
 export class MaintenanceRepository {
   private payload?: Payload
-  private logs: MaintenanceLogEntity[] = []
+  private logStore: Map<string, MaintenanceLogEntity> = new Map()
 
   constructor(payload?: Payload) {
     this.payload = payload
   }
 
-  async saveLog(log: MaintenanceLogEntity): Promise<MaintenanceLogEntity> {
-    this.logs.push(log)
-    return log
+  async saveLog(log: MaintenanceLogEntity): Promise<void> {
+    this.logStore.set(log.logId, log)
+    if (!this.payload) {
+      console.log(`[MaintenanceRepository] Persisting execution log: ${log.jobName} (status: ${log.status})`)
+      return
+    }
+    await this.payload.create({
+      collection: 'maintenance-logs' as any,
+      data: log as any,
+    })
   }
 
-  async getRecentLogs(limit = 10): Promise<MaintenanceLogEntity[]> {
-    return this.logs.slice(-limit)
+  async getRecentLogs(limit: number = 10): Promise<MaintenanceLogEntity[]> {
+    return Array.from(this.logStore.values()).slice(-limit)
   }
 
   async findConfirmedExpiredBookings(batchSize: number = 20): Promise<Array<{ id: number; status: string }>> {
@@ -34,10 +41,10 @@ export class MaintenanceRepository {
         },
         limit: batchSize,
       })
-      return (res.docs || []).map((doc: any) => ({ id: Number(doc.id), status: String(doc.status) }))
+      return (res.docs || []).map((doc: Record<string, any>) => ({ id: Number(doc.id), status: String(doc.status) }))
     } catch (err: unknown) {
-      console.error('[MaintenanceRepository] Failed querying expired confirmed bookings:', err)
-      return []
+      console.error('[MaintenanceRepository] Error querying expired confirmed bookings:', err)
+      throw err
     }
   }
 
@@ -49,27 +56,23 @@ export class MaintenanceRepository {
         collection: 'bookings',
         where: {
           status: { equals: 'draft' },
-          createdAt: { less_than: nowIso },
+          holdUntil: { less_than: nowIso },
         },
         limit: batchSize,
       })
-      return (res.docs || []).map((doc: any) => ({ id: Number(doc.id), status: String(doc.status) }))
+      return (res.docs || []).map((doc: Record<string, any>) => ({ id: Number(doc.id), status: String(doc.status) }))
     } catch (err: unknown) {
-      console.error('[MaintenanceRepository] Failed querying stale draft bookings:', err)
-      return []
+      console.error('[MaintenanceRepository] Error querying stale draft bookings:', err)
+      throw err
     }
   }
 
   async updateBookingStatus(bookingId: number, status: string): Promise<void> {
     if (!this.payload) return
-    try {
-      await this.payload.update({
-        collection: 'bookings',
-        id: bookingId,
-        data: { status } as any,
-      })
-    } catch (err: unknown) {
-      console.error(`[MaintenanceRepository] Failed updating status for booking #${bookingId}:`, err)
-    }
+    await this.payload.update({
+      collection: 'bookings',
+      id: bookingId,
+      data: { status } as any,
+    })
   }
 }
