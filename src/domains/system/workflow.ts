@@ -11,9 +11,11 @@ import type { SystemHealthReportDTO, ProductionReadinessDTO } from './types'
  */
 export class SystemIntegrationWorkflowEngine {
   public repository: SystemRepository
+  private payload: Payload
   private isBootstrapped = false
 
   constructor(payload: Payload) {
+    this.payload = payload
     this.repository = new SystemRepository(payload)
   }
 
@@ -24,13 +26,14 @@ export class SystemIntegrationWorkflowEngine {
 
     // 1. Wire Master Event Bus Subscribers
     MasterEventBus.clearSubscribers()
-    registerDashboardProjectionSubscribers()
-    registerNotificationSubscribers()
+    registerDashboardProjectionSubscribers(this.payload)
+    registerNotificationSubscribers(this.payload)
 
     this.isBootstrapped = true
 
     return { success: true, eventSubscribersCount: 4 }
   }
+
 
   async getSystemHealth(): Promise<SystemHealthReportDTO> {
     return this.repository.getHealthReport()

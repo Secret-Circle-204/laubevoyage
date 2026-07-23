@@ -14,15 +14,15 @@ export function registerDashboardProjectionSubscribers(payload: Payload): void {
 
   eventBus.subscribe<BookingConfirmedEvent>('BOOKING_CONFIRMED', async (event) => {
     try {
-      console.log(`[DashboardSubscriber] BookingConfirmedEvent received. Updating CQRS Projection for customer #${event.customerId}...`)
-      const projection = await workflowEngine.overviewAggregator.aggregatePortalOverview(event.customerId)
+      console.log(`[DashboardSubscriber] BookingConfirmedEvent received. Updating CQRS Projection for customer #${event.booking.customerId}...`)
+      const projection = await workflowEngine.overviewAggregator.aggregatePortalOverview(event.booking.customerId)
       await workflowEngine.repository.saveProjection(projection)
     } catch (err: any) {
       console.error(`[DashboardSubscriber] Error updating CQRS projection:`, err.message)
     }
   })
 
-  eventBus.subscribe<LoyaltyEarnedEvent>('POINTS_EARNED', async (event) => {
+  eventBus.subscribe<LoyaltyEarnedEvent>('LOYALTY_EARNED', async (event) => {
     try {
       console.log(`[DashboardSubscriber] LoyaltyEarnedEvent received. Updating CQRS Projection for customer #${event.customerId}...`)
       const projection = await workflowEngine.overviewAggregator.aggregatePortalOverview(event.customerId)
@@ -32,3 +32,4 @@ export function registerDashboardProjectionSubscribers(payload: Payload): void {
     }
   })
 }
+

@@ -1,6 +1,8 @@
 import type { LoyaltyRepository } from './repository'
 import type { LoyaltyAggregate } from './aggregate'
 import type { LoyaltyProjection } from './projection'
+import type { PointLedgerRecord } from './types'
+
 
 /**
  * Loyalty Queries Sub-Service
@@ -25,4 +27,9 @@ export class LoyaltyQueries {
     const res = await this.repository.getCustomerAggregate(customerId)
     return res.projection
   }
+
+  async getHistory(customerId: number, limit = 20): Promise<PointLedgerRecord[]> {
+    return this.repository.getLedgerHistory(customerId, limit)
+  }
 }
+

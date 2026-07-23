@@ -119,6 +119,21 @@ export class LoyaltyRepository {
     return result.docs.length > 0 ? result.docs[0].balance : 0
   }
 
+  async getLedgerHistory(customerId: number, limit = 20, req?: PayloadRequest): Promise<PointLedgerRecord[]> {
+    const result = await this.payload.find({
+      collection: 'point-ledger',
+      where: {
+        user: { equals: customerId },
+      },
+      sort: '-createdAt',
+      limit,
+      req,
+    })
+
+    return result.docs.map((doc) => this.mapDocToLedgerRecord(doc))
+  }
+
+
   /**
    * Fetch Customer Loyalty Aggregate & Projection.
    */

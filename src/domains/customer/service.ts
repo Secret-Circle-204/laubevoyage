@@ -31,6 +31,11 @@ export class CustomerService {
     return this.workflowEngine.queries.getById(customerId)
   }
 
+  async getProfile(customerId: number): Promise<CustomerAggregate> {
+    return this.getById(customerId)
+  }
+
+
   async getTravelers(customerId: number): Promise<CompanionTravelerEntity[]> {
     return this.workflowEngine.profileManager.getTravelers(customerId)
   }

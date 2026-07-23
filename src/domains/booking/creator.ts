@@ -70,7 +70,9 @@ export class BookingCreator {
     const bookingNumber = BookingNumberGenerator.generate()
 
     // 6. Build Initial Timeline & Audit entries
-    const actor = params.actor || { id: params.userId, type: 'customer', name: customer.fullName }
+    const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer'
+    const actor = params.actor || { id: params.userId, type: 'customer', name: customerName }
+
     const timeline = BookingHistoryService.appendTimelineEntry([], {
       stepKey: 'booking_created',
       title: 'Booking Created',

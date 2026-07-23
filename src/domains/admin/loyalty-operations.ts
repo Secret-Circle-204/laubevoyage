@@ -28,6 +28,7 @@ export class AdminLoyaltyOperations {
       referenceId: `admin_adj_${Date.now()}`,
     })
 
-    return { success: true, newBalance: updatedLedger.balance }
+    return { success: true, newBalance: updatedLedger.resultingBalance }
   }
+
 }

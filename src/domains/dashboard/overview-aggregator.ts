@@ -40,15 +40,16 @@ export class DashboardOverviewAggregator {
         tier: loyaltyProjection?.tier || 'explorer',
         pointsBalance: loyaltyProjection?.balance || 0,
         activeHoldsCount: 0,
-        totalSpentEGP: loyaltyProjection?.totalSpent || 0,
-        tierProgressPercentage: Math.min(100, Math.round(((loyaltyProjection?.totalSpent || 0) / 100000) * 100)),
+        totalSpentEGP: loyaltyProjection?.totalSpentEGP || 0,
+        tierProgressPercentage: Math.min(100, Math.round(((loyaltyProjection?.totalSpentEGP || 0) / 100000) * 100)),
       },
       trips: {
         upcomingCount: activeBookings.filter((b) => b.status === 'confirmed').length,
         activeBookingsCount: activeBookings.length,
         latestBookingNumber: activeBookings[0]?.bookingNumber,
-        nextDepartureDate: activeBookings[0]?.date,
+        nextDepartureDate: activeBookings[0]?.createdAt,
       },
+
       security: {
         activeDeviceCount: 1,
         lastLoginAt: customer?.lastLoginAt,

@@ -15,14 +15,9 @@ export function registerCustomerSubscribers(payload: Payload): void {
     try {
       console.log(`[CustomerSubscriber] Customer #${event.customerId} email verified. Granting welcome bonus...`)
       // Grant 50 welcome points for email verification
-      await loyaltyService.earnPoints({
-        customerId: event.customerId,
-        points: 50,
-        referenceType: 'WELCOME_BONUS',
-        referenceId: `welcome_${event.customerId}`,
-        description: 'Welcome bonus points for email verification',
-      })
+      await loyaltyService.grantWelcomeBonus(event.customerId)
     } catch (error: any) {
+
       console.error(`[CustomerSubscriber] Error granting welcome bonus for customer #${event.customerId}:`, error.message)
     }
   })

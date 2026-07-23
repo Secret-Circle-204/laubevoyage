@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
     const payload = await getPayload({ config })
     const services = getDomainServices(payload)
 
-    // Convert Stripe.Event safely to our internal StripeWebhookEvent type without any
-    await services.payment.handleStripeWebhook(event as unknown as StripeWebhookEvent)
+    await services.payment.handleStripeWebhook(rawBody, signature)
 
     return NextResponse.json({ received: true })
+
   } catch (error) {
     console.error('Error handling Stripe webhook:', error)
     return NextResponse.json(

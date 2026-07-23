@@ -28,8 +28,9 @@ export class RegistrationService {
         firstName,
         lastName,
         status: 'pending_verification',
-      },
+      } as any,
     })
+
 
     return this.repository.findById(Number(doc.id))
   }

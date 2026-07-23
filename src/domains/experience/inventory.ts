@@ -51,9 +51,10 @@ export class InventoryManager {
 
     const savedSlot = await this.repository.saveDepartureSlot(updatedSlot)
 
-    const holdId = capacityHold.lockId || (capacityHold as any).holdId || `hold_${Date.now()}`
+    const holdId = capacityHold.holdId || `hold_${Date.now()}`
     return { slot: savedSlot, holdId }
   }
+
 
   async releaseCapacity(departureId: string, seats: number): Promise<DepartureSlotEntity> {
     const slot = await this.repository.getDepartureSlot(departureId)

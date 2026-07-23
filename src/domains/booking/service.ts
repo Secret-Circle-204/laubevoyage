@@ -18,8 +18,9 @@ export class BookingService {
 
     // Register event listeners on initialization
     registerLoyaltySubscriber(payload)
-    registerNotificationSubscriber()
+    registerNotificationSubscriber(payload)
   }
+
 
   /**
    * Create a new booking in draft state.

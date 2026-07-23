@@ -22,7 +22,9 @@ export interface CustomerAggregate {
   deletedAt?: string
   emailVerifiedAt?: string
   phoneVerifiedAt?: string
+  loyalty?: { tier: string; points: number; totalSpentEGP: number; totalSpent?: number }
   version: number
+
   createdAt: string
   updatedAt: string
 }

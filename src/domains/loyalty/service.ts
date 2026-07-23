@@ -85,4 +85,18 @@ export class LoyaltyService {
   async getBalance(userId: number): Promise<number> {
     return this.workflowEngine.queries.getBalance(userId)
   }
+
+  async getHistory(userId: number, limit = 20): Promise<PointLedgerRecord[]> {
+    return this.workflowEngine.queries.getHistory(userId, limit)
+  }
+
+
+  async earnPoints(params: { customerId: number; points: number; sourceEvent?: string; referenceId?: string }): Promise<PointLedgerRecord> {
+    return this.earn(params.customerId, params.points, Number(params.referenceId) || 0, String(params.referenceId || ''))
+  }
+
+  calculateEarnedPoints(amountEGP: number): number {
+    return Math.floor(amountEGP * 0.1)
+  }
 }
+

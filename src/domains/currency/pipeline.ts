@@ -22,6 +22,9 @@ export interface PricingSnapshotData {
   calculatedAt: string
 }
 
+export type PricingResult = { snapshot: PricingSnapshotData }
+
+
 /**
  * Pricing Pipeline Engine
  * Modular pricing pipeline executing:

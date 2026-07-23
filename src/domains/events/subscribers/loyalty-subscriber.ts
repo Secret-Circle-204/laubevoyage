@@ -24,18 +24,17 @@ export function registerLoyaltySubscriber(payload: Payload): void {
     if (!customer) return
 
     // 2. Calculate and grant earned loyalty points
-    const tier = customer.loyalty?.tier || 'explorer'
-    const pointsEarned = loyaltyService.calculateEarnedPoints(totalAmountEGP, tier)
+    const pointsEarned = loyaltyService.calculateEarnedPoints(totalAmountEGP)
 
     if (pointsEarned > 0) {
       await loyaltyService.earn(
         customerId,
-        pointsEarned,
-        PointTransactionType.EARNED,
-        `Earned from booking ${booking.bookingNumber}`,
+        totalAmountEGP,
         booking.id,
+        booking.bookingNumber,
       )
     }
+
 
     // 3. Update customer total spent
     const newTotalSpent = (customer.loyalty?.totalSpent || 0) + totalAmountEGP
@@ -44,11 +43,12 @@ export function registerLoyaltySubscriber(payload: Payload): void {
       id: customerId,
       data: {
         loyalty: {
-          ...customer.loyalty,
+          tier: (customer.loyalty?.tier || 'explorer') as 'explorer' | 'voyager' | 'elite',
           totalSpent: newTotalSpent,
         },
       },
     })
+
 
     // 4. Evaluate tier upgrade
     await loyaltyService.evaluateTier(customerId)

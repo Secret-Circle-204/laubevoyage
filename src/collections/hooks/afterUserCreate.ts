@@ -9,11 +9,23 @@ export const afterUserCreate: CollectionAfterChangeHook = async ({ doc, req, ope
     const services = getDomainServices(req.payload)
 
     // Grant welcome bonus
-    await services.loyalty.grantWelcomeBonus(Number(doc.id), req)
+    await services.loyalty.grantWelcomeBonus(Number(doc.id))
 
-    // Send welcome email
-    await services.notification.sendWelcomeEmail(Number(doc.id), req)
+    // Send welcome email notification
+    await services.notification.enqueueNotification({
+      referenceType: 'WELCOME',
+      referenceId: String(doc.id),
+      recipient: doc.email || 'customer@laube.com',
+      channel: 'email',
+      category: 'marketing',
+      priority: 'normal',
+      templateId: 'welcome_email',
+      translationKey: 'customer.welcome',
+      templateData: { name: doc.firstName || 'Customer' },
+    })
   }
+
+
 
   return doc
 }

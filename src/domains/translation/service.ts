@@ -19,4 +19,23 @@ export class TranslationService {
   async getTranslation(translationKey: string, locale: string): Promise<TranslationRecordEntity> {
     return this.engine.translate(translationKey, locale)
   }
+
+  async translate(text: string, locale: string, _version?: number, _req?: any): Promise<string> {
+    const record = await this.engine.translate(text, locale)
+    return record.translatedText
+  }
+
+  async translateFields(
+    fields: Record<string, string>,
+    locale: string,
+    _version?: number,
+    _req?: any,
+  ): Promise<Record<string, string>> {
+    const result: Record<string, string> = {}
+    for (const [key, value] of Object.entries(fields)) {
+      result[key] = await this.translate(value, locale)
+    }
+    return result
+  }
 }
+

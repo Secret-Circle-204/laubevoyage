@@ -1,6 +1,9 @@
-import type { DomainEvent } from './booking-events'
+export interface BaseDomainEvent {
+  type: string
+  [key: string]: any
+}
 
-type EventHandler<T extends DomainEvent = DomainEvent> = (event: T) => Promise<void> | void
+type EventHandler<T extends BaseDomainEvent = BaseDomainEvent> = (event: T) => Promise<void> | void
 
 /**
  * Domain Event Bus
@@ -22,7 +25,7 @@ export class EventBus {
   /**
    * Subscribe a handler function to a specific domain event type.
    */
-  subscribe<T extends DomainEvent>(eventType: T['type'], handler: (event: T) => Promise<void> | void): void {
+  subscribe<T extends BaseDomainEvent>(eventType: T['type'], handler: (event: T) => Promise<void> | void): void {
     const existing = this.handlers.get(eventType) || []
     this.handlers.set(eventType, [...existing, handler as EventHandler])
   }
@@ -30,7 +33,7 @@ export class EventBus {
   /**
    * Publish a domain event asynchronously to all subscribed listeners.
    */
-  async publish<T extends DomainEvent>(event: T): Promise<void> {
+  async publish<T extends BaseDomainEvent>(event: T): Promise<void> {
     const handlers = this.handlers.get(event.type) || []
     
     // Execute listeners concurrently in the background without blocking caller
@@ -45,3 +48,4 @@ export class EventBus {
     await Promise.all(promises)
   }
 }
+

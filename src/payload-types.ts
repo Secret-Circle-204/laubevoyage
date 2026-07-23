@@ -79,6 +79,23 @@ export interface Config {
     'exchange-rates': ExchangeRate;
     currencies: Currency;
     'translation-cache': TranslationCache;
+    'admin-audit-logs': AdminAuditLog;
+    'customer-addresses': CustomerAddress;
+    'customer-device-sessions': CustomerDeviceSession;
+    'customer-notification-preferences': CustomerNotificationPreference;
+    'customer-travelers': CustomerTraveler;
+    'dashboard-projections': DashboardProjection;
+    faqs: Faq;
+    'maintenance-logs': MaintenanceLog;
+    'media-gallery': MediaGallery;
+    'notification-logs': NotificationLog;
+    pages: Page;
+    'payment-transactions': PaymentTransaction;
+    posts: Post;
+    redirects: Redirect;
+    reviews: Review;
+    translations: Translation;
+    coupons: Coupon;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -97,6 +114,23 @@ export interface Config {
     'exchange-rates': ExchangeRatesSelect<false> | ExchangeRatesSelect<true>;
     currencies: CurrenciesSelect<false> | CurrenciesSelect<true>;
     'translation-cache': TranslationCacheSelect<false> | TranslationCacheSelect<true>;
+    'admin-audit-logs': AdminAuditLogsSelect<false> | AdminAuditLogsSelect<true>;
+    'customer-addresses': CustomerAddressesSelect<false> | CustomerAddressesSelect<true>;
+    'customer-device-sessions': CustomerDeviceSessionsSelect<false> | CustomerDeviceSessionsSelect<true>;
+    'customer-notification-preferences': CustomerNotificationPreferencesSelect<false> | CustomerNotificationPreferencesSelect<true>;
+    'customer-travelers': CustomerTravelersSelect<false> | CustomerTravelersSelect<true>;
+    'dashboard-projections': DashboardProjectionsSelect<false> | DashboardProjectionsSelect<true>;
+    faqs: FaqsSelect<false> | FaqsSelect<true>;
+    'maintenance-logs': MaintenanceLogsSelect<false> | MaintenanceLogsSelect<true>;
+    'media-gallery': MediaGallerySelect<false> | MediaGallerySelect<true>;
+    'notification-logs': NotificationLogsSelect<false> | NotificationLogsSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
+    'payment-transactions': PaymentTransactionsSelect<false> | PaymentTransactionsSelect<true>;
+    posts: PostsSelect<false> | PostsSelect<true>;
+    redirects: RedirectsSelect<false> | RedirectsSelect<true>;
+    reviews: ReviewsSelect<false> | ReviewsSelect<true>;
+    translations: TranslationsSelect<false> | TranslationsSelect<true>;
+    coupons: CouponsSelect<false> | CouponsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -749,6 +783,358 @@ export interface TranslationCache {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "admin-audit-logs".
+ */
+export interface AdminAuditLog {
+  id: number;
+  auditId: string;
+  adminUser: number | User;
+  adminEmail: string;
+  action: string;
+  targetDomain: 'booking' | 'payment' | 'loyalty' | 'experience' | 'customer' | 'maintenance';
+  targetId: string;
+  reason: string;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  executedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-addresses".
+ */
+export interface CustomerAddress {
+  id: number;
+  customer: number | Customer;
+  type: 'billing' | 'shipping' | 'home';
+  street: string;
+  city: string;
+  country: string;
+  postalCode?: string | null;
+  isDefault?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-device-sessions".
+ */
+export interface CustomerDeviceSession {
+  id: number;
+  customer: number | Customer;
+  sessionId: string;
+  deviceName: string;
+  ipAddress: string;
+  lastActiveAt: string;
+  isRevoked?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-notification-preferences".
+ */
+export interface CustomerNotificationPreference {
+  id: number;
+  customer: number | Customer;
+  marketingEmail?: boolean | null;
+  marketingSMS?: boolean | null;
+  marketingPush?: boolean | null;
+  bookingEmail?: boolean | null;
+  bookingSMS?: boolean | null;
+  bookingPush?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-travelers".
+ */
+export interface CustomerTraveler {
+  id: number;
+  customer: number | Customer;
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string | null;
+  passportNumber?: string | null;
+  relationship: 'spouse' | 'child' | 'parent' | 'friend' | 'other';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "dashboard-projections".
+ */
+export interface DashboardProjection {
+  id: number;
+  projectionId: string;
+  customer: number | Customer;
+  projectionJson:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  version?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs".
+ */
+export interface Faq {
+  id: number;
+  faqId: string;
+  category: 'booking' | 'cancellation' | 'payment' | 'loyalty';
+  question: string;
+  answer: string;
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "maintenance-logs".
+ */
+export interface MaintenanceLog {
+  id: number;
+  executionId: string;
+  correlationId: string;
+  jobName: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  startedBy: 'scheduler' | 'manual_admin' | 'api';
+  status: 'running' | 'success' | 'failed' | 'partial_success';
+  itemsProcessed?: number | null;
+  itemsFailed?: number | null;
+  durationMs?: number | null;
+  jobVersion?: string | null;
+  engineVersion?: string | null;
+  errorDetails?: string | null;
+  executedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-gallery".
+ */
+export interface MediaGallery {
+  id: number;
+  mediaId: string;
+  altText: string;
+  fileUrl: string;
+  mimeType: string;
+  format?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-logs".
+ */
+export interface NotificationLog {
+  id: number;
+  notificationId: string;
+  referenceType: string;
+  referenceId: string;
+  customer?: (number | null) | Customer;
+  recipient: string;
+  channel: 'email' | 'sms' | 'push' | 'whatsapp';
+  category: 'marketing' | 'booking' | 'payment' | 'loyalty';
+  priority: 'critical' | 'high' | 'normal' | 'low';
+  templateId: string;
+  status: 'queued' | 'processing' | 'sent' | 'delivered' | 'failed' | 'dlq';
+  attempts?: number | null;
+  lastError?: string | null;
+  sentAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  pageId: string;
+  slug: string;
+  title: string;
+  status: 'draft' | 'published';
+  blocksJson?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  ogImage?: string | null;
+  publishedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-transactions".
+ */
+export interface PaymentTransaction {
+  id: number;
+  transactionId: string;
+  bookingId: number;
+  customerId: number;
+  version?: number | null;
+  provider: 'stripe' | 'bnpl' | 'manual';
+  status: 'initiated' | 'processing' | 'successful' | 'failed' | 'refunded' | 'partially_refunded';
+  /**
+   * Gateway checkout session details
+   */
+  session?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Immutable ledger of gateway payment attempts
+   */
+  attempts?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Database-first record of processed webhook event IDs
+   */
+  webhookLedger?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Payment security audit log entries
+   */
+  auditTrail?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  gatewayReference?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts".
+ */
+export interface Post {
+  id: number;
+  postId: string;
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  bodyHtml?: string | null;
+  category?: string | null;
+  authorName?: string | null;
+  readTimeMinutes?: number | null;
+  status: 'draft' | 'published';
+  publishedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects".
+ */
+export interface Redirect {
+  id: number;
+  redirectId: string;
+  oldSlug: string;
+  newSlug: string;
+  statusCode: '301' | '302';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews".
+ */
+export interface Review {
+  id: number;
+  reviewId: string;
+  experience: number | Experience;
+  customer: number | Customer;
+  booking: number | Booking;
+  rating: number;
+  comment: string;
+  status: 'pending_approval' | 'approved' | 'rejected';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "translations".
+ */
+export interface Translation {
+  id: number;
+  translationKey: string;
+  locale: string;
+  translatedText: string;
+  provider: 'cache' | 'google' | 'libre' | 'manual';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupons".
+ */
+export interface Coupon {
+  id: number;
+  couponId: string;
+  code: string;
+  discountType: 'percentage' | 'fixed_egp';
+  discountValue: number;
+  maxDiscountEGP?: number | null;
+  minSpendEGP?: number | null;
+  usageLimit?: number | null;
+  usageCount?: number | null;
+  status: 'active' | 'inactive' | 'expired';
+  validFrom?: string | null;
+  validUntil?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -814,6 +1200,74 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'translation-cache';
         value: number | TranslationCache;
+      } | null)
+    | ({
+        relationTo: 'admin-audit-logs';
+        value: number | AdminAuditLog;
+      } | null)
+    | ({
+        relationTo: 'customer-addresses';
+        value: number | CustomerAddress;
+      } | null)
+    | ({
+        relationTo: 'customer-device-sessions';
+        value: number | CustomerDeviceSession;
+      } | null)
+    | ({
+        relationTo: 'customer-notification-preferences';
+        value: number | CustomerNotificationPreference;
+      } | null)
+    | ({
+        relationTo: 'customer-travelers';
+        value: number | CustomerTraveler;
+      } | null)
+    | ({
+        relationTo: 'dashboard-projections';
+        value: number | DashboardProjection;
+      } | null)
+    | ({
+        relationTo: 'faqs';
+        value: number | Faq;
+      } | null)
+    | ({
+        relationTo: 'maintenance-logs';
+        value: number | MaintenanceLog;
+      } | null)
+    | ({
+        relationTo: 'media-gallery';
+        value: number | MediaGallery;
+      } | null)
+    | ({
+        relationTo: 'notification-logs';
+        value: number | NotificationLog;
+      } | null)
+    | ({
+        relationTo: 'pages';
+        value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'payment-transactions';
+        value: number | PaymentTransaction;
+      } | null)
+    | ({
+        relationTo: 'posts';
+        value: number | Post;
+      } | null)
+    | ({
+        relationTo: 'redirects';
+        value: number | Redirect;
+      } | null)
+    | ({
+        relationTo: 'reviews';
+        value: number | Review;
+      } | null)
+    | ({
+        relationTo: 'translations';
+        value: number | Translation;
+      } | null)
+    | ({
+        relationTo: 'coupons';
+        value: number | Coupon;
       } | null);
   globalSlug?: string | null;
   user:
@@ -1199,6 +1653,273 @@ export interface TranslationCacheSelect<T extends boolean = true> {
   provider?: T;
   version?: T;
   lastVerifiedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "admin-audit-logs_select".
+ */
+export interface AdminAuditLogsSelect<T extends boolean = true> {
+  auditId?: T;
+  adminUser?: T;
+  adminEmail?: T;
+  action?: T;
+  targetDomain?: T;
+  targetId?: T;
+  reason?: T;
+  metadata?: T;
+  executedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-addresses_select".
+ */
+export interface CustomerAddressesSelect<T extends boolean = true> {
+  customer?: T;
+  type?: T;
+  street?: T;
+  city?: T;
+  country?: T;
+  postalCode?: T;
+  isDefault?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-device-sessions_select".
+ */
+export interface CustomerDeviceSessionsSelect<T extends boolean = true> {
+  customer?: T;
+  sessionId?: T;
+  deviceName?: T;
+  ipAddress?: T;
+  lastActiveAt?: T;
+  isRevoked?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-notification-preferences_select".
+ */
+export interface CustomerNotificationPreferencesSelect<T extends boolean = true> {
+  customer?: T;
+  marketingEmail?: T;
+  marketingSMS?: T;
+  marketingPush?: T;
+  bookingEmail?: T;
+  bookingSMS?: T;
+  bookingPush?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-travelers_select".
+ */
+export interface CustomerTravelersSelect<T extends boolean = true> {
+  customer?: T;
+  firstName?: T;
+  lastName?: T;
+  dateOfBirth?: T;
+  passportNumber?: T;
+  relationship?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "dashboard-projections_select".
+ */
+export interface DashboardProjectionsSelect<T extends boolean = true> {
+  projectionId?: T;
+  customer?: T;
+  projectionJson?: T;
+  version?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs_select".
+ */
+export interface FaqsSelect<T extends boolean = true> {
+  faqId?: T;
+  category?: T;
+  question?: T;
+  answer?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "maintenance-logs_select".
+ */
+export interface MaintenanceLogsSelect<T extends boolean = true> {
+  executionId?: T;
+  correlationId?: T;
+  jobName?: T;
+  priority?: T;
+  startedBy?: T;
+  status?: T;
+  itemsProcessed?: T;
+  itemsFailed?: T;
+  durationMs?: T;
+  jobVersion?: T;
+  engineVersion?: T;
+  errorDetails?: T;
+  executedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-gallery_select".
+ */
+export interface MediaGallerySelect<T extends boolean = true> {
+  mediaId?: T;
+  altText?: T;
+  fileUrl?: T;
+  mimeType?: T;
+  format?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-logs_select".
+ */
+export interface NotificationLogsSelect<T extends boolean = true> {
+  notificationId?: T;
+  referenceType?: T;
+  referenceId?: T;
+  customer?: T;
+  recipient?: T;
+  channel?: T;
+  category?: T;
+  priority?: T;
+  templateId?: T;
+  status?: T;
+  attempts?: T;
+  lastError?: T;
+  sentAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  pageId?: T;
+  slug?: T;
+  title?: T;
+  status?: T;
+  blocksJson?: T;
+  seoTitle?: T;
+  seoDescription?: T;
+  ogImage?: T;
+  publishedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-transactions_select".
+ */
+export interface PaymentTransactionsSelect<T extends boolean = true> {
+  transactionId?: T;
+  bookingId?: T;
+  customerId?: T;
+  version?: T;
+  provider?: T;
+  status?: T;
+  session?: T;
+  attempts?: T;
+  webhookLedger?: T;
+  auditTrail?: T;
+  gatewayReference?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts_select".
+ */
+export interface PostsSelect<T extends boolean = true> {
+  postId?: T;
+  slug?: T;
+  title?: T;
+  excerpt?: T;
+  bodyHtml?: T;
+  category?: T;
+  authorName?: T;
+  readTimeMinutes?: T;
+  status?: T;
+  publishedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects_select".
+ */
+export interface RedirectsSelect<T extends boolean = true> {
+  redirectId?: T;
+  oldSlug?: T;
+  newSlug?: T;
+  statusCode?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews_select".
+ */
+export interface ReviewsSelect<T extends boolean = true> {
+  reviewId?: T;
+  experience?: T;
+  customer?: T;
+  booking?: T;
+  rating?: T;
+  comment?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "translations_select".
+ */
+export interface TranslationsSelect<T extends boolean = true> {
+  translationKey?: T;
+  locale?: T;
+  translatedText?: T;
+  provider?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coupons_select".
+ */
+export interface CouponsSelect<T extends boolean = true> {
+  couponId?: T;
+  code?: T;
+  discountType?: T;
+  discountValue?: T;
+  maxDiscountEGP?: T;
+  minSpendEGP?: T;
+  usageLimit?: T;
+  usageCount?: T;
+  status?: T;
+  validFrom?: T;
+  validUntil?: T;
   updatedAt?: T;
   createdAt?: T;
 }

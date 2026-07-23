@@ -82,9 +82,9 @@ export class LocalizationService {
     return this.pricingPipeline.execute({
       basePriceEGP,
       targetCurrency,
-      locale: ctx.language,
     })
   }
+
 
   // =========================================================================
   // Formatting Utilities

@@ -17,14 +17,14 @@ export function registerNotificationSubscribers(payload: Payload): void {
     try {
       await notificationService.enqueueNotification({
         referenceType: 'BOOKING',
-        referenceId: String(event.bookingId),
+        referenceId: String(event.booking.id),
         recipient: 'customer@laube.com',
         channel: 'email',
         category: 'booking',
         priority: 'high',
         templateId: 'booking_confirmation',
         translationKey: 'booking.confirmed',
-        templateData: { bookingNumber: event.bookingNumber },
+        templateData: { bookingNumber: event.booking.bookingNumber },
       })
     } catch (err: any) {
       console.error(`[NotificationSubscriber] Failed to enqueue booking confirmation notification:`, err.message)
@@ -36,7 +36,7 @@ export function registerNotificationSubscribers(payload: Payload): void {
     try {
       await notificationService.enqueueNotification({
         referenceType: 'PAYMENT',
-        referenceId: event.paymentId,
+        referenceId: event.transactionId,
         recipient: 'customer@laube.com',
         channel: 'email',
         category: 'payment',
@@ -50,5 +50,6 @@ export function registerNotificationSubscribers(payload: Payload): void {
     }
   })
 }
+
 
 export const registerNotificationSubscriber = registerNotificationSubscribers

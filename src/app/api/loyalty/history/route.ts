@@ -26,9 +26,10 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    const history = await services.loyalty.getHistory(userId, page, limit)
+    const history = await services.loyalty.getHistory(userId)
 
     return NextResponse.json({ data: history })
+
   } catch (error) {
     console.error('Error fetching loyalty history:', error)
     return NextResponse.json({ error: 'Failed to fetch loyalty history' }, { status: 500 })
