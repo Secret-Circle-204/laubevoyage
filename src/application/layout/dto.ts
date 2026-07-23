@@ -5,6 +5,11 @@ export interface NavigationItemDTO {
   children?: NavigationItemDTO[]
 }
 
+export interface FooterColumnDTO {
+  title: string
+  links: { label: string; href: string }[]
+}
+
 export interface CurrencyOptionDTO {
   code: string
   name: string
@@ -18,6 +23,7 @@ export interface LocaleOptionDTO {
 
 export interface LayoutDTO {
   navigationMenu: NavigationItemDTO[]
+  footerNavigation: FooterColumnDTO[]
   activeLocale: string
   activeCurrency: string
   supportedCurrencies: CurrencyOptionDTO[]
@@ -32,3 +38,4 @@ export interface LayoutDTO {
   }
   unreadNotificationsCount: number
 }
+

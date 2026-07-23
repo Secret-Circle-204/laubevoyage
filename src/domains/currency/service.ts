@@ -1,7 +1,9 @@
 import type { CurrencyCode, Money } from '@/types'
 import { rateRegistry } from './rate-registry'
+import { catalogRegistry } from './catalog-registry'
 import { CurrencyRepository } from './repository'
-import { OpenExchangeProvider } from './providers/openexchange'
+import { CompositeExchangeRateProvider } from './providers/composite-provider'
+import type { ExchangeRateProvider } from './providers/types'
 
 /**
  * Currency Domain Service
@@ -10,11 +12,18 @@ import { OpenExchangeProvider } from './providers/openexchange'
  */
 export class CurrencyService {
   private repository: CurrencyRepository
-  private rateProvider: OpenExchangeProvider
+  private rateProvider: ExchangeRateProvider
 
-  constructor(repository: CurrencyRepository, rateProvider?: OpenExchangeProvider) {
+  constructor(repository: CurrencyRepository, rateProvider?: ExchangeRateProvider) {
     this.repository = repository
-    this.rateProvider = rateProvider || new OpenExchangeProvider()
+    this.rateProvider = rateProvider || new CompositeExchangeRateProvider()
+  }
+
+  /**
+   * Domain Gateway method for retrieving all active currencies from catalog registry.
+   */
+  async getActiveCurrencies() {
+    return catalogRegistry.getAll(this.repository)
   }
 
   async markAllStale(errorMessage: string, attemptTime: string) {
@@ -125,5 +134,30 @@ export class CurrencyService {
       style: 'currency',
       currency: money.currency,
     }).format(money.amount)
+  }
+
+  /**
+   * Capture an immutable exchange rate snapshot for booking creation
+   */
+  async getExchangeRateSnapshot(targetCurrency: string): Promise<{ rate: number; timestamp: string }> {
+    if (targetCurrency === 'EGP') {
+      return { rate: 1, timestamp: new Date().toISOString() }
+    }
+    try {
+      const rate = await this.getRate('EGP', targetCurrency as CurrencyCode)
+      return { rate, timestamp: new Date().toISOString() }
+    } catch {
+      // If missing from cache, trigger live rate sync immediately
+      await this.syncExchangeRates()
+      const rate = await this.getRate('EGP', targetCurrency as CurrencyCode)
+      return { rate, timestamp: new Date().toISOString() }
+    }
+  }
+
+  /**
+   * Background rate refresh for cron dispatcher
+   */
+  async refreshRateCatalog(): Promise<{ success: boolean; message: string }> {
+    return this.syncExchangeRates()
   }
 }

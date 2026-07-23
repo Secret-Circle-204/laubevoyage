@@ -1,5 +1,11 @@
 import type { Payload } from 'payload'
+import type { DestinationQueryOptions } from './types'
 
+/**
+ * Destination Repository (Clean Single Source of Truth Access)
+ * Retrieves original canonical entities from Payload CMS.
+ * Language-agnostic persistence layer following Option B Architecture.
+ */
 export class DestinationRepository {
   private payload: Payload
 
@@ -7,7 +13,7 @@ export class DestinationRepository {
     this.payload = payload
   }
 
-  async findCountries() {
+  async findCountries(_options?: DestinationQueryOptions) {
     return this.payload.find({
       collection: 'countries',
       where: {
@@ -17,7 +23,7 @@ export class DestinationRepository {
     })
   }
 
-  async findCountryBySlug(slug: string) {
+  async findCountryBySlug(slug: string, _options?: DestinationQueryOptions) {
     const result = await this.payload.find({
       collection: 'countries',
       where: {
@@ -29,7 +35,7 @@ export class DestinationRepository {
     return result.docs[0] || null
   }
 
-  async findCitiesByCountry(countryId: number) {
+  async findCitiesByCountry(countryId: number, _options?: DestinationQueryOptions) {
     return this.payload.find({
       collection: 'cities',
       where: {
@@ -39,7 +45,7 @@ export class DestinationRepository {
     })
   }
 
-  async findCityBySlug(slug: string) {
+  async findCityBySlug(slug: string, _options?: DestinationQueryOptions) {
     const result = await this.payload.find({
       collection: 'cities',
       where: {
@@ -51,8 +57,8 @@ export class DestinationRepository {
     return result.docs[0] || null
   }
 
-  async findExperiencesByCity(cityId: number, options: { page?: number; limit?: number } = {}) {
-    const { page = 1, limit = 10 } = options
+  async findExperiencesByCity(cityId: number, options?: DestinationQueryOptions) {
+    const { page = 1, limit = 10 } = options || {}
 
     return this.payload.find({
       collection: 'experiences',
@@ -67,7 +73,7 @@ export class DestinationRepository {
     })
   }
 
-  async findFeaturedExperiences(limit: number = 6) {
+  async findFeaturedExperiences(limit: number = 6, _options?: DestinationQueryOptions) {
     const result = await this.payload.find({
       collection: 'experiences',
       where: {

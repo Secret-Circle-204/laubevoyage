@@ -2,13 +2,17 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Card, Badge, Rating, CurrencyDisplay, Button } from '@/components/ui'
+import { useTheme } from '@/providers/theme-provider'
+import { Card, Badge, Button, CurrencyDisplay, Rating } from '@/components/ui'
 import type { ExperienceCatalogDTO } from '@/application/experience/dto'
 
 export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO }) {
   const router = useRouter()
   const [selectedType, setSelectedType] = useState<string>(data.filters.type || 'all')
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
 
   const handleTypeChange = (type: string) => {
     setSelectedType(type)
@@ -20,23 +24,24 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
   }
 
   return (
-    <div className="py-16 bg-slate-50 dark:bg-slate-950 min-h-screen">
+    <div className={`py-24 ${isDark ? 'bg-[#231F20]' : 'bg-slate-50'} transition-colors duration-500 min-h-screen`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Page Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
+        <div className="text-center max-w-3xl mx-auto mb-16">
           <Badge variant="secondary" className="mb-3">
             Bespoke Portfolio
           </Badge>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className={`text-4xl sm:text-5xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
             Experiences Catalog
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-3 text-base sm:text-lg">
+          <div className="h-1 w-16 bg-[#f58220] mx-auto mt-3 mb-4" />
+          <p className={`text-base sm:text-lg ${isDark ? 'text-[#a7aaac]' : 'text-[#666666]'}`}>
             Discover luxury tour packages and private daily tours carefully crafted for luxury travelers.
           </p>
         </div>
 
         {/* Type Category Tabs Filter */}
-        <div className="flex justify-center gap-3 mb-12">
+        <div className="flex justify-center gap-3 mb-16">
           <Button
             variant={selectedType === 'all' ? 'primary' : 'outline'}
             size="sm"
@@ -63,44 +68,78 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
         {/* Experiences Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {data.experiences.map((item) => (
-            <Link key={item.id} href={`/experiences/${item.slug}`} className="group">
-              <Card variant="interactive" padding="none" className="flex flex-col h-full">
-                <div className="relative h-64 w-full bg-slate-200 overflow-hidden">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-700"
-                    style={{ backgroundImage: `url(${item.imageUrl})` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+            <Card key={item.id} variant="interactive" padding="none" className="group flex flex-col h-full">
+              {/* Image Container */}
+              <div className="relative h-72 w-full overflow-hidden">
+                <Image
+                  src={item.imageUrl || "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop"}
+                  alt={item.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                />
 
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    <Badge variant={item.type === 'package' ? 'primary' : 'accent'} size="sm">
-                      {item.type === 'package' ? 'Tour Package' : 'Daily Tour'}
-                    </Badge>
-                  </div>
+                {/* Subtle Gradient Overlay */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-t ${
+                    isDark ? 'from-[#1a1718] via-transparent' : 'from-black/20 via-transparent'
+                  } to-transparent opacity-60`}
+                />
 
-                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white">
-                    <span className="text-xs font-medium">📍 {item.location}</span>
-                    <span className="text-xs font-medium">⏳ {item.durationDays} Days</span>
-                  </div>
+                {/* Type Badge */}
+                <div className="absolute top-6 left-6">
+                  <Badge variant={item.type === 'package' ? 'primary' : 'accent'} size="sm">
+                    {item.type === 'package' ? 'Tour Package' : 'Daily Tour'}
+                  </Badge>
                 </div>
 
-                <div className="p-6 flex flex-col justify-between flex-grow gap-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-[#00aeef] transition-colors line-clamp-1">
+                {/* Price Tag */}
+                <div className="absolute top-6 right-6">
+                  <div className="px-4 py-2 bg-white/95 backdrop-blur-md rounded-lg shadow-xl">
+                    <span className="text-[#00aeef] font-bold tracking-tight text-sm">
+                      <CurrencyDisplay
+                        amountEGP={item.price.amountEGP}
+                        displayAmount={item.price.displayAmount}
+                        displayCurrency={item.price.displayCurrency}
+                        size="sm"
+                      />
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Details */}
+              <div className="flex flex-col grow p-8 justify-between">
+                <div>
+                  <div className="mb-4">
+                    <h3
+                      className={`text-2xl font-serif font-light mb-2 transition-colors duration-300 line-clamp-1 ${
+                        isDark
+                          ? 'text-white group-hover:text-[#f58220]'
+                          : 'text-[#231f20] group-hover:text-[#2e3192]'
+                      }`}
+                    >
                       {item.title}
                     </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 line-clamp-2 leading-relaxed">
-                      {item.subtitle}
-                    </p>
+                    <div className="h-1 w-12 bg-[#f58220] transition-all duration-500 group-hover:w-24" />
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <Rating value={item.rating} reviewsCount={item.reviewsCount} size="sm" />
-                    <CurrencyDisplay amountEGP={item.price.amountEGP} size="md" />
-                  </div>
+                  <p
+                    className={`text-sm mb-8 line-clamp-2 leading-relaxed ${
+                      isDark ? 'text-[#a7aaac]' : 'text-[#666666]'
+                    }`}
+                  >
+                    {item.subtitle}
+                  </p>
                 </div>
-              </Card>
-            </Link>
+
+                <Link href={`/experiences/${item.slug}`}>
+                  <Button variant="outline" size="md" className="w-full">
+                    View Itinerary
+                  </Button>
+                </Link>
+              </div>
+            </Card>
           ))}
         </div>
       </div>

@@ -2,6 +2,7 @@ import type { PayloadRequest } from 'payload'
 import { TranslationRepository } from './repository'
 import { TranslationEngine } from './engine'
 import type { TranslationRecordEntity } from './types'
+import { TranslationProviderFactory } from './factory/translation-provider-factory'
 
 /**
  * Translation Domain Service (Enterprise Thin Facade)
@@ -25,8 +26,15 @@ export class TranslationService {
   }
 
   async translate(text: string, locale: string, _version?: number, _req?: PayloadRequest): Promise<string> {
-    const record = await this.engine.translate(text, locale)
-    return record.translatedText
+    try {
+      const record = await this.engine.translate(text, locale)
+      if (record?.translatedText) return record.translatedText
+    } catch {
+      // Fallback via TranslationProviderFactory
+    }
+
+    const provider = TranslationProviderFactory.getProvider('google')
+    return provider.translateText(text, locale)
   }
 
   async translateFields(

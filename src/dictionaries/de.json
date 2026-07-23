@@ -1,0 +1,22 @@
+{
+  "hero": {
+    "title": "L'Aube Voyage Luxus-Erlebnisse",
+    "subtitle": "Traumreisen Seit 1996: Ihr Reisepass zu Weltweiten Entdeckungen",
+    "cta": {
+      "primary": "Erlebnisse Entdecken →",
+      "secondary": "Reiseziele Erkunden"
+    }
+  },
+  "layout": {
+    "nav": {
+      "home": "Startseite",
+      "destinations": "Reiseziele",
+      "experiences": "Erlebnisse",
+      "about": "Über uns"
+    },
+    "footer": {
+      "rights": "Alle Rechte Vorbehalten © 2026 L'Aube Voyage",
+      "tagline": "Außergewöhnliche Reisen Seit 1996."
+    }
+  }
+}

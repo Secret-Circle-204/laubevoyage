@@ -4,6 +4,8 @@ export interface HomeHeroDTO {
   title: string
   subtitle: string
   backgroundImageUrl: string
+  ctaExploreText?: string
+  ctaDiscoverText?: string
 }
 
 export interface HomeFeaturedExperienceDTO {

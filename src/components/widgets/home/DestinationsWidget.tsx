@@ -2,23 +2,25 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Card, Badge } from '@/components/ui'
+import Image from 'next/image'
+import { useTheme } from '@/providers/theme-provider'
 import type { HomeDestinationCardDTO } from '@/application/pages/home/dto'
 
 export function DestinationsWidget({ destinations }: { destinations: HomeDestinationCardDTO[] }) {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
   return (
-    <section className="py-20 bg-white dark:bg-slate-900 border-t border-slate-200/50 dark:border-slate-800/50">
+    <section className={`py-20 ${isDark ? 'bg-[#1a1718]' : 'bg-white'} transition-colors duration-500 border-b border-white/5`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <Badge variant="primary" className="mb-3">
+          <span className="text-xs uppercase tracking-[0.25em] font-medium text-[#00aeef] block mb-2">
             Geographical Exploration
-          </Badge>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          </span>
+          <h2 className={`text-3xl sm:text-4xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
             Top Travel Destinations
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 mt-3 text-base">
-            Structured Country ➔ City journey exploration across Egypt&apos;s ancient wonders and coastal paradises.
-          </p>
+          <div className="h-1 w-16 bg-[#f58220] mx-auto mt-3" />
         </div>
 
         {/* Destinations Grid */}
@@ -27,27 +29,35 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
             <Link
               key={dest.id}
               href={`/destinations/${dest.countrySlug}/${dest.citySlug}`}
-              className="group"
+              className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg"
             >
-              <Card variant="interactive" padding="none" className="relative h-80 w-full overflow-hidden">
-                <div
-                  className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-700"
-                  style={{ backgroundImage: `url(${dest.imageUrl})` }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+              <Image
+                src={dest.imageUrl || "https://images.unsplash.com/photo-1488085061387-422e29b40080?q=80&w=2031&auto=format&fit=crop"}
+                alt={dest.cityName}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                className="object-cover transition-transform duration-1000 group-hover:scale-110"
+              />
 
-                <div className="absolute bottom-6 left-6 right-6 flex flex-col gap-1 text-white">
-                  <span className="text-xs uppercase font-extrabold tracking-widest text-[#00aeef]">
-                    {dest.countryName}
-                  </span>
-                  <h3 className="text-2xl font-bold text-white group-hover:text-[#00aeef] transition-colors">
-                    {dest.cityName}
-                  </h3>
-                  <span className="text-xs text-slate-300 font-medium mt-1">
-                    {dest.experiencesCount} Experiences Available →
-                  </span>
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#231F20] via-[#231F20]/30 to-transparent" />
+
+              {/* Content */}
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <span className="text-[#00aeef] text-xs tracking-widest uppercase mb-1 block font-semibold">
+                  {dest.countryName}
+                </span>
+                <h3 className="text-2xl font-serif font-light text-white mb-2 group-hover:text-[#f58220] transition-colors duration-300">
+                  {dest.cityName}
+                </h3>
+
+                <div className="flex items-center gap-2 text-white/80 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <span>Explore {dest.experiencesCount} Journeys</span>
+                  <svg className="w-4 h-4 text-[#f58220]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
                 </div>
-              </Card>
+              </div>
             </Link>
           ))}
         </div>

@@ -1,0 +1,22 @@
+{
+  "hero": {
+    "title": "Expériences de Luxe L'Aube Voyage",
+    "subtitle": "Créateur de Voyages depuis 1996: Votre Passeport pour les Découvertes",
+    "cta": {
+      "primary": "Explorer les Expériences →",
+      "secondary": "Découvrir les Destinations"
+    }
+  },
+  "layout": {
+    "nav": {
+      "home": "Accueil",
+      "destinations": "Destinations",
+      "experiences": "Expériences",
+      "about": "À propos"
+    },
+    "footer": {
+      "rights": "Tous Droits Réservés © 2026 L'Aube Voyage",
+      "tagline": "Voyages d'Exception depuis 1996."
+    }
+  }
+}

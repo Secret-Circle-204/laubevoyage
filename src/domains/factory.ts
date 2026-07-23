@@ -25,22 +25,16 @@ import { PaymentService } from './payment/service'
 
 import { CurrencyRepository } from './currency/repository'
 import { CurrencyService } from './currency/service'
-import { OpenExchangeProvider } from './currency/providers/openexchange'
-
+import { CompositeExchangeRateProvider } from './currency/providers/composite-provider'
 import { LoyaltyRepository } from './loyalty/repository'
 import { LoyaltyService } from './loyalty/service'
-
 import { NotificationRepository } from './notification/repository'
 import { NotificationService } from './notification/service'
-
 import { TranslationRepository } from './translation/repository'
 import { TranslationService } from './translation/service'
-
 import { LocalizationService } from './localization/service'
-
 import { SearchRepository } from './search/repository'
 import { SearchService } from './search/service'
-
 import { MaintenanceRepository } from './maintenance/repository'
 import { MaintenanceService } from './maintenance/service'
 
@@ -62,7 +56,7 @@ export async function getDomainServices() {
   const dashboardRepository = new DashboardProjectionRepository(payload)
   const paymentRepository = new PaymentRepository(payload)
   const currencyRepository = new CurrencyRepository(payload)
-  const openExchangeProvider = new OpenExchangeProvider()
+  const compositeRateProvider = new CompositeExchangeRateProvider()
   const loyaltyRepository = new LoyaltyRepository(payload)
   const notificationRepository = new NotificationRepository(payload)
   const translationRepository = new TranslationRepository(payload)
@@ -81,7 +75,7 @@ export async function getDomainServices() {
   const searchService = new SearchService(searchRepository)
   const dashboardQueryBus = new DashboardQueryBus(customerRepository, loyaltyRepository, bookingRepository)
   const dashboardService = new DashboardService(dashboardRepository, dashboardQueryBus)
-  const currencyService = new CurrencyService(currencyRepository, openExchangeProvider)
+  const currencyService = new CurrencyService(currencyRepository, compositeRateProvider)
   const destinationService = new DestinationService(destinationRepository)
   const maintenanceService = new MaintenanceService(maintenanceRepository, bookingService)
 

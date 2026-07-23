@@ -14,13 +14,13 @@ export function Card({
   className = '',
   ...props
 }: CardProps) {
-  const baseClasses = 'rounded-2xl border transition-all duration-300 overflow-hidden'
+  const baseClasses = 'rounded-2xl border transition-all duration-500 overflow-hidden'
 
   const variantClasses = {
-    flat: 'bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800',
-    elevated: 'bg-white border-slate-100 shadow-xl shadow-slate-200/50 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none',
-    glass: 'bg-white/80 backdrop-blur-md border-white/20 shadow-xl shadow-indigo-950/5 dark:bg-slate-900/80 dark:border-slate-800/80',
-    interactive: 'bg-white border-slate-200 hover-lift hover:shadow-xl hover:border-[#00aeef]/40 cursor-pointer dark:bg-slate-900 dark:border-slate-800',
+    flat: 'bg-white border-slate-200/80 dark:bg-[#1a1718] dark:border-white/10 text-slate-900 dark:text-slate-100',
+    elevated: 'bg-white border-slate-100 shadow-xl dark:bg-[#1a1718] dark:border-white/10 dark:shadow-2xl text-slate-900 dark:text-slate-100',
+    glass: 'bg-white/80 backdrop-blur-md border-white/20 shadow-xl dark:bg-[#1a1718]/80 dark:border-white/15 text-slate-900 dark:text-slate-100',
+    interactive: 'bg-white border-slate-200/80 hover-lift hover:shadow-2xl hover:border-[#00aeef]/50 cursor-pointer dark:bg-[#1a1718] dark:border-white/10 dark:hover:border-[#00aeef]/40 text-slate-900 dark:text-slate-100',
   }
 
   const paddingClasses = {

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 type Locale = 'ar' | 'en' | 'fr'
 type Direction = 'rtl' | 'ltr'
@@ -20,6 +21,7 @@ export function LocaleProvider({
   children: React.ReactNode
   initialLocale?: Locale
 }) {
+  const router = useRouter()
   const [locale, setLocaleState] = useState<Locale>(initialLocale)
   const [direction, setDirection] = useState<Direction>(initialLocale === 'ar' ? 'rtl' : 'ltr')
 
@@ -33,6 +35,8 @@ export function LocaleProvider({
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale)
     localStorage.setItem('laube-locale', newLocale)
+    document.cookie = `laube-locale=${newLocale}; path=/; max-age=31536000; SameSite=Lax`
+    router.refresh()
   }
 
   return (

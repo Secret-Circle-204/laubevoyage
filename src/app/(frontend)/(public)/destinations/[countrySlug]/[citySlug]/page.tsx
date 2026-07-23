@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { CityLoader } from '@/application/destination/loaders'
 import { CityExperiencesPage } from '@/components/features/destination/CityExperiencesPage'
@@ -10,7 +11,11 @@ export async function generateMetadata(props: {
   params: Promise<{ countrySlug: string; citySlug: string }>
 }): Promise<Metadata> {
   const params = await props.params
-  const data = await CityLoader.loadBySlugs(params.countrySlug, params.citySlug)
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value || 'en'
+  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+
+  const data = await CityLoader.loadBySlugs(params.countrySlug, params.citySlug, { locale, currency })
 
   if (!data) {
     return { title: "City Not Found | L'Aube Voyage" }
@@ -26,7 +31,11 @@ export default async function Page(props: {
   params: Promise<{ countrySlug: string; citySlug: string }>
 }) {
   const params = await props.params
-  const data = await CityLoader.loadBySlugs(params.countrySlug, params.citySlug)
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value || 'en'
+  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+
+  const data = await CityLoader.loadBySlugs(params.countrySlug, params.citySlug, { locale, currency })
 
   if (!data) {
     notFound()
@@ -34,3 +43,4 @@ export default async function Page(props: {
 
   return <CityExperiencesPage data={data} />
 }
+

@@ -1,4 +1,4 @@
-/* @import 'tailwindcss'; */
+@import 'tailwindcss';
 
 /* بعد ذلك يمكنك استخدام الطبقات بشكل طبيعي */
 /* @layer utilities {
@@ -219,7 +219,7 @@
 
 /* Dark mode overrides - activates when 'dark' class is on html */
 .dark {
-  --background: #0a0a0a;
+  --background: #231f20;
   --foreground: #f5f5f5;
   --dark-card: #1a1718;
 }

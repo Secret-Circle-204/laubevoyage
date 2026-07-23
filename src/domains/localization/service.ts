@@ -3,27 +3,41 @@ import { TranslationService } from '../translation/service'
 import { PricingPipeline } from '../currency/pipeline'
 import type { LocaleContext } from '@/types/locale'
 import { DEFAULT_LOCALE_CONTEXT } from '@/types/locale'
-import type { PricingResult } from '../currency/pipeline'
+import type { PricingResult, PricingSnapshotData } from '../currency/pipeline'
+import { JsonTranslationDictionary, type ITranslationDictionary } from '../translation/dictionary'
 
 /**
  * Localization Domain Service — Presentation Gateway
  * Central orchestrator for all locale-dependent operations via Dependency Injection:
  * - Determines and manages the traveler's Locale Context
- * - Delegates text translation to the Translation Domain
+ * - Delegates UI Infrastructure texts to ITranslationDictionary (0ms JSON lookup)
+ * - Delegates dynamic CMS content translation to the Translation Domain & Engine
  * - Delegates price conversion to the Pricing Pipeline
  * - Formats dates, numbers, and money on the server
  */
+export type FormattedPricingResult = {
+  snapshot: PricingSnapshotData
+  displayAmount: number
+  displayCurrency: string
+  formatted: string
+}
+
 export class LocalizationService {
   private translationService: TranslationService
   private pricingPipeline: PricingPipeline
+  private uiDictionary: ITranslationDictionary
 
-  constructor(translationService?: TranslationService | any) {
+  constructor(
+    translationService?: TranslationService | any,
+    uiDictionary?: ITranslationDictionary,
+  ) {
     if (translationService && typeof translationService.translate === 'function') {
       this.translationService = translationService
     } else {
       this.translationService = new TranslationService(translationService)
     }
     this.pricingPipeline = new PricingPipeline()
+    this.uiDictionary = uiDictionary || new JsonTranslationDictionary()
   }
 
   /**
@@ -41,7 +55,14 @@ export class LocalizationService {
   // =========================================================================
 
   /**
-   * Translate a single text field.
+   * Translate a static UI Infrastructure text key using ITranslationDictionary (0ms synchronous lookup).
+   */
+  translateUiKey(key: string, ctx: LocaleContext): string {
+    return this.uiDictionary.get(ctx.language, key)
+  }
+
+  /**
+   * Translate a single text field (Dynamic CMS Content).
    */
   async translateText(
     text: string,
@@ -71,18 +92,31 @@ export class LocalizationService {
 
   /**
    * Convert a base EGP price to the traveler's display currency
-   * and return a fully formatted PricingResult.
+   * and return a fully formatted FormattedPricingResult.
    */
   async formatPrice(
     basePriceEGP: number,
     ctx: LocaleContext,
-  ): Promise<PricingResult> {
+  ): Promise<FormattedPricingResult> {
     const targetCurrency = ctx.currency
 
-    return this.pricingPipeline.execute({
+    const { snapshot } = await this.pricingPipeline.execute({
       basePriceEGP,
       targetCurrency,
     })
+
+    const formatted = new Intl.NumberFormat(ctx.language || 'en', {
+      style: 'currency',
+      currency: snapshot.displayCurrency,
+      maximumFractionDigits: 2,
+    }).format(snapshot.displayAmount)
+
+    return {
+      snapshot,
+      displayAmount: snapshot.displayAmount,
+      displayCurrency: snapshot.displayCurrency,
+      formatted,
+    }
   }
 
   // =========================================================================

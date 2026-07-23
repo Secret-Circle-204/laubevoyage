@@ -1,4 +1,5 @@
 import { DestinationRepository } from './repository'
+import type { DestinationQueryOptions } from './types'
 
 /**
  * Destination Domain Service
@@ -12,40 +13,41 @@ export class DestinationService {
     this.repository = repository
   }
 
-  async getCountries() {
-    return this.repository.findCountries()
+  async getCountries(options?: DestinationQueryOptions) {
+    return this.repository.findCountries(options)
   }
 
-  async getCountry(slug: string) {
-    return this.repository.findCountryBySlug(slug)
+  async getCountry(slug: string, options?: DestinationQueryOptions) {
+    return this.repository.findCountryBySlug(slug, options)
   }
 
-  async getCitiesByCountry(countryId: number) {
-    return this.repository.findCitiesByCountry(countryId)
+  async getCitiesByCountry(countryId: number, options?: DestinationQueryOptions) {
+    return this.repository.findCitiesByCountry(countryId, options)
   }
 
-  async getCity(slug: string) {
-    return this.repository.findCityBySlug(slug)
+  async getCity(slug: string, options?: DestinationQueryOptions) {
+    return this.repository.findCityBySlug(slug, options)
   }
 
-  async getExperiencesByCity(cityId: number, options: { page?: number; limit?: number; type?: string } = {}) {
+  async getExperiencesByCity(cityId: number, options?: DestinationQueryOptions) {
     return this.repository.findExperiencesByCity(cityId, options)
   }
 
-  async searchExperiences(cityId?: number | string, options: { page?: number; limit?: number; type?: string } = {}) {
+  async searchExperiences(cityId?: number | string, options?: DestinationQueryOptions) {
     if (cityId) {
       return this.repository.findExperiencesByCity(Number(cityId), options)
     }
-    return this.repository.findFeaturedExperiences(options.limit || 10)
+    return this.repository.findFeaturedExperiences(options?.limit || 10, options)
   }
 
-  async getFeaturedExperiences(options: { limit?: number } = {}) {
-    return this.repository.findFeaturedExperiences(options.limit)
+  async getFeaturedExperiences(options?: DestinationQueryOptions) {
+    return this.repository.findFeaturedExperiences(options?.limit || 6, options)
   }
 
-  async getHomePageOverview(currency: string = 'EGP') {
-    const expDocs = await this.getFeaturedExperiences({ limit: 6 })
-    const countriesRes = await this.getCountries()
+  async getHomePageOverview(options?: DestinationQueryOptions | string) {
+    const opts: DestinationQueryOptions = typeof options === 'string' ? { currency: options } : options || {}
+    const expDocs = await this.getFeaturedExperiences(opts)
+    const countriesRes = await this.getCountries(opts)
 
     return {
       featuredExperiences: expDocs,

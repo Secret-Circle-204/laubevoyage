@@ -1,0 +1,22 @@
+{
+  "hero": {
+    "title": "Esperienze di Lusso L'Aube Voyage",
+    "subtitle": "Creiamo Viaggi dal 1996: Il Tuo Passaporto per Scoperte Uniche",
+    "cta": {
+      "primary": "Esplora Esperienze →",
+      "secondary": "Scopri Destinazioni"
+    }
+  },
+  "layout": {
+    "nav": {
+      "home": "Home",
+      "destinations": "Destinazioni",
+      "experiences": "Esperienze",
+      "about": "Chi Siamo"
+    },
+    "footer": {
+      "rights": "Tutti i Diritti Riservati © 2026 L'Aube Voyage",
+      "tagline": "Viaggi Straordinari dal 1996."
+    }
+  }
+}

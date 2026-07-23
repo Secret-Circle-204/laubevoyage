@@ -5,6 +5,7 @@ import type { BookingRepository } from '../booking/repository'
 import type { CustomerRepository } from '../customer/repository'
 import type { ExperienceRepository } from '../experience/repository'
 import { PaymentRepository } from './repository'
+import { PaymentProviderFactory } from './factory/payment-provider-factory'
 
 /**
  * Payment Domain Service (Enterprise Thin Facade)
@@ -36,19 +37,32 @@ export class PaymentService {
   }
 
   async processPaymentCheckout(params: { bookingId: number; gatewayId: string; appUrl?: string }) {
-    if (params.gatewayId === 'bnpl') {
-      const paymentAggregate = await this.processBookNowPayLater(params.bookingId)
-      return { success: true, transactionId: paymentAggregate.transactionId, status: paymentAggregate.status }
+    const provider = PaymentProviderFactory.getProvider(params.gatewayId)
+    const baseUrl = params.appUrl || process.env.NEXT_PUBLIC_APP_URL || ''
+
+    const booking = await this.bookingRepository.findById(params.bookingId)
+    const userDoc = await this.customerRepository.findById(booking.customerId)
+    const experienceDoc = await this.experienceRepository.findById(booking.experienceId)
+
+    const pricingSnapshot = booking.pricingSnapshot
+    const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+
+    const sessionParams = {
+      transactionId,
+      bookingId: booking.id,
+      customerId: userDoc ? (userDoc.customerId || Number((userDoc as Record<string, any>).id)) : booking.customerId,
+      bookingNumber: booking.bookingNumber,
+      basePriceEGP: pricingSnapshot.basePriceEGP,
+      displayCurrency: pricingSnapshot.displayCurrency || 'EGP',
+      displayAmount: pricingSnapshot.displayAmount || 0,
+      successUrl: `${baseUrl}/dashboard/bookings`,
+      cancelUrl: `${baseUrl}/checkout/${params.bookingId}`,
+      customerEmail: userDoc?.email || undefined,
+      experienceTitle: experienceDoc?.title || `Booking #${booking.bookingNumber}`,
     }
 
-    const baseUrl = params.appUrl || process.env.NEXT_PUBLIC_APP_URL || ''
-    const session = await this.createStripeSession(
-      params.bookingId,
-      `${baseUrl}/dashboard/bookings`,
-      `${baseUrl}/checkout/${params.bookingId}`,
-    )
-
-    return { success: true, transactionId: session.transactionId, checkoutUrl: session.url }
+    const session = await provider.createCheckoutSession(sessionParams)
+    return { success: true, transactionId, checkoutUrl: session.url }
   }
 
   /**

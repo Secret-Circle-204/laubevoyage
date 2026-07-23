@@ -82,6 +82,7 @@ export interface BookingDocumentReferences {
 
 export interface PricingSnapshotData {
   version: number
+  pricingVersion: number
   basePriceEGP: number
   promotionDiscountEGP: number
   couponDiscountEGP: number

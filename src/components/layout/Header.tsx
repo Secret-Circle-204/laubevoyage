@@ -1,9 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useLocale, useCurrency, useSession } from '@/providers'
+import { useTheme } from '@/providers/theme-provider'
 import { Button, Badge } from '@/components/ui'
+import { ThemeToggle } from './ThemeToggle'
 import type { LayoutDTO } from '@/application/layout/dto'
 
 export interface HeaderProps {
@@ -14,71 +17,112 @@ export function Header({ data }: HeaderProps) {
   const { locale, setLocale } = useLocale()
   const { currency, setCurrency } = useCurrency()
   const { session, logout } = useSession()
+  const { theme } = useTheme()
 
+  const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 40)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const navLinks = data?.navigationMenu || []
   const availableCurrencies = data?.supportedCurrencies?.map((c) => c.code) || []
   const availableLocales = data?.supportedLocales || []
 
+  const isDark = theme === 'dark'
+
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/80 dark:bg-slate-950/80 border-b border-slate-200/50 dark:border-slate-800/50 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        isScrolled
+          ? isDark
+            ? 'bg-[#231F20]/95 backdrop-blur-md shadow-xl py-3 border-b border-white/10'
+            : 'bg-white/95 backdrop-blur-md shadow-md py-3 border-b border-slate-200/80'
+          : 'bg-transparent py-5'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#2e3192] to-[#00aeef] flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-            L
-          </div>
-          <div className="flex flex-col">
-            <span className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight leading-none">
-              LAUBE VOYAGE
-            </span>
-            <span className="text-[10px] font-bold text-[#00aeef] tracking-widest uppercase mt-0.5">
-              Luxury Redefined
-            </span>
+        <Link href="/" className="group flex items-center">
+          <div className="relative h-9 w-36 sm:w-44 transition-transform duration-500 group-hover:scale-105">
+            <Image
+              src={
+                isDark
+                  ? '/logos/LAube-Voyage-logo-horizontal-colors-and-white.svg'
+                  : '/logos/LAube-Voyage-logo-horizontal -colors.svg'
+              }
+              alt="L'Aube Voyage"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden lg:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-semibold text-slate-600 hover:text-[#2e3192] dark:text-slate-300 dark:hover:text-[#00aeef] transition-colors"
+              className={`text-sm font-semibold tracking-wide transition-colors ${
+                isDark
+                  ? 'text-slate-200 hover:text-[#00aeef]'
+                  : 'text-slate-700 hover:text-[#2e3192]'
+              }`}
             >
               {link.label}
             </Link>
           ))}
         </nav>
 
-        {/* Right Controls (Currency, Locale, Auth) */}
-        <div className="hidden md:flex items-center gap-4">
+        {/* Right Controls */}
+        <div className="hidden lg:flex items-center gap-4">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Currency Switcher */}
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value as any)}
-            className="bg-slate-100 dark:bg-slate-900 text-xs font-bold rounded-lg px-2.5 py-1.5 border-0 text-slate-700 dark:text-slate-300 cursor-pointer focus:ring-2 focus:ring-[#00aeef]"
-          >
-            {availableCurrencies.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+          {availableCurrencies.length > 0 && (
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as any)}
+              className={`text-xs font-bold rounded-lg px-2.5 py-1.5 border-0 cursor-pointer focus:ring-2 focus:ring-[#00aeef] ${
+                isDark
+                  ? 'bg-slate-800 text-slate-200'
+                  : 'bg-slate-100 text-slate-800'
+              }`}
+            >
+              {availableCurrencies.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          )}
 
           {/* Locale Switcher */}
-          <select
-            value={locale}
-            onChange={(e) => setLocale(e.target.value as any)}
-            className="bg-slate-100 dark:bg-slate-900 text-xs font-bold rounded-lg px-2.5 py-1.5 border-0 text-slate-700 dark:text-slate-300 cursor-pointer focus:ring-2 focus:ring-[#00aeef]"
-          >
-            {availableLocales.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.name || l.code.toUpperCase()}
-              </option>
-            ))}
-          </select>
+          {availableLocales.length > 0 && (
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as any)}
+              className={`text-xs font-bold rounded-lg px-2.5 py-1.5 border-0 cursor-pointer focus:ring-2 focus:ring-[#00aeef] ${
+                isDark
+                  ? 'bg-slate-800 text-slate-200'
+                  : 'bg-slate-100 text-slate-800'
+              }`}
+            >
+              {availableLocales.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.name || l.code.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          )}
 
           {/* User Auth Portal Link */}
           {session.isAuthenticated ? (
@@ -109,31 +153,42 @@ export function Header({ data }: HeaderProps) {
         </div>
 
         {/* Mobile Hamburger Button */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-          aria-label="Toggle Navigation Menu"
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            {isMobileMenuOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            )}
-          </svg>
-        </button>
+        <div className="flex lg:hidden items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className={`p-2 rounded-lg ${
+              isDark ? 'text-white hover:bg-slate-800' : 'text-slate-900 hover:bg-slate-100'
+            }`}
+            aria-label="Toggle Navigation Menu"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {isMobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 pt-4 pb-6 space-y-4">
+        <div
+          className={`lg:hidden border-t px-4 pt-4 pb-6 space-y-4 shadow-2xl ${
+            isDark
+              ? 'bg-[#231F20] border-slate-800 text-white'
+              : 'bg-white border-slate-200 text-slate-900'
+          }`}
+        >
           <nav className="flex flex-col space-y-3">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-base font-semibold text-slate-700 dark:text-slate-200 hover:text-[#2e3192]"
+                className="text-base font-semibold hover:text-[#00aeef]"
               >
                 {link.label}
               </Link>
@@ -142,28 +197,32 @@ export function Header({ data }: HeaderProps) {
 
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as any)}
-                className="bg-slate-100 dark:bg-slate-900 text-xs font-bold rounded-lg px-2 py-1"
-              >
-                {availableCurrencies.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={locale}
-                onChange={(e) => setLocale(e.target.value as any)}
-                className="bg-slate-100 dark:bg-slate-900 text-xs font-bold rounded-lg px-2 py-1"
-              >
-                {availableLocales.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.name || l.code.toUpperCase()}
-                  </option>
-                ))}
-              </select>
+              {availableCurrencies.length > 0 && (
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as any)}
+                  className="bg-slate-800 text-white text-xs font-bold rounded-lg px-2 py-1"
+                >
+                  {availableCurrencies.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {availableLocales.length > 0 && (
+                <select
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as any)}
+                  className="bg-slate-800 text-white text-xs font-bold rounded-lg px-2 py-1"
+                >
+                  {availableLocales.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.name || l.code.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {session.isAuthenticated ? (

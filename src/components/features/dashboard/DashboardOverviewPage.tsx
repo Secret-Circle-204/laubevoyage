@@ -2,78 +2,111 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Card, Badge, CurrencyDisplay, Button } from '@/components/ui'
+import { useTheme } from '@/providers/theme-provider'
+import { Card, Badge, CurrencyDisplay, EmptyState } from '@/components/ui'
 import type { CustomerPortalOverviewDTO } from '@/application/dashboard/dto'
 
 export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDTO }) {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
   return (
     <div className="flex flex-col gap-8 flex-grow">
       {/* Overview Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <Card variant="flat" padding="md" className="flex flex-col gap-2">
-          <span className="text-xs font-bold text-slate-400 uppercase">Active Bookings</span>
-          <span className="text-3xl font-extrabold text-[#2e3192] dark:text-[#00aeef]">
+        <div className={`p-6 rounded-2xl border flex flex-col gap-2 ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Bookings</span>
+          <span className="text-4xl font-serif font-light text-[#00aeef]">
             {data.activeBookingsCount}
           </span>
-        </Card>
+        </div>
 
-        <Card variant="flat" padding="md" className="flex flex-col gap-2">
-          <span className="text-xs font-bold text-slate-400 uppercase">Loyalty Points</span>
-          <span className="text-3xl font-extrabold text-[#f58220]">
+        <div className={`p-6 rounded-2xl border flex flex-col gap-2 ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loyalty Points</span>
+          <span className="text-4xl font-serif font-light text-[#f58220]">
             {data.points.toLocaleString()} pts
           </span>
-        </Card>
+        </div>
 
-        <Card variant="flat" padding="md" className="flex flex-col gap-2">
-          <span className="text-xs font-bold text-slate-400 uppercase">Member Tier</span>
-          <span className="text-2xl font-extrabold capitalize text-emerald-600">
+        <div className={`p-6 rounded-2xl border flex flex-col gap-2 ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Member Tier</span>
+          <span className="text-3xl font-serif font-light capitalize text-emerald-500">
             {data.tier} Member
           </span>
-        </Card>
+        </div>
       </div>
 
       {/* Recent Bookings Section */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Recent Reservations</h2>
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div>
+            <h2 className={`text-2xl font-serif font-light ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
+              Recent Reservations
+            </h2>
+            <div className="h-1 w-12 bg-[#f58220] mt-1" />
+          </div>
+
           <Link href="/dashboard/bookings">
-            <Button variant="ghost" size="sm">
+            <button
+              className={`px-4 py-2 text-xs tracking-widest uppercase font-medium border rounded-lg transition-colors ${
+                isDark
+                  ? 'border-white/10 text-slate-300 hover:border-[#00aeef]'
+                  : 'border-slate-300 text-slate-700 hover:border-[#2e3192]'
+              }`}
+            >
               View All →
-            </Button>
+            </button>
           </Link>
         </div>
 
-        <div className="flex flex-col gap-4">
-          {data.recentBookings.map((booking) => (
-            <Card key={booking.id} variant="flat" padding="md" className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-16 h-16 rounded-xl bg-cover bg-center flex-shrink-0"
-                  style={{ backgroundImage: `url(${booking.experienceImage})` }}
-                />
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-xs font-bold text-[#00aeef]">{booking.reference}</span>
-                    <Badge variant={booking.status === 'confirmed' ? 'success' : 'warning'} size="sm">
-                      {booking.status.toUpperCase()}
-                    </Badge>
+        {data.recentBookings.length === 0 ? (
+          <EmptyState
+            title="No Bookings Found"
+            description="You don't have any recent trip reservations. Start planning your luxury journey with us today."
+            icon="booking"
+            actionLabel="Explore Experiences"
+            actionHref="/experiences"
+          />
+        ) : (
+          <div className="flex flex-col gap-4">
+            {data.recentBookings.map((booking) => (
+              <div
+                key={booking.id}
+                className={`p-6 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-300 hover:border-[#00aeef]/40 ${
+                  isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-16 h-16 rounded-xl bg-cover bg-center flex-shrink-0 shadow-md"
+                    style={{ backgroundImage: `url(${booking.experienceImage})` }}
+                  />
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-xs font-bold text-[#00aeef]">{booking.reference}</span>
+                      <Badge variant={booking.status === 'confirmed' ? 'success' : 'warning'} size="sm">
+                        {booking.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <h3 className={`font-serif font-light text-base ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
+                      {booking.experienceTitle}
+                    </h3>
+                    <span className="text-xs text-slate-400">📅 {booking.departureDate} • {booking.passengersCount} Passengers</span>
                   </div>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">{booking.experienceTitle}</h3>
-                  <span className="text-xs text-slate-500">📅 {booking.departureDate} • {booking.passengersCount} Passengers</span>
+                </div>
+
+                <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-white/10">
+                  <CurrencyDisplay amountEGP={booking.totalCost.amountEGP} size="sm" />
+                  <Link href={`/dashboard/bookings/${booking.id}`}>
+                    <button className="mt-2 px-4 py-1.5 text-xs uppercase tracking-wider font-semibold border border-[#00aeef]/40 text-[#00aeef] hover:bg-[#00aeef] hover:text-white rounded-lg transition-colors">
+                      Voucher PDF
+                    </button>
+                  </Link>
                 </div>
               </div>
-
-              <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-                <CurrencyDisplay amountEGP={booking.totalCost.amountEGP} size="sm" />
-                <Link href={`/dashboard/bookings/${booking.id}`}>
-                  <Button variant="outline" size="sm" className="mt-1">
-                    Voucher PDF
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

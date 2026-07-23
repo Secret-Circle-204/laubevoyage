@@ -83,6 +83,8 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
+    push: false,
+    migrationDir: path.resolve(dirname, 'migrations'),
   }),
   sharp,
   plugins: [],
@@ -92,4 +94,3 @@ export default buildConfig({
     fallback: true,
   },
 })
-

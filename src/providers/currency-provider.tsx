@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 type CurrencyCode = 'EGP' | 'USD' | 'EUR' | 'GBP' | 'SAR' | 'AED'
 
@@ -18,6 +19,7 @@ export function CurrencyProvider({
   children: React.ReactNode
   initialCurrency?: CurrencyCode
 }) {
+  const router = useRouter()
   const [currency, setCurrencyState] = useState<CurrencyCode>(initialCurrency)
 
   useEffect(() => {
@@ -28,6 +30,8 @@ export function CurrencyProvider({
   const setCurrency = (newCurrency: CurrencyCode) => {
     setCurrencyState(newCurrency)
     localStorage.setItem('laube-currency', newCurrency)
+    document.cookie = `laube-currency=${newCurrency}; path=/; max-age=31536000; SameSite=Lax`
+    router.refresh()
   }
 
   return (

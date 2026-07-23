@@ -1,31 +1,33 @@
 import { getDomainServices } from '@/domains/factory'
 import type { LayoutDTO, NavigationItemDTO, CurrencyOptionDTO, LocaleOptionDTO } from './dto'
-import { catalogRegistry } from '@/domains/currency/catalog-registry'
 
 export class LayoutLoader {
   static async load(params?: { locale?: string; currency?: string; customerId?: number }): Promise<LayoutDTO> {
     const locale = params?.locale || 'en'
     const currency = params?.currency || 'EGP'
 
-    const { content, customer, translation } = await getDomainServices()
+    const { content, customer, translation, currency: currencyService } = await getDomainServices()
     const navigationMenu: NavigationItemDTO[] = await content.getNavigationMenu(locale)
+    const footerNavigation = await content.getFooterNavigation(locale)
 
     let supportedCurrencies: CurrencyOptionDTO[] = []
     try {
-      const activeCurrencies = await catalogRegistry.getAll()
+      const activeCurrencies = await currencyService.getActiveCurrencies()
       supportedCurrencies = activeCurrencies.map((c) => ({
         code: c.isoCode,
         name: c.name,
         symbol: c.symbol,
       }))
-    } catch {
+    } catch (err) {
+      console.error('[LayoutLoader] Failed fetching supported currencies from database:', err)
       supportedCurrencies = []
     }
 
     let supportedLocales: LocaleOptionDTO[] = []
     try {
       supportedLocales = await translation.getSupportedLocales()
-    } catch {
+    } catch (err) {
+      console.error('[LayoutLoader] Failed fetching supported locales from database:', err)
       supportedLocales = []
     }
 
@@ -48,6 +50,7 @@ export class LayoutLoader {
 
     return {
       navigationMenu,
+      footerNavigation,
       activeLocale: locale,
       activeCurrency: currency,
       supportedCurrencies,

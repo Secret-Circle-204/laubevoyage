@@ -1,0 +1,22 @@
+{
+  "hero": {
+    "title": "L'Aube Voyage Luxury Experiences",
+    "subtitle": "Crafting Journeys Since 1996: Your Passport to Global and Local Discoveries",
+    "cta": {
+      "primary": "Explore Experiences →",
+      "secondary": "Discover Destinations"
+    }
+  },
+  "layout": {
+    "nav": {
+      "home": "Home",
+      "destinations": "Destinations",
+      "experiences": "Experiences",
+      "about": "About Us"
+    },
+    "footer": {
+      "rights": "All Rights Reserved © 2026 L'Aube Voyage",
+      "tagline": "Crafting Extraordinary Travels Since 1996."
+    }
+  }
+}
