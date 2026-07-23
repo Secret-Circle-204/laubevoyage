@@ -28,7 +28,7 @@ export class NotificationRepository {
 
     try {
       const res = await this.payload.find({
-        collection: 'notification-logs' as any,
+        collection: 'notification-logs',
         where: {
           and: [
             { referenceType: { equals: referenceType } },
@@ -42,7 +42,7 @@ export class NotificationRepository {
 
       if (!res.docs.length) return null
 
-      const doc = res.docs[0] as any
+      const doc: Record<string, any> = res.docs[0]
       return {
         jobId: String(doc.id),
         recipient: doc.recipient || '',
@@ -70,7 +70,7 @@ export class NotificationRepository {
 
     try {
       const doc = await this.payload.create({
-        collection: 'notification-logs' as any,
+        collection: 'notification-logs',
         data: {
           recipient: job.recipient,
           channel: job.channel,
@@ -81,7 +81,7 @@ export class NotificationRepository {
           referenceId: job.referenceId,
           status: job.status,
           attempts: job.attempts,
-        },
+        } as any,
       })
 
       return {

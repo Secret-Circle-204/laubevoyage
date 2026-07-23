@@ -19,7 +19,7 @@ export class DashboardProjectionRepository {
 
     try {
       const res = await this.payload.find({
-        collection: 'customers' as any,
+        collection: 'customers',
         where: { id: { equals: customerId } },
         limit: 1,
         req,
@@ -27,7 +27,7 @@ export class DashboardProjectionRepository {
 
       if (!res.docs.length) return null
 
-      const customer = res.docs[0] as any
+      const customer: Record<string, any> = res.docs[0]
       const projection: CustomerPortalProjection = {
         projectionId: `proj_${customerId}`,
         customerId: Number(customer.id),

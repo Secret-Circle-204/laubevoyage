@@ -1,4 +1,3 @@
-import type { Payload } from 'payload'
 import { BookingStatus } from '@/types'
 import type { BookingAggregate, CreateBookingParams } from './types'
 import { BookingRepository } from './repository'
@@ -25,16 +24,14 @@ export class BookingCreator {
 
   constructor(
     repository: BookingRepository,
-    customerRepository?: CustomerRepository,
-    experienceRepository?: ExperienceRepository,
-    loyaltyService?: LoyaltyService,
-    payload?: Payload,
+    customerRepository: CustomerRepository,
+    experienceRepository: ExperienceRepository,
+    loyaltyService: LoyaltyService,
   ) {
     this.repository = repository
-    const activePayload = payload || (repository as any).payload
-    this.customerRepository = customerRepository || new CustomerRepository(activePayload)
-    this.experienceRepository = experienceRepository || new ExperienceRepository(activePayload)
-    this.loyaltyService = loyaltyService || new LoyaltyService(activePayload)
+    this.customerRepository = customerRepository
+    this.experienceRepository = experienceRepository
+    this.loyaltyService = loyaltyService
     this.pricingPipeline = new PricingPipeline()
   }
 
@@ -49,7 +46,7 @@ export class BookingCreator {
       throw new Error(`[BookingPolicy] Creation forbidden: ${policyResult.reason}`)
     }
 
-    // 3. Handle points redemption and hold
+    // 3. Handle points redemption and hold via LoyaltyService calculation
     let pointsRedeemed = 0
     let pointsValueEGP = 0
     if (params.pointsToRedeem && params.pointsToRedeem > 0) {
@@ -59,7 +56,7 @@ export class BookingCreator {
         throw new Error(`[BookingPolicy] Redemption forbidden: ${pointsPolicy.reason}`)
       }
       pointsRedeemed = params.pointsToRedeem
-      pointsValueEGP = pointsRedeemed * 0.5 // 1 point = 0.5 EGP
+      pointsValueEGP = this.loyaltyService.calculatePointValueInEGP(pointsRedeemed)
     }
 
     // 4. Generate Pricing Snapshot

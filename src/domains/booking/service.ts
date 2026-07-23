@@ -1,4 +1,3 @@
-import type { BookingStatus } from '@/types'
 import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
 import { BookingWorkflowEngine } from './workflow'
 import { BookingRepository } from './repository'
@@ -34,10 +33,10 @@ export class BookingService {
   }
 
   /**
-   * Move booking to pending payment.
+   * Move booking to pending payment via Workflow Engine.
    */
   async moveToPendingPayment(bookingId: number): Promise<void> {
-    await this.repository.updateStatus(bookingId, 'pending_payment' as BookingStatus)
+    await this.workflowEngine.executePendingPaymentWorkflow(bookingId)
   }
 
   /**

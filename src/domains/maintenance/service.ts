@@ -2,6 +2,7 @@ import type { Payload } from 'payload'
 import { MaintenanceWorkflowEngine } from './workflow'
 import { MaintenanceAdminFacade } from './admin-facade'
 import { SystemHealthService } from './health-service'
+import { MaintenanceRepository } from './repository'
 import type { MaintenanceJobName, SystemHealthMetrics } from './types'
 
 /**
@@ -12,12 +13,8 @@ export class MaintenanceService {
   private workflowEngine: MaintenanceWorkflowEngine
   private adminFacade: MaintenanceAdminFacade
 
-  constructor(workflowEngine?: MaintenanceWorkflowEngine | Payload) {
-    if (workflowEngine && 'executeJobWorkflow' in workflowEngine) {
-      this.workflowEngine = workflowEngine as MaintenanceWorkflowEngine
-    } else {
-      this.workflowEngine = new MaintenanceWorkflowEngine(workflowEngine as Payload)
-    }
+  constructor(repository?: MaintenanceRepository | Payload) {
+    this.workflowEngine = new MaintenanceWorkflowEngine(repository || ({} as any))
     this.adminFacade = new MaintenanceAdminFacade(this.workflowEngine)
   }
 

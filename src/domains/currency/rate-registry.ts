@@ -58,8 +58,8 @@ class ExchangeRateRegistry {
             lastUpdate: doc.lastUpdate || new Date().toISOString(),
           })
         }
-      } catch {
-        // Fallback for offline/test
+      } catch (err: unknown) {
+        console.error('[ExchangeRateRegistry] Failed loading exchange rates:', err)
       }
     }
 

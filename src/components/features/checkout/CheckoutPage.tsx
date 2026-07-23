@@ -1,16 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
-import Link from 'next/link'
 import { Card, Badge, Input, Button, CurrencyDisplay } from '@/components/ui'
 import { useToast } from '@/providers'
 import type { CheckoutPageDTO } from '@/application/booking/dto-checkout'
+import { processPaymentAction } from '@/application/actions/booking-actions'
 
 export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
   const { addToast } = useToast()
   const [selectedGateway, setSelectedGateway] = useState<string>('stripe')
-  const [couponCode, setCouponCode] = useState<string>('')
-  const [appliedDiscount, setAppliedDiscount] = useState<number>(0)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
   // Traveler Details Form State
@@ -19,34 +17,32 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (couponCode.toUpperCase() === 'WELCOME10') {
-      const discount = data.subtotalEGP * 0.1
-      setAppliedDiscount(discount)
-      addToast({ type: 'success', title: 'Coupon Applied', description: '10% promotional discount applied!' })
-    } else {
-      addToast({ type: 'error', title: 'Invalid Coupon', description: 'Coupon code not found or expired.' })
-    }
-  }
-
-  const finalTotalEGP = data.subtotalEGP - appliedDiscount
-
-  const handleConfirmPayment = () => {
+  const handleConfirmPayment = async () => {
     if (!firstName || !email) {
       addToast({ type: 'error', title: 'Missing Information', description: 'Please fill in lead traveler name and email.' })
       return
     }
 
     setIsSubmitting(true)
-    setTimeout(() => {
+    try {
+      const res = await processPaymentAction(Number(data.bookingId), selectedGateway)
+      if (res.success) {
+        addToast({
+          type: 'success',
+          title: 'Payment Processed!',
+          description: `Transaction #${res.transactionId || String(data.bookingId)} initiated successfully.`,
+        })
+        if (res.checkoutUrl) {
+          window.location.href = res.checkoutUrl
+        }
+      } else {
+        addToast({ type: 'error', title: 'Payment Failed', description: res.error || 'Payment gateway failed' })
+      }
+    } catch (err: any) {
+      addToast({ type: 'error', title: 'Error', description: err.message || 'Payment processing failed' })
+    } finally {
       setIsSubmitting(false)
-      addToast({
-        type: 'success',
-        title: 'Booking Confirmed!',
-        description: `Booking #${data.bookingId} processed via ${selectedGateway.toUpperCase()}. Voucher sent to ${email}`,
-      })
-    }, 1500)
+    }
   }
 
   return (
@@ -132,7 +128,7 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
             </Card>
           </div>
 
-          {/* Right Column: Order Summary & Coupon */}
+          {/* Right Column: Order Summary */}
           <div className="lg:col-span-5 flex flex-col gap-6">
             <Card variant="elevated" padding="lg" className="flex flex-col gap-6">
               <h3 className="text-xl font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-4">
@@ -155,19 +151,6 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
                 </div>
               </div>
 
-              {/* Coupon Applicator Form */}
-              <form onSubmit={handleApplyCoupon} className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <Input
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  placeholder="Promo Code (TRY: WELCOME10)"
-                  className="text-xs uppercase"
-                />
-                <Button variant="outline" size="sm" type="submit">
-                  Apply
-                </Button>
-              </form>
-
               {/* Cost Breakdown List */}
               <div className="flex flex-col gap-2.5 text-sm pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between text-slate-600 dark:text-slate-400">
@@ -175,16 +158,9 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
                   <CurrencyDisplay amountEGP={data.subtotalEGP} size="sm" />
                 </div>
 
-                {appliedDiscount > 0 && (
-                  <div className="flex justify-between text-emerald-600 font-semibold">
-                    <span>Promo Discount (10%)</span>
-                    <span>- EGP {appliedDiscount.toLocaleString()}</span>
-                  </div>
-                )}
-
                 <div className="flex justify-between font-extrabold text-lg text-slate-900 dark:text-white pt-3 border-t border-slate-200 dark:border-slate-800">
                   <span>Total Amount</span>
-                  <CurrencyDisplay amountEGP={finalTotalEGP} size="lg" />
+                  <CurrencyDisplay amountEGP={data.subtotalEGP} size="lg" />
                 </div>
               </div>
 

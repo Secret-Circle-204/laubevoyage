@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import type { BookingStatus } from '@/types'
 import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
 import { BookingRepository } from './repository'
 import { BookingCreator } from './creator'
@@ -7,9 +8,9 @@ import { BookingCancellation } from './cancellation'
 import { BookingExpiration } from './expiration'
 import { BookingCompletion } from './completion'
 import { BookingQueries } from './queries'
-import type { CustomerRepository } from '../customer/repository'
-import type { ExperienceRepository } from '../experience/repository'
-import type { LoyaltyService } from '../loyalty/service'
+import { CustomerRepository } from '../customer/repository'
+import { ExperienceRepository } from '../experience/repository'
+import { LoyaltyService } from '../loyalty/service'
 
 /**
  * Booking Workflow Engine
@@ -31,14 +32,20 @@ export class BookingWorkflowEngine {
     loyaltyService?: LoyaltyService,
     payload?: Payload,
   ) {
-    if (repository && 'find' in repository) {
-      const activePayload = repository as Payload
+    let activePayload: Payload | undefined = payload
+
+    if (repository && ('find' in repository || 'findByID' in repository)) {
+      activePayload = repository as Payload
       this.repository = new BookingRepository(activePayload)
-      this.creator = new BookingCreator(this.repository, customerRepository, experienceRepository, loyaltyService, activePayload)
     } else {
       this.repository = repository as BookingRepository
-      this.creator = new BookingCreator(this.repository, customerRepository, experienceRepository, loyaltyService, payload)
     }
+
+    const custRepo = customerRepository || (activePayload ? new CustomerRepository(activePayload) : ({} as CustomerRepository))
+    const expRepo = experienceRepository || (activePayload ? new ExperienceRepository(activePayload) : ({} as ExperienceRepository))
+    const loySvc = loyaltyService || (activePayload ? new LoyaltyService(custRepo as any, activePayload) : ({} as LoyaltyService))
+
+    this.creator = new BookingCreator(this.repository, custRepo, expRepo, loySvc)
     this.confirmation = new BookingConfirmation(this.repository)
     this.cancellation = new BookingCancellation(this.repository)
     this.expiration = new BookingExpiration(this.repository)
@@ -52,6 +59,15 @@ export class BookingWorkflowEngine {
    */
   async executeCheckoutWorkflow(params: CreateBookingParams): Promise<BookingAggregate> {
     return this.creator.createDraft(params)
+  }
+
+  /**
+   * Deterministic Pending Payment Workflow:
+   * Validate transition -> Transition status to pending_payment
+   */
+  async executePendingPaymentWorkflow(bookingId: number): Promise<BookingAggregate> {
+    const booking = await this.repository.findById(bookingId)
+    return this.repository.updateStatus(booking.id, 'pending_payment' as BookingStatus)
   }
 
   /**

@@ -67,7 +67,7 @@ export function Header({ data }: HeaderProps) {
           {/* Currency Switcher */}
           <select
             value={currency}
-            onChange={(e) => setCurrency(e.target.value as any)}
+            onChange={(e) => setCurrency(e.target.value as 'EGP' | 'USD' | 'EUR' | 'GBP')}
             className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#00aeef]"
           >
             {currencies.map((c) => (
@@ -80,7 +80,7 @@ export function Header({ data }: HeaderProps) {
           {/* Locale Switcher */}
           <select
             value={locale}
-            onChange={(e) => setLocale(e.target.value as any)}
+            onChange={(e) => setLocale(e.target.value as Parameters<typeof setLocale>[0])}
             className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-[#00aeef]"
           >
             {locales.map((l) => (

@@ -2,6 +2,7 @@ import type { Payload } from 'payload'
 import { EventBus } from '../event-bus'
 import type { PaymentCompletedEvent } from '../payment-events'
 import { BookingWorkflowEngine } from '../../booking/workflow'
+import { BookingRepository } from '../../booking/repository'
 
 /**
  * Booking Payment Subscriber
@@ -10,7 +11,8 @@ import { BookingWorkflowEngine } from '../../booking/workflow'
  */
 export function registerBookingPaymentSubscriber(payload: Payload): void {
   const eventBus = EventBus.getInstance()
-  const bookingWorkflowEngine = new BookingWorkflowEngine(payload)
+  const bookingRepository = new BookingRepository(payload)
+  const bookingWorkflowEngine = new BookingWorkflowEngine(bookingRepository, undefined, undefined, undefined, payload)
 
   eventBus.subscribe<PaymentCompletedEvent>('PAYMENT_COMPLETED', async (event) => {
     const bookingId = event.bookingId

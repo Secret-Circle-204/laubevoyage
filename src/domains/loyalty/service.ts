@@ -7,7 +7,7 @@ import type { AdminAdjustmentParams, PointLedgerRecord } from './types'
 
 /**
  * Loyalty Domain Service (Enterprise Thin Facade)
- * Single entry point for all loyalty point operations via Dependency Injection.
+ * Single entry point for all loyalty point operations via Constructor Dependency Injection.
  * Delegated to LoyaltyWorkflowEngine for single-responsibility orchestration.
  */
 export class LoyaltyService {
@@ -15,13 +15,18 @@ export class LoyaltyService {
 
   constructor(repository: LoyaltyRepository | Payload, payload?: Payload) {
     let activePayload: Payload | undefined = payload
-    if (!activePayload && repository && 'find' in repository) {
+    let activeRepo: LoyaltyRepository
+
+    if (repository && 'findByCustomerId' in repository) {
+      activeRepo = repository as LoyaltyRepository
+    } else if (repository && ('find' in repository || 'findByID' in repository)) {
       activePayload = repository as Payload
-    } else if (!activePayload && repository && 'payload' in repository) {
-      activePayload = (repository as any).payload
+      activeRepo = new LoyaltyRepository(activePayload)
+    } else {
+      activeRepo = repository as LoyaltyRepository
     }
 
-    this.workflowEngine = new LoyaltyWorkflowEngine(repository, activePayload)
+    this.workflowEngine = new LoyaltyWorkflowEngine(activeRepo, activePayload)
 
     if (activePayload) {
       registerLoyaltyNotificationSubscriber(activePayload)
@@ -105,5 +110,9 @@ export class LoyaltyService {
 
   calculateEarnedPoints(amountEGP: number): number {
     return Math.floor(amountEGP * 0.1)
+  }
+
+  calculatePointValueInEGP(points: number): number {
+    return points * 0.5
   }
 }

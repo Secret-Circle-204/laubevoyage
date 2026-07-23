@@ -1,28 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDomainServices } from '@/domains/factory'
+import { getPayload } from 'payload'
+import config from '@payload-config'
 
-/**
- * POST /api/bookings
- * Create new booking
- */
+async function getAuthenticatedUser(request: NextRequest) {
+  const payload = await getPayload({ config })
+  const { user } = await payload.auth({ headers: request.headers })
+  if (user) return user
+
+  const authHeader = request.headers.get('authorization')
+  const userIdStr = request.headers.get('x-user-id')
+  if (authHeader && userIdStr) {
+    const userId = Number(userIdStr)
+    if (!isNaN(userId)) return { id: userId }
+  }
+
+  return null
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const services = await getDomainServices()
-
-    const userIdStr = request.headers.get('x-user-id')
-    if (!userIdStr) {
+    const user = await getAuthenticatedUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const userId = Number(userIdStr)
-    if (isNaN(userId)) {
-      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
-    }
-
+    const services = await getDomainServices()
     const body = await request.json()
 
     const bookingId = await services.booking.create({
-      userId,
+      userId: Number(user.id),
       experienceId: Number(body.experienceId),
       travelers: body.travelers,
       startDate: body.startDate,
@@ -32,7 +39,6 @@ export async function POST(request: NextRequest) {
     })
 
     const booking = await services.booking.getById(bookingId)
-
     return NextResponse.json(booking, { status: 201 })
   } catch (error) {
     console.error('Error creating booking:', error)
@@ -43,30 +49,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/bookings
- * Get user bookings
- */
 export async function GET(request: NextRequest) {
   try {
-    const services = await getDomainServices()
-
-    const userIdStr = request.headers.get('x-user-id')
-    if (!userIdStr) {
+    const user = await getAuthenticatedUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const userId = Number(userIdStr)
-    if (isNaN(userId)) {
-      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
-    }
-
+    const services = await getDomainServices()
     const searchParams = request.nextUrl.searchParams
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    const bookings = await services.booking.getUserBookings(userId, page, limit)
-
+    const bookings = await services.booking.getUserBookings(Number(user.id), page, limit)
     return NextResponse.json(bookings)
   } catch (error) {
     console.error('Error fetching bookings:', error)

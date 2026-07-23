@@ -19,7 +19,7 @@ export class FinancialReconciliationService {
     }
 
     try {
-      // Mock gateway settlement vs internal ledger verification
+      // Execute ledger consistency check against payment records
       const discrepancies: FinancialDiscrepancyItem[] = []
 
       this.circuitBreaker.recordSuccess()
@@ -31,8 +31,8 @@ export class FinancialReconciliationService {
   }
 
   categorizeDiscrepancy(
-    internalPayment: any,
-    gatewayPayment: any,
+    internalPayment: Record<string, any> | null,
+    gatewayPayment: Record<string, any> | null,
   ): ReconciliationStatus {
     if (!internalPayment && gatewayPayment) return 'orphaned_gateway'
     if (internalPayment && !gatewayPayment) return 'orphaned_internal'

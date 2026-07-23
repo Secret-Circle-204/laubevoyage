@@ -11,7 +11,7 @@ import type { MaintenanceJobName, MaintenanceLogEntity } from './types'
 
 /**
  * Maintenance Workflow Engine
- * Central orchestrator handling distributed lease locking, batched execution, and structured audit logging.
+ * Central orchestrator handling distributed lease locking, batched execution, and structured audit logging via Dependency Injection.
  */
 export class MaintenanceWorkflowEngine {
   public engine: MaintenanceEngine
@@ -20,12 +20,16 @@ export class MaintenanceWorkflowEngine {
   public retentionService: DataRetentionService
   public repository: MaintenanceRepository
 
-  constructor(payload: Payload) {
-    this.engine = new MaintenanceEngine(payload)
+  constructor(repository: MaintenanceRepository | Payload) {
+    if (repository && 'saveLog' in repository) {
+      this.repository = repository as MaintenanceRepository
+    } else {
+      this.repository = new MaintenanceRepository(repository as Payload)
+    }
+    this.engine = new MaintenanceEngine(this.repository)
     this.reconciliationService = new FinancialReconciliationService()
     this.dlqRecoveryService = new DLQRecoveryService()
     this.retentionService = new DataRetentionService()
-    this.repository = new MaintenanceRepository(payload)
   }
 
   async executeJobWorkflow(

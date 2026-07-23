@@ -1,4 +1,4 @@
-import type { Payload } from 'payload'
+import { MaintenanceRepository } from './repository'
 
 /**
  * Batched Non-Locking Maintenance Engine
@@ -6,10 +6,10 @@ import type { Payload } from 'payload'
  * Executes background tasks via chunked batched processing (`LIMIT 20` per query iteration).
  */
 export class MaintenanceEngine {
-  private payload: Payload
+  private repository: MaintenanceRepository
 
-  constructor(payload: Payload) {
-    this.payload = payload
+  constructor(repository: MaintenanceRepository) {
+    this.repository = repository
   }
 
   /**
@@ -20,24 +20,21 @@ export class MaintenanceEngine {
     let hasMore = true
 
     while (hasMore) {
-      // Fetch chunk of 20 confirmed bookings
-      const docs = [
-        { id: 101, status: 'confirmed', endDate: '2026-01-01' },
-      ]
+      const docs = await this.repository.findConfirmedExpiredBookings(batchSize)
 
       if (docs.length === 0) {
-        hasMore = false;
-        break;
+        hasMore = false
+        break
       }
 
       for (const doc of docs) {
-        // Process transition to completed
-        doc.status = 'completed'
+        await this.repository.updateBookingStatus(doc.id, 'completed')
         totalProcessed++
       }
 
-      // Chunk processed, break loop to prevent locking
-      hasMore = false
+      if (docs.length < batchSize) {
+        hasMore = false
+      }
     }
 
     return { processedCount: totalProcessed }
@@ -51,21 +48,21 @@ export class MaintenanceEngine {
     let hasMore = true
 
     while (hasMore) {
-      const docs = [
-        { id: 202, status: 'draft', holdUntil: '2026-01-01' },
-      ]
+      const docs = await this.repository.findStaleDraftBookings(batchSize)
 
       if (docs.length === 0) {
-        hasMore = false;
-        break;
+        hasMore = false
+        break
       }
 
       for (const doc of docs) {
-        doc.status = 'expired'
+        await this.repository.updateBookingStatus(doc.id, 'expired')
         totalProcessed++
       }
 
-      hasMore = false
+      if (docs.length < batchSize) {
+        hasMore = false
+      }
     }
 
     return { processedCount: totalProcessed }

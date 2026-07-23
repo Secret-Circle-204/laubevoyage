@@ -1,19 +1,9 @@
-import type { Payload } from 'payload'
-import { TranslationService } from '../translation/service'
-
 /**
- * Content Bilingual Translation Bridge
- * Integrates CMS content with TranslationService using fixed translation keys.
+ * Content Data Helper
+ * Pure content domain helper. Translation is performed exclusively at the Presentation Gateway (LocalizationService).
  */
-export class ContentTranslationBridge {
-  private translationService: TranslationService
-
-  constructor(payload: Payload) {
-    this.translationService = new TranslationService(payload)
-  }
-
-  async getBilingualContent(translationKey: string, locale: string): Promise<string> {
-    const record = await this.translationService.getTranslation(translationKey, locale)
-    return record.translatedText
+export class ContentDataHelper {
+  static formatContentKey(section: string, slug: string): string {
+    return `content.${section}.${slug}`
   }
 }

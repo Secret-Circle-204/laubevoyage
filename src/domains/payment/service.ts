@@ -29,8 +29,6 @@ export class PaymentService {
     let activePayload: Payload | undefined = payload
     if (!activePayload && paymentRepository && 'find' in paymentRepository) {
       activePayload = paymentRepository as Payload
-    } else if (!activePayload && paymentRepository && 'payload' in paymentRepository) {
-      activePayload = (paymentRepository as any).payload
     }
 
     this.workflowEngine = new PaymentWorkflowEngine(activePayload as Payload)
@@ -67,14 +65,14 @@ export class PaymentService {
     const params: CreateSessionParams = {
       transactionId,
       bookingId: booking.id,
-      customerId: userDoc ? (userDoc.customerId || (userDoc as any).id) : booking.customerId,
+      customerId: userDoc ? (userDoc.customerId || Number((userDoc as any).id)) : booking.customerId,
       bookingNumber: booking.bookingNumber,
       basePriceEGP: pricingSnapshot.basePriceEGP,
       displayCurrency,
       displayAmount,
       successUrl,
       cancelUrl,
-      customerEmail: userDoc.email || undefined,
+      customerEmail: userDoc?.email || undefined,
       experienceTitle: experienceDoc?.title || `Booking #${booking.bookingNumber}`,
     }
 

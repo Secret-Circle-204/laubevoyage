@@ -38,6 +38,9 @@ import { LocalizationService } from './localization/service'
 
 import { SearchService } from './search/service'
 
+import { MaintenanceRepository } from './maintenance/repository'
+import { MaintenanceService } from './maintenance/service'
+
 /**
  * Domain Service Factory (Composition Root)
  * Pure Inversion of Control & Constructor Dependency Injection Container.
@@ -59,6 +62,7 @@ export async function getDomainServices() {
   const loyaltyRepository = new LoyaltyRepository(payload)
   const notificationRepository = new NotificationRepository(payload)
   const translationRepository = new TranslationRepository(payload)
+  const maintenanceRepository = new MaintenanceRepository(payload)
 
   // 2. Instantiate Base Services
   const translationService = new TranslationService(translationRepository)
@@ -73,6 +77,7 @@ export async function getDomainServices() {
   const dashboardService = new DashboardService(dashboardRepository)
   const currencyService = new CurrencyService(currencyRepository)
   const destinationService = new DestinationService(destinationRepository)
+  const maintenanceService = new MaintenanceService(maintenanceRepository)
 
   // 3. Return Pure Injected Domain Services Container
   return {
@@ -89,5 +94,6 @@ export async function getDomainServices() {
     notification: notificationService,
     translation: translationService,
     localization: localizationService,
+    maintenance: maintenanceService,
   }
 }
