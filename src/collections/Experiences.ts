@@ -14,7 +14,6 @@ export const Experiences: CollectionConfig = {
       name: 'title',
       type: 'text',
       required: true,
-      localized: true,
     },
     {
       name: 'slug',
@@ -49,7 +48,6 @@ export const Experiences: CollectionConfig = {
     {
       name: 'description',
       type: 'richText',
-      localized: true,
     },
     {
       name: 'hero',
@@ -112,7 +110,6 @@ export const Experiences: CollectionConfig = {
     {
       name: 'included',
       type: 'array',
-      localized: true,
       fields: [
         {
           name: 'item',
@@ -124,7 +121,6 @@ export const Experiences: CollectionConfig = {
     {
       name: 'excluded',
       type: 'array',
-      localized: true,
       fields: [
         {
           name: 'item',
@@ -136,7 +132,6 @@ export const Experiences: CollectionConfig = {
     {
       name: 'policies',
       type: 'richText',
-      localized: true,
     },
     {
       name: 'isActive',
@@ -153,17 +148,14 @@ export const Experiences: CollectionConfig = {
         {
           name: 'title',
           type: 'text',
-          localized: true,
         },
         {
           name: 'description',
           type: 'textarea',
-          localized: true,
         },
         {
           name: 'keywords',
           type: 'text',
-          localized: true,
         },
       ],
     },

@@ -88,9 +88,4 @@ export default buildConfig({
   }),
   sharp,
   plugins: [],
-  localization: {
-    locales: ['en', 'ar', 'fr'],
-    defaultLocale: 'en',
-    fallback: true,
-  },
 })

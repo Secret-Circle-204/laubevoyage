@@ -139,10 +139,10 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'ar' | 'fr') | ('en' | 'ar' | 'fr')[];
+  fallbackLocale: null;
   globals: {};
   globalsSelect: {};
-  locale: 'en' | 'ar' | 'fr';
+  locale: null;
   widgets: {
     collections: CollectionsWidget;
   };

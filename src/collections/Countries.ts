@@ -14,7 +14,6 @@ export const Countries: CollectionConfig = {
       name: 'name',
       type: 'text',
       required: true,
-      localized: true,
     },
     {
       name: 'slug',
@@ -39,7 +38,6 @@ export const Countries: CollectionConfig = {
     {
       name: 'description',
       type: 'richText',
-      localized: true,
     },
     {
       name: 'hero',
@@ -73,17 +71,14 @@ export const Countries: CollectionConfig = {
         {
           name: 'title',
           type: 'text',
-          localized: true,
         },
         {
           name: 'description',
           type: 'textarea',
-          localized: true,
         },
         {
           name: 'keywords',
           type: 'text',
-          localized: true,
         },
       ],
     },

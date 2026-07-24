@@ -14,8 +14,8 @@ export class DestinationsCatalogLoader {
       const countriesRes = await destination.getCountries(options)
       const countries = await Promise.all(
         (countriesRes.docs || []).map(async (doc: Record<string, any>) => {
-          const rawName = typeof doc.name === 'string' ? doc.name : (doc.name?.en || '')
-          const rawDescription = typeof doc.description === 'string' ? doc.description : (doc.description?.en || '')
+          const rawName = String(doc.name || '')
+          const rawDescription = typeof doc.description === 'string' ? doc.description : ''
 
           return {
             id: Number(doc.id),
@@ -49,8 +49,8 @@ export class CountryLoader {
       const countryDoc = (await destination.getCountry(countrySlug, options)) as Record<string, any> | null
       if (!countryDoc) return null
 
-      const rawCountryName = typeof countryDoc.name === 'string' ? countryDoc.name : (countryDoc.name?.en || '')
-      const rawCountryDesc = typeof countryDoc.description === 'string' ? countryDoc.description : (countryDoc.description?.en || '')
+      const rawCountryName = String(countryDoc.name || '')
+      const rawCountryDesc = typeof countryDoc.description === 'string' ? countryDoc.description : ''
 
       const translatedCountryName = await localization.translateText(rawCountryName, ctx)
       const translatedCountryDesc = await localization.translateText(rawCountryDesc, ctx)
@@ -69,8 +69,8 @@ export class CountryLoader {
 
       const cities = await Promise.all(
         (citiesRes.docs || []).map(async (doc: Record<string, any>) => {
-          const rawCityName = typeof doc.name === 'string' ? doc.name : (doc.name?.en || '')
-          const rawCityDesc = typeof doc.description === 'string' ? doc.description : (doc.description?.en || '')
+          const rawCityName = String(doc.name || '')
+          const rawCityDesc = typeof doc.description === 'string' ? doc.description : ''
 
           return {
             id: Number(doc.id),
@@ -112,10 +112,10 @@ export class CityLoader {
       const countryDoc = (await destination.getCountry(countrySlug, options)) as Record<string, any> | null
       const experiencesRes = await destination.getExperiencesByCity(Number(cityDoc.id), options)
 
-      const rawCityName = typeof cityDoc.name === 'string' ? cityDoc.name : (cityDoc.name?.en || '')
-      const rawCityDesc = typeof cityDoc.description === 'string' ? cityDoc.description : (cityDoc.description?.en || '')
-      const rawCountryName = typeof countryDoc?.name === 'string' ? countryDoc.name : (countryDoc?.name?.en || '')
-      const rawCountryDesc = typeof countryDoc?.description === 'string' ? countryDoc.description : (countryDoc?.description?.en || '')
+      const rawCityName = String(cityDoc.name || '')
+      const rawCityDesc = typeof cityDoc.description === 'string' ? cityDoc.description : ''
+      const rawCountryName = String(countryDoc?.name || '')
+      const rawCountryDesc = typeof countryDoc?.description === 'string' ? countryDoc.description : ''
 
       const translatedCityName = await localization.translateText(rawCityName, ctx)
       const translatedCityDesc = await localization.translateText(rawCityDesc, ctx)
@@ -145,8 +145,8 @@ export class CityLoader {
 
       const experiences = await Promise.all(
         (experiencesRes.docs || []).map(async (doc: Record<string, any>) => {
-          const rawTitle = typeof doc.title === 'string' ? doc.title : (doc.title?.en || '')
-          const rawSubtitle = typeof doc.subtitle === 'string' ? doc.subtitle : (doc.subtitle?.en || '')
+          const rawTitle = String(doc.title || '')
+          const rawSubtitle = String(doc.subtitle || '')
           const rawPriceEGP = doc.basePriceEGP || 0
           const pricingResult = await localization.formatPrice(rawPriceEGP, ctx)
 
