@@ -44,17 +44,17 @@ export class NotificationRepository {
 
       const doc: Record<string, any> = res.docs[0]
       return {
-        jobId: String(doc.id),
+        jobId: doc.notificationId || String(doc.id),
         recipient: doc.recipient || '',
-        channel: doc.channel || 'email',
-        category: doc.category || 'booking',
-        priority: doc.priority || 'normal',
+        channel: doc.channel,
+        category: doc.category,
+        priority: doc.priority,
         templateId: doc.templateId || '',
         translationKey: doc.translationKey || '',
         templateData: doc.templateData || {},
         referenceType: doc.referenceType || '',
         referenceId: doc.referenceId || '',
-        status: doc.status || 'sent',
+        status: doc.status,
         attempts: doc.attempts || 1,
         maxAttempts: doc.maxAttempts || 3,
         createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
@@ -72,6 +72,7 @@ export class NotificationRepository {
       const doc = await this.payload.create({
         collection: 'notification-logs',
         data: {
+          notificationId: job.jobId,
           recipient: job.recipient,
           channel: job.channel,
           category: job.category,
@@ -86,7 +87,7 @@ export class NotificationRepository {
 
       return {
         ...job,
-        jobId: String(doc.id),
+        jobId: doc.notificationId || String(doc.id),
       }
     } catch {
       return job

@@ -29,17 +29,17 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
         {/* Page Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <Badge variant="secondary" className="mb-3">
-            Bespoke Portfolio
+            {data.labels.badge}
           </Badge>
           <h1 className={`text-4xl sm:text-5xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
-            Experiences Catalog
+            {data.labels.title}
           </h1>
           <div className="h-1 w-16 bg-[#f58220] mx-auto mt-3 mb-4" />
           <p className={`text-base sm:text-lg ${isDark ? 'text-[#a7aaac]' : 'text-[#666666]'}`}>
-            Discover luxury tour packages and private daily tours carefully crafted for luxury travelers.
+            {data.labels.description}
           </p>
         </div>
-
+ 
         {/* Type Category Tabs Filter */}
         <div className="flex justify-center gap-3 mb-16">
           <Button
@@ -47,24 +47,24 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
             size="sm"
             onClick={() => handleTypeChange('all')}
           >
-            All Experiences ({data.experiences.length})
+            {data.labels.filterAll}
           </Button>
           <Button
             variant={selectedType === 'package' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => handleTypeChange('package')}
           >
-            Tour Packages
+            {data.labels.filterPackages}
           </Button>
           <Button
             variant={selectedType === 'daily_tour' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => handleTypeChange('daily_tour')}
           >
-            Private Daily Tours
+            {data.labels.filterDailyTours}
           </Button>
         </div>
-
+ 
         {/* Experiences Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {data.experiences.map((item) => (
@@ -78,36 +78,34 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover transition-transform duration-1000 group-hover:scale-110"
                 />
-
+ 
                 {/* Subtle Gradient Overlay */}
                 <div
                   className={`absolute inset-0 bg-gradient-to-t ${
                     isDark ? 'from-[#1a1718] via-transparent' : 'from-black/20 via-transparent'
                   } to-transparent opacity-60`}
                 />
-
+ 
                 {/* Type Badge */}
                 <div className="absolute top-6 left-6">
                   <Badge variant={item.type === 'package' ? 'primary' : 'accent'} size="sm">
-                    {item.type === 'package' ? 'Tour Package' : 'Daily Tour'}
+                    {item.type === 'package' ? data.labels.packageLabel : data.labels.dailyTourLabel}
                   </Badge>
                 </div>
-
+ 
                 {/* Price Tag */}
                 <div className="absolute top-6 right-6">
                   <div className="px-4 py-2 bg-white/95 backdrop-blur-md rounded-lg shadow-xl">
                     <span className="text-[#00aeef] font-bold tracking-tight text-sm">
                       <CurrencyDisplay
-                        amountEGP={item.price.amountEGP}
-                        displayAmount={item.price.displayAmount}
-                        displayCurrency={item.price.displayCurrency}
+                        price={item.price}
                         size="sm"
                       />
                     </span>
                   </div>
                 </div>
               </div>
-
+ 
               {/* Card Details */}
               <div className="flex flex-col grow p-8 justify-between">
                 <div>
@@ -123,7 +121,11 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
                     </h3>
                     <div className="h-1 w-12 bg-[#f58220] transition-all duration-500 group-hover:w-24" />
                   </div>
-
+ 
+                  <span className="text-xs font-semibold text-slate-400 block mb-1">
+                    📍 {item.location}
+                  </span>
+ 
                   <p
                     className={`text-sm mb-8 line-clamp-2 leading-relaxed ${
                       isDark ? 'text-[#a7aaac]' : 'text-[#666666]'
@@ -132,10 +134,10 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
                     {item.subtitle}
                   </p>
                 </div>
-
+ 
                 <Link href={`/experiences/${item.slug}`}>
                   <Button variant="outline" size="md" className="w-full">
-                    View Itinerary
+                    {data.labels.viewItinerary}
                   </Button>
                 </Link>
               </div>

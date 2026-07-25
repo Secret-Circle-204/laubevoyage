@@ -8,7 +8,11 @@ export interface GlobalSearchQueryDTO {
   rating?: number
   page?: number
   limit?: number
+  locale?: string
+  currency?: string
 }
+
+import type { ConvertedPrice } from '@/domains/currency/types'
 
 export interface GlobalSearchResultItemDTO {
   id: number
@@ -17,7 +21,7 @@ export interface GlobalSearchResultItemDTO {
   type: 'experience' | 'destination' | 'article'
   url: string
   imageUrl: string
-  priceEGP?: number
+  price?: ConvertedPrice
   rating?: number
 }
 

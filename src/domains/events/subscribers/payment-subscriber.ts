@@ -1,8 +1,7 @@
 import type { Payload } from 'payload'
 import { EventBus } from '../event-bus'
 import type { PaymentCompletedEvent } from '../payment-events'
-import { BookingWorkflowEngine } from '../../booking/workflow'
-import { BookingRepository } from '../../booking/repository'
+import { getDomainServices } from '../../factory'
 
 /**
  * Booking Payment Subscriber
@@ -11,11 +10,10 @@ import { BookingRepository } from '../../booking/repository'
  */
 export function registerBookingPaymentSubscriber(payload: Payload): void {
   const eventBus = EventBus.getInstance()
-  const bookingRepository = new BookingRepository(payload)
-  const bookingWorkflowEngine = new BookingWorkflowEngine(bookingRepository)
 
   eventBus.subscribe<PaymentCompletedEvent>('PAYMENT_COMPLETED', async (event) => {
     const bookingId = event.bookingId
+    const { booking } = await getDomainServices()
 
     const paymentAttempt = {
       attemptId: `pay_att_${Date.now()}`,
@@ -29,9 +27,9 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
     }
 
     // 1. Mark booking as paid in Booking Domain
-    await bookingWorkflowEngine.executePaymentWorkflow(bookingId, paymentAttempt)
+    await booking.markAsPaid(bookingId, paymentAttempt)
 
     // 2. Confirm booking in Booking Domain
-    await bookingWorkflowEngine.executeConfirmationWorkflow(bookingId)
+    await booking.confirm(bookingId)
   })
 }

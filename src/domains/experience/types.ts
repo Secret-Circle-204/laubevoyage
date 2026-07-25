@@ -5,17 +5,17 @@ export type ExperienceAvailabilityStatus = 'available' | 'sold_out' | 'coming_so
 export type DepartureSlotStatus = 'available' | 'sold_out' | 'blacked_out' | 'cancelled'
 
 export interface DepartureSlotEntity {
+  id?: number
   departureId: string
   experienceId: number
   date: string // YYYY-MM-DD
   startTime?: string // HH:mm
-  basePriceEGP: number
+  basePriceEGP?: number
   capacityTotal: number
   capacityReserved: number
   capacitySold: number
   capacityAvailable: number
   version: number // Optimistic locking
-  isBlackedOut: boolean
   blackoutReason?: string
   status: DepartureSlotStatus
 }

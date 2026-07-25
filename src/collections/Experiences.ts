@@ -1,5 +1,10 @@
 import type { CollectionConfig } from 'payload'
 
+const PRICING_SOURCE_BY_TYPE = {
+  daily_tour: 'catalog',
+  package: 'departure',
+} as const
+
 export const Experiences: CollectionConfig = {
   slug: 'experiences',
   admin: {
@@ -8,6 +13,34 @@ export const Experiences: CollectionConfig = {
   },
   access: {
     read: () => true,
+  },
+  hooks: {
+    beforeDelete: [
+      async ({ req, id }) => {
+        // Enforce business rule: Do not allow deletion of experience if there are paid/confirmed/completed bookings
+        const activeBookings = await req.payload.find({
+          collection: 'bookings',
+          where: {
+            experience: { equals: id },
+            status: { in: ['paid', 'confirmed', 'completed'] },
+          },
+          depth: 0,
+          req,
+        })
+        if (activeBookings.docs.length > 0) {
+          throw new Error('Cannot delete experience: there are active, paid, or confirmed bookings associated with it.')
+        }
+
+        // Cascade delete all departure slots associated with this experience
+        await req.payload.delete({
+          collection: 'departure-slots',
+          where: {
+            experience: { equals: id },
+          },
+          req,
+        })
+      }
+    ]
   },
   fields: [
     {
@@ -86,10 +119,28 @@ export const Experiences: CollectionConfig = {
     {
       name: 'price',
       type: 'number',
-      required: true,
       min: 0,
+      validate: (val: unknown, { data }: { data: Record<string, any> }) => {
+        if (data?.type) {
+          const pricingSource = PRICING_SOURCE_BY_TYPE[data.type as keyof typeof PRICING_SOURCE_BY_TYPE]
+          if (pricingSource === 'catalog') {
+            if (val === undefined || val === null || val === '') {
+              return 'Price is required for daily tours'
+            }
+            if (Number(val) < 0) {
+              return 'Price must be greater than or equal to 0'
+            }
+          }
+        }
+        return true
+      },
       admin: {
-        description: 'Base price in EGP',
+        description: 'Base catalog price in EGP (Applicable for Daily Tours).',
+        condition: (data: Record<string, any>) => {
+          if (!data?.type) return true
+          const pricingSource = PRICING_SOURCE_BY_TYPE[data.type as keyof typeof PRICING_SOURCE_BY_TYPE]
+          return pricingSource === 'catalog'
+        },
       },
     },
     {
@@ -158,6 +209,17 @@ export const Experiences: CollectionConfig = {
           type: 'text',
         },
       ],
+    },
+    {
+      name: 'departureSlots',
+      type: 'join',
+      collection: 'departure-slots',
+      on: 'experience',
+      admin: {
+        allowCreate: true,
+        defaultColumns: ['date', 'startTime', 'capacityAvailable', 'status'],
+        description: 'Manage dates and prices for this experience. For Packages/Cruises, pricing per-slot is mandatory.',
+      },
     },
   ],
 }

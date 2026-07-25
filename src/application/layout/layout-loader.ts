@@ -6,7 +6,7 @@ export class LayoutLoader {
     const locale = params?.locale || 'en'
     const currency = params?.currency || 'EGP'
 
-    const { content, customer, translation, currency: currencyService } = await getDomainServices()
+    const { content, customer, language, currency: currencyService } = await getDomainServices()
     const navigationMenu: NavigationItemDTO[] = await content.getNavigationMenu(locale)
     const footerNavigation = await content.getFooterNavigation(locale)
 
@@ -25,9 +25,13 @@ export class LayoutLoader {
 
     let supportedLocales: LocaleOptionDTO[] = []
     try {
-      supportedLocales = await translation.getSupportedLocales()
+      const activeLanguages = await language.getActiveLanguages()
+      supportedLocales = activeLanguages.map((l) => ({
+        code: l.code,
+        name: l.nativeName,
+      }))
     } catch (err) {
-      console.error('[LayoutLoader] Failed fetching supported locales from database:', err)
+      console.error('[LayoutLoader] Failed fetching supported languages from database:', err)
       supportedLocales = []
     }
 

@@ -12,7 +12,15 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+import { redirect } from 'next/navigation'
+import { SessionResolver } from '@/application/auth/session-resolver'
+
 export default async function Page() {
-  const data = await CustomerPortalLoader.loadOverview(1)
+  const session = await SessionResolver.resolve()
+  if (!session.isAuthenticated || !session.customerId) {
+    redirect('/login')
+  }
+
+  const data = await CustomerPortalLoader.loadOverview(session.customerId)
   return <DashboardOverviewPage data={data} />
 }

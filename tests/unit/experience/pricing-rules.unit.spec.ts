@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { PricingRuleEngine } from '@/domains/experience/pricing-rules'
 import { PromotionEngine } from '@/domains/experience/promotion-engine'
-import { TaxEngine } from '@/domains/experience/tax-engine'
 import type { PricingContext } from '@/domains/experience/types'
 
 describe('Experience Domain: Pricing Rules, Promotion & Tax Engine Unit Tests', () => {
@@ -26,11 +25,5 @@ describe('Experience Domain: Pricing Rules, Promotion & Tax Engine Unit Tests', 
     const result = PromotionEngine.evaluatePromotions(5000, promoContext)
     expect(result.discountAmountEGP).toBe(500)
     expect(result.couponId).toBe('SUMMER10')
-  })
-
-  it('should calculate VAT tax and tourism service fees in TaxEngine', () => {
-    const result = TaxEngine.calculateTaxesAndFees(5000)
-    expect(result.taxAmountEGP).toBe(700) // 14% VAT of 5000 = 700
-    expect(result.feeAmountEGP).toBe(50) // Tourism fee = 50
   })
 })

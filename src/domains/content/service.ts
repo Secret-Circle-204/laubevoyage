@@ -47,32 +47,31 @@ export class ContentService {
   }
 
   async getFooterNavigation(locale: string = 'en') {
-    const isAr = locale === 'ar'
     return [
       {
-        title: isAr ? 'استكشف' : 'Explore',
+        title: this.uiDictionary.get(locale, 'layout.footer.explore'),
         links: [
-          { label: isAr ? 'جميع التجارب' : 'All Experiences', href: '/experiences' },
-          { label: isAr ? 'الوجهات' : 'Destinations', href: '/destinations' },
-          { label: isAr ? 'برامج الجولات' : 'Tour Packages', href: '/experiences?type=package' },
-          { label: isAr ? 'الجولات اليومية' : 'Daily Tours', href: '/experiences?type=daily_tour' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.allExperiences'), href: '/experiences' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.destinations'), href: '/destinations' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.tourPackages'), href: '/experiences?type=package' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.dailyTours'), href: '/experiences?type=daily_tour' },
         ],
       },
       {
-        title: isAr ? 'الشركة' : 'Company',
+        title: this.uiDictionary.get(locale, 'layout.footer.company'),
         links: [
-          { label: isAr ? 'عن الشركة' : 'About Us', href: '/about' },
-          { label: isAr ? 'مدونة السفر' : 'Travel Blog', href: '/blog' },
-          { label: isAr ? 'الأسئلة الشائعة' : 'FAQs', href: '/faq' },
-          { label: isAr ? 'اتصل بنا' : 'Contact Us', href: '/contact' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.aboutUs'), href: '/about' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.travelBlog'), href: '/blog' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.faqs'), href: '/faq' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.contactUs'), href: '/contact' },
         ],
       },
       {
-        title: isAr ? 'القانونية' : 'Legal',
+        title: this.uiDictionary.get(locale, 'layout.footer.legal'),
         links: [
-          { label: isAr ? 'سياسة الخصوصية' : 'Privacy Policy', href: '/privacy' },
-          { label: isAr ? 'شروط الخدمة' : 'Terms of Service', href: '/terms' },
-          { label: isAr ? 'بوابة العملاء' : 'Customer Portal', href: '/dashboard' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.privacyPolicy'), href: '/privacy' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.termsOfService'), href: '/terms' },
+          { label: this.uiDictionary.get(locale, 'layout.footer.customerPortal'), href: '/dashboard' },
         ],
       },
     ]

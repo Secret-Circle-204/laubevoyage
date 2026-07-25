@@ -9,8 +9,16 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: "My Bookings History | L'Aube Voyage Customer Portal" }
 }
 
+import { redirect } from 'next/navigation'
+import { SessionResolver } from '@/application/auth/session-resolver'
+
 export default async function Page() {
-  const data = await CustomerPortalLoader.loadOverview(1)
+  const session = await SessionResolver.resolve()
+  if (!session.isAuthenticated || !session.customerId) {
+    redirect('/login')
+  }
+
+  const data = await CustomerPortalLoader.loadOverview(session.customerId)
 
   return (
     <div className="flex flex-col gap-6">
@@ -40,7 +48,7 @@ export default async function Page() {
             </div>
 
             <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-              <CurrencyDisplay amountEGP={booking.totalCost.amountEGP} size="md" />
+              <CurrencyDisplay price={booking.totalCost} size="md" />
               <Button variant="accent" size="sm" className="mt-2">
                 Download Voucher PDF
               </Button>

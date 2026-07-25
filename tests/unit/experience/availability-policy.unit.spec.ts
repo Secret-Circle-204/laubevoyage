@@ -14,7 +14,6 @@ describe('Experience Domain: Availability & Blackout Policy Unit Tests', () => {
     capacitySold: 3,
     capacityAvailable: 5,
     version: 1,
-    isBlackedOut: false,
     status: 'available',
   }
 

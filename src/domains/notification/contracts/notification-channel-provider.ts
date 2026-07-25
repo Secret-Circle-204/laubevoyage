@@ -1,4 +1,5 @@
-import type { NotificationJobEntity, NotificationDispatchResult } from '../types'
+import type { NotificationJobEntity } from '../types'
+import type { NotificationDispatchResult } from '../providers/provider.interface'
 
 export interface IEmailProvider {
   readonly providerId: string

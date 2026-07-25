@@ -31,8 +31,11 @@ import { PaymentTransactions } from './collections/PaymentTransactions'
 import { Posts } from './collections/Posts'
 import { Redirects } from './collections/Redirects'
 import { Reviews } from './collections/Reviews'
-import { Translations } from './collections/Translations'
 import { Coupons } from './collections/Coupons'
+import { DepartureSlots } from './collections/DepartureSlots'
+
+import { Languages } from './collections/Languages'
+import { SystemSettings } from './globals/SystemSettings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -71,8 +74,12 @@ export default buildConfig({
     Posts,
     Redirects,
     Reviews,
-    Translations,
     Coupons,
+    Languages,
+    DepartureSlots,
+  ],
+  globals: [
+    SystemSettings,
   ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',

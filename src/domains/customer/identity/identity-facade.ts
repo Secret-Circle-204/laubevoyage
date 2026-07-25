@@ -21,8 +21,14 @@ export class IdentityCoordinatorFacade {
     this.verification = new VerificationService(repository)
   }
 
-  async registerCustomer(email: string, firstName: string, lastName: string): Promise<CustomerAggregate> {
-    return this.registration.registerCustomer(email, firstName, lastName)
+  async registerCustomer(
+    email: string,
+    firstName: string,
+    lastName: string,
+    password?: string,
+    options?: { eventSource?: 'domain' | 'external' },
+  ): Promise<CustomerAggregate> {
+    return this.registration.registerCustomer(email, firstName, lastName, password, options)
   }
 
   async verifyEmail(customerId: number, rawToken: string): Promise<CustomerAggregate> {
@@ -31,5 +37,9 @@ export class IdentityCoordinatorFacade {
 
   async login(email: string): Promise<CustomerAggregate> {
     return this.authentication.authenticate(email)
+  }
+
+  async onCustomerAuthenticated(customerId: number): Promise<CustomerAggregate> {
+    return this.authentication.onCustomerAuthenticated(customerId)
   }
 }

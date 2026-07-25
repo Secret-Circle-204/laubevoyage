@@ -1,7 +1,8 @@
 import type { Payload, PayloadRequest } from 'payload'
 import type { ExperienceAggregate } from './aggregate'
-import type { DepartureSlotEntity, ExperienceAvailabilityStatus } from './types'
+import type { DepartureSlotEntity, ExperienceAvailabilityStatus, ExperienceType } from './types'
 import { validateAvailabilityTransition } from './state-machine'
+import { PricingPolicyRegistry } from './pricing-policy-registry'
 
 /**
  * Experience Repository
@@ -10,7 +11,6 @@ import { validateAvailabilityTransition } from './state-machine'
  */
 export class ExperienceRepository {
   private payload: Payload
-  private departureSlotMap: Map<string, DepartureSlotEntity> = new Map()
 
   constructor(payload: Payload) {
     this.payload = payload
@@ -70,70 +70,251 @@ export class ExperienceRepository {
   }
 
   /**
+   * Find departure slots for a specific experience ID from database.
+   */
+  async findSlotsByExperienceId(experienceId: number, req?: PayloadRequest): Promise<DepartureSlotEntity[]> {
+    const result = await this.payload.find({
+      collection: 'departure-slots',
+      where: {
+        experience: { equals: experienceId },
+      },
+      limit: 100,
+      req,
+    })
+
+    return result.docs.map((doc: any) => {
+      const expId = doc.experience ? (typeof doc.experience === 'object' ? Number(doc.experience.id) : Number(doc.experience)) : experienceId
+      if (!doc.date || doc.capacityTotal === undefined) {
+        throw new Error(`[ExperienceRepository] Database record for slot ${doc.id} is invalid or missing required fields.`)
+      }
+      return {
+        id: Number(doc.id),
+        departureId: doc.departureId,
+        experienceId: expId,
+        date: new Date(doc.date).toISOString().split('T')[0],
+        startTime: doc.startTime || '',
+        basePriceEGP: doc.basePriceEGP ?? undefined,
+        capacityTotal: doc.capacityTotal,
+        capacityReserved: doc.capacityReserved ?? 0,
+        capacitySold: doc.capacitySold ?? 0,
+        capacityAvailable: doc.capacityAvailable,
+        version: doc.version,
+        status: doc.status,
+      }
+    })
+  }
+
+  /**
+   * Fetch departure slot entity by slot ID (number) and optional experience ID.
+   */
+  async getDepartureSlotById(slotId: number, experienceId?: number): Promise<DepartureSlotEntity | null> {
+    try {
+      const doc = await this.payload.findByID({
+        collection: 'departure-slots',
+        id: slotId,
+      })
+
+      if (!doc) return null
+
+      const expId = doc.experience ? (typeof doc.experience === 'object' ? Number(doc.experience.id) : Number(doc.experience)) : 0
+      if (!expId || !doc.date || doc.capacityTotal === undefined) {
+        throw new Error(`[ExperienceRepository] Database slot record ${slotId} is invalid.`)
+      }
+
+      return {
+        id: Number(doc.id),
+        departureId: doc.departureId,
+        experienceId: expId,
+        date: new Date(doc.date).toISOString().split('T')[0],
+        startTime: doc.startTime || '',
+        basePriceEGP: doc.basePriceEGP ?? undefined,
+        capacityTotal: doc.capacityTotal,
+        capacityReserved: doc.capacityReserved ?? 0,
+        capacitySold: doc.capacitySold ?? 0,
+        capacityAvailable: doc.capacityAvailable,
+        version: doc.version,
+        status: doc.status,
+      }
+    } catch {
+      return null
+    }
+  }
+
+  /**
    * Fetch departure slot entity by departure ID.
    */
   async getDepartureSlot(departureId: string): Promise<DepartureSlotEntity | null> {
-    const slot = this.departureSlotMap.get(departureId)
-    if (slot) return slot
+    try {
+      const result = await this.payload.find({
+        collection: 'departure-slots',
+        where: {
+          departureId: { equals: departureId },
+        },
+        limit: 1,
+      })
 
-    const defaultSlot: DepartureSlotEntity = {
-      departureId,
-      experienceId: 1,
-      date: '2026-08-01',
-      startTime: '09:00',
-      basePriceEGP: 2000,
-      capacityTotal: 20,
-      capacityReserved: 0,
-      capacitySold: 0,
-      capacityAvailable: 20,
-      version: 1,
-      isBlackedOut: false,
-      status: 'available',
+      const doc = result.docs[0]
+      if (!doc) return null
+
+      const expId = doc.experience ? (typeof doc.experience === 'object' ? Number(doc.experience.id) : Number(doc.experience)) : 0
+      if (!expId || !doc.date || doc.capacityTotal === undefined) {
+        throw new Error(`[ExperienceRepository] Database slot record ${departureId} is invalid.`)
+      }
+
+      return {
+        id: Number(doc.id),
+        departureId: doc.departureId,
+        experienceId: expId,
+        date: new Date(doc.date).toISOString().split('T')[0],
+        startTime: doc.startTime || '',
+        basePriceEGP: doc.basePriceEGP ?? undefined,
+        capacityTotal: doc.capacityTotal,
+        capacityReserved: doc.capacityReserved ?? 0,
+        capacitySold: doc.capacitySold ?? 0,
+        capacityAvailable: doc.capacityAvailable,
+        version: doc.version,
+        status: doc.status,
+      }
+    } catch {
+      return null
     }
-    this.departureSlotMap.set(departureId, defaultSlot)
-    return defaultSlot
   }
+
+  /**
+   * Fetch departure slot entity by date and experience ID.
+   */
+  async getDepartureSlotByDate(experienceId: number, date: string): Promise<DepartureSlotEntity | null> {
+    try {
+      const result = await this.payload.find({
+        collection: 'departure-slots',
+        where: {
+          and: [
+            { experience: { equals: experienceId } },
+            { date: { equals: date } },
+          ],
+        },
+        limit: 1,
+      })
+
+      const doc = result.docs[0]
+      if (!doc) return null
+
+      return {
+        id: Number(doc.id),
+        departureId: doc.departureId,
+        experienceId: experienceId,
+        date: new Date(doc.date).toISOString().split('T')[0],
+        startTime: doc.startTime || '',
+        basePriceEGP: doc.basePriceEGP ?? undefined,
+        capacityTotal: doc.capacityTotal,
+        capacityReserved: doc.capacityReserved ?? 0,
+        capacitySold: doc.capacitySold ?? 0,
+        capacityAvailable: doc.capacityAvailable,
+        version: doc.version,
+        status: doc.status,
+      }
+    } catch {
+      return null
+    }
+  }
+
 
   /**
    * Save / update departure slot entity with Optimistic Locking version check.
    */
   async saveDepartureSlot(slot: DepartureSlotEntity): Promise<DepartureSlotEntity> {
-    const existing = this.departureSlotMap.get(slot.departureId)
-    if (existing && existing.version !== slot.version) {
-      throw new Error(
-        `[ExperienceRepository] Optimistic Lock Failure on DepartureSlot ${slot.departureId}. Expected version ${slot.version}, found ${existing.version}.`,
-      )
-    }
+    try {
+      const result = await this.payload.find({
+        collection: 'departure-slots',
+        where: {
+          departureId: { equals: slot.departureId },
+        },
+        limit: 1,
+      })
 
-    const updatedSlot = {
-      ...slot,
-      version: slot.version + 1,
-      capacityAvailable: Math.max(0, slot.capacityTotal - slot.capacityReserved - slot.capacitySold),
-    }
+      const existing = result.docs[0]
+      if (existing && existing.version !== slot.version) {
+        throw new Error(
+          `[ExperienceRepository] Optimistic Lock Failure on DepartureSlot ${slot.departureId}. Expected version ${slot.version}, found ${existing.version}.`,
+        )
+      }
 
-    this.departureSlotMap.set(slot.departureId, updatedSlot)
-    return updatedSlot
+      const nextVersion = slot.version + 1
+      const capacityAvailable = Math.max(0, slot.capacityTotal - slot.capacityReserved - slot.capacitySold)
+
+      if (existing) {
+        await this.payload.update({
+          collection: 'departure-slots',
+          id: existing.id,
+          data: {
+            capacityReserved: slot.capacityReserved,
+            capacitySold: slot.capacitySold,
+            capacityAvailable,
+            version: nextVersion,
+            status: slot.status as any,
+          },
+        })
+        return {
+          ...slot,
+          version: nextVersion,
+          capacityAvailable,
+        }
+      } else {
+        await this.payload.create({
+          collection: 'departure-slots',
+          data: {
+            departureId: slot.departureId,
+            experience: slot.experienceId,
+            date: slot.date,
+            startTime: slot.startTime,
+            basePriceEGP: slot.basePriceEGP,
+            capacityTotal: slot.capacityTotal,
+            capacityReserved: slot.capacityReserved,
+            capacitySold: slot.capacitySold,
+            capacityAvailable,
+            version: nextVersion,
+            status: slot.status as any,
+          },
+        })
+        return {
+          ...slot,
+          version: nextVersion,
+          capacityAvailable,
+        }
+      }
+    } catch (err) {
+      throw err
+    }
   }
 
-  /**
-   * Map Payload document to strongly-typed ExperienceAggregate.
-   */
   private mapDocToAggregate(doc: any): ExperienceAggregate {
+    const cityId = doc.city ? (typeof doc.city === 'object' ? Number(doc.city.id) : Number(doc.city)) : 0
+
+    if (!doc.title || !doc.slug || !doc.type || !cityId || !doc.availability) {
+      throw new Error(`[ExperienceRepository] Database record for experience ${doc.id} is invalid or missing required fields.`)
+    }
+
+    // Recover PricingSource dynamically using PricingPolicyRegistry
+    const pricingSource = PricingPolicyRegistry.getSource(doc.type as ExperienceType)
+    if (pricingSource === 'catalog' && (doc.price === undefined || doc.price === null)) {
+      throw new Error(`[ExperienceRepository] Catalog-priced experience ${doc.id} is missing mandatory price in DB.`)
+    }
+
     return {
       id: Number(doc.id),
-      title: doc.title || '',
-      slug: doc.slug || '',
-      type: doc.type || 'daily_tour',
-      cityId: doc.city ? (typeof doc.city === 'object' ? Number(doc.city.id) : Number(doc.city)) : 0,
-      basePriceEGP: doc.price || 0,
+      title: doc.title,
+      slug: doc.slug,
+      type: doc.type,
+      cityId,
+      basePriceEGP: doc.price !== null && doc.price !== undefined ? Number(doc.price) : undefined,
       availability: doc.availability as ExperienceAvailabilityStatus,
-      capacityTotal: doc.capacityTotal || 20,
       durationDays: doc.durationDays || 1,
       durationNights: doc.durationNights || 0,
       version: 1,
       isActive: doc.isActive ?? true,
-      createdAt: doc.createdAt ? (typeof doc.createdAt === 'string' ? doc.createdAt : new Date(doc.createdAt).toISOString()) : new Date().toISOString(),
-      updatedAt: doc.updatedAt ? (typeof doc.updatedAt === 'string' ? doc.updatedAt : new Date(doc.updatedAt).toISOString()) : new Date().toISOString(),
+      heroUrl: doc.hero && typeof doc.hero === 'object' ? doc.hero.url || '' : '',
+      createdAt: typeof doc.createdAt === 'string' ? doc.createdAt : (doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString()),
+      updatedAt: typeof doc.updatedAt === 'string' ? doc.updatedAt : (doc.updatedAt ? new Date(doc.updatedAt).toISOString() : new Date().toISOString()),
     }
   }
 }

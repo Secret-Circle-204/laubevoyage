@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       endDate: body.endDate,
       pointsToRedeem: body.pointsToRedeem ? Number(body.pointsToRedeem) : undefined,
       currency: body.currency,
+      source: 'api',
     })
 
     const booking = await services.booking.getById(bookingId)

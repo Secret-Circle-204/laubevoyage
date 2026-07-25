@@ -13,7 +13,7 @@ describe('Translation Domain: TranslationEngine Unit Tests', () => {
     const result = await engine.translate('booking.confirmed', 'ar')
 
     expect(result.translationKey).toBe('booking.confirmed')
-    expect(result.translatedText).toBe('تم تأكيد الحجز بنجاح')
+    expect(result.translatedText).toBe('تم تأكيد الحجز')
     expect(result.provider).toBe('google')
   })
 })

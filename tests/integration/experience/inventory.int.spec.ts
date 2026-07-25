@@ -11,8 +11,38 @@ describe('Experience Domain: InventoryManager Integration Tests', () => {
     mockPayload = {
       create: vi.fn(),
       findByID: vi.fn(),
-      find: vi.fn(),
-      update: vi.fn(),
+      find: vi.fn().mockImplementation(() => {
+        return Promise.resolve({
+          docs: [{
+            id: 1,
+            departureId: 'dep_101',
+            experience: 1,
+            date: '2026-09-15',
+            startTime: '10:00',
+            capacityTotal: 20,
+            capacityReserved: 0,
+            capacitySold: 0,
+            capacityAvailable: 20,
+            version: 1,
+            status: 'available',
+          }]
+        })
+      }),
+      update: vi.fn().mockImplementation((params: any) => {
+        return Promise.resolve({
+          id: 1,
+          departureId: 'dep_101',
+          experience: 1,
+          date: '2026-09-15',
+          startTime: '10:00',
+          capacityTotal: 20,
+          capacityReserved: params.data.capacityReserved,
+          capacitySold: params.data.capacitySold,
+          capacityAvailable: params.data.capacityAvailable,
+          version: params.data.version,
+          status: params.data.status,
+        })
+      }),
     }
     repository = new ExperienceRepository(mockPayload)
     inventoryManager = new InventoryManager(repository)

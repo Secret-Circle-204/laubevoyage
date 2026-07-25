@@ -18,6 +18,7 @@ class CurrencyCatalogRegistry {
   private initialized = false
   private lastLoadedAt = 0
   private readonly TTL_MS = 60 * 60 * 1000
+  private repository?: CurrencyRepository
 
   private constructor() {}
 
@@ -28,12 +29,17 @@ class CurrencyCatalogRegistry {
     return CurrencyCatalogRegistry.instance
   }
 
+  public setRepository(repository: CurrencyRepository): void {
+    this.repository = repository
+  }
+
   public async load(repository?: CurrencyRepository): Promise<void> {
+    const repo = repository || this.repository
     const newCache = new Map<string, CurrencyIdentity>()
 
-    if (repository) {
+    if (repo) {
       try {
-        const { docs } = await repository.findActiveCurrencies()
+        const { docs } = await repo.findActiveCurrencies()
         for (const doc of docs) {
           newCache.set(doc.isoCode, {
             isoCode: doc.isoCode,
@@ -62,15 +68,17 @@ class CurrencyCatalogRegistry {
   }
 
   public async get(isoCode: string, repository?: CurrencyRepository): Promise<CurrencyIdentity | undefined> {
+    const repo = repository || this.repository
     if (!this.initialized || this.isStale()) {
-      await this.load(repository)
+      await this.load(repo)
     }
     return this.cache.get(isoCode)
   }
 
   public async getAll(repository?: CurrencyRepository): Promise<CurrencyIdentity[]> {
+    const repo = repository || this.repository
     if (!this.initialized || this.isStale()) {
-      await this.load(repository)
+      await this.load(repo)
     }
     return Array.from(this.cache.values()).sort((a, b) => a.displayOrder - b.displayOrder)
   }

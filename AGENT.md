@@ -693,10 +693,10 @@ Always optimize for:
 - Long-term system health
 
 When in doubt:
-  STOP.
-  Analyze.
-  Understand.
-  Then implement the root-cause solution.
+STOP.
+Analyze.
+Understand.
+Then implement the root-cause solution.
 
 ---
 
@@ -705,12 +705,11 @@ When in doubt:
 - **Staff / Admins**: Reside in the `users` collection. This is used exclusively for Payload CMS Admin Dashboard access. They have roles (`admin`, `super_admin`) but have zero customer fields (no loyalty points, no tier caching, no welcome point hooks, and no booking relationships).
 - **Customers / Travelers**: Reside in the `customers` collection. This is used exclusively for the customer facing web application, profile preferences, bookings, reviews, and loyalty ledger tracking. They have NO administrative access or roles.
 
-
 ---
 
 # 21. CROSS-CUTTING INFRASTRUCTURE LAYER & DOMAIN AGNOSTICISM
 
-- **The Golden Rule of Domains**: NO Domain (Booking, Package, Destination) is allowed to know about Localization, Translation, or Currency conversion. They are strictly forbidden from calling 	ranslate() or convertCurrency(). 
+- **The Golden Rule of Domains**: NO Domain (Booking, Package, Destination) is allowed to know about Localization, Translation, or Currency conversion. They are strictly forbidden from calling ranslate() or convertCurrency().
 - **Internal Storage**: All core domains MUST store and operate on **EGP** and **English** exclusively. They must return raw DTOs.
 - **The Localization Layer**: The Localization Layer (Presentation Gateway) is the ONLY layer that intercepts the DTO, translates fields, converts currencies, and formats dates/numbers based on the LocaleContext before returning the final response to the Frontend.
 
@@ -725,6 +724,301 @@ When in doubt:
 
 # 23. PAYMENT ADAPTER INDEPENDENCE
 
-- **Zero Knowledge Adapters**: Payment Adapters (e.g., Stripe, PayPal) must have Zero Knowledge of exchange rates or currency conversions. 
+- **Zero Knowledge Adapters**: Payment Adapters (e.g., Stripe, PayPal) must have Zero Knowledge of exchange rates or currency conversions.
 - **Execution Only**: They only receive the finalized PricingSnapshot amounts and execute the transaction.
 
+# IMPLEMENTATION PROTOCOL
+
+Every implementation MUST begin by following PRE-IMPLEMENTATION INVESTIGATION PROTOCOL. Skipping this protocol is considered an architectural violation and task failure.
+
+## Mandatory Engineering Investigation Before Writing Any Code
+
+### Mission
+
+You are working inside **L'Aube Voyage**, an enterprise application built on a strict Clean Architecture and Domain-Driven Design.
+
+Your primary responsibility is **NOT writing code**.
+
+Your primary responsibility is understanding the existing architecture before making any modification.
+
+**Writing new code is always the last step, never the first.**
+
+---
+
+# Rule Zero (Non-Negotiable)
+
+Before creating:
+
+- any class
+- any function
+- any interface
+- any DTO
+- any loader
+- any repository
+- any service
+- any hook
+- any utility
+- any provider
+- any helper
+- any translation logic
+- any currency logic
+- any mapper
+
+You MUST first prove that an equivalent implementation does not already exist.
+
+If you skip this investigation, the task is considered failed.
+
+---
+
+# Phase 1 — Architecture Investigation (Mandatory)
+
+Before writing a single line of code you MUST investigate the project.
+
+Search the entire codebase for:
+
+- existing services
+- existing domain methods
+- repositories
+- DTOs
+- mappers
+- loaders
+- localization services
+- translation engine
+- translation providers
+- currency services
+- utility helpers
+- middleware
+- shared abstractions
+- interfaces
+- factories
+- existing business rules
+
+Do NOT assume something does not exist.
+
+Search first.
+
+---
+
+# Phase 2 — Read The Architecture Documents
+
+Before implementation you MUST read and understand:
+
+- AGENT.md
+- LOCALIZATION_ARCHITECTURE.md
+- PROJECT_ARCHITECTURE.md
+- Domain contracts
+- Application contracts
+
+If the requested implementation conflicts with the architecture documents:
+
+STOP.
+
+Do not write code.
+
+Explain the conflict.
+
+Propose the architectural solution.
+
+Wait for approval.
+
+---
+
+# Phase 3 — Translation Investigation (Mandatory)
+
+Whenever the requested task touches:
+
+- localization
+- translations
+- languages
+- currencies
+- DTOs
+- pages
+- loaders
+- presentation
+
+You MUST inspect the complete translation system before writing anything.
+
+At minimum investigate:
+
+- Translation Domain
+- Localization Domain
+- Translation Engine
+- Translation Repository
+- Translation Providers
+- Translation Factory
+- Localization Profiles
+- Application Loaders
+- DTO Localization Pipeline
+- Translation Cache
+- Translation Collection
+- Existing translateBatch()
+- Existing translateFields()
+- Existing localizeDTO()
+
+Never recreate functionality that already exists.
+
+Never bypass the localization pipeline.
+
+Never duplicate translation logic.
+
+---
+
+# Phase 4 — Layer Ownership Verification
+
+Before implementation identify which architectural layer owns the requested responsibility.
+
+Only one layer may own a responsibility.
+
+Examples:
+
+Presentation Layer
+
+- Rendering only.
+
+Application Layer
+
+- DTO orchestration.
+- Calls domains.
+- Calls localization.
+
+Core Domain
+
+- Business rules only.
+
+Localization Domain
+
+- Translation.
+- Currency conversion.
+- Formatting.
+
+Infrastructure
+
+- Persistence.
+- External APIs.
+- Cache.
+
+If ownership is unclear:
+
+STOP.
+
+Explain the conflict.
+
+Do not implement.
+
+---
+
+# Phase 5 — Existing Code Reuse
+
+Always prefer:
+
+1. Extend
+2. Reuse
+3. Compose
+
+Only if impossible:
+
+4. Create
+
+Never duplicate existing logic.
+
+Never create parallel implementations.
+
+Never create "temporary" helpers.
+
+Never introduce a second way to solve an existing problem.
+
+---
+
+# Phase 6 — Duplication Investigation
+
+Before adding any code answer internally:
+
+Does this already exist?
+
+Can an existing service be extended?
+
+Can an existing interface be reused?
+
+Can an existing DTO be expanded?
+
+Can an existing loader call it?
+
+Can an existing domain own this?
+
+Can an existing mapper perform this?
+
+Can an existing localization helper perform this?
+
+If the answer is YES,
+
+reuse it.
+
+Do not create another implementation.
+
+---
+
+# Phase 7 — Architecture Validation
+
+Before implementation verify:
+
+✓ No Business Logic inside Components
+
+✓ No Business Logic inside Pages
+
+✓ No Translation inside UI
+
+✓ No Currency Conversion inside UI
+
+✓ No Translation inside Core Domains
+
+✓ No HTTP logic inside Domains
+
+✓ No Repository calling Localization
+
+✓ No duplicate services
+
+✓ No duplicate DTOs
+
+✓ No duplicate providers
+
+✓ No duplicate utilities
+
+✓ Single Source of Truth preserved
+
+---
+
+# Phase 8 — Explain Before Coding
+
+Before modifying files you MUST explain:
+
+1. What already exists.
+
+2. Which files already solve part of the problem.
+
+3. Which existing services will be reused.
+
+4. Which files will actually change.
+
+5. Why new code is necessary.
+
+If you cannot justify new code,
+
+do not write it.
+
+---
+
+# Golden Rule
+
+The best implementation is not the one that writes the most code.
+
+The best implementation is the one that integrates perfectly into the existing architecture while introducing the least amount of new code.
+
+Every new file, function, service, helper or abstraction increases long-term maintenance cost.
+
+Minimize code.
+
+Maximize reuse.
+
+Protect the architecture.
+
+Never violate the constitutional architecture documents.

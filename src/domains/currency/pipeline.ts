@@ -1,5 +1,13 @@
 import { DefaultRateProvider, type IExchangeRateProvider } from './providers/rate-provider'
 
+export interface IPricingSettingsProvider {
+  getSettings(): Promise<{
+    vatRate: number
+    vatEnabled: boolean
+    pricesIncludeVat: boolean
+  }>
+}
+
 export interface PricingContext {
   departureId: string
   experienceId: number
@@ -23,6 +31,10 @@ export interface PricingSnapshotData {
   pricingRuleVersion: string
   exchangeRateVersion: string
   basePriceEGP: number
+  loyaltyDiscountEGP: number
+  promotionDiscountEGP: number
+  couponDiscountEGP: number
+  subtotalEGP: number
   displayCurrency: string
   displayAmount: number
   exchangeRateUsed: number
@@ -44,14 +56,23 @@ export type PricingResult = { snapshot: PricingSnapshotData }
  */
 export class PricingPipelineEngine {
   private rateProvider: IExchangeRateProvider
+  private settingsProvider: IPricingSettingsProvider
 
-  constructor(rateProvider?: IExchangeRateProvider) {
+  constructor(rateProvider?: IExchangeRateProvider, settingsProvider?: IPricingSettingsProvider) {
     this.rateProvider = rateProvider || new DefaultRateProvider()
+    this.settingsProvider = settingsProvider || {
+      getSettings: async () => ({
+        vatRate: 0.0,
+        vatEnabled: false,
+        pricesIncludeVat: false,
+      })
+    }
   }
 
   async calculatePricingSnapshot(
     basePriceEGP: number,
     context: PricingContext,
+    discounts: { loyalty?: number; promotion?: number; coupon?: number } = {},
   ): Promise<PricingSnapshotData> {
     const auditTrace: PricingAuditStep[] = []
 
@@ -62,17 +83,61 @@ export class PricingPipelineEngine {
       resultingSubtotalEGP: basePriceEGP,
     })
 
-    const vatRate = 0.14
-    const taxAmountEGP = Math.round(basePriceEGP * vatRate * 100) / 100
-    const finalAmountEGP = basePriceEGP + taxAmountEGP
+    // 1. Enforce Sequence: Base Price -> Discounts
+    const loyaltyDiscount = discounts.loyalty || 0
+    const promotionDiscount = discounts.promotion || 0
+    const couponDiscount = discounts.coupon || 0
+    const totalDiscount = loyaltyDiscount + promotionDiscount + couponDiscount
+    const netBasePrice = Math.max(0, basePriceEGP - totalDiscount)
 
-    auditTrace.push({
-      stepName: 'TAX_VAT_14',
-      amountChangeEGP: taxAmountEGP,
-      reason: '14% Standard VAT Applied',
-      resultingSubtotalEGP: finalAmountEGP,
-    })
+    if (totalDiscount > 0) {
+      auditTrace.push({
+        stepName: 'DISCOUNTS_APPLIED',
+        amountChangeEGP: -totalDiscount,
+        reason: `Loyalty: ${loyaltyDiscount} EGP, Promotion: ${promotionDiscount} EGP, Coupon: ${couponDiscount} EGP`,
+        resultingSubtotalEGP: netBasePrice,
+      })
+    }
 
+    // 2. Enforce Sequence: VAT
+    const settings = await this.settingsProvider.getSettings()
+    let taxAmountEGP = 0
+    let finalAmountEGP = netBasePrice
+    const vatRate = settings.vatRate
+    const vatEnabled = settings.vatEnabled
+    const pricesIncludeVat = settings.pricesIncludeVat
+
+    if (vatEnabled && vatRate > 0) {
+      if (pricesIncludeVat) {
+        // VAT is already included in the price.
+        // Formula: Tax = Price - (Price / (1 + Rate))
+        const netBaseWithoutVat = netBasePrice / (1 + vatRate)
+        taxAmountEGP = Math.round((netBasePrice - netBaseWithoutVat) * 100) / 100
+        // finalAmountEGP remains netBasePrice since VAT is already included
+      } else {
+        // VAT is not included, add it on top
+        taxAmountEGP = Math.round(netBasePrice * vatRate * 100) / 100
+        finalAmountEGP = netBasePrice + taxAmountEGP
+      }
+
+      auditTrace.push({
+        stepName: `TAX_VAT_${Math.round(vatRate * 100)}`,
+        amountChangeEGP: pricesIncludeVat ? 0 : taxAmountEGP,
+        reason: pricesIncludeVat
+          ? `${Math.round(vatRate * 100)}% VAT Included in Price (${taxAmountEGP} EGP)`
+          : `${Math.round(vatRate * 100)}% Standard VAT Applied on Net Price`,
+        resultingSubtotalEGP: finalAmountEGP,
+      })
+    } else {
+      auditTrace.push({
+        stepName: 'TAX_VAT_DISABLED',
+        amountChangeEGP: 0,
+        reason: 'VAT is disabled',
+        resultingSubtotalEGP: finalAmountEGP,
+      })
+    }
+
+    // 3. Enforce Sequence: Conversion
     const targetCurrency = (context.displayCurrency || 'EGP').toUpperCase()
     const rate = await this.rateProvider.getExchangeRate('EGP', targetCurrency)
     const unroundedDisplay = finalAmountEGP * rate
@@ -85,7 +150,11 @@ export class PricingPipelineEngine {
       snapshotVersion: 'v1',
       pricingRuleVersion: 'v1.0.0',
       exchangeRateVersion: 'v1.0.0',
-      basePriceEGP: finalAmountEGP,
+      basePriceEGP,
+      loyaltyDiscountEGP: loyaltyDiscount,
+      promotionDiscountEGP: promotionDiscount,
+      couponDiscountEGP: couponDiscount,
+      subtotalEGP: finalAmountEGP,
       displayCurrency: targetCurrency,
       displayAmount,
       exchangeRateUsed: rate,
@@ -100,9 +169,10 @@ export class PricingPipelineEngine {
   async execute(params: {
     basePriceEGP: number
     loyaltyDiscount?: number
+    promotionDiscount?: number
+    couponDiscount?: number
     targetCurrency?: string
   }): Promise<{ snapshot: PricingSnapshotData }> {
-    const netBasePrice = Math.max(0, params.basePriceEGP - (params.loyaltyDiscount || 0))
     const context: PricingContext = {
       departureId: 'dep_101',
       experienceId: 1,
@@ -111,7 +181,11 @@ export class PricingPipelineEngine {
       bookingDate: new Date().toISOString(),
     }
 
-    const snapshot = await this.calculatePricingSnapshot(netBasePrice, context)
+    const snapshot = await this.calculatePricingSnapshot(params.basePriceEGP, context, {
+      loyalty: params.loyaltyDiscount,
+      promotion: params.promotionDiscount,
+      coupon: params.couponDiscount,
+    })
     return { snapshot }
   }
 }

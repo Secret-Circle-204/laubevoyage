@@ -1,7 +1,10 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { notFound } from 'next/navigation'
 import { Card, Badge, Button, CurrencyDisplay } from '@/components/ui'
+import { BookingDetailsLoader } from '@/application/dashboard/loaders'
 
 export const metadata: Metadata = {
   title: "Booking Confirmation & Voucher | L'Aube Voyage",
@@ -11,6 +14,15 @@ export const metadata: Metadata = {
 export default async function BookingConfirmationPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
   const bookingId = params.id
+
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value || 'en'
+  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+
+  const data = await BookingDetailsLoader.loadByNumber(bookingId, { locale, currency })
+  if (!data) {
+    notFound()
+  }
 
   return (
     <div className="py-16 bg-slate-50 dark:bg-slate-950 min-h-screen">
@@ -22,29 +34,29 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
 
           <div>
             <Badge variant="success" size="md" className="mb-2">
-              BOOKING CONFIRMED
+              BOOKING {data.status.toUpperCase()}
             </Badge>
             <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Thank You For Your Order!
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               Your reservation reference number is{' '}
-              <strong className="font-mono text-[#00aeef]">#LV-{bookingId.padStart(5, '0')}</strong>
+              <strong className="font-mono text-[#00aeef]">#LV-{data.bookingNumber.padStart(5, '0')}</strong>
             </p>
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-left space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500">Status:</span>
-              <span className="font-bold text-emerald-600 uppercase">Confirmed & Paid</span>
+              <span className="font-bold text-emerald-600 uppercase">{data.status === 'confirmed' ? 'Confirmed & Paid' : data.status}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Payment Snapshot:</span>
-              <CurrencyDisplay amountEGP={15000} size="sm" />
+              <CurrencyDisplay price={data.totalCost} size="sm" />
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Loyalty Points Earned:</span>
-              <span className="font-bold text-[#f58220]">+150 Points</span>
+              <span className="font-bold text-[#f58220]">+{data.pointsEarned} Points</span>
             </div>
           </div>
 

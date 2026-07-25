@@ -56,6 +56,7 @@ export const metadata = {
 }
 
 import { cookies } from 'next/headers'
+import { SessionResolver } from '@/application/auth/session-resolver'
 
 export default async function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
@@ -64,8 +65,9 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   const localeCookie = cookieStore.get('laube-locale')?.value as 'ar' | 'en' | 'fr' | undefined
   const currencyCookie = cookieStore.get('laube-currency')?.value as 'EGP' | 'USD' | 'EUR' | 'GBP' | 'SAR' | 'AED' | undefined
 
-  const initialLocale = localeCookie || 'en'
-  const initialCurrency = currencyCookie || 'EGP'
+  const session = await SessionResolver.resolve()
+  const initialLocale = localeCookie || session.preferredLanguage as any || 'en'
+  const initialCurrency = currencyCookie || session.preferredCurrency as any || 'EGP'
   const dir = initialLocale === 'ar' ? 'rtl' : 'ltr'
 
   return (
@@ -93,7 +95,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         className={`${inter.variable} ${playfair.variable} ${hornbill.variable} antialiased bg-[#231F20] text-slate-100 min-h-screen transition-colors duration-300`}
         suppressHydrationWarning
       >
-        <AppProviders initialLocale={initialLocale} initialCurrency={initialCurrency}>
+        <AppProviders initialLocale={initialLocale} initialCurrency={initialCurrency} initialSession={session}>
           {children}
         </AppProviders>
       </body>

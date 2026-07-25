@@ -22,10 +22,14 @@ export class DashboardProjection {
     }>
   }): CustomerPortalOverviewDTO {
     return {
-      customerName: data.customerName,
-      tier: data.tier,
+      customerId: 0,
+      fullName: data.customerName,
+      email: '',
+      tier: data.tier.toLowerCase() as 'explorer' | 'voyager' | 'elite',
       points: data.points,
+      nextTierProgressPercent: 0,
       activeBookingsCount: data.activeBookingsCount,
+      unreadNotificationsCount: 0,
       recentBookings: data.recentBookings.map((b) => ({
         id: b.id,
         reference: b.reference,
@@ -34,9 +38,13 @@ export class DashboardProjection {
         departureDate: b.departureDate,
         passengersCount: b.passengersCount,
         totalCost: {
-          amountEGP: b.totalCostEGP,
-          displayAmount: `${b.totalCostEGP.toLocaleString()} EGP`,
-          displayCurrency: 'EGP',
+          baseAmountEGP: b.totalCostEGP,
+          convertedAmount: b.totalCostEGP,
+          currencyCode: 'EGP',
+          currencySymbol: 'EGP',
+          formatted: `${b.totalCostEGP.toLocaleString()} EGP`,
+          exchangeRate: 1,
+          decimals: 2,
         },
         status: b.status,
       })),

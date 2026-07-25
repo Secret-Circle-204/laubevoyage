@@ -7,6 +7,7 @@ import { useLocale, useCurrency, useSession } from '@/providers'
 import { useTheme } from '@/providers/theme-provider'
 import { Button, Badge } from '@/components/ui'
 import { ThemeToggle } from './ThemeToggle'
+import { LanguageSwitcher } from './LanguageSwitcher'
 import type { LayoutDTO } from '@/application/layout/dto'
 
 export interface HeaderProps {
@@ -107,21 +108,12 @@ export function Header({ data }: HeaderProps) {
 
           {/* Locale Switcher */}
           {availableLocales.length > 0 && (
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as any)}
-              className={`text-xs font-bold rounded-lg px-2.5 py-1.5 border-0 cursor-pointer focus:ring-2 focus:ring-[#00aeef] ${
-                isDark
-                  ? 'bg-slate-800 text-slate-200'
-                  : 'bg-slate-100 text-slate-800'
-              }`}
-            >
-              {availableLocales.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.name || l.code.toUpperCase()}
-                </option>
-              ))}
-            </select>
+            <LanguageSwitcher
+              locale={locale}
+              setLocale={setLocale}
+              availableLocales={availableLocales}
+              isDark={isDark}
+            />
           )}
 
           {/* User Auth Portal Link */}
@@ -211,17 +203,12 @@ export function Header({ data }: HeaderProps) {
                 </select>
               )}
               {availableLocales.length > 0 && (
-                <select
-                  value={locale}
-                  onChange={(e) => setLocale(e.target.value as any)}
-                  className="bg-slate-800 text-white text-xs font-bold rounded-lg px-2 py-1"
-                >
-                  {availableLocales.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.name || l.code.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
+                <LanguageSwitcher
+                  locale={locale}
+                  setLocale={setLocale}
+                  availableLocales={availableLocales}
+                  isDark={true}
+                />
               )}
             </div>
 

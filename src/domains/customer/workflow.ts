@@ -53,8 +53,14 @@ export class CustomerWorkflowEngine {
   /**
    * Register customer workflow.
    */
-  async executeRegisterWorkflow(email: string, firstName: string, lastName: string): Promise<CustomerAggregate> {
-    const customer = await this.identity.registerCustomer(email, firstName, lastName)
+  async executeRegisterWorkflow(
+    email: string,
+    firstName: string,
+    lastName: string,
+    password?: string,
+    options?: { eventSource?: 'domain' | 'external' },
+  ): Promise<CustomerAggregate> {
+    const customer = await this.identity.registerCustomer(email, firstName, lastName, password, options)
 
     await this.eventOutbox.recordAndPublish({
       type: 'CUSTOMER_REGISTERED',

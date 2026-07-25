@@ -1,4 +1,4 @@
-import type { PriceDisplayViewModel } from '../shared/view-models/price-display'
+import type { ConvertedPrice } from '@/domains/currency/types'
 
 export interface DepartureSlotDTO {
   id: number
@@ -24,11 +24,15 @@ export interface ExperienceDetailsDTO {
   durationDays: number
   rating: number
   reviewsCount: number
-  basePrice: PriceDisplayViewModel
+  initialAdults: number
   descriptionHtml: string
   images: string[]
   itinerary: ItineraryDayDTO[]
   departureSlots: DepartureSlotDTO[]
   includedServices: string[]
   excludedServices: string[]
+  pricing: {
+    unitPrice: ConvertedPrice
+    totalPrice: ConvertedPrice
+  }
 }

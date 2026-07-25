@@ -96,7 +96,7 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
                 </div>
 
                 <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-white/10">
-                  <CurrencyDisplay amountEGP={booking.totalCost.amountEGP} size="sm" />
+                  <CurrencyDisplay price={booking.totalCost} size="sm" />
                   <Link href={`/dashboard/bookings/${booking.id}`}>
                     <button className="mt-2 px-4 py-1.5 text-xs uppercase tracking-wider font-semibold border border-[#00aeef]/40 text-[#00aeef] hover:bg-[#00aeef] hover:text-white rounded-lg transition-colors">
                       Voucher PDF

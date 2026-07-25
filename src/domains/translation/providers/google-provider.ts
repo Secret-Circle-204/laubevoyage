@@ -1,6 +1,6 @@
-import type { TranslationProvider } from '../contracts/translation-provider'
+import type { ITranslationProvider } from './provider.interface'
 
-export class GoogleTranslationProvider implements TranslationProvider {
+export class GoogleTranslationProvider implements ITranslationProvider {
   readonly providerId = 'google'
 
   async translateText(text: string, targetLocale: string, sourceLocale = 'en'): Promise<string> {
@@ -34,6 +34,24 @@ export class GoogleTranslationProvider implements TranslationProvider {
   }
 
   async translateBatch(texts: string[], targetLocale: string, sourceLocale = 'en'): Promise<string[]> {
+    if (!texts || texts.length === 0) return []
+    if (targetLocale === sourceLocale) return texts
+
+    const DELIMITER = ' ||| '
+    const combinedText = texts.join(DELIMITER)
+
+    try {
+      const translatedCombined = await this.translateText(combinedText, targetLocale, sourceLocale)
+      const translatedParts = translatedCombined.split(/\s*\|\|\|\s*/)
+
+      if (translatedParts.length === texts.length) {
+        return translatedParts.map((t) => t.trim())
+      }
+    } catch (err: unknown) {
+      console.warn('[GoogleTranslationProvider] Batch delimiter split failed, falling back:', err)
+    }
+
+    // Fallback to parallel execution if delimiter splitting is mismatched
     return Promise.all(texts.map((t) => this.translateText(t, targetLocale, sourceLocale)))
   }
 

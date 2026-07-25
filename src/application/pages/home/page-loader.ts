@@ -1,4 +1,5 @@
 import { getDomainServices } from '@/domains/factory'
+import { getBusinessDateString } from '@/lib/date'
 import type { HomeDTO } from './dto'
 
 export class HomePageLoader {
@@ -7,17 +8,35 @@ export class HomePageLoader {
     const currency = params?.currency || 'EGP'
 
     try {
-      const { destination, localization } = await getDomainServices()
+      const { destination, localization, experience } = await getDomainServices()
       const ctx = localization.buildContext({ language: locale as any, currency: currency as any })
 
       const overview = await destination.getHomePageOverview(currency)
 
+      // Collect all raw texts for 1 Single Batch Request
+      const rawTexts: string[] = []
+
+      for (const doc of overview.featuredExperiences || []) {
+        if (doc.title) rawTexts.push(doc.title)
+        const sub = (doc as any).subtitle
+        if (sub) rawTexts.push(sub)
+      }
+
+      for (const doc of overview.topCountries || []) {
+        if (doc.name) rawTexts.push(doc.name)
+      }
+
+      const translatedTexts = await localization.translateBatch(rawTexts, ctx)
+      let textIdx = 0
+
+      const todayStr = getBusinessDateString(ctx.timezone)
+
       const featuredExperiences = await Promise.all(
         (overview.featuredExperiences || []).map(async (doc: any) => {
-          const rawPriceEGP = doc.basePriceEGP || 0
-          const pricingResult = await localization.formatPrice(rawPriceEGP, ctx)
-          const translatedTitle = await localization.translateText(doc.title || '', ctx)
-          const translatedSubtitle = await localization.translateText(doc.subtitle || '', ctx)
+          const basePriceEGP = await experience.resolveStartingPrice(Number(doc.id), todayStr)
+          const pricingResult = await localization.formatPrice(basePriceEGP, ctx)
+          const translatedTitle = doc.title ? (translatedTexts[textIdx++] || String(doc.title)) : ''
+          const translatedSubtitle = doc.subtitle ? (translatedTexts[textIdx++] || String(doc.subtitle)) : ''
 
           return {
             id: Number(doc.id),
@@ -30,30 +49,23 @@ export class HomePageLoader {
             durationDays: doc.durationDays || 1,
             rating: doc.rating || 0,
             reviewsCount: doc.reviewsCount || 0,
-            price: {
-              amountEGP: rawPriceEGP,
-              displayAmount: pricingResult.displayAmount,
-              displayCurrency: pricingResult.displayCurrency,
-              formatted: pricingResult.formatted,
-            },
+            price: pricingResult,
           }
         }),
       )
 
-      const topDestinations = await Promise.all(
-        (overview.topCountries || []).map(async (doc: any) => {
-          const translatedCountryName = await localization.translateText(doc.name || '', ctx)
-          return {
-            id: Number(doc.id),
-            countryName: translatedCountryName,
-            cityName: translatedCountryName,
-            countrySlug: doc.slug || '',
-            citySlug: doc.slug || '',
-            imageUrl: doc.bannerImage?.url || '',
-            experiencesCount: doc.experiencesCount || 0,
-          }
-        }),
-      )
+      const topDestinations = (overview.topCountries || []).map((doc: any) => {
+        const translatedCountryName = doc.name ? (translatedTexts[textIdx++] || String(doc.name)) : ''
+        return {
+          id: Number(doc.id),
+          countryName: translatedCountryName,
+          cityName: translatedCountryName,
+          countrySlug: doc.slug || '',
+          citySlug: doc.slug || '',
+          imageUrl: doc.bannerImage?.url || '',
+          experiencesCount: doc.experiencesCount || 0,
+        }
+      })
 
       return {
         hero: {

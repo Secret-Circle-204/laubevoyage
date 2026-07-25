@@ -4,6 +4,7 @@ import { catalogRegistry } from './catalog-registry'
 import { CurrencyRepository } from './repository'
 import { CompositeExchangeRateProvider } from './providers/composite-provider'
 import type { ExchangeRateProvider } from './providers/types'
+import { ExchangeRateUnavailableError } from './types'
 
 /**
  * Currency Domain Service
@@ -13,6 +14,7 @@ import type { ExchangeRateProvider } from './providers/types'
 export class CurrencyService {
   private repository: CurrencyRepository
   private rateProvider: ExchangeRateProvider
+  private static syncPromise: Promise<{ success: boolean; message: string; timestamp: string }> | null = null
 
   constructor(repository: CurrencyRepository, rateProvider?: ExchangeRateProvider) {
     this.repository = repository
@@ -27,7 +29,9 @@ export class CurrencyService {
   }
 
   async markAllStale(errorMessage: string, attemptTime: string) {
-    return this.repository.markAllStale(errorMessage, attemptTime)
+    const result = await this.repository.markAllStale(errorMessage, attemptTime)
+    rateRegistry.invalidate()
+    return result
   }
 
   async upsertRate(params: {
@@ -38,7 +42,9 @@ export class CurrencyService {
     syncStatus: 'synced' | 'failed' | 'stale'
     timestamp: string
   }) {
-    return this.repository.upsertRate(params)
+    const result = await this.repository.upsertRate(params)
+    rateRegistry.invalidate()
+    return result
   }
 
   async syncExchangeRates(): Promise<{ success: boolean; message: string; timestamp: string }> {
@@ -62,12 +68,18 @@ export class CurrencyService {
       return { success: false, message: 'All providers failed. Kept old rates but marked as STALE.', timestamp: now }
     }
 
+    const activeCurrencies = await this.repository.findActiveCurrencies()
+    const activeIsoCodes = new Set(activeCurrencies.docs.map(c => c.isoCode.toUpperCase()))
+
     let updated = 0
     for (const [currency, rate] of Object.entries(rates)) {
       if (!rate) continue
+      const currencyUpper = currency.toUpperCase()
+      if (!activeIsoCodes.has(currencyUpper)) continue
+
       await this.repository.upsertRate({
         fromCurrency: 'EGP',
-        toCurrency: currency,
+        toCurrency: currencyUpper,
         rate,
         source,
         syncStatus,
@@ -91,6 +103,40 @@ export class CurrencyService {
   }
 
   /**
+   * Run syncExchangeRates with a single-flight mutex and a 10s timeout to prevent API spamming
+   */
+  async syncExchangeRatesSingleFlight(): Promise<{ success: boolean; message: string; timestamp: string }> {
+    if (CurrencyService.syncPromise) {
+      console.log('[CurrencySync] Existing sync detected. Awaiting...')
+      return CurrencyService.syncPromise
+    }
+
+    console.log('[CurrencySync] Starting auto-sync...')
+
+    let timeoutId: NodeJS.Timeout
+    const timeoutPromise = new Promise<{ success: boolean; message: string; timestamp: string }>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Sync timed out after 10000ms')), 10000)
+    })
+
+    CurrencyService.syncPromise = Promise.race([
+      this.syncExchangeRates(),
+      timeoutPromise
+    ]).finally(() => {
+      clearTimeout(timeoutId)
+      CurrencyService.syncPromise = null
+    })
+
+    try {
+      const result = await CurrencyService.syncPromise
+      console.log('[CurrencySync] Auto-sync completed.')
+      return result
+    } catch (err: unknown) {
+      console.error('[CurrencySync] Auto-sync failed:', err)
+      throw err
+    }
+  }
+
+  /**
    * Get exchange rate between two currencies
    */
   async getRate(from: CurrencyCode, to: CurrencyCode): Promise<number> {
@@ -98,9 +144,23 @@ export class CurrencyService {
       throw new Error('Base currency must be EGP')
     }
 
-    const rateData = await rateRegistry.getRate(to, this.repository)
+    let rateData = await rateRegistry.getRate(to, this.repository)
     if (!rateData) {
-      throw new Error(`Exchange rate not found for EGP to ${to}`)
+      console.warn(`[CurrencyService] Exchange rate for ${to} not found. Triggering auto-sync...`)
+      try {
+        await this.syncExchangeRatesSingleFlight()
+      } catch (err: unknown) {
+        console.error('[CurrencyService] Auto-sync failed during rate lookup:', err)
+      }
+      rateData = await rateRegistry.getRate(to, this.repository)
+    }
+
+    if (!rateData) {
+      console.error(
+        `[CurrencyService] Conversion failed: Exchange rate from ${from} to ${to} is completely missing in database and cache after sync attempt. ` +
+        `Timestamp: ${new Date().toISOString()}`
+      )
+      throw new ExchangeRateUnavailableError(from, to, 'Rate missing in database and cache')
     }
 
     return rateData.rate

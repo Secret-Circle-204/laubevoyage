@@ -23,6 +23,10 @@ describe('Layer 8: Concurrency & Seat Race Condition Tests', () => {
       if (collection === 'experiences') {
         return Promise.resolve({
           id: 12,
+          title: 'Luxury Voyage',
+          slug: 'luxury-voyage',
+          type: 'package',
+          city: 1,
           price: 5000,
           availability: availableSeats > 0 ? 'available' : 'sold_out',
         })
@@ -31,6 +35,23 @@ describe('Layer 8: Concurrency & Seat Race Condition Tests', () => {
         return Promise.resolve({ id: 5, status: 'active' })
       }
       return Promise.resolve(null)
+    })
+
+    mockPayload.find.mockImplementation(({ collection }: { collection: string }) => {
+      if (collection === 'departure-slots') {
+        return Promise.resolve({
+          docs: [{
+            id: 1,
+            departureId: 'dep-123',
+            experience: 12,
+            date: '2026-08-01',
+            capacityTotal: 10,
+            capacityAvailable: availableSeats,
+            status: 'available',
+          }]
+        })
+      }
+      return Promise.resolve({ docs: [] })
     })
 
     mockPayload.create.mockImplementation((params: any) => {
@@ -56,6 +77,7 @@ describe('Layer 8: Concurrency & Seat Race Condition Tests', () => {
           travelers: [{ firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '+123456789' }],
           startDate: '2026-08-01',
           endDate: '2026-08-05',
+          source: 'website',
         })
         .then(() => 'success')
         .catch((err) => err.message),

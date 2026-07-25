@@ -94,14 +94,19 @@ export interface Config {
     posts: Post;
     redirects: Redirect;
     reviews: Review;
-    translations: Translation;
     coupons: Coupon;
+    languages: Language;
+    'departure-slots': DepartureSlot;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    experiences: {
+      departureSlots: 'departure-slots';
+    };
+  };
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
@@ -129,8 +134,9 @@ export interface Config {
     posts: PostsSelect<false> | PostsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
-    translations: TranslationsSelect<false> | TranslationsSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
+    languages: LanguagesSelect<false> | LanguagesSelect<true>;
+    'departure-slots': DepartureSlotsSelect<false> | DepartureSlotsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -140,8 +146,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'system-settings': SystemSetting;
+  };
+  globalsSelect: {
+    'system-settings': SystemSettingsSelect<false> | SystemSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -425,9 +435,9 @@ export interface Experience {
     nights?: number | null;
   };
   /**
-   * Base price in EGP
+   * Base catalog price in EGP (Applicable for Daily Tours).
    */
-  price: number;
+  price?: number | null;
   availability: 'available' | 'sold_out' | 'coming_soon' | 'unavailable';
   included?:
     | {
@@ -462,6 +472,37 @@ export interface Experience {
     description?: string | null;
     keywords?: string | null;
   };
+  /**
+   * Manage dates and prices for this experience. For Packages/Cruises, pricing per-slot is mandatory.
+   */
+  departureSlots?: {
+    docs?: (number | DepartureSlot)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "departure-slots".
+ */
+export interface DepartureSlot {
+  id: number;
+  departureId: string;
+  experience: number | Experience;
+  date: string;
+  startTime?: string | null;
+  /**
+   * Optional price override in EGP for this slot. Falls back to Experience catalog price if left blank.
+   */
+  basePriceEGP?: number | null;
+  capacityTotal: number;
+  capacityReserved: number;
+  capacitySold: number;
+  capacityAvailable: number;
+  version: number;
+  status: 'available' | 'sold_out' | 'blacked_out' | 'cancelled';
   updatedAt: string;
   createdAt: string;
 }
@@ -1102,19 +1143,6 @@ export interface Review {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "translations".
- */
-export interface Translation {
-  id: number;
-  translationKey: string;
-  locale: string;
-  translatedText: string;
-  provider: 'cache' | 'google' | 'libre' | 'manual';
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "coupons".
  */
 export interface Coupon {
@@ -1130,6 +1158,45 @@ export interface Coupon {
   status: 'active' | 'inactive' | 'expired';
   validFrom?: string | null;
   validUntil?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Master catalog of active and supported website languages.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "languages".
+ */
+export interface Language {
+  id: number;
+  /**
+   * Administrative language name (e.g. English, Arabic)
+   */
+  name: string;
+  /**
+   * Language name as shown in the UI switcher (e.g. English, العربية, Français)
+   */
+  nativeName: string;
+  /**
+   * ISO language code (e.g. en, ar, fr)
+   */
+  code: string;
+  /**
+   * Check if this language is read Right-to-Left (e.g. Arabic)
+   */
+  isRTL?: boolean | null;
+  /**
+   * Enable or disable this language site-wide
+   */
+  isActive?: boolean | null;
+  /**
+   * Set as the fallback language for the entire platform
+   */
+  isDefault?: boolean | null;
+  /**
+   * Order of appearance in the language switcher dropdown
+   */
+  displayOrder?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1262,12 +1329,16 @@ export interface PayloadLockedDocument {
         value: number | Review;
       } | null)
     | ({
-        relationTo: 'translations';
-        value: number | Translation;
-      } | null)
-    | ({
         relationTo: 'coupons';
         value: number | Coupon;
+      } | null)
+    | ({
+        relationTo: 'languages';
+        value: number | Language;
+      } | null)
+    | ({
+        relationTo: 'departure-slots';
+        value: number | DepartureSlot;
       } | null);
   globalSlug?: string | null;
   user:
@@ -1522,6 +1593,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
         description?: T;
         keywords?: T;
       };
+  departureSlots?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1894,18 +1966,6 @@ export interface ReviewsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "translations_select".
- */
-export interface TranslationsSelect<T extends boolean = true> {
-  translationKey?: T;
-  locale?: T;
-  translatedText?: T;
-  provider?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "coupons_select".
  */
 export interface CouponsSelect<T extends boolean = true> {
@@ -1920,6 +1980,40 @@ export interface CouponsSelect<T extends boolean = true> {
   status?: T;
   validFrom?: T;
   validUntil?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "languages_select".
+ */
+export interface LanguagesSelect<T extends boolean = true> {
+  name?: T;
+  nativeName?: T;
+  code?: T;
+  isRTL?: T;
+  isActive?: T;
+  isDefault?: T;
+  displayOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "departure-slots_select".
+ */
+export interface DepartureSlotsSelect<T extends boolean = true> {
+  departureId?: T;
+  experience?: T;
+  date?: T;
+  startTime?: T;
+  basePriceEGP?: T;
+  capacityTotal?: T;
+  capacityReserved?: T;
+  capacitySold?: T;
+  capacityAvailable?: T;
+  version?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1962,6 +2056,58 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "system-settings".
+ */
+export interface SystemSetting {
+  id: number;
+  /**
+   * Standard VAT percentage (e.g. 14 for 14%)
+   */
+  vatRate: number;
+  /**
+   * Are experience base catalog prices inclusive of VAT?
+   */
+  pricesIncludeVat?: boolean | null;
+  /**
+   * Toggle standard VAT calculation on/off in pricing calculations
+   */
+  vatEnabled?: boolean | null;
+  /**
+   * Core system base currency (Locked to EGP)
+   */
+  baseCurrency: number | Currency;
+  /**
+   * Default currency to display to users (e.g., EGP)
+   */
+  defaultDisplayCurrency: number | Currency;
+  autoSyncExchangeRates?: boolean | null;
+  /**
+   * Frequency of exchange rate synchronization (used by Cron/Scheduler, not by Pipeline)
+   */
+  exchangeSyncInterval?: number | null;
+  exchangeRateCacheTtl?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "system-settings_select".
+ */
+export interface SystemSettingsSelect<T extends boolean = true> {
+  vatRate?: T;
+  pricesIncludeVat?: T;
+  vatEnabled?: T;
+  baseCurrency?: T;
+  defaultDisplayCurrency?: T;
+  autoSyncExchangeRates?: T;
+  exchangeSyncInterval?: T;
+  exchangeRateCacheTtl?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

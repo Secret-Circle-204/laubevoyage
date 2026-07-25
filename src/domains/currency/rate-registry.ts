@@ -13,7 +13,8 @@ class ExchangeRateRegistry {
   private cache: Map<string, ExchangeRateData> = new Map()
   private initialized = false
   private lastLoadedAt = 0
-  private readonly TTL_MS = 15 * 60 * 1000
+  private readonly TTL_MS = 30 * 60 * 1000
+  private repository?: CurrencyRepository
 
   private baseCurrency = 'EGP'
 
@@ -25,8 +26,8 @@ class ExchangeRateRegistry {
       source: 'System',
       lastUpdate: new Date().toISOString(),
     })
-    this.initialized = true
-    this.lastLoadedAt = Date.now()
+    this.initialized = false
+    this.lastLoadedAt = 0
   }
 
   public static getInstance(): ExchangeRateRegistry {
@@ -36,7 +37,12 @@ class ExchangeRateRegistry {
     return ExchangeRateRegistry.instance
   }
 
+  public setRepository(repository: CurrencyRepository): void {
+    this.repository = repository
+  }
+
   public async load(repository?: CurrencyRepository): Promise<void> {
+    const repo = repository || this.repository
     const newCache = new Map<string, ExchangeRateData>()
     newCache.set(this.baseCurrency, {
       fromCurrency: this.baseCurrency,
@@ -46,9 +52,9 @@ class ExchangeRateRegistry {
       lastUpdate: new Date().toISOString(),
     })
 
-    if (repository) {
+    if (repo) {
       try {
-        const { docs } = await repository.findExchangeRates(this.baseCurrency)
+        const { docs } = await repo.findExchangeRates(this.baseCurrency)
         for (const doc of docs) {
           newCache.set(doc.toCurrency, {
             fromCurrency: doc.fromCurrency,
@@ -69,15 +75,17 @@ class ExchangeRateRegistry {
   }
 
   public async getRate(targetCurrency: string, repository?: CurrencyRepository): Promise<ExchangeRateData | undefined> {
+    const repo = repository || this.repository
     const isStale = Date.now() - this.lastLoadedAt > this.TTL_MS
     if (!this.initialized || isStale) {
-      await this.load(repository)
+      await this.load(repo)
     }
     return this.cache.get(targetCurrency)
   }
 
   public invalidate(): void {
     this.initialized = false
+    this.lastLoadedAt = 0
   }
 }
 

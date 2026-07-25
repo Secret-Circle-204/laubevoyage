@@ -9,7 +9,7 @@ import { BookingNumberGenerator } from './number-generator'
 import { LoyaltyService } from '../loyalty/service'
 import { PricingPipeline } from '../currency/pipeline'
 import { CustomerRepository } from '../customer/repository'
-import { ExperienceRepository } from '../experience/repository'
+import { ExperienceService } from '../experience/service'
 
 /**
  * Booking Creator Sub-Service
@@ -18,26 +18,27 @@ import { ExperienceRepository } from '../experience/repository'
 export class BookingCreator {
   private repository: BookingRepository
   private customerRepository: CustomerRepository
-  private experienceRepository: ExperienceRepository
+  private experienceService: ExperienceService
   private loyaltyService: LoyaltyService
   private pricingPipeline: PricingPipeline
 
   constructor(
     repository: BookingRepository,
     customerRepository: CustomerRepository,
-    experienceRepository: ExperienceRepository,
+    experienceService: ExperienceService,
     loyaltyService: LoyaltyService,
+    pricingPipeline: PricingPipeline,
   ) {
     this.repository = repository
     this.customerRepository = customerRepository
-    this.experienceRepository = experienceRepository
+    this.experienceService = experienceService
     this.loyaltyService = loyaltyService
-    this.pricingPipeline = new PricingPipeline()
+    this.pricingPipeline = pricingPipeline
   }
 
   async createDraft(params: CreateBookingParams): Promise<BookingAggregate> {
-    // 1. Fetch experience and customer via repositories
-    const experience = await this.experienceRepository.findById(params.experienceId)
+    // 1. Fetch experience and customer via service / repository
+    const experience = await this.experienceService.getById(params.experienceId)
     const customer = await this.customerRepository.findById(params.userId)
 
     // 2. Validate policy
@@ -59,10 +60,16 @@ export class BookingCreator {
       pointsValueEGP = await this.loyaltyService.calculatePointValueInEGP(pointsRedeemed)
     }
 
-    // 4. Generate Pricing Snapshot
+    // 4. Generate Pricing Snapshot from the resolved bookable departure price (Single Source of Truth)
+    const slot = await this.experienceService.getDepartureSlotByDate(experience.id, params.startDate)
+    if (!slot) {
+      throw new Error(`[BookingCreator] Departure slot on date ${params.startDate} not found for experience ${experience.id}.`)
+    }
+    const departure = this.experienceService.assembleBookableDeparture(experience, slot)
+
     const targetCurrency = params.currency || 'EGP'
     const { snapshot } = await this.pricingPipeline.execute({
-      basePriceEGP: experience.basePriceEGP,
+      basePriceEGP: departure.basePriceEGP,
       loyaltyDiscount: pointsValueEGP,
       targetCurrency,
     })
@@ -96,7 +103,7 @@ export class BookingCreator {
       travelers: params.travelers,
       startDate: params.startDate,
       endDate: params.endDate,
-      source: params.source || 'website',
+      source: params.source,
       version: 1,
       pricingSnapshot: {
         ...snapshot,

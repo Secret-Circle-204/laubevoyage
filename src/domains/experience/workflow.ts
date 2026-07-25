@@ -1,3 +1,4 @@
+import type { Payload } from 'payload'
 import { ExperienceRepository } from './repository'
 import { InventoryManager } from './inventory'
 import { ExperienceSearchService } from './search'
@@ -5,6 +6,8 @@ import { ExperienceQueries } from './queries'
 import { PricingPipelineEngine, type PricingSnapshotData } from '../currency/pipeline'
 import type { PricingContext, DepartureSlotEntity } from './types'
 import { EventBus } from '../events/event-bus'
+import { BasePriceResolver } from './base-price-resolver'
+import { BookableDepartureAssembler } from './bookable-departure-assembler'
 
 /**
  * Experience Workflow Engine
@@ -17,14 +20,25 @@ export class ExperienceWorkflowEngine {
   public inventoryManager: InventoryManager
   public searchService: ExperienceSearchService
   public queries: ExperienceQueries
+  public priceResolver: BasePriceResolver
+  public departureAssembler: BookableDepartureAssembler
   private eventBus: EventBus
 
-  constructor(repository: ExperienceRepository) {
-    this.repository = repository
-    this.pipelineEngine = new PricingPipelineEngine()
+  constructor(repository: ExperienceRepository | Payload, pipelineEngine?: PricingPipelineEngine) {
+    const activePayload = repository && 'find' in repository ? (repository as Payload) : undefined
+    const isRepo = repository && typeof repository === 'object' && 'findById' in repository
+
+    if (isRepo) {
+      this.repository = repository as unknown as ExperienceRepository
+    } else {
+      this.repository = new ExperienceRepository(activePayload!)
+    }
+    this.pipelineEngine = pipelineEngine || new (PricingPipelineEngine as any)()
     this.inventoryManager = new InventoryManager(this.repository)
     this.searchService = new ExperienceSearchService(this.repository)
     this.queries = new ExperienceQueries(this.repository)
+    this.priceResolver = new BasePriceResolver()
+    this.departureAssembler = new BookableDepartureAssembler(this.priceResolver)
     this.eventBus = EventBus.getInstance()
   }
 

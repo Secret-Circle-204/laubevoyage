@@ -1,22 +1,62 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Badge, Card, Rating, CurrencyDisplay, Button } from '@/components/ui'
 import type { ExperienceDetailsDTO } from '@/application/experience/dto-details'
+import { useCurrency } from '@/providers'
+import { resolvePricingAction } from '@/application/actions/pricing-actions'
+import type { ConvertedPrice } from '@/domains/currency/types'
 
 export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) {
   const router = useRouter()
+  const { currency } = useCurrency()
   const [selectedSlotId, setSelectedSlotId] = useState<number>(data.departureSlots[0]?.id || 1)
-  const [adults, setAdults] = useState<number>(2)
+  const [adults, setAdults] = useState<number>(data.initialAdults)
+
+  const [pricingState, setPricingState] = useState<{
+    unitPrice: ConvertedPrice
+    totalPrice: ConvertedPrice
+  }>(data.pricing)
+  const [loadingPrice, setLoadingPrice] = useState(false)
+
+  const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    // Skip initial fetch on mount since the server pre-rendered the initial totalPrice
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+
+    let active = true
+
+    async function updatePrice() {
+      setLoadingPrice(true)
+      const res = await resolvePricingAction({
+        experienceId: data.id,
+        slotId: selectedSlotId,
+        adults,
+        currency,
+      })
+      if (active && res.success && res.pricing) {
+        setPricingState(res.pricing)
+        setLoadingPrice(false)
+      }
+    }
+    updatePrice()
+    return () => {
+      active = false
+    }
+  }, [adults, currency, selectedSlotId, data.id])
 
   const handleProceedToCheckout = () => {
     // Navigates to transactional checkout engine with experience details
     router.push(`/checkout/new?experienceId=${data.id}&slotId=${selectedSlotId}&adults=${adults}`)
   }
 
-  const totalPriceEGP = data.basePrice.amountEGP * adults
+  const displayPrice = pricingState.totalPrice
 
   return (
     <div className="py-16 bg-white dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
@@ -55,9 +95,9 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
             <Card variant="elevated" padding="lg" className="sticky top-28 flex flex-col gap-6">
               <div>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Starting From
+                  Price Per Person
                 </span>
-                <CurrencyDisplay amountEGP={data.basePrice.amountEGP} size="xl" />
+                <CurrencyDisplay price={pricingState.unitPrice} size="xl" />
                 <span className="text-xs text-slate-500 block mt-1">Per Person • Taxes Included</span>
               </div>
 
@@ -107,7 +147,9 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
               {/* Total Calculation */}
               <div className="flex items-center justify-between pt-2">
                 <span className="text-sm font-bold">Total Cost</span>
-                <CurrencyDisplay amountEGP={totalPriceEGP} size="lg" />
+                <div className={loadingPrice ? 'opacity-50 transition-opacity duration-200' : 'transition-opacity duration-200'}>
+                  <CurrencyDisplay price={displayPrice} size="lg" />
+                </div>
               </div>
 
               <Button variant="accent" size="lg" className="w-full font-bold shadow-xl" onClick={handleProceedToCheckout}>

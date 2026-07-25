@@ -1,5 +1,37 @@
 import type { Payload } from 'payload'
 
+function toLexical(text: string) {
+  return {
+    root: {
+      type: 'root',
+      format: '' as const,
+      indent: 0,
+      version: 1,
+      children: [
+        {
+          type: 'paragraph',
+          format: '' as const,
+          indent: 0,
+          version: 1,
+          children: [
+            {
+              type: 'text',
+              text: text || '',
+              version: 1,
+              detail: 0,
+              format: 0,
+              mode: 'normal' as const,
+              style: '',
+            },
+          ],
+          direction: 'ltr' as const,
+        },
+      ],
+      direction: 'ltr' as const,
+    },
+  } as any
+}
+
 export interface SeededDestinationsResult {
   countries: Record<string, any>
   cities: Record<string, any>
@@ -200,7 +232,7 @@ export async function seedDestinations(payload: Payload): Promise<SeededDestinat
           slug: countryData.slug,
           code: countryData.code,
           isActive: true,
-          description: countryData.description,
+          description: toLexical(countryData.description),
         },
       })
     } catch {
@@ -226,7 +258,7 @@ export async function seedDestinations(payload: Payload): Promise<SeededDestinat
               slug: cityData.slug,
               country: countryDoc.id,
               isActive: true,
-              description: cityData.description,
+              description: toLexical(cityData.description),
             },
           })
         } catch {

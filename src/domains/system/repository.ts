@@ -14,6 +14,13 @@ export class SystemRepository {
     this.payload = payload
   }
 
+  async getSystemSettings() {
+    return this.payload.findGlobal({
+      slug: 'system-settings',
+      depth: 1,
+    })
+  }
+
   async getHealthReport(): Promise<SystemHealthReportDTO> {
     return MasterSystemTelemetry.getMasterHealthReport()
   }

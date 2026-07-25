@@ -4,7 +4,7 @@ import { PaymobPaymentProvider } from '../providers/paymob-provider'
 import { BnplPaymentProvider } from '../providers/bnpl-provider'
 
 export class PaymentProviderFactory {
-  private static providers: Map<string, PaymentProvider> = new Map([
+  private static providers: Map<string, PaymentProvider> = new Map<string, PaymentProvider>([
     ['stripe', new StripePaymentProvider()],
     ['paymob', new PaymobPaymentProvider()],
     ['fawry', new PaymobPaymentProvider()],

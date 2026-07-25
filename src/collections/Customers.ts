@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { afterUserCreate } from './hooks/afterUserCreate'
+import { beforeCustomerDelete } from './hooks/beforeCustomerDelete'
 
 export const Customers: CollectionConfig = {
   slug: 'customers',
@@ -11,6 +12,7 @@ export const Customers: CollectionConfig = {
     defaultColumns: ['email', 'firstName', 'lastName', 'status'],
   },
   hooks: {
+    beforeDelete: [beforeCustomerDelete],
     afterChange: [afterUserCreate],
   },
   fields: [

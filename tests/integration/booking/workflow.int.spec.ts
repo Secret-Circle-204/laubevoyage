@@ -17,13 +17,38 @@ describe('Layer 5: BookingWorkflowEngine Integration Tests', () => {
   })
 
   it('should execute full checkout workflow creating draft booking with holds & snapshot', async () => {
-    const mockExperience = { id: 12, price: 5000, availability: 'available' }
+    const mockExperience = {
+      id: 12,
+      title: 'Luxury Voyage',
+      slug: 'luxury-voyage',
+      type: 'package',
+      city: 1,
+      price: 5000,
+      availability: 'available',
+    }
     const mockCustomer = { id: 5, status: 'active', fullName: 'John Doe', preferences: { preferredCurrency: 'EGP' } }
 
     mockPayload.findByID.mockImplementation(({ collection }: { collection: string }) => {
       if (collection === 'experiences') return Promise.resolve(mockExperience)
       if (collection === 'customers') return Promise.resolve(mockCustomer)
       return Promise.resolve(null)
+    })
+
+    mockPayload.find.mockImplementation(({ collection }: { collection: string }) => {
+      if (collection === 'departure-slots') {
+        return Promise.resolve({
+          docs: [{
+            id: 1,
+            departureId: 'dep-123',
+            experience: 12,
+            date: '2026-08-01',
+            capacityTotal: 10,
+            capacityAvailable: 10,
+            status: 'available',
+          }]
+        })
+      }
+      return Promise.resolve({ docs: [] })
     })
 
     const mockCreatedDoc = {
@@ -48,6 +73,7 @@ describe('Layer 5: BookingWorkflowEngine Integration Tests', () => {
       travelers: [{ firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '+123456789' }],
       startDate: '2026-08-01',
       endDate: '2026-08-05',
+      source: 'website',
     })
 
     expect(result.id).toBe(101)

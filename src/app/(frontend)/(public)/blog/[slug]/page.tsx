@@ -20,9 +20,13 @@ export async function generateMetadata(props: { params: Promise<{ slug: string }
   }
 }
 
+import { cookies } from 'next/headers'
+
 export default async function Page(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params
-  const article = await ArticleLoader.loadBySlug(params.slug)
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value || 'en'
+  const article = await ArticleLoader.loadBySlug(params.slug, { locale })
 
   if (!article) {
     notFound()

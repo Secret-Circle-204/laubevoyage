@@ -25,12 +25,21 @@ export class CustomerRepository {
     }
   }
 
-  async create(data: Record<string, unknown>, req?: PayloadRequest): Promise<any> {
-    return this.payload.create({
+  async create(
+    data: Record<string, unknown>,
+    options?: { eventSource?: 'domain' | 'external' },
+  ): Promise<CustomerAggregate> {
+    const req = options?.eventSource ? {
+      context: { eventSource: options.eventSource }
+    } as any : undefined
+
+    const doc = await this.payload.create({
       collection: 'customers',
       data: data as any,
       req,
     })
+
+    return this.mapDocToAggregate(doc)
   }
 
   async findById(customerId: number, req?: PayloadRequest): Promise<CustomerAggregate> {

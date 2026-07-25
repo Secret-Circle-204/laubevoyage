@@ -1,18 +1,40 @@
 import type { Payload } from 'payload'
 import { EventBus } from '../event-bus'
 import type { BookingConfirmedEvent } from '../booking-events'
-import type { PaymentCompletedEvent, PaymentFailedEvent } from '../payment-events'
+import type { PaymentCompletedEvent } from '../payment-events'
+import type { CustomerRegisteredEvent } from '../customer-events'
 import { NotificationService } from '../../notification/service'
 
 /**
  * Multi-Domain Notification Subscriber
- * Listens to Booking, Payment, and Loyalty domain events and enqueues notifications idempotently.
+ * Listens to Booking, Payment, and Loyalty/Customer domain events and enqueues notifications idempotently.
  */
 export function registerNotificationSubscribers(payload: Payload): void {
   const eventBus = EventBus.getInstance()
   const notificationService = new NotificationService(payload)
 
-  // 1. Booking Confirmed Event
+  // 1. Customer Registered Event -> Enqueue welcome email (Decoupled)
+  eventBus.subscribe<CustomerRegisteredEvent>('CUSTOMER_REGISTERED', async (event) => {
+    try {
+      console.log(`[NotificationSubscriber] Customer #${event.customerId} registered. Enqueuing welcome email...`)
+      await notificationService.enqueueNotification({
+        referenceType: 'WELCOME',
+        referenceId: String(event.customerId),
+        recipient: event.email,
+        channel: 'email',
+        category: 'marketing',
+        priority: 'normal',
+        templateId: 'welcome_email',
+        translationKey: 'customer.welcome',
+        templateData: { name: event.fullName || '' },
+      })
+      console.log(`[NotificationSubscriber] Welcome email enqueued successfully for customer #${event.customerId}.`)
+    } catch (err: any) {
+      console.error(`[NotificationSubscriber] Failed to enqueue welcome notification:`, err.message)
+    }
+  })
+
+  // 2. Booking Confirmed Event
   eventBus.subscribe<BookingConfirmedEvent>('BOOKING_CONFIRMED', async (event) => {
     try {
       await notificationService.enqueueNotification({
@@ -31,7 +53,7 @@ export function registerNotificationSubscribers(payload: Payload): void {
     }
   })
 
-  // 2. Payment Completed Event
+  // 3. Payment Completed Event
   eventBus.subscribe<PaymentCompletedEvent>('PAYMENT_COMPLETED', async (event) => {
     try {
       await notificationService.enqueueNotification({
@@ -50,6 +72,5 @@ export function registerNotificationSubscribers(payload: Payload): void {
     }
   })
 }
-
 
 export const registerNotificationSubscriber = registerNotificationSubscribers

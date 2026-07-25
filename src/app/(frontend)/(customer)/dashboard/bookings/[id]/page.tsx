@@ -1,7 +1,10 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { notFound } from 'next/navigation'
 import { Card, Badge, Button, CurrencyDisplay } from '@/components/ui'
+import { BookingDetailsLoader } from '@/application/dashboard/loaders'
 
 export const metadata: Metadata = {
   title: "Reservation Detail & Voucher | L'Aube Voyage Customer Portal",
@@ -11,6 +14,15 @@ export const metadata: Metadata = {
 export default async function BookingDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
   const bookingId = params.id
+
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value || 'en'
+  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+
+  const data = await BookingDetailsLoader.loadByNumber(bookingId, { locale, currency })
+  if (!data) {
+    notFound()
+  }
 
   return (
     <div className="flex flex-col gap-6 flex-grow">
@@ -25,14 +37,14 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
         </div>
 
         <Badge variant="success" size="md">
-          CONFIRMED
+          {data.status.toUpperCase()}
         </Badge>
       </div>
 
       <Card variant="flat" padding="lg" className="space-y-6">
         <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Cairo & Pyramids 3-Day Luxury Package</h2>
-          <span className="text-xs text-slate-500 mt-1 block">Departure Date: Oct 15, 2026 • 2 Passengers</span>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{data.experienceTitle}</h2>
+          <span className="text-xs text-slate-500 mt-1 block">Departure Date: {data.departureDate} • {data.passengersCount} Passengers</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
@@ -43,15 +55,15 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
             <div className="space-y-2 text-slate-600 dark:text-slate-400">
               <div className="flex justify-between">
                 <span>Base Price (EGP):</span>
-                <span className="font-bold text-slate-900 dark:text-white">15,000 EGP</span>
+                <span className="font-bold text-slate-900 dark:text-white">{data.basePriceText}</span>
               </div>
               <div className="flex justify-between">
                 <span>Exchange Rate Snapshot:</span>
-                <span className="font-mono">1 EGP = 0.02 USD</span>
+                <span className="font-mono">{data.exchangeRateText}</span>
               </div>
               <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-2 font-bold text-slate-900 dark:text-white">
                 <span>Total Paid:</span>
-                <CurrencyDisplay amountEGP={15000} size="sm" />
+                <CurrencyDisplay price={data.totalCost} size="sm" />
               </div>
             </div>
           </div>
@@ -63,7 +75,7 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
             <div className="space-y-2 text-slate-600 dark:text-slate-400">
               <div className="flex justify-between">
                 <span>Points Earned:</span>
-                <span className="font-bold text-[#f58220]">+150 pts</span>
+                <span className="font-bold text-[#f58220]">+{data.pointsEarned} pts</span>
               </div>
               <div className="flex justify-between">
                 <span>Ledger Status:</span>

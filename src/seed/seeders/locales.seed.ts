@@ -1,55 +1,73 @@
 import type { Payload } from 'payload'
 
-export interface LocaleSeedData {
-  translationKey: string
-  locale: string
-  translatedText: string
-  provider: 'cache' | 'google' | 'libre' | 'manual'
+export interface LanguageSeedData {
+  name: string
+  nativeName: string
+  code: string
+  isRTL: boolean
+  isActive: boolean
+  isDefault: boolean
+  displayOrder: number
 }
 
-/**
- * Recognized Languages Catalog Metadata Markers.
- * Static UI Infrastructure texts are stored in src/dictionaries/*.json for 0ms DB-free performance.
- */
-export const RECOGNIZED_LOCALES: LocaleSeedData[] = [
-  { translationKey: 'locale_name', locale: 'en', translatedText: 'English', provider: 'manual' },
-  { translationKey: 'locale_name', locale: 'ar', translatedText: 'العربية', provider: 'manual' },
-  { translationKey: 'locale_name', locale: 'fr', translatedText: 'Français', provider: 'manual' },
-  { translationKey: 'locale_name', locale: 'de', translatedText: 'Deutsch', provider: 'manual' },
-  { translationKey: 'locale_name', locale: 'es', translatedText: 'Español', provider: 'manual' },
-  { translationKey: 'locale_name', locale: 'it', translatedText: 'Italiano', provider: 'manual' },
-  { translationKey: 'locale_name', locale: 'ru', translatedText: 'Русский', provider: 'manual' },
-  { translationKey: 'locale_name', locale: 'zh', translatedText: '中文', provider: 'manual' },
+export const INITIAL_LANGUAGES: LanguageSeedData[] = [
+  { name: 'English', nativeName: 'English', code: 'en', isRTL: false, isActive: true, isDefault: true, displayOrder: 1 },
+  { name: 'Arabic', nativeName: 'العربية', code: 'ar', isRTL: true, isActive: true, isDefault: false, displayOrder: 2 },
+  { name: 'French', nativeName: 'Français', code: 'fr', isRTL: false, isActive: true, isDefault: false, displayOrder: 3 },
+  { name: 'German', nativeName: 'Deutsch', code: 'de', isRTL: false, isActive: true, isDefault: false, displayOrder: 4 },
+  { name: 'Spanish', nativeName: 'Español', code: 'es', isRTL: false, isActive: true, isDefault: false, displayOrder: 5 },
+  { name: 'Italian', nativeName: 'Italiano', code: 'it', isRTL: false, isActive: true, isDefault: false, displayOrder: 6 },
+  { name: 'Russian', nativeName: 'Русский', code: 'ru', isRTL: false, isActive: true, isDefault: false, displayOrder: 7 },
+  { name: 'Chinese', nativeName: '简体中文', code: 'zh', isRTL: false, isActive: true, isDefault: false, displayOrder: 8 },
+  { name: 'Japanese', nativeName: '日本語', code: 'ja', isRTL: false, isActive: true, isDefault: false, displayOrder: 9 },
+  { name: 'Portuguese', nativeName: 'Português', code: 'pt', isRTL: false, isActive: true, isDefault: false, displayOrder: 10 },
+  { name: 'Dutch', nativeName: 'Nederlands', code: 'nl', isRTL: false, isActive: true, isDefault: false, displayOrder: 11 },
+  { name: 'Polish', nativeName: 'Polski', code: 'pl', isRTL: false, isActive: true, isDefault: false, displayOrder: 12 },
+  { name: 'Finnish', nativeName: 'Suomi', code: 'fi', isRTL: false, isActive: true, isDefault: false, displayOrder: 13 },
 ]
 
 export async function seedLocales(payload: Payload): Promise<void> {
-  console.log('🌐 [Seed] Seeding Master Languages Catalog...')
-  let seededCount = 0
+  console.log('🌐 [Seed] Verifying Languages Catalog...')
 
-  for (const item of RECOGNIZED_LOCALES) {
-    try {
+  try {
+    let seededCount = 0
+
+    for (const lang of INITIAL_LANGUAGES) {
       const existing = await payload.find({
-        collection: 'translations',
+        collection: 'languages',
         where: {
-          and: [
-            { translationKey: { equals: item.translationKey } },
-            { locale: { equals: item.locale } },
-          ],
+          code: { equals: lang.code },
         },
         limit: 1,
       })
 
       if (existing.docs.length === 0) {
         await payload.create({
-          collection: 'translations',
-          data: item,
+          collection: 'languages',
+          data: lang,
         })
         seededCount++
+      } else {
+        const doc = existing.docs[0] as any
+        if (doc.isActive !== lang.isActive) {
+          await payload.update({
+            collection: 'languages',
+            id: doc.id,
+            data: {
+              isActive: lang.isActive,
+            },
+          })
+          seededCount++
+        }
       }
-    } catch (err: unknown) {
-      console.error(`[seedLocales] Error seeding language ${item.locale}:`, err)
     }
-  }
 
-  console.log(`   ✅ Languages Catalog initialized (${seededCount} new records created).`)
+    if (seededCount > 0) {
+      console.log(`   ✅ Successfully updated/seeded ${seededCount} languages in database.`)
+    } else {
+      console.log('   ✅ Languages Catalog already fully seeded and active.')
+    }
+  } catch (err: unknown) {
+    console.error('   ❌ Failed seeding languages catalog:', err)
+  }
 }

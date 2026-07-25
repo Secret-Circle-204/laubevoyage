@@ -1,6 +1,6 @@
-import type { TranslationProvider } from '../contracts/translation-provider'
+import type { ITranslationProvider } from './provider.interface'
 
-export class LibreTranslationProvider implements TranslationProvider {
+export class LibreTranslationProvider implements ITranslationProvider {
   readonly providerId = 'libre'
 
   async translateText(text: string, targetLocale: string): Promise<string> {
@@ -11,5 +11,9 @@ export class LibreTranslationProvider implements TranslationProvider {
 
   async translateBatch(texts: string[], targetLocale: string): Promise<string[]> {
     return Promise.all(texts.map((t) => this.translateText(t, targetLocale)))
+  }
+
+  async translateKey(key: string, locale: string): Promise<string> {
+    return this.translateText(key, locale)
   }
 }

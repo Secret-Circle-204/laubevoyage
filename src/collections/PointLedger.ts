@@ -19,7 +19,8 @@ export const PointLedger: CollectionConfig = {
     create: ({ req: { user } }) =>
       !!(user && 'role' in user && (user.role === 'admin' || user.role === 'super_admin')),
     update: () => false, // Immutable
-    delete: () => false, // Immutable
+    delete: ({ req: { user } }) =>
+      !!(user && 'role' in user && (user.role === 'admin' || user.role === 'super_admin')),
   },
   fields: [
     {

@@ -76,9 +76,7 @@ export function FeaturedExperiencesWidget({ experiences }: { experiences: HomeFe
                   <div className="px-4 py-2 bg-white/95 backdrop-blur-md rounded-lg shadow-xl">
                     <span className="text-[#00aeef] font-bold tracking-tight text-sm">
                       <CurrencyDisplay
-                        amountEGP={item.price.amountEGP}
-                        displayAmount={item.price.displayAmount}
-                        displayCurrency={item.price.displayCurrency}
+                        price={item.price}
                         size="sm"
                       />
                     </span>
@@ -111,7 +109,7 @@ export function FeaturedExperiencesWidget({ experiences }: { experiences: HomeFe
                   </p>
                 </div>
 
-                <Link href={`/experiences/${item.id}`}>
+                <Link href={`/experiences/${item.slug || item.id}`}>
                   <button
                     className={`w-full py-4 text-xs tracking-[0.2em] uppercase font-medium transition-all duration-500 border ${
                       isDark

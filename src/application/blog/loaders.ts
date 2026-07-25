@@ -2,25 +2,40 @@ import { getDomainServices } from '@/domains/factory'
 import type { BlogCatalogDTO, BlogArticleDTO, FaqPageDTO } from './dto'
 
 export class BlogCatalogLoader {
-  static async load(params?: { page?: number; limit?: number; category?: string }): Promise<BlogCatalogDTO> {
+  static async load(params?: { page?: number; limit?: number; category?: string; locale?: string }): Promise<BlogCatalogDTO> {
     const page = params?.page || 1
     const limit = params?.limit || 9
 
     try {
-      const { content } = await getDomainServices()
+      const { content, localization } = await getDomainServices()
+      const ctx = localization.buildContext({ language: (params?.locale || 'en') as any })
       const articlesRes = await content.getBlogArticles(params)
 
-      const articles: BlogArticleDTO[] = (articlesRes.docs || []).map((doc: any) => ({
-        id: Number(doc.id),
-        slug: doc.slug || '',
-        title: doc.title || '',
-        summary: doc.summary || '',
-        category: doc.category || '',
-        publishedAt: doc.publishedAt ? new Date(doc.publishedAt).toLocaleDateString() : '',
-        readTimeMinutes: doc.readTimeMinutes || 5,
-        featuredImageUrl: doc.featuredImage?.url || '',
-        authorName: typeof doc.author === 'object' ? doc.author?.name : '',
-      }))
+      const rawTexts: string[] = []
+      for (const doc of articlesRes.docs || []) {
+        rawTexts.push(String(doc.title || ''))
+        rawTexts.push(String((doc as any).summary || (doc as any).excerpt || ''))
+      }
+
+      const translatedTexts = await localization.translateBatch(rawTexts, ctx)
+      let idx = 0
+
+      const articles: BlogArticleDTO[] = (articlesRes.docs || []).map((doc: any) => {
+        const translatedTitle = translatedTexts[idx++] || String(doc.title || '')
+        const translatedSummary = translatedTexts[idx++] || String(doc.summary || '')
+
+        return {
+          id: Number(doc.id),
+          slug: doc.slug || '',
+          title: translatedTitle,
+          summary: translatedSummary,
+          category: doc.category || '',
+          publishedAt: doc.publishedAt ? new Date(doc.publishedAt).toLocaleDateString() : '',
+          readTimeMinutes: doc.readTimeMinutes || 5,
+          featuredImageUrl: doc.featuredImage?.url || '',
+          authorName: typeof doc.author === 'object' ? doc.author?.name : '',
+        }
+      })
 
       const categories = Array.from(new Set(articles.map((a) => a.category).filter(Boolean)))
 
@@ -56,18 +71,28 @@ export class BlogCatalogLoader {
 }
 
 export class ArticleLoader {
-  static async loadBySlug(slug: string): Promise<BlogArticleDTO | null> {
+  static async loadBySlug(slug: string, options?: { locale?: string }): Promise<BlogArticleDTO | null> {
     try {
-      const { content } = await getDomainServices()
+      const { content, localization } = await getDomainServices()
+      const ctx = localization.buildContext({ language: (options?.locale || 'en') as any })
       const doc = (await content.getArticleBySlug(slug)) as any
       if (!doc) return null
+
+      const rawTitle = String(doc.title || '')
+      const rawSummary = String(doc.summary || '')
+      const rawContent = String(doc.contentHtml || doc.content || doc.summary || '')
+
+      const [translatedTitle, translatedSummary, translatedContent] = await localization.translateBatch(
+        [rawTitle, rawSummary, rawContent],
+        ctx,
+      )
 
       return {
         id: Number(doc.id),
         slug: doc.slug,
-        title: doc.title || '',
-        summary: doc.summary || '',
-        contentHtml: doc.contentHtml || doc.content || doc.summary || '',
+        title: translatedTitle || rawTitle,
+        summary: translatedSummary || rawSummary,
+        contentHtml: translatedContent || rawContent,
         category: doc.category || '',
         publishedAt: doc.publishedAt ? new Date(doc.publishedAt).toLocaleDateString() : '',
         readTimeMinutes: doc.readTimeMinutes || 5,
@@ -81,17 +106,32 @@ export class ArticleLoader {
 }
 
 export class FaqLoader {
-  static async load(): Promise<FaqPageDTO> {
+  static async load(options?: { locale?: string }): Promise<FaqPageDTO> {
     try {
-      const { content } = await getDomainServices()
+      const { content, localization } = await getDomainServices()
+      const ctx = localization.buildContext({ language: (options?.locale || 'en') as any })
       const faqsRes = await content.getFaqs()
 
-      const items = (faqsRes.docs || []).map((doc: any) => ({
-        id: Number(doc.id),
-        question: doc.question || '',
-        answer: doc.answer || '',
-        category: doc.category || '',
-      }))
+      const rawTexts: string[] = []
+      for (const doc of faqsRes.docs || []) {
+        rawTexts.push(String(doc.question || ''))
+        rawTexts.push(String(doc.answer || ''))
+      }
+
+      const translatedTexts = await localization.translateBatch(rawTexts, ctx)
+      let idx = 0
+
+      const items = (faqsRes.docs || []).map((doc: any) => {
+        const translatedQuestion = translatedTexts[idx++] || String(doc.question || '')
+        const translatedAnswer = translatedTexts[idx++] || String(doc.answer || '')
+
+        return {
+          id: Number(doc.id),
+          question: translatedQuestion,
+          answer: translatedAnswer,
+          category: doc.category || '',
+        }
+      })
 
       const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean)))
 

@@ -12,7 +12,11 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+import { cookies } from 'next/headers'
+
 export default async function Page() {
-  const data = await BlogCatalogLoader.load()
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value || 'en'
+  const data = await BlogCatalogLoader.load({ locale })
   return <BlogCatalogPage data={data} />
 }

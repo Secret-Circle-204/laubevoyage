@@ -1,4 +1,4 @@
-import type { PriceDisplayViewModel } from '../shared/view-models/price-display'
+import type { ConvertedPrice } from '@/domains/currency/types'
 
 export interface PaymentGatewayDTO {
   id: string
@@ -10,6 +10,7 @@ export interface PaymentGatewayDTO {
 export interface CheckoutPageDTO {
   bookingId: string
   experienceId: number
+  slotId?: number
   experienceTitle: string
   experienceType: 'package' | 'daily_tour'
   imageUrl: string
@@ -17,10 +18,10 @@ export interface CheckoutPageDTO {
   adultsCount: number
   childrenCount: number
   basePricePerPersonEGP: number
-  subtotalEGP: number
+  subtotalPrice: ConvertedPrice
   promoDiscountEGP: number
   loyaltyDiscountEGP: number
-  totalCostEGP: PriceDisplayViewModel
+  totalCost: ConvertedPrice
   availableLoyaltyPoints: number
   gateways: PaymentGatewayDTO[]
 }

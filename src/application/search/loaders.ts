@@ -8,7 +8,12 @@ export class GlobalSearchLoader {
     const limit = queryDTO.limit || 12
 
     try {
-      const { search } = await getDomainServices()
+      const { search, localization } = await getDomainServices()
+      const ctx = localization.buildContext({
+        language: (queryDTO.locale || 'en') as any,
+        currency: (queryDTO.currency || 'EGP') as any,
+      })
+
       const domainResponse = await search.search({
         keyword: query,
         category: queryDTO.category,
@@ -19,16 +24,26 @@ export class GlobalSearchLoader {
         limit,
       })
 
-      const items: GlobalSearchResultItemDTO[] = (domainResponse?.items || []).map((item: any) => ({
-        id: item.experienceId,
-        title: item.title || '',
-        subtitle: `${item.cityName || ''}, ${item.countryName || ''} • ${item.durationDays || 1} Days`,
-        type: 'experience' as const,
-        url: `/experiences/${item.slug}`,
-        imageUrl: item.thumbnailUrl || '/images/hero-bg.jpg',
-        priceEGP: item.priceEGP,
-        rating: item.rating,
-      }))
+      const rawTitles = (domainResponse?.items || []).map((item: any) => item.title || '')
+      const translatedTitles = await localization.translateBatch(rawTitles, ctx)
+
+      const items: GlobalSearchResultItemDTO[] = await Promise.all(
+        (domainResponse?.items || []).map(async (item: any, idx: number) => {
+          const translatedTitle = translatedTitles[idx] || item.title || ''
+          const priceResult = await localization.formatPrice(item.priceEGP || 0, ctx)
+
+          return {
+            id: item.experienceId,
+            title: translatedTitle,
+            subtitle: `${item.cityName || ''}, ${item.countryName || ''} • ${item.durationDays || 1} Days`,
+            type: 'experience' as const,
+            url: `/experiences/${item.slug}`,
+            imageUrl: item.thumbnailUrl || '/images/hero-bg.jpg',
+            price: priceResult,
+            rating: item.rating,
+          }
+        }),
+      )
 
       return {
         query,

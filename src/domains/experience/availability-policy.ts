@@ -10,7 +10,7 @@ export class AvailabilityPolicy {
    * Validate if seats can be reserved for a departure slot.
    */
   static canReserve(slot: DepartureSlotEntity, requestedSeats: number): AvailabilityPolicyResult {
-    if (slot.status !== 'available' || slot.isBlackedOut) {
+    if (slot.status !== 'available') {
       return {
         allowed: false,
         code: 'SLOT_NOT_AVAILABLE',

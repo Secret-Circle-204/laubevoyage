@@ -11,4 +11,15 @@ export interface ExperienceCatalogDTO {
     categories: string[]
   }
   pagination: PaginationDTO
+  labels: {
+    badge: string
+    title: string
+    description: string
+    filterAll: string
+    filterPackages: string
+    filterDailyTours: string
+    viewItinerary: string
+    packageLabel: string
+    dailyTourLabel: string
+  }
 }

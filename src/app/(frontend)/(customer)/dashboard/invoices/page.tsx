@@ -1,6 +1,7 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import { Card, Badge, CurrencyDisplay, Button } from '@/components/ui'
+import type { ConvertedPrice } from '@/domains/currency/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const invoices: any[] = []
+  const invoices: { id: string; status: string; title: string; date: string; amount: ConvertedPrice }[] = []
 
   return (
     <div className="flex flex-col gap-6">
@@ -31,7 +32,7 @@ export default async function Page() {
                 <span className="text-xs text-slate-500">📅 {inv.date}</span>
               </div>
               <div className="flex items-center gap-4">
-                <CurrencyDisplay amountEGP={inv.amount} size="sm" />
+                <CurrencyDisplay price={inv.amount} size="sm" />
                 <Button variant="outline" size="sm">Download PDF</Button>
               </div>
             </Card>

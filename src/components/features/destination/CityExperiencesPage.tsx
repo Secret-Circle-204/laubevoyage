@@ -68,7 +68,7 @@ export function CityExperiencesPage({ data }: { data: CityExperiencesDTO }) {
 
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <Rating value={item.rating} reviewsCount={item.reviewsCount} size="sm" />
-                  <CurrencyDisplay amountEGP={item.price.amountEGP} size="md" />
+                  <CurrencyDisplay price={item.price} size="md" />
                 </div>
               </div>
             </Card>

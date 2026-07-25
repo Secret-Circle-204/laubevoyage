@@ -10,13 +10,13 @@ export interface ExperienceAggregate {
   slug: string
   type: ExperienceType
   cityId: number
-  basePriceEGP: number // Minimum catalog fallback base price in EGP
+  basePriceEGP?: number // Optional catalog base price in EGP (undefined if not defined)
   availability: ExperienceAvailabilityStatus
-  capacityTotal: number
   durationDays: number
   durationNights?: number
   version: number
   isActive: boolean
   createdAt: string
   updatedAt: string
+  heroUrl?: string
 }

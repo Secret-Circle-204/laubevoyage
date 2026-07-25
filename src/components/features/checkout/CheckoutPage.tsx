@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { Card, Badge, Input, Button, CurrencyDisplay } from '@/components/ui'
 import { useToast } from '@/providers'
 import type { CheckoutPageDTO } from '@/application/booking/dto-checkout'
-import { processPaymentAction } from '@/application/actions/booking-actions'
+import { confirmCheckoutAction } from '@/application/actions/booking-actions'
 
 export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
   const { addToast } = useToast()
@@ -25,9 +25,16 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
 
     setIsSubmitting(true)
     try {
-      const res = await processPaymentAction(Number(data.bookingId), selectedGateway)
+      const res = await confirmCheckoutAction({
+        bookingId: data.bookingId,
+        experienceId: data.experienceId,
+        slotId: data.slotId,
+        adults: data.adultsCount,
+        travelers: [{ firstName, lastName, email, phone }],
+        gatewayId: selectedGateway,
+      })
       if (res.success && 'transactionId' in res) {
-        const txId = typeof res.transactionId === 'string' ? res.transactionId : String(data.bookingId)
+        const txId = typeof res.transactionId === 'string' ? res.transactionId : 'payment'
         const checkoutUrl = 'checkoutUrl' in res && typeof res.checkoutUrl === 'string' ? res.checkoutUrl : undefined
         addToast({
           type: 'success',
@@ -159,12 +166,12 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
               <div className="flex flex-col gap-2.5 text-sm pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between text-slate-600 dark:text-slate-400">
                   <span>Passengers ({data.adultsCount} Adults)</span>
-                  <CurrencyDisplay amountEGP={data.subtotalEGP} size="sm" />
+                  <CurrencyDisplay price={data.subtotalPrice} size="sm" />
                 </div>
 
                 <div className="flex justify-between font-extrabold text-lg text-slate-900 dark:text-white pt-3 border-t border-slate-200 dark:border-slate-800">
                   <span>Total Amount</span>
-                  <CurrencyDisplay amountEGP={data.subtotalEGP} size="lg" />
+                  <CurrencyDisplay price={data.totalCost} size="lg" />
                 </div>
               </div>
 

@@ -1,4 +1,4 @@
-import type { PriceDisplayViewModel } from '../../shared/view-models/price-display'
+import type { ConvertedPrice } from '@/domains/currency/types'
 
 export interface HomeHeroDTO {
   title: string
@@ -19,7 +19,7 @@ export interface HomeFeaturedExperienceDTO {
   durationDays: number
   rating: number
   reviewsCount: number
-  price: PriceDisplayViewModel
+  price: ConvertedPrice
 }
 
 export interface HomeDestinationCardDTO {

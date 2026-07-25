@@ -1,9 +1,9 @@
 import type { PayloadRequest } from 'payload'
 import { TranslationService } from '../translation/service'
-import { PricingPipeline } from '../currency/pipeline'
+import { PricingFacade } from '../currency/facade'
+import type { ConvertedPrice } from '../currency/types'
 import type { LocaleContext } from '@/types/locale'
 import { DEFAULT_LOCALE_CONTEXT } from '@/types/locale'
-import type { PricingResult, PricingSnapshotData } from '../currency/pipeline'
 import { JsonTranslationDictionary, type ITranslationDictionary } from '../translation/dictionary'
 
 /**
@@ -15,28 +15,18 @@ import { JsonTranslationDictionary, type ITranslationDictionary } from '../trans
  * - Delegates price conversion to the Pricing Pipeline
  * - Formats dates, numbers, and money on the server
  */
-export type FormattedPricingResult = {
-  snapshot: PricingSnapshotData
-  displayAmount: number
-  displayCurrency: string
-  formatted: string
-}
-
 export class LocalizationService {
   private translationService: TranslationService
-  private pricingPipeline: PricingPipeline
+  private pricingFacade: PricingFacade
   private uiDictionary: ITranslationDictionary
 
   constructor(
-    translationService?: TranslationService | any,
+    translationService: TranslationService,
+    pricingFacade: PricingFacade,
     uiDictionary?: ITranslationDictionary,
   ) {
-    if (translationService && typeof translationService.translate === 'function') {
-      this.translationService = translationService
-    } else {
-      this.translationService = new TranslationService(translationService)
-    }
-    this.pricingPipeline = new PricingPipeline()
+    this.translationService = translationService
+    this.pricingFacade = pricingFacade
     this.uiDictionary = uiDictionary || new JsonTranslationDictionary()
   }
 
@@ -74,6 +64,13 @@ export class LocalizationService {
   }
 
   /**
+   * Translate multiple text strings at once in 1 Single Batch Request.
+   */
+  async translateBatch(texts: string[], ctx: LocaleContext): Promise<string[]> {
+    return this.translationService.translateBatch(texts, ctx.language)
+  }
+
+  /**
    * Translate multiple fields of a document at once.
    * Returns display-ready key/value pairs.
    */
@@ -97,26 +94,12 @@ export class LocalizationService {
   async formatPrice(
     basePriceEGP: number,
     ctx: LocaleContext,
-  ): Promise<FormattedPricingResult> {
-    const targetCurrency = ctx.currency
-
-    const { snapshot } = await this.pricingPipeline.execute({
+  ): Promise<ConvertedPrice> {
+    return this.pricingFacade.getConvertedPrice(
       basePriceEGP,
-      targetCurrency,
-    })
-
-    const formatted = new Intl.NumberFormat(ctx.language || 'en', {
-      style: 'currency',
-      currency: snapshot.displayCurrency,
-      maximumFractionDigits: 2,
-    }).format(snapshot.displayAmount)
-
-    return {
-      snapshot,
-      displayAmount: snapshot.displayAmount,
-      displayCurrency: snapshot.displayCurrency,
-      formatted,
-    }
+      ctx.currency,
+      ctx.language || 'en',
+    )
   }
 
   // =========================================================================

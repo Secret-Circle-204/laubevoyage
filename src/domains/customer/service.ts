@@ -2,6 +2,7 @@ import { CustomerWorkflowEngine } from './workflow'
 import { CustomerRepository } from './repositories/customer-repository'
 import type { CustomerAggregate } from './aggregate'
 import type { CompanionTravelerEntity, CustomerAddressEntity, DeviceSessionEntity } from './types'
+import { EventOutboxService } from '../events/outbox'
 
 /**
  * Customer Domain Service (Enterprise Thin Facade)
@@ -21,8 +22,28 @@ export class CustomerService {
     return this.repository.authenticateRequest(headers)
   }
 
-  async registerCustomer(email: string, firstName: string, lastName: string): Promise<CustomerAggregate> {
-    return this.workflowEngine.executeRegisterWorkflow(email, firstName, lastName)
+  async registerCustomer(
+    email: string,
+    firstName: string,
+    lastName: string,
+    password?: string,
+    options?: { eventSource?: 'domain' | 'external' },
+  ): Promise<CustomerAggregate> {
+    return this.workflowEngine.executeRegisterWorkflow(email, firstName, lastName, password, options)
+  }
+
+  async onCustomerCreated(customerId: number): Promise<void> {
+    const customer = await this.getById(customerId)
+    const outbox = EventOutboxService.getInstance()
+    await outbox.recordAndPublish({
+      type: 'CUSTOMER_REGISTERED',
+      eventVersion: 'v1',
+      customerId: customer.customerId,
+      email: customer.email,
+      fullName: customer.fullName,
+      status: customer.status,
+      timestamp: new Date().toISOString(),
+    })
   }
 
   async verifyEmail(customerId: number, rawToken: string): Promise<CustomerAggregate> {
@@ -31,6 +52,10 @@ export class CustomerService {
 
   async login(email: string): Promise<CustomerAggregate> {
     return this.workflowEngine.identity.login(email)
+  }
+
+  async onCustomerAuthenticated(customerId: number): Promise<CustomerAggregate> {
+    return this.workflowEngine.identity.onCustomerAuthenticated(customerId)
   }
 
   async getById(customerId: number): Promise<CustomerAggregate> {

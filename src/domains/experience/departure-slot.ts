@@ -24,7 +24,6 @@ export class DepartureSlotHelper {
       capacitySold: 0,
       capacityAvailable: capacityTotal,
       version: 1,
-      isBlackedOut: false,
       status: 'available',
     }
   }
@@ -34,7 +33,7 @@ export class DepartureSlotHelper {
   }
 
   static determineStatus(slot: DepartureSlotEntity): DepartureSlotStatus {
-    if (slot.isBlackedOut) return 'blacked_out'
+    if (slot.status === 'blacked_out' || slot.status === 'cancelled') return slot.status
     const available = this.calculateAvailableCapacity(slot)
     if (available <= 0) return 'sold_out'
     return 'available'

@@ -1,43 +1,28 @@
 'use client'
 
 import React from 'react'
-import { useCurrency } from '@/providers'
+import type { ConvertedPrice } from '@/domains/currency/types'
 
 export interface CurrencyDisplayProps {
-  amountEGP: number
-  displayAmount?: number
-  displayCurrency?: string
-  originalAmountEGP?: number
+  price: ConvertedPrice
+  originalPrice?: ConvertedPrice
   size?: 'sm' | 'md' | 'lg' | 'xl'
   showOriginal?: boolean
   className?: string
 }
 
+/**
+ * Pure Presentational Currency Display Component.
+ * Receives the fully converted and formatted price DTO from the Pricing Domain,
+ * ensuring zero client-side calculation or localized formatting logic leakage.
+ */
 export function CurrencyDisplay({
-  amountEGP,
-  displayAmount,
-  displayCurrency,
-  originalAmountEGP,
+  price,
+  originalPrice,
   size = 'md',
   showOriginal = false,
   className = '',
 }: CurrencyDisplayProps) {
-  const { currency: activeCurrency } = useCurrency()
-
-  const currencyCode = displayCurrency || activeCurrency || 'EGP'
-  const amount = displayAmount !== undefined ? displayAmount : amountEGP
-
-  const symbolMap: Record<string, string> = {
-    EGP: 'EGP',
-    USD: '$',
-    EUR: '€',
-    GBP: '£',
-    SAR: 'SAR',
-    AED: 'AED',
-  }
-
-  const symbol = symbolMap[currencyCode] || currencyCode
-
   const sizeClasses = {
     sm: 'text-sm font-bold',
     md: 'text-base font-bold',
@@ -47,15 +32,13 @@ export function CurrencyDisplay({
 
   return (
     <div className={`inline-flex items-baseline gap-1.5 ${className}`}>
-      {showOriginal && originalAmountEGP && originalAmountEGP > amountEGP && (
-        <span className="text-xs sm:text-sm line-through text-slate-400 font-medium">
-          {symbol} {originalAmountEGP.toLocaleString()}
+      {showOriginal && originalPrice && originalPrice.convertedAmount > price.convertedAmount && (
+        <span className="text-xs sm:text-sm line-through text-slate-400 font-medium mr-1">
+          {originalPrice.formatted}
         </span>
       )}
-
       <span className={`${sizeClasses[size]} text-[#2e3192] dark:text-[#00aeef]`}>
-        <span className="text-xs font-semibold mr-1">{symbol}</span>
-        {amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+        {price.formatted}
       </span>
     </div>
   )

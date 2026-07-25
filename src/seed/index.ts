@@ -8,6 +8,7 @@ import { seedUsers } from './seeders/users.seed'
 import { seedDestinations } from './seeders/destinations.seed'
 import { seedExperiences } from './seeders/experiences.seed'
 import { seedFaqs } from './seeders/faqs.seed'
+import { cleanupDuplicateTranslations } from './seeders/cleanup-translations.seed'
 
 /**
  * Master Enterprise Modular Database Seeder for L'Aube Voyage
@@ -53,6 +54,10 @@ async function seed() {
 
   if (target === 'all' || target === 'faqs') {
     await seedFaqs(payload)
+  }
+
+  if (target === 'all' || target === 'cleanup') {
+    await cleanupDuplicateTranslations(payload)
   }
 
   console.log('====================================================')

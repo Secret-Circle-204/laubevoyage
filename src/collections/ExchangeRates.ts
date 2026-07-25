@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { rateRegistry } from '@/domains/currency/rate-registry'
 
 export const ExchangeRates: CollectionConfig = {
   slug: 'exchange-rates',
@@ -9,6 +10,20 @@ export const ExchangeRates: CollectionConfig = {
   },
   access: {
     read: () => true, // Publicly readable for conversion
+  },
+  hooks: {
+    afterChange: [
+      ({ doc }) => {
+        rateRegistry.invalidate()
+        return doc
+      },
+    ],
+    afterDelete: [
+      ({ doc }) => {
+        rateRegistry.invalidate()
+        return doc
+      },
+    ],
   },
   fields: [
     {

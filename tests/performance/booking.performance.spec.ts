@@ -21,7 +21,15 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
       }),
       findByID: vi.fn().mockImplementation((params) => {
         queryCount++
-        if (params.collection === 'experiences') return Promise.resolve({ id: 12, price: 5000, availability: 'available' })
+        if (params.collection === 'experiences') return Promise.resolve({
+          id: 12,
+          title: 'Luxury Voyage',
+          slug: 'luxury-voyage',
+          type: 'package',
+          city: 1,
+          price: 5000,
+          availability: 'available',
+        })
         if (params.collection === 'customers') return Promise.resolve({ id: 5, status: 'active', preferences: { preferredCurrency: 'EGP' } })
         return Promise.resolve({
           id: 101,
@@ -36,8 +44,21 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
           travelers: [{ email: 'john@example.com' }],
         })
       }),
-      find: vi.fn().mockImplementation(() => {
+      find: vi.fn().mockImplementation((params) => {
         queryCount++
+        if (params.collection === 'departure-slots') {
+          return Promise.resolve({
+            docs: [{
+              id: 1,
+              departureId: 'dep-123',
+              experience: 12,
+              date: '2026-08-01',
+              capacityTotal: 10,
+              capacityAvailable: 10,
+              status: 'available',
+            }]
+          })
+        }
         return Promise.resolve({ docs: [] })
       }),
       update: vi.fn().mockImplementation((params) => {
@@ -57,6 +78,7 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
       travelers: [{ firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '+123456789' }],
       startDate: '2026-08-01',
       endDate: '2026-08-05',
+      source: 'website',
     })
 
     const duration = performance.now() - startTime

@@ -2,8 +2,9 @@ import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } fro
 import { BookingWorkflowEngine } from './workflow'
 import { BookingRepository } from './repository'
 import type { CustomerRepository } from '../customer/repository'
-import type { ExperienceRepository } from '../experience/repository'
+import type { ExperienceService } from '../experience/service'
 import type { LoyaltyService } from '../loyalty/service'
+import type { PricingPipeline } from '../currency/pipeline'
 
 /**
  * Booking Domain Service (Enterprise Facade)
@@ -12,16 +13,27 @@ import type { LoyaltyService } from '../loyalty/service'
  */
 export class BookingService {
   private repository: BookingRepository
+  private experienceService: ExperienceService
+  private pricingPipeline: PricingPipeline
   private workflowEngine: BookingWorkflowEngine
 
   constructor(
     repository: BookingRepository,
-    customerRepository?: CustomerRepository,
-    experienceRepository?: ExperienceRepository,
-    loyaltyService?: LoyaltyService,
+    customerRepository: CustomerRepository,
+    experienceService: ExperienceService,
+    loyaltyService: LoyaltyService,
+    pricingPipeline: PricingPipeline,
   ) {
     this.repository = repository
-    this.workflowEngine = new BookingWorkflowEngine(repository, customerRepository, experienceRepository, loyaltyService)
+    this.experienceService = experienceService
+    this.pricingPipeline = pricingPipeline
+    this.workflowEngine = new BookingWorkflowEngine(
+      repository,
+      customerRepository,
+      experienceService,
+      loyaltyService,
+      pricingPipeline,
+    )
   }
 
   /**

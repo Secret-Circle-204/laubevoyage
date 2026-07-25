@@ -12,19 +12,24 @@ export class RegistrationService {
     this.repository = repository
   }
 
-  async registerCustomer(email: string, firstName: string, lastName: string): Promise<CustomerAggregate> {
+  async registerCustomer(
+    email: string,
+    firstName: string,
+    lastName: string,
+    password?: string,
+    options?: { eventSource?: 'domain' | 'external' },
+  ): Promise<CustomerAggregate> {
     const existing = await this.repository.findByEmail(email)
     if (existing) {
       throw new Error(`[RegistrationService] Customer with email ${email} already exists.`)
     }
 
-    const doc = await this.repository.create({
+    return this.repository.create({
       email: email.toLowerCase(),
       firstName,
       lastName,
+      password,
       status: 'pending_verification',
-    })
-
-    return this.repository.findById(Number(doc.id))
+    }, options)
   }
 }

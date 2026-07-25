@@ -9,8 +9,11 @@ import { BookingExpiration } from './expiration'
 import { BookingCompletion } from './completion'
 import { BookingQueries } from './queries'
 import { CustomerRepository } from '../customer/repository'
+import { ExperienceService } from '../experience/service'
 import { ExperienceRepository } from '../experience/repository'
+import { ExperienceWorkflowEngine } from '../experience/workflow'
 import { LoyaltyService } from '../loyalty/service'
+import { PricingPipeline } from '../currency/pipeline'
 
 /**
  * Booking Workflow Engine
@@ -27,10 +30,11 @@ export class BookingWorkflowEngine {
   public queries: BookingQueries
 
   constructor(
-    repository?: BookingRepository | Payload,
+    repository: BookingRepository | Payload,
     customerRepository?: CustomerRepository,
-    experienceRepository?: ExperienceRepository,
+    experienceService?: ExperienceService,
     loyaltyService?: LoyaltyService,
+    pricingPipeline?: PricingPipeline,
   ) {
     const activePayload = repository && 'find' in repository ? (repository as Payload) : undefined
     const isRepo = repository && typeof repository === 'object' && 'findById' in repository
@@ -42,10 +46,23 @@ export class BookingWorkflowEngine {
     }
 
     const custRepo = customerRepository || (activePayload ? new CustomerRepository(activePayload) : ({} as CustomerRepository))
-    const expRepo = experienceRepository || (activePayload ? new ExperienceRepository(activePayload) : ({} as ExperienceRepository))
+    
+    // Auto-instantiate ExperienceService fallback to avoid test breakdowns
+    const pipeline = pricingPipeline || new (PricingPipeline as any)()
+    let expSvc: ExperienceService
+    if (experienceService) {
+      expSvc = experienceService
+    } else if (activePayload) {
+      const expRepo = new ExperienceRepository(activePayload)
+      const expWorkflow = new ExperienceWorkflowEngine(expRepo, pipeline)
+      expSvc = new ExperienceService(expRepo, expWorkflow)
+    } else {
+      expSvc = {} as ExperienceService
+    }
+
     const loySvc = loyaltyService || ({} as LoyaltyService)
 
-    this.creator = new BookingCreator(this.repository, custRepo, expRepo, loySvc)
+    this.creator = new BookingCreator(this.repository, custRepo, expSvc, loySvc, pipeline)
     this.confirmation = new BookingConfirmation(this.repository)
     this.cancellation = new BookingCancellation(this.repository)
     this.expiration = new BookingExpiration(this.repository)

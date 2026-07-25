@@ -16,7 +16,36 @@
     },
     "footer": {
       "rights": "All Rights Reserved © 2026 L'Aube Voyage",
-      "tagline": "Crafting Extraordinary Travels Since 1996."
+      "tagline": "Crafting Extraordinary Travels Since 1996.",
+      "explore": "Explore",
+      "allExperiences": "All Experiences",
+      "destinations": "Destinations",
+      "tourPackages": "Tour Packages",
+      "dailyTours": "Daily Tours",
+      "company": "Company",
+      "aboutUs": "About Us",
+      "travelBlog": "Travel Blog",
+      "faqs": "FAQs",
+      "contactUs": "Contact Us",
+      "legal": "Legal",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "customerPortal": "Customer Portal"
     }
+  },
+  "catalog": {
+    "meta": {
+      "title": "Luxury Experiences & Tour Packages Catalog | L'Aube Voyage",
+      "description": "Browse luxury tour packages, Nile cruises, and private daily tours across Egypt."
+    },
+    "badge": "Bespoke Portfolio",
+    "title": "Experiences Catalog",
+    "description": "Discover luxury tour packages and private daily tours carefully crafted for luxury travelers.",
+    "filterAll": "All Experiences ({count})",
+    "filterPackages": "Tour Packages",
+    "filterDailyTours": "Private Daily Tours",
+    "viewItinerary": "View Itinerary",
+    "packageLabel": "Tour Package",
+    "dailyTourLabel": "Daily Tour"
   }
 }

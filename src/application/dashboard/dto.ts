@@ -1,4 +1,4 @@
-import type { PriceDisplayViewModel } from '../shared/view-models/price-display'
+import type { ConvertedPrice } from '@/domains/currency/types'
 
 export interface CustomerBookingCardDTO {
   id: number
@@ -8,7 +8,7 @@ export interface CustomerBookingCardDTO {
   departureDate: string
   status: 'confirmed' | 'pending' | 'completed' | 'cancelled'
   passengersCount: number
-  totalCost: PriceDisplayViewModel
+  totalCost: ConvertedPrice
 }
 
 export interface CustomerPortalOverviewDTO {

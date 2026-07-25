@@ -11,6 +11,12 @@ export const TranslationCache: CollectionConfig = {
     read: () => true,
     create: () => true,
   },
+  indexes: [
+    {
+      fields: ['originalHash', 'language'],
+      unique: true,
+    },
+  ],
   fields: [
     {
       name: 'originalHash',

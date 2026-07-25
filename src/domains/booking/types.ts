@@ -17,6 +17,7 @@ export interface TravelerInput {
   phone: string
   dateOfBirth?: string
   passportNumber?: string
+  type?: 'adult' | 'child' | 'infant'
 }
 
 export interface CapacityHoldEntity {
@@ -137,7 +138,7 @@ export interface CreateBookingParams {
   endDate: string
   pointsToRedeem?: number
   currency?: CurrencyCode
-  source?: BookingSource
+  source: BookingSource
   actor?: Actor
 }
 
