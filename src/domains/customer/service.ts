@@ -71,6 +71,13 @@ export class CustomerService {
     return this.workflowEngine.identity.login(email)
   }
 
+  async loginWithPassword(
+    email: string,
+    password?: string,
+  ): Promise<{ user: CustomerAggregate; token: string } | null> {
+    return this.repository.login(email, password)
+  }
+
   async onCustomerAuthenticated(customerId: number): Promise<CustomerAggregate> {
     return this.workflowEngine.identity.onCustomerAuthenticated(customerId)
   }
@@ -109,5 +116,12 @@ export class CustomerService {
 
   async handleFailedLogin(email: string): Promise<void> {
     await this.workflowEngine.identity.handleFailedLogin(email)
+  }
+
+  async updateLoyaltyProfile(
+    customerId: number,
+    loyaltyData: { tier?: string; points?: number; totalSpent?: number; tierAchievedAt?: string },
+  ): Promise<void> {
+    await this.repository.updateLoyaltyProfile(customerId, loyaltyData)
   }
 }

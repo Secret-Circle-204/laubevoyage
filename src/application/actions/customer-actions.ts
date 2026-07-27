@@ -63,8 +63,8 @@ export async function loginCustomerAction(email: string, password?: string) {
 
     const { customer } = await getDomainServices()
 
-    // 1. Verify credentials via Customer Repository
-    const loginResult = await customer.repository.login(email, password)
+    // 1. Verify credentials via Customer Domain Service
+    const loginResult = await customer.loginWithPassword(email, password)
 
     if (!loginResult || !loginResult.user || !loginResult.token) {
       return { success: false, error: 'Invalid email or password' }

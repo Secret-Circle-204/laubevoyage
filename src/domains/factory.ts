@@ -48,6 +48,9 @@ import { SystemRepository } from './system/repository'
 import { SystemIntegrationService } from './system/service'
 import { systemSettingsRegistry } from './system/settings-registry'
 
+import { PayloadOutboxRepository } from './events/repositories/payload-outbox-repository'
+import { EventOutboxService } from './events/outbox'
+
 /**
  * Domain Service Factory (Composition Root)
  * Pure Inversion of Control & Constructor Dependency Injection Container.
@@ -58,6 +61,9 @@ export async function getDomainServices() {
   const payload = await getPayload({ config })
 
   // 1. Instantiate Repositories & Providers
+  const outboxRepository = new PayloadOutboxRepository(payload)
+  EventOutboxService.getInstance(outboxRepository)
+
   const destinationRepository = new DestinationRepository(payload)
   const experienceRepository = new ExperienceRepository(payload)
   const contentRepository = new ContentRepository(payload)
@@ -71,7 +77,7 @@ export async function getDomainServices() {
   const compositeRateProvider = new CompositeExchangeRateProvider()
   const systemRepository = new SystemRepository(payload)
   systemSettingsRegistry.setRepository(systemRepository)
-  const loyaltyRepository = new LoyaltyRepository(payload)
+  const loyaltyRepository = new LoyaltyRepository(payload, customerRepository)
   const notificationRepository = new NotificationRepository(payload)
   const translationRepository = new TranslationRepository(payload)
   const maintenanceRepository = new MaintenanceRepository(payload)
@@ -125,6 +131,7 @@ export async function getDomainServices() {
     bookingRepository,
     customerRepository,
     experienceRepository,
+    outboxRepository,
   )
   const searchService = new SearchService(searchRepository)
   const dashboardQueryBus = new DashboardQueryBus(
