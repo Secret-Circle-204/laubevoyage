@@ -34,24 +34,34 @@ export class StripePaymentAdapter implements IPaymentAdapter {
         },
       ],
       metadata: {
-        bookingId: String(params.bookingId),
-        customerId: String(params.customerId),
         transactionId: params.transactionId,
+        bookingId: String(params.bookingId),
+        bookingNumber: params.bookingNumber,
+        customerId: String(params.customerId),
+        environment: process.env.NODE_ENV ? process.env.NODE_ENV : 'production',
+        applicationVersion: 'v1.0.0',
       },
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 minutes session expiry
       success_url: params.successUrl,
       cancel_url: params.cancelUrl,
     })
 
+    if (!session.url) {
+      throw new Error('[StripePaymentAdapter] Stripe Checkout Session creation did not return a hosted URL.')
+    }
+
     return {
       sessionId: session.id,
-      url: session.url || undefined,
+      url: session.url,
       expiresAt: session.expires_at,
     }
   }
 
   async verifyWebhook(rawBody: string | Buffer, signature: string): Promise<StripeWebhookPayload> {
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    if (!webhookSecret) {
+      throw new Error('[StripePaymentAdapter] Missing required STRIPE_WEBHOOK_SECRET environment variable.')
+    }
     const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret)
     return event as unknown as StripeWebhookPayload
   }

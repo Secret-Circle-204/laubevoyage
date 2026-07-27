@@ -45,8 +45,10 @@ export class BookingWorkflowEngine {
       this.repository = new BookingRepository(activePayload!)
     }
 
-    const custRepo = customerRepository || (activePayload ? new CustomerRepository(activePayload) : ({} as CustomerRepository))
-    
+    const custRepo =
+      customerRepository ||
+      (activePayload ? new CustomerRepository(activePayload) : ({} as CustomerRepository))
+
     // Auto-instantiate ExperienceService fallback to avoid test breakdowns
     const pipeline = pricingPipeline || new (PricingPipeline as any)()
     let expSvc: ExperienceService
@@ -70,7 +72,10 @@ export class BookingWorkflowEngine {
     this.queries = new BookingQueries(this.repository)
   }
 
-  async executeCheckoutWorkflow(params: CreateBookingParams, actor?: Actor): Promise<BookingAggregate> {
+  async executeCheckoutWorkflow(
+    params: CreateBookingParams,
+    actor?: Actor,
+  ): Promise<BookingAggregate> {
     return this.creator.createDraft(params)
   }
 
@@ -78,7 +83,10 @@ export class BookingWorkflowEngine {
     return this.repository.updateStatus(bookingId, BookingStatus.PENDING_PAYMENT)
   }
 
-  async executePaymentWorkflow(bookingId: number, paymentAttempt: PaymentAttempt): Promise<BookingAggregate> {
+  async executePaymentWorkflow(
+    bookingId: number,
+    paymentAttempt: PaymentAttempt,
+  ): Promise<BookingAggregate> {
     return this.confirmation.markAsPaid(bookingId, paymentAttempt)
   }
 
@@ -86,7 +94,11 @@ export class BookingWorkflowEngine {
     return this.confirmation.confirm(bookingId, actor)
   }
 
-  async executeCancellationWorkflow(bookingId: number, actor?: Actor, reason = 'Cancelled'): Promise<BookingAggregate> {
+  async executeCancellationWorkflow(
+    bookingId: number,
+    actor?: Actor,
+    reason = 'Cancelled',
+  ): Promise<BookingAggregate> {
     const currentActor = actor || { id: 'system', type: 'system' as const, name: 'System Worker' }
     return this.cancellation.cancel(bookingId, currentActor, reason)
   }

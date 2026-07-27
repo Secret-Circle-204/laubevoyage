@@ -1,4 +1,5 @@
 import type { BookingStatus, CurrencyCode } from '@/types'
+import type { BookableDeparture } from '../experience/bookable-departure'
 
 export type BookingSource = 'website' | 'admin' | 'api' | 'partner' | 'affiliate'
 
@@ -132,15 +133,15 @@ export interface BookingAggregate {
 
 export interface CreateBookingParams {
   userId: number
-  experienceId: number
+  departure: BookableDeparture
   travelers: TravelerInput[]
-  startDate: string
   endDate: string
   pointsToRedeem?: number
   currency?: CurrencyCode
   source: BookingSource
   actor?: Actor
 }
+
 
 export interface PolicyResult {
   allowed: boolean

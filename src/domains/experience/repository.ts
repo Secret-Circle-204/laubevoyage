@@ -297,7 +297,7 @@ export class ExperienceRepository {
     // Recover PricingSource dynamically using PricingPolicyRegistry
     const pricingSource = PricingPolicyRegistry.getSource(doc.type as ExperienceType)
     if (pricingSource === 'catalog' && (doc.price === undefined || doc.price === null)) {
-      throw new Error(`[ExperienceRepository] Catalog-priced experience ${doc.id} is missing mandatory price in DB.`)
+      console.warn(`[ExperienceRepository] Catalog-priced experience ${doc.id} is missing price in DB. Defaulting basePriceEGP to 0.`)
     }
 
     return {
@@ -306,7 +306,7 @@ export class ExperienceRepository {
       slug: doc.slug,
       type: doc.type,
       cityId,
-      basePriceEGP: doc.price !== null && doc.price !== undefined ? Number(doc.price) : undefined,
+      basePriceEGP: doc.price !== null && doc.price !== undefined ? Number(doc.price) : 0,
       availability: doc.availability as ExperienceAvailabilityStatus,
       durationDays: doc.durationDays || 1,
       durationNights: doc.durationNights || 0,

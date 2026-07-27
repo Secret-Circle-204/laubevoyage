@@ -122,27 +122,29 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
               </div>
 
               {/* Slot Picker */}
-              <div>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                  Select Departure Slot
-                </label>
-                <div className="flex flex-col gap-2">
-                  {data.departureSlots.map((slot) => (
-                    <button
-                      key={slot.id}
-                      onClick={() => setSelectedSlotId(slot.id)}
-                      className={`p-3 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all ${
-                        selectedSlotId === slot.id
-                          ? 'border-[#00aeef] bg-[#00aeef]/10 text-[#00aeef]'
-                          : 'border-slate-200 dark:border-slate-800'
-                      }`}
-                    >
-                      <span>{slot.departureDate}</span>
-                      <span className="opacity-75">{slot.availableSeats} Seats Left</span>
-                    </button>
-                  ))}
+              {data.departureSlots && data.departureSlots.length > 0 && (
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                    Select Departure Slot
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    {data.departureSlots.map((slot) => (
+                      <button
+                        key={slot.id}
+                        onClick={() => setSelectedSlotId(slot.id)}
+                        className={`p-3 rounded-xl border text-left text-xs font-semibold flex items-center justify-between transition-all ${
+                          selectedSlotId === slot.id
+                            ? 'border-[#00aeef] bg-[#00aeef]/10 text-[#00aeef]'
+                            : 'border-slate-200 dark:border-slate-800'
+                        }`}
+                      >
+                        <span>{slot.departureDate}</span>
+                        <span className="opacity-75">{slot.availableSeats} Seats Left</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Total Calculation */}
               <div className="flex items-center justify-between pt-2">

@@ -28,7 +28,7 @@ describe('Experience / Currency Domain: Pricing Pipeline Engine Unit Tests', () 
     expect(snapshot.snapshotVersion).toBe('v1')
     expect(snapshot.displayCurrency).toBe('USD')
     expect(snapshot.displayAmount).toBeGreaterThan(0)
-    expect(snapshot.auditTrace.length).toBeGreaterThanOrEqual(2)
+    expect(snapshot.auditTrace?.length).toBeGreaterThanOrEqual(2)
   })
 
   it('should throw ExchangeRateUnavailableError in DefaultRateProvider when rate is completely missing', async () => {
@@ -72,9 +72,9 @@ describe('Experience / Currency Domain: Pricing Pipeline Engine Unit Tests', () 
       bookingDate: '2026-08-03',
     })
 
-    expect(snapshot.taxesApplied).toBe(0)
+    expect(snapshot.taxes).toBe(0)
     expect(snapshot.subtotalEGP).toBe(1000)
-    expect(snapshot.auditTrace.some(step => step.stepName === 'TAX_VAT_DISABLED')).toBe(true)
+    expect(snapshot.auditTrace?.some((step: any) => step.stepName === 'TAX_VAT_DISABLED')).toBe(true)
   })
 
   it('should compute inclusive tax when pricesIncludeVat is true', async () => {
@@ -98,10 +98,8 @@ describe('Experience / Currency Domain: Pricing Pipeline Engine Unit Tests', () 
     })
 
     // 1140 includes 14% tax. Net price = 1000, Tax = 140.
-    expect(snapshot.taxesApplied).toBe(140)
+    expect(snapshot.taxes).toBe(140)
     expect(snapshot.subtotalEGP).toBe(1140)
-    expect(snapshot.auditTrace.some(step => step.stepName === 'TAX_VAT_14')).toBe(true)
+    expect(snapshot.auditTrace?.some((step: any) => step.stepName === 'TAX_VAT_14')).toBe(true)
   })
 })
-
-

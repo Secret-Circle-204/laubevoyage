@@ -51,3 +51,8 @@ export interface CustomerPolicyResult {
   code?: string
   reason?: string
 }
+
+export interface CustomerPreferencesInput {
+  preferredLanguage?: string
+  preferredCurrency?: string
+}

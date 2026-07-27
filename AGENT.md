@@ -1022,3 +1022,85 @@ Maximize reuse.
 Protect the architecture.
 
 Never violate the constitutional architecture documents.
+
+---
+
+# ZERO FALLBACK ENGINEERING POLICY (MANDATORY)
+
+This project follows a strict Fail-Fast Architecture.
+
+The purpose is to expose architectural defects immediately instead of hiding them.
+
+## ABSOLUTELY FORBIDDEN
+
+Never introduce fallback values that hide missing data or invalid state.
+
+Forbidden examples include (but are not limited to):
+- `value || 'USD'`
+- `value ?? 'USD'`
+- `provider || 'stripe'`
+- `env || ''`
+- `env || 'development'`
+- `session.url || undefined`
+- `array || []`
+- `object || {}`
+- `Number(value) || 0`
+- `Boolean(value) || false`
+
+or any similar fallback that allows execution to continue silently.
+
+## REQUIRED BEHAVIOR
+
+Whenever required business data or configuration is missing:
+1. Throw an explicit `Error` or `DomainException` immediately.
+2. Stop execution cleanly and loudly.
+3. Expose the exact root cause in error diagnostics.
+
+Never silently recover or invent data.
+
+### Examples:
+
+**BAD:**
+```ts
+const currency = locale.currency || 'USD'
+```
+
+**GOOD:**
+```ts
+if (!locale.currency) {
+  throw new Error('[LocalizationService] Missing required currency in locale context.')
+}
+const currency = locale.currency
+```
+
+**BAD:**
+```ts
+const secret = process.env.STRIPE_SECRET_KEY || ''
+```
+
+**GOOD:**
+```ts
+const secret = process.env.STRIPE_SECRET_KEY
+if (!secret) {
+  throw new Error('[Stripe] Missing required STRIPE_SECRET_KEY environment variable.')
+}
+```
+
+**BAD:**
+```ts
+return session.url || undefined
+```
+
+**GOOD:**
+```ts
+if (!session.url) {
+  throw new Error('[StripePaymentAdapter] Stripe Checkout Session did not return a hosted URL.')
+}
+return session.url
+```
+
+## MANDATORY FALLBACK AUDIT DIRECTIVE
+
+Before finishing any implementation, perform a "Fallback Audit" over every modified file. Reject the implementation if you find any `||`, `??`, default parameter, empty string fallback, empty array fallback, default object fallback, fake value, mock value, guessed value, inferred business value, or silent catch that hides an error. Replace every occurrence with explicit validation and fail-fast behavior. The task is not complete until zero business fallbacks remain.
+
+

@@ -28,14 +28,17 @@ export class SystemIntegrationWorkflowEngine {
   }
 
   async bootstrapSystem(): Promise<{ success: boolean; eventSubscribersCount: number }> {
-    // 1. Prevent duplicate registration across multiple getDomainServices() instantiation calls
-    if ((global as any)[BOOTSTRAP_SYMBOL] || this.isBootstrapped) {
+    // 1. Prevent duplicate registration in production environments
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      ((global as any)[BOOTSTRAP_SYMBOL] || this.isBootstrapped)
+    ) {
       return { success: true, eventSubscribersCount: 7 }
     }
 
     // 2. Wire Master Event Bus Subscribers (Clean Drizzle and Payload listeners)
     MasterEventBus.clearSubscribers()
-    
+
     registerDashboardProjectionSubscribers(this.payload)
     registerNotificationSubscribers(this.payload)
     registerCustomerSubscribers(this.payload)

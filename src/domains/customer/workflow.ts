@@ -11,6 +11,12 @@ import { DeviceSessionManager } from './device-sessions'
 import { CustomerQueries } from './queries'
 import { EventOutboxService } from '../events/outbox'
 import type { CustomerAggregate } from './aggregate'
+import type { CustomerPreferencesInput } from './types'
+
+export type VerificationResult =
+  | { status: 'VERIFIED'; customer: CustomerAggregate }
+  | { status: 'ALREADY_VERIFIED'; customer: CustomerAggregate }
+  | { status: 'INVALID_TOKEN'; error: string }
 
 /**
  * Customer Workflow Engine
@@ -28,19 +34,20 @@ export class CustomerWorkflowEngine {
   public gdprManager: GDPRConsentManager
   public sessionManager: DeviceSessionManager
   public queries: CustomerQueries
-  private eventOutbox: EventOutboxService
+  public eventOutbox: EventOutboxService
 
-  constructor(repository?: CustomerRepository | Payload) {
+  constructor(repository: CustomerRepository | Payload) {
+    let payloadInstance: Payload
     if (repository && 'findByEmail' in repository) {
-      this.repository = repository as CustomerRepository
+      this.repository = repository
+      payloadInstance = repository.getPayload()
     } else {
       this.repository = new CustomerRepository(repository as Payload)
+      payloadInstance = repository as Payload
     }
-    const payloadInstance = repository && 'find' in repository ? (repository as Payload) : undefined
     this.travelerRepository = new TravelerRepository(payloadInstance)
     this.addressRepository = new AddressRepository(payloadInstance)
     this.sessionRepository = new DeviceSessionRepository(payloadInstance)
-
     this.identity = new IdentityCoordinatorFacade(this.repository)
     this.profileManager = new ProfileManager(this.travelerRepository, this.addressRepository)
     this.preferencesManager = new PreferencesManager()
@@ -58,9 +65,17 @@ export class CustomerWorkflowEngine {
     firstName: string,
     lastName: string,
     password?: string,
+    preferences?: CustomerPreferencesInput,
     options?: { eventSource?: 'domain' | 'external' },
   ): Promise<CustomerAggregate> {
-    const customer = await this.identity.registerCustomer(email, firstName, lastName, password, options)
+    const customer = await this.identity.registerCustomer(
+      email,
+      firstName,
+      lastName,
+      password,
+      preferences,
+      options,
+    )
 
     await this.eventOutbox.recordAndPublish({
       type: 'CUSTOMER_REGISTERED',
@@ -78,18 +93,62 @@ export class CustomerWorkflowEngine {
   /**
    * Verify email workflow. Emits EmailVerifiedEvent which triggers welcome bonus in Loyalty domain.
    */
-  async executeVerifyEmailWorkflow(customerId: number, rawToken: string): Promise<CustomerAggregate> {
-    const customer = await this.identity.verifyEmail(customerId, rawToken)
+  async executeVerifyEmailWorkflow(rawToken: string, email?: string): Promise<VerificationResult> {
+    try {
+      let customerId: number | null = null
 
-    await this.eventOutbox.recordAndPublish({
-      type: 'CUSTOMER_EMAIL_VERIFIED',
-      eventVersion: 'v1',
-      customerId: customer.customerId,
-      email: customer.email,
-      verifiedAt: new Date().toISOString(),
-      timestamp: new Date().toISOString(),
-    })
+      // 1. Locate the customer ID prior to verification
+      if (email) {
+        customerId = await this.repository.findCustomerIdByEmail(email)
+      } else {
+        customerId = await this.repository.findCustomerIdByVerificationToken(rawToken)
+      }
 
-    return customer
+      if (customerId === null) {
+        return {
+          status: 'INVALID_TOKEN',
+          error: 'Verification token is invalid or expired.',
+        }
+      }
+
+      // Load initial state to check if already verified
+      const initialCustomer = await this.repository.findById(customerId)
+      if (initialCustomer.isEmailVerified && initialCustomer.status === 'active') {
+        return { status: 'ALREADY_VERIFIED', customer: initialCustomer }
+      }
+
+      // 2. Perform technical verification via official API
+      await this.identity.verifyEmail(rawToken)
+
+      // 3. Load fresh state post-verification
+      let customer = await this.repository.findById(customerId)
+
+      // 4. Apply state transition rules and idempotency guards
+      if (customer.status === 'pending_verification') {
+        customer.status = 'active'
+        customer.emailVerifiedAt = new Date().toISOString()
+        customer = await this.repository.save(customer)
+
+        // 5. Publish verification event ONLY on real transition
+        await this.eventOutbox.recordAndPublish({
+          type: 'CUSTOMER_EMAIL_VERIFIED',
+          eventVersion: 'v1',
+          customerId: customer.customerId,
+          email: customer.email,
+          verifiedAt: customer.emailVerifiedAt || new Date().toISOString(),
+          timestamp: new Date().toISOString(),
+        })
+
+        return { status: 'VERIFIED', customer }
+      }
+
+      return { status: 'ALREADY_VERIFIED', customer }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Email verification failed'
+      return {
+        status: 'INVALID_TOKEN',
+        error: message,
+      }
+    }
   }
 }

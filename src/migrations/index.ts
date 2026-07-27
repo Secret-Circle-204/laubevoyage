@@ -5,6 +5,7 @@ import * as migration_20260724_185854_add_system_settings_global from './2026072
 import * as migration_20260725_144323_add_departure_slots_collection from './20260725_144323_add_departure_slots_collection';
 import * as migration_20260725_144943_add_capacity_total_to_experiences from './20260725_144943_add_capacity_total_to_experiences';
 import * as migration_20260725_153250_clean_single_source_of_truth from './20260725_153250_clean_single_source_of_truth';
+import * as migration_20260726_171618_alter_experience_price_nullable from './20260726_171618_alter_experience_price_nullable';
 
 export const migrations = [
   {
@@ -40,6 +41,11 @@ export const migrations = [
   {
     up: migration_20260725_153250_clean_single_source_of_truth.up,
     down: migration_20260725_153250_clean_single_source_of_truth.down,
-    name: '20260725_153250_clean_single_source_of_truth'
+    name: '20260725_153250_clean_single_source_of_truth',
+  },
+  {
+    up: migration_20260726_171618_alter_experience_price_nullable.up,
+    down: migration_20260726_171618_alter_experience_price_nullable.down,
+    name: '20260726_171618_alter_experience_price_nullable'
   },
 ];

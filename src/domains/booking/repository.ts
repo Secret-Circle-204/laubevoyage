@@ -118,6 +118,17 @@ export class BookingRepository {
   }
 
   /**
+   * Delete a booking document by ID.
+   */
+  async delete(id: number, req?: PayloadRequest): Promise<void> {
+    await this.payload.delete({
+      collection: 'bookings',
+      id,
+      req,
+    })
+  }
+
+  /**
    * Find uncompleted draft or pending payment bookings created before cutoff date.
    */
   async findExpiredDrafts(cutoffIso: string, req?: PayloadRequest): Promise<BookingAggregate[]> {

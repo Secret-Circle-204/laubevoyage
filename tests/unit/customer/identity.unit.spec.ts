@@ -1,23 +1,19 @@
 import { describe, it, expect, vi } from 'vitest'
 import { VerificationService } from '@/domains/customer/identity/verification'
 import { PasswordService } from '@/domains/customer/identity/password'
+import { CustomerRepository } from '@/domains/customer/repositories/customer-repository'
 
 describe('Customer Domain: Verification & Password Service Unit Tests', () => {
-  it('should generate un-hashed raw token for user and store SHA-256 hash internally', () => {
-    const mockRepo: any = {
-      findById: vi.fn().mockResolvedValue({
-        customerId: 1,
-        email: 'test@laube.com',
-        isEmailVerified: false,
-        status: 'pending_verification',
-      }),
-      save: vi.fn().mockImplementation((c) => Promise.resolve(c)),
-    }
+  it('should delegate email verification to repository', async () => {
+    const mockRepo = {
+      verifyEmailByToken: vi.fn().mockResolvedValue(1),
+    } as unknown as CustomerRepository
 
     const verificationService = new VerificationService(mockRepo)
-    const rawToken = verificationService.generateVerificationToken(1)
+    const result = await verificationService.verifyEmailToken('some-token')
 
-    expect(rawToken).toContain('tok_')
+    expect(mockRepo.verifyEmailByToken).toHaveBeenCalledWith('some-token')
+    expect(result).toBe(1)
   })
 
   it('should hash and verify passwords correctly', () => {

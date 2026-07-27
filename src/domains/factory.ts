@@ -44,7 +44,6 @@ import { MaintenanceRepository } from './maintenance/repository'
 import { MaintenanceService } from './maintenance/service'
 import { LanguageRepository } from './languages/repository'
 import { LanguageService } from './languages/service'
-import { BookingPricingUseCase } from '@/application/booking/pricing-usecase'
 import { SystemRepository } from './system/repository'
 import { SystemIntegrationService } from './system/service'
 import { systemSettingsRegistry } from './system/settings-registry'
@@ -87,7 +86,7 @@ export async function getDomainServices() {
   const serviceRateProvider = {
     getExchangeRate: async (fromCurrency: string, toCurrency: string) => {
       return currencyService.getRate(fromCurrency as any, toCurrency as any)
-    }
+    },
   }
 
   const serviceSettingsProvider = {
@@ -98,7 +97,7 @@ export async function getDomainServices() {
         vatEnabled: settings.vatEnabled,
         pricesIncludeVat: settings.pricesIncludeVat,
       }
-    }
+    },
   }
 
   const pricingPipeline = new PricingPipeline(serviceRateProvider, serviceSettingsProvider)
@@ -107,20 +106,36 @@ export async function getDomainServices() {
   const notificationService = new NotificationService(notificationRepository)
   const loyaltyService = new LoyaltyService(loyaltyRepository)
   const customerService = new CustomerService(customerRepository)
-  
-  const experienceWorkflowEngine = new ExperienceWorkflowEngine(experienceRepository, pricingPipeline)
+
+  const experienceWorkflowEngine = new ExperienceWorkflowEngine(
+    experienceRepository,
+    pricingPipeline,
+  )
   const experienceService = new ExperienceService(experienceRepository, experienceWorkflowEngine)
-  
-  const bookingService = new BookingService(bookingRepository, customerRepository, experienceService, loyaltyService, pricingPipeline)
-  const paymentService = new PaymentService(paymentRepository, bookingRepository, customerRepository, experienceRepository)
+
+  const bookingService = new BookingService(
+    bookingRepository,
+    customerRepository,
+    experienceService,
+    loyaltyService,
+    pricingPipeline,
+  )
+  const paymentService = new PaymentService(
+    paymentRepository,
+    bookingRepository,
+    customerRepository,
+    experienceRepository,
+  )
   const searchService = new SearchService(searchRepository)
-  const dashboardQueryBus = new DashboardQueryBus(customerRepository, loyaltyRepository, bookingRepository)
+  const dashboardQueryBus = new DashboardQueryBus(
+    customerRepository,
+    loyaltyRepository,
+    bookingRepository,
+  )
   const dashboardService = new DashboardService(dashboardRepository, dashboardQueryBus)
   const destinationService = new DestinationService(destinationRepository)
   const maintenanceService = new MaintenanceService(maintenanceRepository, bookingService)
   const languageService = new LanguageService(languageRepository)
-
-  const bookingPricingUseCase = new BookingPricingUseCase(experienceService, pricingFacade, localizationService)
 
   // 3. Bootstrap system event subscribers
   const systemIntegrationService = new SystemIntegrationService(payload)
@@ -145,6 +160,5 @@ export async function getDomainServices() {
     language: languageService,
     pricingPipeline,
     pricingFacade,
-    bookingPricingUseCase,
   }
 }

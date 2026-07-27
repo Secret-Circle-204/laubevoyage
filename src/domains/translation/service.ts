@@ -16,7 +16,6 @@ export class TranslationService {
     this.engine = new TranslationEngine(this.repository)
   }
 
-
   async getTranslation(translationKey: string, locale: string): Promise<TranslationRecordEntity> {
     return this.engine.translate(translationKey, locale)
   }

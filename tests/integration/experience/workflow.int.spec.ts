@@ -42,6 +42,6 @@ describe('Experience Domain: ExperienceWorkflowEngine Integration Tests', () => 
 
     expect(snapshot.snapshotId).toContain('snap_')
     expect(snapshot.displayCurrency).toBe('USD')
-    expect(snapshot.auditTrace.length).toBeGreaterThan(0)
+    expect(snapshot.auditTrace?.length).toBeGreaterThan(0)
   })
 })

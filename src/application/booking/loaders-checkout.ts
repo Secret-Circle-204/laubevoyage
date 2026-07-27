@@ -1,4 +1,4 @@
-import { getDomainServices } from '@/domains/factory'
+import { getApplicationServices } from '@/application/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import type { CheckoutPageDTO, PaymentGatewayDTO } from './dto-checkout'
 
@@ -15,7 +15,7 @@ export class CheckoutPageLoader {
     },
   ): Promise<CheckoutPageDTO | null> {
     try {
-      const { booking, experience, payment, localization, pricingFacade, bookingPricingUseCase } = await getDomainServices()
+      const { booking, experience, payment, localization, pricingFacade, bookingPricingUseCase } = await getApplicationServices()
 
       const locale = options?.locale || 'en'
       const currency = options?.currency || 'EGP'

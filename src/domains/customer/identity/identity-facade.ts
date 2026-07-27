@@ -3,6 +3,7 @@ import { RegistrationService } from './registration'
 import { AuthenticationService } from './authentication'
 import { VerificationService } from './verification'
 import type { CustomerAggregate } from '../aggregate'
+import type { CustomerPreferencesInput } from '../types'
 
 /**
  * Identity Coordinator Facade
@@ -26,13 +27,14 @@ export class IdentityCoordinatorFacade {
     firstName: string,
     lastName: string,
     password?: string,
+    preferences?: CustomerPreferencesInput,
     options?: { eventSource?: 'domain' | 'external' },
   ): Promise<CustomerAggregate> {
-    return this.registration.registerCustomer(email, firstName, lastName, password, options)
+    return this.registration.registerCustomer(email, firstName, lastName, password, preferences, options)
   }
 
-  async verifyEmail(customerId: number, rawToken: string): Promise<CustomerAggregate> {
-    return this.verification.verifyEmailToken(customerId, rawToken)
+  async verifyEmail(rawToken: string): Promise<number> {
+    return this.verification.verifyEmailToken(rawToken)
   }
 
   async login(email: string): Promise<CustomerAggregate> {
@@ -41,5 +43,9 @@ export class IdentityCoordinatorFacade {
 
   async onCustomerAuthenticated(customerId: number): Promise<CustomerAggregate> {
     return this.authentication.onCustomerAuthenticated(customerId)
+  }
+
+  async handleFailedLogin(email: string): Promise<void> {
+    await this.repository.incrementFailedLoginAttempts(email)
   }
 }

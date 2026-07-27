@@ -1,7 +1,12 @@
 import type { Payload } from 'payload'
 import { NotificationWorkflowEngine } from './workflow'
 import { NotificationRepository } from './repository'
-import type { NotificationChannel, NotificationCategory, NotificationPriority, NotificationAttachment } from './types'
+import type {
+  NotificationChannel,
+  NotificationCategory,
+  NotificationPriority,
+  NotificationAttachment,
+} from './types'
 
 /**
  * Notification Domain Service (Enterprise Thin Facade)

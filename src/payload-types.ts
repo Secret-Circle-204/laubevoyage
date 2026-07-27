@@ -102,11 +102,7 @@ export interface Config {
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {
-    experiences: {
-      departureSlots: 'departure-slots';
-    };
-  };
+  collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
@@ -435,7 +431,7 @@ export interface Experience {
     nights?: number | null;
   };
   /**
-   * Base catalog price in EGP (Applicable for Daily Tours).
+   * Base default price in EGP. Required for Daily Tours; optional for Packages with Departure Slots.
    */
   price?: number | null;
   availability: 'available' | 'sold_out' | 'coming_soon' | 'unavailable';
@@ -472,37 +468,15 @@ export interface Experience {
     description?: string | null;
     keywords?: string | null;
   };
-  /**
-   * Manage dates and prices for this experience. For Packages/Cruises, pricing per-slot is mandatory.
-   */
-  departureSlots?: {
-    docs?: (number | DepartureSlot)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "departure-slots".
- */
-export interface DepartureSlot {
-  id: number;
-  departureId: string;
-  experience: number | Experience;
-  date: string;
-  startTime?: string | null;
-  /**
-   * Optional price override in EGP for this slot. Falls back to Experience catalog price if left blank.
-   */
-  basePriceEGP?: number | null;
-  capacityTotal: number;
-  capacityReserved: number;
-  capacitySold: number;
-  capacityAvailable: number;
-  version: number;
-  status: 'available' | 'sold_out' | 'blacked_out' | 'cancelled';
+  _slotsPayload?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1202,6 +1176,29 @@ export interface Language {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "departure-slots".
+ */
+export interface DepartureSlot {
+  id: number;
+  departureId: string;
+  experience: number | Experience;
+  date: string;
+  startTime?: string | null;
+  /**
+   * Optional price override in EGP for this slot. Falls back to Experience catalog price if left blank.
+   */
+  basePriceEGP?: number | null;
+  capacityTotal: number;
+  capacityReserved: number;
+  capacitySold: number;
+  capacityAvailable: number;
+  version: number;
+  status: 'available' | 'sold_out' | 'blacked_out' | 'cancelled';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1593,7 +1590,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
         description?: T;
         keywords?: T;
       };
-  departureSlots?: T;
+  _slotsPayload?: T;
   updatedAt?: T;
   createdAt?: T;
 }

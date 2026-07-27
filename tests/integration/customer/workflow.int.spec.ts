@@ -11,9 +11,10 @@ describe('Customer Domain: CustomerWorkflowEngine Integration Tests', () => {
         Promise.resolve({ id: 1, email: data.email, firstName: data.firstName, lastName: data.lastName, status: 'pending_verification' }),
       ),
       findByID: vi.fn().mockImplementation(({ id }) =>
-        Promise.resolve({ id: 1, email: 'ahmed@laube.com', firstName: 'Ahmed', lastName: 'Hassan', status: 'pending_verification' }),
+        Promise.resolve({ id: 1, email: 'ahmed@laube.com', firstName: 'Ahmed', lastName: 'Hassan', status: 'pending_verification', _verified: true }),
       ),
       find: vi.fn().mockResolvedValue({ docs: [] }),
+      verifyEmail: vi.fn().mockResolvedValue(true),
       update: vi.fn().mockImplementation(({ data }) =>
         Promise.resolve({ id: 1, email: 'ahmed@laube.com', firstName: 'Ahmed', lastName: 'Hassan', status: 'active', emailVerifiedAt: new Date().toISOString() }),
       ),
@@ -25,5 +26,24 @@ describe('Customer Domain: CustomerWorkflowEngine Integration Tests', () => {
     const customer = await workflowEngine.executeRegisterWorkflow('ahmed@laube.com', 'Ahmed', 'Hassan')
     expect(customer.customerId).toBe(1)
     expect(customer.email).toBe('ahmed@laube.com')
+  })
+
+  it('should execute verify email workflow', async () => {
+    mockPayload.find.mockImplementation(({ collection, where }: { collection?: string; where?: any }) => {
+      if (where?._verificationToken || where?.email) {
+        return Promise.resolve({
+          docs: [{ id: 1, email: 'ahmed@laube.com', firstName: 'Ahmed', lastName: 'Hassan', status: 'pending_verification' }]
+        })
+      }
+      return Promise.resolve({ docs: [] })
+    })
+
+    const result = await workflowEngine.executeVerifyEmailWorkflow('some_token', 'ahmed@laube.com')
+    expect(result.status).toBe('VERIFIED')
+    if (result.status === 'VERIFIED') {
+      expect(result.customer.customerId).toBe(1)
+      expect(result.customer.status).toBe('active')
+      expect(result.customer.isEmailVerified).toBe(true)
+    }
   })
 })

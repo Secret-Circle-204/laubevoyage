@@ -14,19 +14,36 @@ export function registerCustomerSubscribers(payload: Payload): void {
   const loyaltyService = new LoyaltyService(loyaltyRepository)
 
   // 1. Customer Registered -> Grant welcome bonus points ledger entry (Decoupled)
-  eventBus.subscribe<CustomerRegisteredEvent>('CUSTOMER_REGISTERED', async (event) => {
-    try {
-      console.log(`[CustomerSubscriber] Customer #${event.customerId} registered. Granting welcome bonus...`)
-      await loyaltyService.grantWelcomeBonus(event.customerId)
-      console.log(`[CustomerSubscriber] Welcome bonus successfully granted for customer #${event.customerId}.`)
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error)
-      console.error(`[CustomerSubscriber] Error granting welcome bonus for customer #${event.customerId}:`, msg)
-    }
-  })
+  eventBus.subscribe<CustomerRegisteredEvent>(
+    'CUSTOMER_REGISTERED',
+    'CustomerSubscriber.grantWelcomeBonus',
+    async (event) => {
+      try {
+        console.log(
+          `[CustomerSubscriber] Customer #${event.customerId} registered. Granting welcome bonus...`,
+        )
+        await loyaltyService.grantWelcomeBonus(event.customerId)
+        console.log(
+          `[CustomerSubscriber] Welcome bonus successfully granted for customer #${event.customerId}.`,
+        )
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error)
+        console.error(
+          `[CustomerSubscriber] Error granting welcome bonus for customer #${event.customerId}:`,
+          msg,
+        )
+      }
+    },
+  )
 
   // 2. Customer Email Verified -> Logging only (Points are already granted at registration)
-  eventBus.subscribe<CustomerEmailVerifiedEvent>('CUSTOMER_EMAIL_VERIFIED', async (event) => {
-    console.log(`[CustomerSubscriber] Customer #${event.customerId} email verified. No duplicate bonus points granted.`)
-  })
+  eventBus.subscribe<CustomerEmailVerifiedEvent>(
+    'CUSTOMER_EMAIL_VERIFIED',
+    'CustomerSubscriber.logEmailVerified',
+    async (event) => {
+      console.log(
+        `[CustomerSubscriber] Customer #${event.customerId} email verified. No duplicate bonus points granted.`,
+      )
+    },
+  )
 }

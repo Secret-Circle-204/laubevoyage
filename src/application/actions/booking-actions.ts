@@ -2,6 +2,8 @@
 
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
+import type { CurrencyCode } from '@/types'
+import { Language } from '@/types/locale'
 
 /**
  * Orchestrator Server Action to process the checkout submit flow.
@@ -16,6 +18,10 @@ export async function confirmCheckoutAction(params: {
   travelers: Array<{ firstName: string; lastName: string; email: string; phone: string }>
   gatewayId: string
 }) {
+  console.log('==============================')
+  console.log('[CHECKOUT ACTION] START')
+  console.log(params)
+  console.log('==============================')
   try {
     const session = await SessionResolver.resolve()
     if (!session.isAuthenticated || !session.customerId) {
@@ -23,7 +29,14 @@ export async function confirmCheckoutAction(params: {
     }
     const userId = session.customerId
 
-    const { booking, experience, payment } = await getDomainServices()
+    const { booking, experience, payment, localization } = await getDomainServices()
+
+    // Single Source of Truth: Resolve currency on server from Localization Domain (Fail-Fast)
+    const localeCtx = localization.buildContext({ language: Language.EN, currency: 'USD' })
+    if (!localeCtx.currency) {
+      throw new Error('[confirmCheckoutAction] LocalizationDomain failed to resolve target currency.')
+    }
+    const serverCurrency: CurrencyCode = localeCtx.currency
 
     let targetBookingId: number
 
@@ -45,15 +58,18 @@ export async function confirmCheckoutAction(params: {
       const end = new Date(start.getTime() + (duration - 1) * 24 * 60 * 60 * 1000)
       const endDateStr = end.toISOString().split('T')[0]
 
-      // 4. Create booking draft via BookingService
+      // 4. Create booking draft via BookingService (passing server-resolved currency)
       targetBookingId = await booking.create({
         userId,
-        experienceId: params.experienceId,
+        departure,
         travelers: params.travelers,
-        startDate: departure.date,
         endDate: endDateStr,
+        currency: serverCurrency,
         source: 'website',
       })
+
+      // 5. Domain Business Rule: Move draft booking to pending payment state
+      await booking.moveToPendingPayment(targetBookingId)
     } else {
       // Resolve existing booking number to ID
       const bookingDoc = await booking.getByBookingNumber(params.bookingId)
@@ -68,7 +84,7 @@ export async function confirmCheckoutAction(params: {
       }
     }
 
-    // 5. Delegate to PaymentService to create gateway checkout session
+    // 6. Delegate to PaymentService to create gateway checkout session
     const paymentRes = await payment.processPaymentCheckout({
       bookingId: targetBookingId,
       gatewayId: params.gatewayId,
@@ -83,3 +99,43 @@ export async function confirmCheckoutAction(params: {
     }
   }
 }
+
+/**
+ * Read-only Server Action to poll booking confirmation status.
+ * Used exclusively by the /checkout/success checkpoint page (One-Writer Rule).
+ */
+export async function checkBookingStatusAction(params: { transactionId?: string; bookingNumber?: string }) {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || !session.customerId) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const { booking, payment } = await getDomainServices()
+
+    if (params.transactionId) {
+      const tx = await payment.getByTransactionId(params.transactionId)
+      if (tx) {
+        const bookingDoc = await booking.getById(tx.bookingId)
+        if (bookingDoc && bookingDoc.customerId === session.customerId) {
+          return { success: true, status: bookingDoc.status, bookingNumber: bookingDoc.bookingNumber }
+        }
+      }
+    }
+
+    if (params.bookingNumber) {
+      const bookingDoc = await booking.getByBookingNumber(params.bookingNumber)
+      if (bookingDoc && bookingDoc.customerId === session.customerId) {
+        return { success: true, status: bookingDoc.status, bookingNumber: bookingDoc.bookingNumber }
+      }
+    }
+
+    return { success: false, error: 'Booking context not found' }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Status check failed',
+    }
+  }
+}
+

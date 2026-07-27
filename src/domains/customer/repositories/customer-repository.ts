@@ -14,6 +14,10 @@ export class CustomerRepository {
     this.payload = payload
   }
 
+  getPayload(): Payload {
+    return this.payload
+  }
+
   async authenticateRequest(headers: Headers): Promise<{ id: number; email?: string } | null> {
     if (!this.payload) return null
     try {
@@ -29,9 +33,11 @@ export class CustomerRepository {
     data: Record<string, unknown>,
     options?: { eventSource?: 'domain' | 'external' },
   ): Promise<CustomerAggregate> {
-    const req = options?.eventSource ? {
-      context: { eventSource: options.eventSource }
-    } as any : undefined
+    const req = options?.eventSource
+      ? ({
+          context: { eventSource: options.eventSource },
+        } as any)
+      : undefined
 
     const doc = await this.payload.create({
       collection: 'customers',
@@ -85,6 +91,98 @@ export class CustomerRepository {
     return this.mapDocToAggregate(doc)
   }
 
+  async findCustomerIdByEmail(email: string): Promise<number | null> {
+    const result = await this.payload.find({
+      collection: 'customers',
+      where: {
+        email: { equals: email.toLowerCase() },
+      },
+      limit: 1,
+      select: {
+        email: true,
+      },
+    })
+
+    return result.docs[0] ? Number(result.docs[0].id) : null
+  }
+
+  async findCustomerIdByVerificationToken(token: string): Promise<number | null> {
+    const result = await this.payload.find({
+      collection: 'customers',
+      where: {
+        _verificationToken: { equals: token },
+      },
+      limit: 1,
+      overrideAccess: true,
+      select: {
+        email: true,
+      },
+    })
+
+    return result.docs[0] ? Number(result.docs[0].id) : null
+  }
+
+  async verifyEmailByToken(token: string): Promise<number> {
+    const customerId = await this.findCustomerIdByVerificationToken(token)
+    if (customerId === null) {
+      throw new Error('Verification token is invalid or expired.')
+    }
+
+    await this.payload.verifyEmail({
+      collection: 'customers',
+      token,
+    })
+
+    return customerId
+  }
+
+  async incrementFailedLoginAttempts(email: string): Promise<number> {
+    const db = (this.payload as any).db
+    if (db && db.pool && typeof db.pool.query === 'function') {
+      try {
+        const result = await db.pool.query(
+          'UPDATE "customers" SET "failed_login_attempts" = "failed_login_attempts" + 1 WHERE "email" = $1 RETURNING "id", "failed_login_attempts"',
+          [email.toLowerCase()],
+        )
+        const row = result.rows?.[0]
+        const attempts = row ? Number(row.failed_login_attempts || 0) : 0
+
+        if (attempts >= 5) {
+          const lockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+          await this.payload.update({
+            collection: 'customers',
+            id: Number(row.id),
+            data: {
+              lockedUntil,
+            },
+          })
+        }
+        return attempts
+      } catch (err) {
+        console.error('[CustomerRepository] Failed atomic increment:', err)
+      }
+    }
+
+    // Fallback/Mock behavior for tests
+    const customer = await this.findByEmail(email)
+    if (!customer) return 0
+
+    const nextAttempts = customer.failedLoginAttempts + 1
+    const data: Record<string, any> = {
+      failedLoginAttempts: nextAttempts,
+    }
+    if (nextAttempts >= 5) {
+      data.lockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    }
+
+    await this.payload.update({
+      collection: 'customers',
+      id: customer.customerId,
+      data,
+    })
+    return nextAttempts
+  }
+
   async save(customer: CustomerAggregate, req?: PayloadRequest): Promise<CustomerAggregate> {
     const doc = await this.payload.update({
       collection: 'customers',
@@ -107,6 +205,60 @@ export class CustomerRepository {
     return this.mapDocToAggregate(doc)
   }
 
+  async login(email: string, password?: string): Promise<{ user: CustomerAggregate; token: string } | null> {
+    try {
+      const loginResult = await this.payload.login({
+        collection: 'customers',
+        data: { email, password: password || '' },
+      })
+      if (!loginResult.user || !loginResult.token) return null
+      return {
+        user: this.mapDocToAggregate(loginResult.user),
+        token: loginResult.token,
+      }
+    } catch {
+      return null
+    }
+  }
+
+  async deleteAssociatedData(customerId: number, req?: PayloadRequest): Promise<void> {
+    const where = { customerId: { equals: customerId } }
+    const collections = [
+      'customer-travelers',
+      'customer-addresses',
+      'customer-device-sessions',
+      'customer-notification-preferences',
+      'dashboard-projections',
+    ]
+
+    for (const collection of collections) {
+      await this.payload.delete({
+        collection: collection as any,
+        where,
+        req,
+      }).catch((e) => console.error(`[CustomerRepository] Error purging ${collection} for customer ${customerId}:`, e))
+    }
+  }
+
+  async updateLoyaltyProfile(
+    customerId: number,
+    loyaltyData: { tier?: string; points?: number; totalSpent?: number; tierAchievedAt?: string },
+    req?: PayloadRequest,
+  ): Promise<void> {
+    const customerDoc = await this.payload.findByID({ collection: 'customers', id: customerId, req })
+    await this.payload.update({
+      collection: 'customers',
+      id: customerId,
+      data: {
+        loyalty: {
+          ...customerDoc.loyalty,
+          ...loyaltyData,
+        },
+      },
+      req,
+    })
+  }
+
   private mapDocToAggregate(doc: Record<string, any>): CustomerAggregate {
     const firstName = doc.firstName || ''
     const lastName = doc.lastName || ''
@@ -127,8 +279,12 @@ export class CustomerRepository {
       failedLoginAttempts: doc.failedLoginAttempts || 0,
       lockedUntil: doc.lockedUntil ? new Date(doc.lockedUntil).toISOString() : undefined,
       deletedAt: doc.deletedAt ? new Date(doc.deletedAt).toISOString() : undefined,
-      emailVerifiedAt: doc.emailVerifiedAt ? new Date(doc.emailVerifiedAt).toISOString() : undefined,
-      phoneVerifiedAt: doc.phoneVerifiedAt ? new Date(doc.phoneVerifiedAt).toISOString() : undefined,
+      emailVerifiedAt: doc.emailVerifiedAt
+        ? new Date(doc.emailVerifiedAt).toISOString()
+        : undefined,
+      phoneVerifiedAt: doc.phoneVerifiedAt
+        ? new Date(doc.phoneVerifiedAt).toISOString()
+        : undefined,
       version: 1,
       createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : new Date().toISOString(),

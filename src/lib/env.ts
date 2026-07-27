@@ -18,10 +18,10 @@ export function validateEnv(): EnvConfig {
   const isProd = process.env.NODE_ENV === 'production'
 
   const config: EnvConfig = {
-    NODE_ENV: (process.env.NODE_ENV as any) || 'development',
-    APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    PAYLOAD_SECRET: process.env.PAYLOAD_SECRET || 'laube-voyage-dev-secret-key-change-in-prod',
-    DATABASE_URI: process.env.DATABASE_URI || 'mongodb://127.0.0.1/laube-rebuild',
+    NODE_ENV: process.env.NODE_ENV as any,
+    APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    PAYLOAD_SECRET: process.env.PAYLOAD_SECRET,
+    DATABASE_URI: process.env.DATABASE_URI,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     PAYMOB_API_KEY: process.env.PAYMOB_API_KEY,
@@ -30,10 +30,14 @@ export function validateEnv(): EnvConfig {
 
   if (isProd) {
     if (!process.env.PAYLOAD_SECRET) {
-      throw new Error('[SECURITY CRITICAL] Missing mandatory PAYLOAD_SECRET environment variable in production.')
+      throw new Error(
+        '[SECURITY CRITICAL] Missing mandatory PAYLOAD_SECRET environment variable in production.',
+      )
     }
     if (!process.env.DATABASE_URI) {
-      throw new Error('[SECURITY CRITICAL] Missing mandatory DATABASE_URI environment variable in production.')
+      throw new Error(
+        '[SECURITY CRITICAL] Missing mandatory DATABASE_URI environment variable in production.',
+      )
     }
   }
 

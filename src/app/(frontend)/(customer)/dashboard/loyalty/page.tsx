@@ -3,6 +3,9 @@ import type { Metadata } from 'next'
 import { Card, Badge } from '@/components/ui'
 import { CustomerPortalLoader } from '@/application/dashboard/loaders'
 
+import { SessionResolver } from '@/application/auth/session-resolver'
+import { redirect } from 'next/navigation'
+
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -10,7 +13,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const data = await CustomerPortalLoader.loadOverview(1)
+  const session = await SessionResolver.resolve()
+  if (!session.isAuthenticated || !session.customerId) {
+    redirect('/login')
+  }
+
+  const data = await CustomerPortalLoader.loadOverview(session.customerId)
 
   return (
     <div className="flex flex-col gap-8">

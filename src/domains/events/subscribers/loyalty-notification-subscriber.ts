@@ -15,28 +15,35 @@ export function registerLoyaltyNotificationSubscriber(payload: Payload): void {
   const customerRepository = new CustomerRepository(payload)
   const notificationService = new NotificationService(notificationRepository)
 
-  eventBus.subscribe<TierUpgradedEvent>('TIER_UPGRADED', async (event) => {
-    try {
-      const customer = await customerRepository.findById(event.customerId).catch(() => null)
-      if (!customer?.email) return
+  eventBus.subscribe<TierUpgradedEvent>(
+    'TIER_UPGRADED',
+    'LoyaltyNotificationSubscriber.enqueueTierUpgradeNotification',
+    async (event) => {
+      try {
+        const customer = await customerRepository.findById(event.customerId).catch(() => null)
+        if (!customer?.email) return
 
-      await notificationService.enqueueNotification({
-        referenceType: 'LOYALTY_TIER',
-        referenceId: `${event.customerId}_${event.newTier}`,
-        recipient: customer.email,
-        channel: 'email',
-        category: 'loyalty',
-        priority: 'normal',
-        templateId: 'tier_upgraded',
-        translationKey: 'loyalty.tier_upgraded',
-        templateData: {
-          customerId: event.customerId,
-          newTier: event.newTier,
-          bonusGranted: event.bonusGranted,
-        },
-      })
-    } catch (err: any) {
-      console.error(`[LoyaltyNotificationSubscriber] Error enqueuing tier upgrade notification:`, err.message)
-    }
-  })
+        await notificationService.enqueueNotification({
+          referenceType: 'LOYALTY_TIER',
+          referenceId: `${event.customerId}_${event.newTier}`,
+          recipient: customer.email,
+          channel: 'email',
+          category: 'loyalty',
+          priority: 'normal',
+          templateId: 'tier_upgraded',
+          translationKey: 'loyalty.tier_upgraded',
+          templateData: {
+            customerId: event.customerId,
+            newTier: event.newTier,
+            bonusGranted: event.bonusGranted,
+          },
+        })
+      } catch (err: any) {
+        console.error(
+          `[LoyaltyNotificationSubscriber] Error enqueuing tier upgrade notification:`,
+          err.message,
+        )
+      }
+    },
+  )
 }

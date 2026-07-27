@@ -28,7 +28,7 @@ export class PaymentRepository {
   async createTransaction(data: Record<string, unknown>, req?: PayloadRequest): Promise<PaymentAggregate> {
     const doc = await this.payload.create({
       collection: 'payment-transactions',
-      data: data as any,
+      data: data as unknown as Record<string, any>,
       req,
     })
 
@@ -94,24 +94,34 @@ export class PaymentRepository {
     newStatus: PaymentStatusType,
     req?: PayloadRequest,
   ): Promise<PaymentAggregate> {
-    const current = await this.findByTransactionId(transactionId, req)
-    if (!current) {
+    const result = await this.payload.find({
+      collection: 'payment-transactions',
+      where: {
+        transactionId: { equals: transactionId },
+      },
+      limit: 1,
+      req,
+    })
+
+    const currentDoc = result.docs[0]
+    if (!currentDoc) {
       throw new Error(`[PaymentRepository] Transaction ID ${transactionId} not found`)
     }
 
+    const current = this.mapDocToAggregate(currentDoc)
     validatePaymentTransition(current.status, newStatus)
 
-    const doc = await this.payload.update({
+    const updatedDoc = await this.payload.update({
       collection: 'payment-transactions',
-      id: current.transactionId,
+      id: currentDoc.id,
       data: {
-        status: newStatus as any,
+        status: newStatus as PaymentStatusType,
         version: current.version + 1,
       },
       req,
     })
 
-    return this.mapDocToAggregate(doc)
+    return this.mapDocToAggregate(updatedDoc)
   }
 
   /**
@@ -122,25 +132,35 @@ export class PaymentRepository {
     attempt: PaymentAttemptRecord,
     req?: PayloadRequest,
   ): Promise<PaymentAggregate> {
-    const current = await this.findByTransactionId(transactionId, req)
-    if (!current) {
+    const result = await this.payload.find({
+      collection: 'payment-transactions',
+      where: {
+        transactionId: { equals: transactionId },
+      },
+      limit: 1,
+      req,
+    })
+
+    const currentDoc = result.docs[0]
+    if (!currentDoc) {
       throw new Error(`[PaymentRepository] Transaction ID ${transactionId} not found`)
     }
 
+    const current = this.mapDocToAggregate(currentDoc)
     const updatedAttempts = [...current.attempts, attempt]
 
-    const doc = await this.payload.update({
+    const updatedDoc = await this.payload.update({
       collection: 'payment-transactions',
-      id: current.transactionId,
+      id: currentDoc.id,
       data: {
-        attempts: updatedAttempts as any,
+        attempts: updatedAttempts as unknown as Record<string, any>[],
         gatewayReference: attempt.transactionReference || current.gatewayReference,
         version: current.version + 1,
       },
       req,
     })
 
-    return this.mapDocToAggregate(doc)
+    return this.mapDocToAggregate(updatedDoc)
   }
 
   /**
@@ -151,24 +171,34 @@ export class PaymentRepository {
     webhook: WebhookLedgerRecord,
     req?: PayloadRequest,
   ): Promise<PaymentAggregate> {
-    const current = await this.findByTransactionId(transactionId, req)
-    if (!current) {
+    const result = await this.payload.find({
+      collection: 'payment-transactions',
+      where: {
+        transactionId: { equals: transactionId },
+      },
+      limit: 1,
+      req,
+    })
+
+    const currentDoc = result.docs[0]
+    if (!currentDoc) {
       throw new Error(`[PaymentRepository] Transaction ID ${transactionId} not found`)
     }
 
+    const current = this.mapDocToAggregate(currentDoc)
     const updatedLedger = [...current.webhookLedger, webhook]
 
-    const doc = await this.payload.update({
+    const updatedDoc = await this.payload.update({
       collection: 'payment-transactions',
-      id: current.transactionId,
+      id: currentDoc.id,
       data: {
-        webhookLedger: updatedLedger as any,
+        webhookLedger: updatedLedger as unknown as Record<string, any>[],
         version: current.version + 1,
       },
       req,
     })
 
-    return this.mapDocToAggregate(doc)
+    return this.mapDocToAggregate(updatedDoc)
   }
 
   /**

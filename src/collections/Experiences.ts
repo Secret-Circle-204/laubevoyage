@@ -1,4 +1,6 @@
 import type { CollectionConfig } from 'payload'
+import { extractSlotsPayload } from './hooks/extractSlotsPayload'
+import { syncDepartureSlots } from './hooks/syncDepartureSlots'
 
 const PRICING_SOURCE_BY_TYPE = {
   daily_tour: 'catalog',
@@ -15,6 +17,8 @@ export const Experiences: CollectionConfig = {
     read: () => true,
   },
   hooks: {
+    beforeChange: [extractSlotsPayload],
+    afterChange: [syncDepartureSlots],
     beforeDelete: [
       async ({ req, id }) => {
         // Enforce business rule: Do not allow deletion of experience if there are paid/confirmed/completed bookings
@@ -39,8 +43,8 @@ export const Experiences: CollectionConfig = {
           },
           req,
         })
-      }
-    ]
+      },
+    ],
   },
   fields: [
     {
@@ -121,26 +125,20 @@ export const Experiences: CollectionConfig = {
       type: 'number',
       min: 0,
       validate: (val: unknown, { data }: { data: Record<string, any> }) => {
-        if (data?.type) {
-          const pricingSource = PRICING_SOURCE_BY_TYPE[data.type as keyof typeof PRICING_SOURCE_BY_TYPE]
-          if (pricingSource === 'catalog') {
-            if (val === undefined || val === null || val === '') {
-              return 'Price is required for daily tours'
-            }
-            if (Number(val) < 0) {
-              return 'Price must be greater than or equal to 0'
-            }
+        if (data?.type === 'daily_tour') {
+          if (val === undefined || val === null || val === '') {
+            return 'Price is required for Daily Tours'
+          }
+        }
+        if (val !== undefined && val !== null && val !== '') {
+          if (Number(val) < 0) {
+            return 'Price must be greater than or equal to 0'
           }
         }
         return true
       },
       admin: {
-        description: 'Base catalog price in EGP (Applicable for Daily Tours).',
-        condition: (data: Record<string, any>) => {
-          if (!data?.type) return true
-          const pricingSource = PRICING_SOURCE_BY_TYPE[data.type as keyof typeof PRICING_SOURCE_BY_TYPE]
-          return pricingSource === 'catalog'
-        },
+        description: 'Base default price in EGP. Required for Daily Tours; optional for Packages with Departure Slots.',
       },
     },
     {
@@ -211,15 +209,23 @@ export const Experiences: CollectionConfig = {
       ],
     },
     {
-      name: 'departureSlots',
-      type: 'join',
-      collection: 'departure-slots',
-      on: 'experience',
+      name: '_slotsPayload',
+      type: 'json',
+      virtual: true,
       admin: {
-        allowCreate: true,
-        defaultColumns: ['date', 'startTime', 'capacityAvailable', 'status'],
-        description: 'Manage dates and prices for this experience. For Packages/Cruises, pricing per-slot is mandatory.',
+        hidden: true,
+      },
+    },
+    {
+      name: 'departureSlots',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '@/components/admin/DepartureSlotsEditor#DepartureSlotsEditor',
+        },
+        condition: (data: Record<string, any>) => data?.type === 'package',
       },
     },
   ],
 }
+

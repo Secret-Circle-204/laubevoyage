@@ -1,53 +1,44 @@
 import { LoyaltyTier } from '@/types'
+import type { BaseDomainEvent } from './event-bus'
 
-export interface LoyaltyEarnedEvent {
+export interface LoyaltyEarnedEvent extends BaseDomainEvent {
   type: 'LOYALTY_EARNED'
-  eventVersion: 'v1'
   customerId: number
   points: number
   balance: number
   bookingId?: number
-  timestamp: string
 }
 
-export interface PointsRedeemedEvent {
+export interface PointsRedeemedEvent extends BaseDomainEvent {
   type: 'POINTS_REDEEMED'
-  eventVersion: 'v1'
   customerId: number
   points: number
   balance: number
   bookingId?: number
-  timestamp: string
 }
 
-export interface PointsRefundedEvent {
+export interface PointsRefundedEvent extends BaseDomainEvent {
   type: 'POINTS_REFUNDED'
-  eventVersion: 'v1'
   customerId: number
   points: number
   balance: number
   bookingId?: number
-  timestamp: string
 }
 
-export interface TierUpgradedEvent {
+export interface TierUpgradedEvent extends BaseDomainEvent {
   type: 'TIER_UPGRADED'
-  eventVersion: 'v1'
   customerId: number
   newTier: LoyaltyTier
   bonusGranted: number
-  timestamp: string
 }
 
-export interface ManualAdjustmentEvent {
+export interface ManualAdjustmentEvent extends BaseDomainEvent {
   type: 'MANUAL_ADJUSTMENT'
-  eventVersion: 'v1'
   customerId: number
   points: number
   balance: number
   ticket: string
   adminId: number | string
-  timestamp: string
 }
 
 export type LoyaltyDomainEvent =

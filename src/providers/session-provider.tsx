@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState } from 'react'
+import { logoutCustomerAction } from '@/application/actions/customer-actions'
 
 export interface CustomerSessionState {
   isAuthenticated: boolean
@@ -15,7 +16,7 @@ export interface CustomerSessionState {
 interface SessionContextType {
   session: CustomerSessionState
   setSession: (session: CustomerSessionState) => void
-  logout: () => void
+  logout: () => Promise<void>
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined)
@@ -33,8 +34,14 @@ export function SessionProvider({
     setSessionState(newSession)
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await logoutCustomerAction()
+    } catch (err) {
+      console.error('Failed to clear session cookie:', err)
+    }
     setSessionState({ isAuthenticated: false })
+    window.location.href = '/login'
   }
 
   return (

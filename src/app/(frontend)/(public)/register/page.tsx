@@ -35,14 +35,23 @@ function RegisterForm() {
         password,
       })
       if (res.success) {
-        addToast({
-          type: 'success',
-          title: 'Account Created!',
-          description: "Welcome to L'Aube Voyage. 100 loyalty points awarded!",
-        })
-        const redirectPath = searchParams.get('redirect') || '/dashboard'
-        router.push(redirectPath)
-        router.refresh()
+        if ('requiresVerification' in res && res.requiresVerification) {
+          addToast({
+            type: 'info',
+            title: 'Verification Required',
+            description: 'Account created! Please verify your email address to log in.',
+          })
+          router.push(`/verify-email?email=${encodeURIComponent(email)}`)
+        } else {
+          addToast({
+            type: 'success',
+            title: 'Account Created!',
+            description: "Welcome to L'Aube Voyage. 100 loyalty points awarded!",
+          })
+          const redirectPath = searchParams.get('redirect') || '/dashboard'
+          router.push(redirectPath)
+          router.refresh()
+        }
       } else {
         addToast({
           type: 'error',

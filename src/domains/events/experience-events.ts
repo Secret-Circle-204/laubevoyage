@@ -1,32 +1,28 @@
-export interface PricingSnapshotCreatedEvent {
+import type { BaseDomainEvent } from './event-bus'
+
+export interface PricingSnapshotCreatedEvent extends BaseDomainEvent {
   type: 'PRICING_SNAPSHOT_CREATED'
-  eventVersion: 'v1'
   snapshotId: string
   experienceId: number
   departureId: string
   basePriceEGP: number
   displayCurrency: string
   displayAmount: number
-  timestamp: string
 }
 
-export interface InventoryReservedEvent {
+export interface InventoryReservedEvent extends BaseDomainEvent {
   type: 'INVENTORY_RESERVED'
-  eventVersion: 'v1'
   departureId: string
   experienceId: number
   seatsReserved: number
   holdId: string
-  timestamp: string
 }
 
-export interface InventoryReleasedEvent {
+export interface InventoryReleasedEvent extends BaseDomainEvent {
   type: 'INVENTORY_RELEASED'
-  eventVersion: 'v1'
   departureId: string
   experienceId: number
   seatsReleased: number
-  timestamp: string
 }
 
 export type ExperienceDomainEvent =

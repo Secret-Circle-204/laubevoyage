@@ -4,7 +4,13 @@ import { NotificationDispatcher } from './dispatcher'
 import { NotificationQueue } from './queue'
 import { NotificationWorker } from './worker'
 import { NotificationRateLimiter } from './rate-limiter'
-import type { NotificationJobEntity, NotificationChannel, NotificationCategory, NotificationPriority, NotificationAttachment } from './types'
+import type {
+  NotificationJobEntity,
+  NotificationChannel,
+  NotificationCategory,
+  NotificationPriority,
+  NotificationAttachment,
+} from './types'
 
 /**
  * Notification Workflow Engine
@@ -49,7 +55,10 @@ export class NotificationWorkflowEngine {
     customerId?: number
   }): Promise<{ queued: boolean; jobId: string; reason?: string }> {
     // 1. Check Rate Limiting for OTPs
-    if (params.category === 'marketing' && NotificationRateLimiter.isRateLimited(params.recipient)) {
+    if (
+      params.category === 'marketing' &&
+      NotificationRateLimiter.isRateLimited(params.recipient)
+    ) {
       return { queued: false, jobId: '', reason: 'Rate limit exceeded for recipient' }
     }
 
@@ -62,7 +71,11 @@ export class NotificationWorkflowEngine {
     )
 
     if (existing) {
-      return { queued: false, jobId: existing.jobId, reason: 'Duplicate notification skipped idempotently' }
+      return {
+        queued: false,
+        jobId: existing.jobId,
+        reason: 'Duplicate notification skipped idempotently',
+      }
     }
 
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`

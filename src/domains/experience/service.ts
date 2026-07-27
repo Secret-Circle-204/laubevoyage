@@ -158,10 +158,13 @@ export class ExperienceService {
     return this.workflowEngine.queries.getDepartureSlotByDate(experienceId, date)
   }
 
-  /**
-   * Find departure slots for a specific experience ID from database.
-   */
   async findSlotsByExperienceId(experienceId: number): Promise<DepartureSlotEntity[]> {
+    const experience = await this.getById(experienceId)
+    if (!experience) return []
+    const pricingSource = PricingPolicyRegistry.getSource(experience.type)
+    if (pricingSource === 'catalog') {
+      return [] // Catalog-priced experiences (daily tours) do not support departure slots
+    }
     return this.workflowEngine.queries.findSlotsByExperienceId(experienceId)
   }
 

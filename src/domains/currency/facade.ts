@@ -52,7 +52,7 @@ export class PricingFacade {
       currencyCode: currency,
       currencySymbol: symbol,
       formatted,
-      exchangeRate: snapshot.exchangeRateUsed,
+      exchangeRate: snapshot.exchangeRate,
       decimals,
     }
   }

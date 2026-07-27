@@ -4,6 +4,7 @@ import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 
 import { Users } from './collections/Users'
 import { Customers } from './collections/Customers'
@@ -35,6 +36,8 @@ import { Coupons } from './collections/Coupons'
 import { DepartureSlots } from './collections/DepartureSlots'
 
 import { Languages } from './collections/Languages'
+import { EventOutbox } from './collections/EventOutbox'
+import { EventInbox } from './collections/EventInbox'
 import { SystemSettings } from './globals/SystemSettings'
 
 const filename = fileURLToPath(import.meta.url)
@@ -77,10 +80,10 @@ export default buildConfig({
     Coupons,
     Languages,
     DepartureSlots,
+    EventOutbox,
+    EventInbox,
   ],
-  globals: [
-    SystemSettings,
-  ],
+  globals: [SystemSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
@@ -94,5 +97,18 @@ export default buildConfig({
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
   sharp,
+  email: nodemailerAdapter({
+    defaultFromAddress: process.env.FROM_EMAIL!,
+    defaultFromName: process.env.FROM_NAME!,
+    transportOptions: {
+      host: process.env.SMTP_HOST!,
+      port: Number(process.env.SMTP_PORT!),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER!,
+        pass: process.env.SMTP_PASSWORD!,
+      },
+    },
+  }),
   plugins: [],
 })

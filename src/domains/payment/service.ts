@@ -1,11 +1,12 @@
-import type { CreateSessionParams, RefundParams, RefundResult } from './types'
+import type { CreateSessionParams, RefundParams, RefundResult, PaymentProviderType } from './types'
 import type { PaymentAggregate } from './aggregate'
 import { PaymentWorkflowEngine } from './workflow'
 import type { BookingRepository } from '../booking/repository'
 import type { CustomerRepository } from '../customer/repository'
 import type { ExperienceRepository } from '../experience/repository'
 import { PaymentRepository } from './repository'
-import { PaymentProviderFactory } from './factory/payment-provider-factory'
+import { PaymentAdapterFactory } from './adapters/factory'
+import { PaymentUrlBuilder } from './url-builder'
 
 /**
  * Payment Domain Service (Enterprise Thin Facade)
@@ -24,12 +25,13 @@ export class PaymentService {
     bookingRepository?: BookingRepository,
     customerRepository?: CustomerRepository,
     experienceRepository?: ExperienceRepository,
+    outboxRepository?: import('../events/contracts/outbox-repository.interface').IOutboxRepository,
   ) {
     this.paymentRepository = paymentRepository
     this.bookingRepository = bookingRepository || ({} as BookingRepository)
     this.customerRepository = customerRepository || ({} as CustomerRepository)
     this.experienceRepository = experienceRepository || ({} as ExperienceRepository)
-    this.workflowEngine = new PaymentWorkflowEngine(paymentRepository)
+    this.workflowEngine = new PaymentWorkflowEngine(paymentRepository, outboxRepository)
   }
 
   async getAvailableGateways() {
@@ -37,8 +39,16 @@ export class PaymentService {
   }
 
   async processPaymentCheckout(params: { bookingId: number; gatewayId: string; appUrl?: string }) {
-    const provider = PaymentProviderFactory.getProvider(params.gatewayId)
-    const baseUrl = params.appUrl || process.env.NEXT_PUBLIC_APP_URL || ''
+    if (!params.gatewayId) {
+      throw new Error('[PaymentService] Gateway ID is required for payment checkout processing.')
+    }
+    const providerType = params.gatewayId.toLowerCase() as PaymentProviderType
+    const adapter = PaymentAdapterFactory.resolve(providerType)
+
+    const baseUrl = params.appUrl || process.env.NEXT_PUBLIC_APP_URL
+    if (!baseUrl) {
+      throw new Error('[PaymentService] Missing appUrl parameter or NEXT_PUBLIC_APP_URL environment variable.')
+    }
 
     const booking = await this.bookingRepository.findById(params.bookingId)
     const userDoc = await this.customerRepository.findById(booking.customerId)
@@ -47,7 +57,15 @@ export class PaymentService {
     const pricingSnapshot = booking.pricingSnapshot
     const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
 
-    const sessionParams = {
+    const { successUrl, cancelUrl } = PaymentUrlBuilder.buildUrls({
+      baseUrl,
+      transactionId,
+      bookingId: booking.id,
+      bookingNumber: booking.bookingNumber,
+      gatewayId: params.gatewayId,
+    })
+
+    const sessionParams: CreateSessionParams = {
       transactionId,
       bookingId: booking.id,
       customerId: userDoc ? (userDoc.customerId || Number((userDoc as Record<string, any>).id)) : booking.customerId,
@@ -55,13 +73,15 @@ export class PaymentService {
       basePriceEGP: pricingSnapshot.basePriceEGP,
       displayCurrency: pricingSnapshot.displayCurrency || 'EGP',
       displayAmount: pricingSnapshot.displayAmount || 0,
-      successUrl: `${baseUrl}/dashboard/bookings`,
-      cancelUrl: `${baseUrl}/checkout/${params.bookingId}`,
+      successUrl,
+      cancelUrl,
       customerEmail: userDoc?.email || undefined,
       experienceTitle: experienceDoc?.title || `Booking #${booking.bookingNumber}`,
     }
 
-    const session = await provider.createCheckoutSession(sessionParams)
+    const paymentAggregate = await this.workflowEngine.executeCreateSessionWorkflow(providerType, sessionParams, booking.status)
+    const session = paymentAggregate.session || (await adapter.createCheckoutSession(sessionParams))
+
     return { success: true, transactionId, checkoutUrl: session.url }
   }
 
@@ -105,8 +125,23 @@ export class PaymentService {
   /**
    * Handle Stripe Webhook idempotently.
    */
-  async handleStripeWebhook(rawBody: string | Buffer, signature: string) {
-    return this.workflowEngine.executeWebhookWorkflow(rawBody, signature, 'stripe')
+  async handleStripeWebhook(
+    rawBody: string | Buffer,
+    signature: string,
+    options?: { correlationId?: string; dbTransaction?: unknown },
+  ) {
+    return this.workflowEngine.executeWebhookWorkflow(rawBody, signature, 'stripe', options)
+  }
+
+  /**
+   * Handle Paymob Webhook idempotently.
+   */
+  async handlePaymobWebhook(
+    rawBody: string | Buffer,
+    signature: string,
+    options?: { correlationId?: string; dbTransaction?: unknown },
+  ) {
+    return this.workflowEngine.executePaymobWebhookWorkflow(rawBody, signature, options)
   }
 
   /**

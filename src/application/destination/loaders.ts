@@ -15,20 +15,28 @@ export class DestinationsCatalogLoader {
 
       const countriesRes = await destination.getCountries(options)
 
-      // Collect raw texts for 1 Single Batch Request
+      // Fetch country and city documents sequentially to guarantee deterministic ordering
+      const countryRecords: Array<{
+        countryDoc: Record<string, any>
+        cityDocs: Array<Record<string, any>>
+      }> = []
+
       const rawTexts: string[] = []
 
-      for (const doc of countriesRes.docs || []) {
-        const item = doc as Record<string, any>
-        rawTexts.push(String(item.name || ''))
-        rawTexts.push(typeof item.description === 'string' ? item.description : '')
+      for (const countryDoc of (countriesRes.docs || []) as Record<string, any>[]) {
+        const countryId = Number(countryDoc.id)
+        rawTexts.push(String(countryDoc.name || ''))
+        rawTexts.push(typeof countryDoc.description === 'string' ? countryDoc.description : '')
 
-        const citiesRes = await destination.getCitiesByCountry(Number(item.id), options)
-        for (const cityDoc of citiesRes.docs || []) {
-          const c = cityDoc as Record<string, any>
-          rawTexts.push(String(c.name || ''))
-          rawTexts.push(typeof c.description === 'string' ? c.description : '')
+        const citiesRes = await destination.getCitiesByCountry(countryId, options)
+        const cityDocs = (citiesRes.docs || []) as Record<string, any>[]
+
+        for (const cityDoc of cityDocs) {
+          rawTexts.push(String(cityDoc.name || ''))
+          rawTexts.push(typeof cityDoc.description === 'string' ? cityDoc.description : '')
         }
+
+        countryRecords.push({ countryDoc, cityDocs })
       }
 
       // Single Batch Translation Request for entire destinations catalog
@@ -46,43 +54,40 @@ export class DestinationsCatalogLoader {
         experiencesCount: number
       }> = []
 
-      const countries = await Promise.all(
-        (countriesRes.docs || []).map(async (doc: Record<string, any>) => {
-          const countryId = Number(doc.id)
-          const countrySlug = doc.slug || ''
-          const translatedCountryName = translatedTexts[textIdx++] || String(doc.name || '')
-          const translatedCountryDesc = translatedTexts[textIdx++] || ''
+      const countries = countryRecords.map(({ countryDoc, cityDocs }) => {
+        const countryId = Number(countryDoc.id)
+        const countrySlug = countryDoc.slug || ''
+        const translatedCountryName = translatedTexts[textIdx++] || String(countryDoc.name || '')
+        const translatedCountryDesc = translatedTexts[textIdx++] || ''
 
-          const citiesRes = await destination.getCitiesByCountry(countryId, options)
-          const translatedCities = (citiesRes.docs || []).map((cityDoc: Record<string, any>) => {
-            const translatedCityName = translatedTexts[textIdx++] || String(cityDoc.name || '')
-            const translatedCityDesc = translatedTexts[textIdx++] || ''
-
-            return {
-              id: Number(cityDoc.id),
-              name: translatedCityName,
-              slug: cityDoc.slug || '',
-              countryName: translatedCountryName,
-              countrySlug,
-              description: translatedCityDesc,
-              bannerUrl: cityDoc.bannerImage?.url || '/images/hero-bg.jpg',
-              experiencesCount: cityDoc.experiencesCount || 0,
-            }
-          })
-
-          allCities.push(...translatedCities)
+        const translatedCities = cityDocs.map((cityDoc) => {
+          const translatedCityName = translatedTexts[textIdx++] || String(cityDoc.name || '')
+          const translatedCityDesc = translatedTexts[textIdx++] || ''
 
           return {
-            id: countryId,
-            name: translatedCountryName,
-            slug: countrySlug,
-            description: translatedCountryDesc,
-            bannerUrl: doc.bannerImage?.url || '/images/hero-bg.jpg',
-            citiesCount: citiesRes.totalDocs || (Array.isArray(doc.cities) ? doc.cities.length : 0),
-            experiencesCount: doc.experiencesCount || 0,
+            id: Number(cityDoc.id),
+            name: translatedCityName,
+            slug: cityDoc.slug || '',
+            countryName: translatedCountryName,
+            countrySlug,
+            description: translatedCityDesc,
+            bannerUrl: cityDoc.bannerImage?.url || '/images/hero-bg.jpg',
+            experiencesCount: cityDoc.experiencesCount || 0,
           }
-        }),
-      )
+        })
+
+        allCities.push(...translatedCities)
+
+        return {
+          id: countryId,
+          name: translatedCountryName,
+          slug: countrySlug,
+          description: translatedCountryDesc,
+          bannerUrl: countryDoc.bannerImage?.url || '/images/hero-bg.jpg',
+          citiesCount: cityDocs.length,
+          experiencesCount: countryDoc.experiencesCount || 0,
+        }
+      })
 
       return { countries, featuredCities: allCities }
     } catch (err: unknown) {

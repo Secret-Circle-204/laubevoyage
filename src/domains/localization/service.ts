@@ -91,15 +91,8 @@ export class LocalizationService {
    * Convert a base EGP price to the traveler's display currency
    * and return a fully formatted FormattedPricingResult.
    */
-  async formatPrice(
-    basePriceEGP: number,
-    ctx: LocaleContext,
-  ): Promise<ConvertedPrice> {
-    return this.pricingFacade.getConvertedPrice(
-      basePriceEGP,
-      ctx.currency,
-      ctx.language || 'en',
-    )
+  async formatPrice(basePriceEGP: number, ctx: LocaleContext): Promise<ConvertedPrice> {
+    return this.pricingFacade.getConvertedPrice(basePriceEGP, ctx.currency, ctx.language || 'en')
   }
 
   // =========================================================================

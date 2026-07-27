@@ -11,12 +11,15 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    const departure = body.slotId
+      ? await services.experience.resolveBookableDepartureBySlot(Number(body.experienceId), Number(body.slotId))
+      : await services.experience.resolveBookableDepartureWithoutSlot(Number(body.experienceId))
+
     const bookingId = await services.booking.create({
       userId: Number(user.id),
-      experienceId: Number(body.experienceId),
+      departure,
       travelers: body.travelers,
-      startDate: body.startDate,
-      endDate: body.endDate,
+      endDate: body.endDate || departure.date,
       pointsToRedeem: body.pointsToRedeem ? Number(body.pointsToRedeem) : undefined,
       currency: body.currency,
       source: 'api',
@@ -50,5 +53,59 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Error fetching bookings:', error)
     return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const services = await getDomainServices()
+    const searchParams = request.nextUrl.searchParams
+
+    const ids: number[] = []
+    const idParam = searchParams.get('id')
+    if (idParam) {
+      const parsed = Number(idParam)
+      if (!isNaN(parsed)) ids.push(parsed)
+    } else {
+      for (const [key, value] of searchParams.entries()) {
+        if (key.includes('[id]') && key.includes('[in]')) {
+          const parsed = Number(value)
+          if (!isNaN(parsed)) ids.push(parsed)
+        }
+      }
+    }
+
+    if (ids.length === 0) {
+      try {
+        const body = await request.json()
+        if (body.ids && Array.isArray(body.ids)) {
+          for (const item of body.ids) {
+            const parsed = Number(item)
+            if (!isNaN(parsed)) ids.push(parsed)
+          }
+        } else if (body.id) {
+          const parsed = Number(body.id)
+          if (!isNaN(parsed)) ids.push(parsed)
+        }
+      } catch {
+        // Body reading optional if searchParams present
+      }
+    }
+
+    if (ids.length === 0) {
+      throw new Error('[DELETE /api/bookings] No valid booking IDs provided for deletion.')
+    }
+
+    for (const id of ids) {
+      await services.booking.cancel(id, 'Cancelled via API DELETE request', { type: 'customer', id: user.id })
+    }
+
+    return NextResponse.json({ success: true, count: ids.length, deletedIds: ids }, { status: 200 })
+  } catch (error: unknown) {
+    console.error('Error deleting booking(s):', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to delete booking(s)' },
+      { status: 400 },
+    )
   }
 }

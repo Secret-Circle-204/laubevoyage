@@ -5,7 +5,23 @@ import { beforeCustomerDelete } from './hooks/beforeCustomerDelete'
 export const Customers: CollectionConfig = {
   slug: 'customers',
   auth: {
-    verify: true,
+    verify: {
+      generateEmailHTML: ({ token, user }) => {
+        const serverURL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+        const verifyURL = `${serverURL}/verify-email?token=${token}&email=${encodeURIComponent(user.email)}`
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('\n=================================================')
+          console.log('EMAIL VERIFICATION LINK')
+          console.log(verifyURL)
+          console.log('=================================================\n')
+        }
+
+        return `<p>Thank you for registering! Please verify your email by clicking the link below:</p>
+                <p><a href="${verifyURL}">${verifyURL}</a></p>`
+      },
+      generateEmailSubject: () => "Verify your email - L'Aube Voyage",
+    },
   },
   admin: {
     useAsTitle: 'email',

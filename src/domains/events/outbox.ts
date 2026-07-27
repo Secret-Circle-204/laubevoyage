@@ -1,58 +1,41 @@
-import { EventBus, type BaseDomainEvent } from './event-bus'
-
-export interface EventOutboxRecord {
-  eventId: string
-  eventType: string
-  eventVersion: string
-  payloadJson: string
-  status: 'pending' | 'published' | 'failed'
-  createdAt: string
-  publishedAt?: string
-}
+import type { BaseDomainEvent } from './event-bus'
+import type { IOutboxRepository, DomainOutboxRecord } from './contracts/outbox-repository.interface'
 
 /**
  * Event Outbox Service
- * Guarantees transactional event recording prior to subscriber dispatch.
+ * Guarantees transactional event recording via IOutboxRepository inside DB transactions.
  */
 export class EventOutboxService {
   private static instance: EventOutboxService
-  private outboxStore: Map<string, EventOutboxRecord> = new Map()
-  private eventBus: EventBus
 
-  private constructor() {
-    this.eventBus = EventBus.getInstance()
-  }
+  constructor(private outboxRepository: IOutboxRepository) {}
 
-  public static getInstance(): EventOutboxService {
-    if (!EventOutboxService.instance) {
-      EventOutboxService.instance = new EventOutboxService()
+  public static getInstance(outboxRepository?: IOutboxRepository): EventOutboxService {
+    if (!EventOutboxService.instance && outboxRepository) {
+      EventOutboxService.instance = new EventOutboxService(outboxRepository)
     }
-    return EventOutboxService.instance
+    return EventOutboxService.instance || new EventOutboxService(outboxRepository || ({} as any))
   }
 
   /**
-   * Record domain event to outbox store atomically.
+   * Record domain event atomically into the database outbox within active dbTransaction context.
    */
-  async recordAndPublish<T extends { type: string; eventVersion?: string }>(event: T): Promise<EventOutboxRecord> {
-    const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
-    const record: EventOutboxRecord = {
+  async record<T extends Partial<BaseDomainEvent> & { type: string }>(
+    eventPayload: T,
+    dbTransaction?: unknown,
+  ): Promise<DomainOutboxRecord> {
+    const eventId = eventPayload.eventId || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+    const correlationId = eventPayload.correlationId || `corr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+
+    const fullEvent: BaseDomainEvent = {
+      ...eventPayload,
       eventId,
-      eventType: event.type,
-      eventVersion: event.eventVersion || 'v1',
-      payloadJson: JSON.stringify(event),
-      status: 'pending',
-      createdAt: new Date().toISOString(),
+      correlationId,
+      causationId: eventPayload.causationId,
+      eventVersion: eventPayload.eventVersion || 1,
+      occurredAt: eventPayload.occurredAt || new Date().toISOString(),
     }
 
-    this.outboxStore.set(eventId, record)
-
-    // Publish to in-memory EventBus subscribers
-    await this.eventBus.publish(event as BaseDomainEvent)
-
-    record.status = 'published'
-    record.publishedAt = new Date().toISOString()
-    this.outboxStore.set(eventId, record)
-
-    return record
+    return this.outboxRepository.add(fullEvent, dbTransaction)
   }
 }

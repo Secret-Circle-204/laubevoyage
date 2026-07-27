@@ -4,19 +4,42 @@ import type { BookingConfirmedEvent } from '../booking-events'
 import type { PaymentCompletedEvent } from '../payment-events'
 import type { CustomerRegisteredEvent } from '../customer-events'
 import { NotificationService } from '../../notification/service'
+import { CustomerRepository } from '../../customer/repository'
+import { PayloadInboxRepository } from '../repositories/payload-inbox-repository'
 
 /**
  * Multi-Domain Notification Subscriber
  * Listens to Booking, Payment, and Loyalty/Customer domain events and enqueues notifications idempotently.
+ * Atomic Inbox Guard protected for Exactly-Once processing & Fail-Fast recipient validation.
  */
 export function registerNotificationSubscribers(payload: Payload): void {
   const eventBus = EventBus.getInstance()
+  const inboxRepo = new PayloadInboxRepository(payload)
   const notificationService = new NotificationService(payload)
+  const customerRepository = new CustomerRepository(payload)
 
-  // 1. Customer Registered Event -> Enqueue welcome email (Decoupled)
-  eventBus.subscribe<CustomerRegisteredEvent>('CUSTOMER_REGISTERED', async (event) => {
-    try {
-      console.log(`[NotificationSubscriber] Customer #${event.customerId} registered. Enqueuing welcome email...`)
+  // 1. Customer Registered Event -> Enqueue welcome email
+  eventBus.subscribe<CustomerRegisteredEvent>(
+    'CUSTOMER_REGISTERED',
+    'NotificationSubscriber.enqueueWelcomeNotification',
+    async (event) => {
+      const subscriberName = 'NotificationSubscriber.enqueueWelcomeNotification'
+      if (!event.eventId)
+        throw new Error(
+          '[NotificationSubscriber] CustomerRegisteredEvent missing required eventId.',
+        )
+
+      const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName)
+      if (!acquired) return
+
+      if (!event.email)
+        throw new Error(
+          `[NotificationSubscriber] Missing required email for customer #${event.customerId}.`,
+        )
+
+      console.log(
+        `[NotificationSubscriber] Customer #${event.customerId} registered. Enqueuing welcome email...`,
+      )
       await notificationService.enqueueNotification({
         referenceType: 'WELCOME',
         referenceId: String(event.customerId),
@@ -26,21 +49,34 @@ export function registerNotificationSubscribers(payload: Payload): void {
         priority: 'normal',
         templateId: 'welcome_email',
         translationKey: 'customer.welcome',
-        templateData: { name: event.fullName || '' },
+        templateData: { name: event.fullName },
       })
-      console.log(`[NotificationSubscriber] Welcome email enqueued successfully for customer #${event.customerId}.`)
-    } catch (err: any) {
-      console.error(`[NotificationSubscriber] Failed to enqueue welcome notification:`, err.message)
-    }
-  })
+    },
+  )
 
-  // 2. Booking Confirmed Event
-  eventBus.subscribe<BookingConfirmedEvent>('BOOKING_CONFIRMED', async (event) => {
-    try {
+  // 2. Booking Confirmed Event -> Fetch customer email & enqueue confirmation
+  eventBus.subscribe<BookingConfirmedEvent>(
+    'BOOKING_CONFIRMED',
+    'NotificationSubscriber.enqueueBookingConfirmation',
+    async (event) => {
+      const subscriberName = 'NotificationSubscriber.enqueueBookingConfirmation'
+      if (!event.eventId)
+        throw new Error('[NotificationSubscriber] BookingConfirmedEvent missing required eventId.')
+
+      const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName)
+      if (!acquired) return
+
+      const customer = await customerRepository.findById(event.booking.customerId)
+      if (!customer || !customer.email) {
+        throw new Error(
+          `[NotificationSubscriber] Customer #${event.booking.customerId} not found or missing email for booking confirmation.`,
+        )
+      }
+
       await notificationService.enqueueNotification({
         referenceType: 'BOOKING',
         referenceId: String(event.booking.id),
-        recipient: 'customer@laube.com',
+        recipient: customer.email,
         channel: 'email',
         category: 'booking',
         priority: 'high',
@@ -48,18 +84,36 @@ export function registerNotificationSubscribers(payload: Payload): void {
         translationKey: 'booking.confirmed',
         templateData: { bookingNumber: event.booking.bookingNumber },
       })
-    } catch (err: any) {
-      console.error(`[NotificationSubscriber] Failed to enqueue booking confirmation notification:`, err.message)
-    }
-  })
+    },
+  )
 
-  // 3. Payment Completed Event
-  eventBus.subscribe<PaymentCompletedEvent>('PAYMENT_COMPLETED', async (event) => {
-    try {
+  // 3. Payment Completed Event -> Use event.customerEmail & enqueue receipt
+  eventBus.subscribe<PaymentCompletedEvent>(
+    'PAYMENT_COMPLETED',
+    'NotificationSubscriber.enqueuePaymentReceipt',
+    async (event) => {
+      const subscriberName = 'NotificationSubscriber.enqueuePaymentReceipt'
+      if (!event.eventId)
+        throw new Error('[NotificationSubscriber] PaymentCompletedEvent missing required eventId.')
+
+      const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName)
+      if (!acquired) return
+
+      let recipientEmail = event.customerEmail
+      if (!recipientEmail) {
+        const customer = await customerRepository.findById(event.customerId)
+        if (!customer || !customer.email) {
+          throw new Error(
+            `[NotificationSubscriber] Customer #${event.customerId} missing email for payment receipt.`,
+          )
+        }
+        recipientEmail = customer.email
+      }
+
       await notificationService.enqueueNotification({
         referenceType: 'PAYMENT',
         referenceId: event.transactionId,
-        recipient: 'customer@laube.com',
+        recipient: recipientEmail,
         channel: 'email',
         category: 'payment',
         priority: 'high',
@@ -67,10 +121,8 @@ export function registerNotificationSubscribers(payload: Payload): void {
         translationKey: 'payment.completed',
         templateData: { amount: event.amount, currency: event.currency },
       })
-    } catch (err: any) {
-      console.error(`[NotificationSubscriber] Failed to enqueue payment receipt notification:`, err.message)
-    }
-  })
+    },
+  )
 }
 
 export const registerNotificationSubscriber = registerNotificationSubscribers

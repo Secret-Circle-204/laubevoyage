@@ -1,6 +1,6 @@
 'use server'
 
-import { getDomainServices } from '@/domains/factory'
+import { getApplicationServices } from '@/application/factory'
 import { Language } from '@/types/locale'
 import type { ConvertedPrice } from '@/domains/currency/types'
 
@@ -15,7 +15,7 @@ export async function resolvePricingAction(params: {
   locale?: string
 }): Promise<{ success: boolean; pricing?: { unitPrice: ConvertedPrice; totalPrice: ConvertedPrice }; error?: string }> {
   try {
-    const { bookingPricingUseCase, localization } = await getDomainServices()
+    const { bookingPricingUseCase, localization } = await getApplicationServices()
 
     const language = Object.values(Language).includes(params.locale as Language)
       ? (params.locale as Language)

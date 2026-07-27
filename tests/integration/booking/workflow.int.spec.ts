@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { BookingWorkflowEngine } from '@/domains/booking/workflow'
+import { BookableDeparture } from '@/domains/experience/bookable-departure'
 import { BookingStatus } from '@/types'
 
 describe('Layer 5: BookingWorkflowEngine Integration Tests', () => {
@@ -67,12 +68,25 @@ describe('Layer 5: BookingWorkflowEngine Integration Tests', () => {
     mockPayload.create.mockResolvedValue(mockCreatedDoc)
     mockPayload.update.mockImplementation((params: any) => Promise.resolve({ ...mockCreatedDoc, ...params.data }))
 
+    const departure = new BookableDeparture({
+      experienceId: 12,
+      experienceTitle: 'Luxury Voyage',
+      experienceType: 'package',
+      departureId: 'dep_12',
+      date: '2026-08-01',
+      startTime: '08:00',
+      basePriceEGP: 5000,
+      capacityAvailable: 10,
+      capacityTotal: 20,
+      status: 'available',
+    })
+
     const result = await workflowEngine.executeCheckoutWorkflow({
       userId: 5,
-      experienceId: 12,
+      departure,
       travelers: [{ firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '+123456789' }],
-      startDate: '2026-08-01',
       endDate: '2026-08-05',
+      currency: 'EGP',
       source: 'website',
     })
 

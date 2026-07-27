@@ -1,43 +1,66 @@
 export interface BaseDomainEvent {
   type: string
-  [key: string]: any
+  eventId: string
+  correlationId: string
+  causationId?: string
+  eventVersion: number
+  occurredAt: string
+  aggregateType?: string
+  aggregateId?: string
+  [key: string]: unknown
 }
 
-type EventHandler<T extends BaseDomainEvent = BaseDomainEvent> = (event: T) => Promise<void> | void
+export type EventHandler<T extends BaseDomainEvent = BaseDomainEvent> = (
+  event: T,
+) => Promise<void> | void
+
+declare global {
+  var __laubeEventBus: EventBus | undefined
+}
 
 /**
  * Domain Event Bus
  * Decoupled in-memory asynchronous event dispatcher.
+ * HMR-safe and idempotent utilizing globally stored singleton and explicit subscriber identities.
  */
 export class EventBus {
-  private static instance: EventBus
-  private handlers: Map<string, EventHandler[]> = new Map()
+  private handlers: Map<string, Map<string, EventHandler<BaseDomainEvent>>> = new Map()
 
   private constructor() {}
 
   static getInstance(): EventBus {
-    if (!EventBus.instance) {
-      EventBus.instance = new EventBus()
+    if (!globalThis.__laubeEventBus) {
+      globalThis.__laubeEventBus = new EventBus()
     }
-    return EventBus.instance
+    return globalThis.__laubeEventBus
   }
 
   /**
-   * Subscribe a handler function to a specific domain event type.
+   * Subscribe a handler to a specific event type with a unique subscriberId.
+   * If the subscriberId already exists for this event type, the handler is overwritten
+   * to ensure hot-reloaded code executes (idempotent HMR support).
    */
-  subscribe<T extends BaseDomainEvent>(eventType: T['type'], handler: (event: T) => Promise<void> | void): void {
-    const existing = this.handlers.get(eventType) || []
-    this.handlers.set(eventType, [...existing, handler as EventHandler])
+  subscribe<T extends BaseDomainEvent>(
+    eventType: T['type'],
+    subscriberId: string,
+    handler: (event: T) => Promise<void> | void,
+  ): void {
+    if (!this.handlers.has(eventType)) {
+      this.handlers.set(eventType, new Map())
+    }
+    // Cast via unknown to ensure safe assignment to base event handler type without as any
+    const baseHandler = handler as unknown as EventHandler<BaseDomainEvent>
+    this.handlers.get(eventType)!.set(subscriberId, baseHandler)
   }
 
   /**
-   * Publish a domain event asynchronously to all subscribed listeners.
+   * Publish an event to all registered subscribers.
    */
   async publish<T extends BaseDomainEvent>(event: T): Promise<void> {
-    const handlers = this.handlers.get(event.type) || []
-    
-    // Execute listeners concurrently in the background without blocking caller
-    const promises = handlers.map(async (handler) => {
+    const subscriberMap = this.handlers.get(event.type)
+    if (!subscriberMap) return
+
+    const promises = Array.from(subscriberMap.values()).map(async (handler) => {
       try {
         await handler(event)
       } catch (error) {
@@ -48,4 +71,3 @@ export class EventBus {
     await Promise.all(promises)
   }
 }
-

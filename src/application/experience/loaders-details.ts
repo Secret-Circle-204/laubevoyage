@@ -1,4 +1,4 @@
-import { getDomainServices } from '@/domains/factory'
+import { getApplicationServices } from '@/application/factory'
 import { getBusinessDateString } from '@/lib/date'
 import type { ExperienceDetailsDTO } from './dto-details'
 
@@ -8,7 +8,7 @@ export class ExperienceDetailsLoader {
     options?: { locale?: string; currency?: string; adults?: number },
   ): Promise<ExperienceDetailsDTO | null> {
     try {
-      const { experience, localization, bookingPricingUseCase } = await getDomainServices()
+      const { experience, localization, bookingPricingUseCase } = await getApplicationServices()
       const ctx = localization.buildContext({
         language: (options?.locale || 'en') as any,
         currency: (options?.currency || 'EGP') as any,

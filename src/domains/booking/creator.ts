@@ -11,6 +11,8 @@ import { PricingPipeline } from '../currency/pipeline'
 import { CustomerRepository } from '../customer/repository'
 import { ExperienceService } from '../experience/service'
 
+import { BookingPricingSnapshotAssembler } from './pricing-snapshot-assembler'
+
 /**
  * Booking Creator Sub-Service
  * Handles the creation of new booking drafts with seat capacity locks, loyalty point holds, and pricing snapshots.
@@ -21,6 +23,7 @@ export class BookingCreator {
   private experienceService: ExperienceService
   private loyaltyService: LoyaltyService
   private pricingPipeline: PricingPipeline
+  private snapshotAssembler: BookingPricingSnapshotAssembler
 
   constructor(
     repository: BookingRepository,
@@ -34,15 +37,26 @@ export class BookingCreator {
     this.experienceService = experienceService
     this.loyaltyService = loyaltyService
     this.pricingPipeline = pricingPipeline
+    this.snapshotAssembler = new BookingPricingSnapshotAssembler()
   }
 
   async createDraft(params: CreateBookingParams): Promise<BookingAggregate> {
+    const departure = params.departure
+    if (!departure || departure.basePriceEGP === undefined) {
+      throw new Error(`[BookingCreator] Invalid or unresolved bookable departure read model.`)
+    }
+    const experienceId = departure.experienceId
+    const startDate = departure.date
+
     // 1. Fetch experience and customer via service / repository
-    const experience = await this.experienceService.getById(params.experienceId)
+    const experience = await this.experienceService.getById(experienceId)
     const customer = await this.customerRepository.findById(params.userId)
 
     // 2. Validate policy
-    const policyResult = BookingPolicy.canCreate(customer.status || 'active', experience.availability)
+    const policyResult = BookingPolicy.canCreate(
+      customer.status || 'active',
+      experience.availability,
+    )
     if (!policyResult.allowed) {
       throw new Error(`[BookingPolicy] Creation forbidden: ${policyResult.reason}`)
     }
@@ -60,31 +74,34 @@ export class BookingCreator {
       pointsValueEGP = await this.loyaltyService.calculatePointValueInEGP(pointsRedeemed)
     }
 
-    // 4. Generate Pricing Snapshot from the resolved bookable departure price (Single Source of Truth)
-    const slot = await this.experienceService.getDepartureSlotByDate(experience.id, params.startDate)
-    if (!slot) {
-      throw new Error(`[BookingCreator] Departure slot on date ${params.startDate} not found for experience ${experience.id}.`)
+    // 4. Generate Pricing Snapshot using BookingPricingSnapshotAssembler (Single Source of Truth)
+    const targetCurrency = params.currency
+    if (!targetCurrency) {
+      throw new Error(`[BookingCreator] Currency is required for booking creation.`)
     }
-    const departure = this.experienceService.assembleBookableDeparture(experience, slot)
-
-    const targetCurrency = params.currency || 'EGP'
-    const { snapshot } = await this.pricingPipeline.execute({
+    const { snapshot: calculationResult } = await this.pricingPipeline.execute({
       basePriceEGP: departure.basePriceEGP,
       loyaltyDiscount: pointsValueEGP,
       targetCurrency,
     })
 
+    const pricingSnapshot = this.snapshotAssembler.assemble(calculationResult)
+
     // 5. Generate Booking Number
     const bookingNumber = BookingNumberGenerator.generate()
 
     // 6. Build Initial Timeline & Audit entries
-    const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.email || 'Customer'
+    const customerName =
+      `${customer.firstName || ''} ${customer.lastName || ''}`.trim() ||
+      customer.email ||
+      'Customer'
     const actor = params.actor || { id: params.userId, type: 'customer', name: customerName }
 
     const timeline = BookingHistoryService.appendTimelineEntry([], {
       stepKey: 'booking_created',
       title: 'Booking Created',
-      description: 'Your booking draft has been initialized. Complete payment to confirm your trip.',
+      description:
+        'Your booking draft has been initialized. Complete payment to confirm your trip.',
     })
 
     const auditTrail = BookingHistoryService.appendAuditEntry([], {
@@ -98,19 +115,14 @@ export class BookingCreator {
     const bookingData = {
       bookingNumber,
       user: params.userId,
-      experience: params.experienceId,
+      experience: experienceId,
       status: BookingStatus.DRAFT,
       travelers: params.travelers,
-      startDate: params.startDate,
+      startDate: startDate,
       endDate: params.endDate,
       source: params.source,
       version: 1,
-      pricingSnapshot: {
-        ...snapshot,
-        exchangeRateTimestamp: typeof snapshot.exchangeRateTimestamp === 'string'
-          ? snapshot.exchangeRateTimestamp
-          : (snapshot.exchangeRateTimestamp as any)?.toISOString?.() || new Date().toISOString(),
-      },
+      pricingSnapshot,
       pointsEarned: 0,
       paymentAttempts: [],
       timeline,
@@ -125,9 +137,9 @@ export class BookingCreator {
     const capacityHold = CapacityHoldService.createHold({
       bookingId: booking.id,
       customerId: params.userId,
-      experienceId: params.experienceId,
+      experienceId: experienceId,
       seats: seatsCount,
-      date: params.startDate,
+      date: startDate,
     })
 
     let pointHold = null

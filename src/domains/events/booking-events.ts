@@ -1,46 +1,46 @@
 import type { BookingAggregate, Actor } from '../booking/types'
+import type { BaseDomainEvent } from './event-bus'
 
-export interface BookingCreatedEvent {
+export interface BookingCreatedEvent extends BaseDomainEvent {
   type: 'BOOKING_CREATED'
   booking: BookingAggregate
+  customerEmail: string
   actor: Actor
-  timestamp: string
 }
 
-export interface BookingPaidEvent {
+export interface BookingPaidEvent extends BaseDomainEvent {
   type: 'BOOKING_PAID'
   booking: BookingAggregate
+  customerEmail: string
   actor: Actor
-  timestamp: string
 }
 
-export interface BookingConfirmedEvent {
+export interface BookingConfirmedEvent extends BaseDomainEvent {
   type: 'BOOKING_CONFIRMED'
   booking: BookingAggregate
+  customerEmail: string
   actor: Actor
-  timestamp: string
 }
 
-export interface BookingCancelledEvent {
+export interface BookingCancelledEvent extends BaseDomainEvent {
   type: 'BOOKING_CANCELLED'
   booking: BookingAggregate
+  customerEmail: string
   actor: Actor
   reason: string
-  timestamp: string
 }
 
-export interface BookingCompletedEvent {
+export interface BookingCompletedEvent extends BaseDomainEvent {
   type: 'BOOKING_COMPLETED'
   booking: BookingAggregate
+  customerEmail: string
   actor: Actor
-  timestamp: string
 }
 
-export interface BookingExpiredEvent {
+export interface BookingExpiredEvent extends BaseDomainEvent {
   type: 'BOOKING_EXPIRED'
   booking: BookingAggregate
   reason: string
-  timestamp: string
 }
 
 export type DomainEvent =

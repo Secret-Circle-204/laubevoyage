@@ -25,10 +25,19 @@ export class AuthenticationService {
       throw new Error(`[AuthenticationService] Cannot proceed. Account status: ${customer.status}`)
     }
 
+    // Evaluate locking policy dynamically
+    if (customer.lockedUntil) {
+      const lockTime = new Date(customer.lockedUntil).getTime()
+      if (lockTime > Date.now()) {
+        throw new Error(`[AuthenticationService] Account is temporarily locked. Please try again later.`)
+      }
+    }
+
     const updated: CustomerAggregate = {
       ...customer,
       lastLoginAt: new Date().toISOString(),
       failedLoginAttempts: 0,
+      lockedUntil: undefined, // Clear lock state
     }
 
     return this.repository.save(updated)

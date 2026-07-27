@@ -131,4 +131,11 @@ export class BookingService {
   async getUserBookings(userId: number, page: number = 1, limit: number = 10) {
     return this.workflowEngine.queries.getUserBookings(userId, page, limit)
   }
+
+  /**
+   * Delete booking by ID.
+   */
+  async delete(bookingId: number): Promise<void> {
+    await this.repository.delete(bookingId)
+  }
 }

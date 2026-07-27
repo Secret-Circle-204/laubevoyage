@@ -1,4 +1,8 @@
 import { DefaultRateProvider, type IExchangeRateProvider } from './providers/rate-provider'
+import type { PricingCalculationResult } from './types'
+
+export type { PricingCalculationResult }
+export type PricingSnapshotData = PricingCalculationResult
 
 export interface IPricingSettingsProvider {
   getSettings(): Promise<{
@@ -25,29 +29,7 @@ export interface PricingAuditStep {
   resultingSubtotalEGP: number
 }
 
-export interface PricingSnapshotData {
-  snapshotId: string
-  snapshotVersion: string
-  pricingRuleVersion: string
-  exchangeRateVersion: string
-  basePriceEGP: number
-  loyaltyDiscountEGP: number
-  promotionDiscountEGP: number
-  couponDiscountEGP: number
-  subtotalEGP: number
-  displayCurrency: string
-  displayAmount: number
-  exchangeRateUsed: number
-  exchangeRateTimestamp: string
-  taxesApplied: number
-  feesApplied: number
-  couponId?: string
-  campaignId?: string
-  auditTrace: PricingAuditStep[]
-  calculatedAt: string
-}
-
-export type PricingResult = { snapshot: PricingSnapshotData }
+export type PricingResult = { snapshot: PricingCalculationResult }
 
 /**
  * Pricing Pipeline Engine
@@ -155,12 +137,13 @@ export class PricingPipelineEngine {
       promotionDiscountEGP: promotionDiscount,
       couponDiscountEGP: couponDiscount,
       subtotalEGP: finalAmountEGP,
+      taxes: taxAmountEGP,
+      fees: 0,
+      totalAmountEGP: finalAmountEGP,
       displayCurrency: targetCurrency,
       displayAmount,
-      exchangeRateUsed: rate,
+      exchangeRate: rate,
       exchangeRateTimestamp: new Date().toISOString(),
-      taxesApplied: taxAmountEGP,
-      feesApplied: 0,
       auditTrace,
       calculatedAt: new Date().toISOString(),
     }
@@ -172,7 +155,7 @@ export class PricingPipelineEngine {
     promotionDiscount?: number
     couponDiscount?: number
     targetCurrency?: string
-  }): Promise<{ snapshot: PricingSnapshotData }> {
+  }): Promise<{ snapshot: PricingCalculationResult }> {
     const context: PricingContext = {
       departureId: 'dep_101',
       experienceId: 1,
