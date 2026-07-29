@@ -29,20 +29,34 @@ export class CurrencyService {
   }
 
   /**
-   * Domain Resolution Policy: Resolves a proposed currency against supported active currencies.
+   * Domain Resolution Policy: Resolves display currency against active CMS currencies catalog.
+   * Relocates country-to-currency mapping to Currency Domain.
    * Business Policy:
-   * 1. If proposed currency is active in catalogRegistry -> returns it.
-   * 2. If proposed currency is unsupported (e.g. JPY) -> returns 'USD' (International Tourism Benchmark).
-   * 3. Fallback -> 'EGP' (Platform Base Currency).
+   * 1. If candidate currency (Cookie or Session) is active in catalogRegistry -> returns it.
+   * 2. If geoCountry has a mapped currency active in catalogRegistry -> returns it.
+   * 3. If country/candidate currency is unsupported (e.g. JPY) -> returns 'USD' (International Tourism Benchmark).
+   * 4. Fallback -> 'EGP' (Platform Base Currency).
    */
-  async resolveDisplayCurrency(proposedCurrency?: string): Promise<string> {
-    if (!proposedCurrency) return 'USD'
-    const code = proposedCurrency.trim().toUpperCase()
+  async resolveDisplayCurrency(params?: {
+    cookieCurrency?: string
+    sessionCurrency?: string
+    geoCountry?: string
+    geoCurrencyCode?: string
+  } | string): Promise<string> {
+    const raw = typeof params === 'string' ? { cookieCurrency: params } : params || {}
     const activeCurrencies = await this.getActiveCurrencies()
     const supportedCodes = new Set(activeCurrencies.map((c) => c.isoCode.toUpperCase()))
 
-    if (supportedCodes.has(code)) {
-      return code
+    const candidate = (raw.cookieCurrency || raw.sessionCurrency || '').trim().toUpperCase()
+    if (candidate && supportedCodes.has(candidate)) {
+      return candidate
+    }
+
+    if (raw.geoCurrencyCode) {
+      const geoCurrUpper = raw.geoCurrencyCode.trim().toUpperCase()
+      if (supportedCodes.has(geoCurrUpper)) {
+        return geoCurrUpper
+      }
     }
 
     if (supportedCodes.has('USD')) {

@@ -1,4 +1,4 @@
-import type { CurrencyCode } from './index'
+export type CurrencyCode = string
 
 // ============================================================================
 // LOCALIZATION DOMAIN — Locale Context
@@ -57,6 +57,9 @@ export interface LocaleContext {
 
   /** Calendar week start (0 = Sunday, 1 = Monday, 6 = Saturday) */
   weekStart: 0 | 1 | 6
+
+  /** Unique identifier for tracing the request-scoped context */
+  requestContextId?: string
 }
 
 /**

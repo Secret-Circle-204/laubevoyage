@@ -17,7 +17,7 @@ export class CheckoutPageLoader {
     try {
       const { booking, experience, payment, localization, pricingFacade, bookingPricingUseCase } = await getApplicationServices()
 
-      const ctx = localization.buildContext({
+      const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })

@@ -61,20 +61,7 @@ export const Currencies: CollectionConfig = {
         description: 'Number of decimal places (e.g., 2 for USD, 0 for JPY)',
       },
     },
-    {
-      name: 'countryCodes',
-      type: 'array',
-      fields: [
-        {
-          name: 'code',
-          type: 'text',
-          required: true,
-        },
-      ],
-      admin: {
-        description: 'ISO 3166-1 alpha-2 Country Codes where this currency is used',
-      },
-    },
+
     {
       name: 'isActive',
       type: 'checkbox',

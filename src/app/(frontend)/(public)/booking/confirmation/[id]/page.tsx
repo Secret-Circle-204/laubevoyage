@@ -16,8 +16,8 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
   const bookingId = params.id
 
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
 
   const data = await BookingDetailsLoader.loadByNumber(bookingId, { locale, currency })
   if (!data) {

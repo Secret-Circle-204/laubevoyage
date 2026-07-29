@@ -4,7 +4,7 @@ import type { LayoutDTO, NavigationItemDTO, CurrencyOptionDTO, LocaleOptionDTO }
 export class LayoutLoader {
   static async load(params?: { locale?: string; currency?: string; customerId?: number }): Promise<LayoutDTO> {
     const { content, customer, language, currency: currencyService, localization } = await getDomainServices()
-    const ctx = localization.buildContext({
+    const ctx = await localization.buildContext({
       cookieLocale: params?.locale,
       cookieCurrency: params?.currency,
     })

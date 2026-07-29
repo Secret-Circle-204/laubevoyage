@@ -5,8 +5,8 @@ import { LayoutLoader } from '@/application/layout/layout-loader'
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
 
   const layoutData = await LayoutLoader.load({ locale, currency })
 

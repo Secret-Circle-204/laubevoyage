@@ -9,7 +9,7 @@ export class ExperienceDetailsLoader {
   ): Promise<ExperienceDetailsDTO | null> {
     try {
       const { experience, localization, bookingPricingUseCase } = await getApplicationServices()
-      const ctx = localization.buildContext({
+      const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })

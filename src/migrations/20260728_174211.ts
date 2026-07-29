@@ -2,7 +2,7 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
-   ALTER TABLE "notification_logs" ADD COLUMN "template_data" jsonb;`)
+   ALTER TABLE "notification_logs" ADD COLUMN IF NOT EXISTS "template_data" jsonb;`)
 }
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {

@@ -1,16 +1,13 @@
 import { getDomainServices } from '@/domains/factory'
 import { getBusinessDateString } from '@/lib/date'
+import type { LocaleContext } from '@/types/locale'
 import type { HomeDTO } from './dto'
 
 export class HomePageLoader {
-  static async load(params?: { locale?: string; currency?: string }): Promise<HomeDTO> {
+  static async load(ctx: LocaleContext): Promise<HomeDTO> {
+    console.log(`[HomePageLoader.load] called with currency = "${ctx.currency}", requestContextId = "${ctx.requestContextId || ''}"`)
     try {
       const { destination, localization, experience } = await getDomainServices()
-      const ctx = localization.buildContext({
-        cookieLocale: params?.locale,
-        cookieCurrency: params?.currency,
-      })
-
       const overview = await destination.getHomePageOverview(ctx.currency)
 
       // Collect all raw texts for 1 Single Batch Request

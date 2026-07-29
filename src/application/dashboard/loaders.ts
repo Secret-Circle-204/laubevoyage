@@ -9,7 +9,7 @@ export class CustomerPortalLoader {
   ): Promise<CustomerPortalOverviewDTO> {
     try {
       const { dashboard, localization } = await getDomainServices()
-      const ctx = localization.buildContext({
+      const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })
@@ -151,7 +151,7 @@ export class BookingDetailsLoader {
   static async loadByNumber(bookingNumber: string, options?: { locale?: string; currency?: string }) {
     try {
       const { booking, experience, localization, loyalty } = await getDomainServices()
-      const ctx = localization.buildContext({
+      const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })

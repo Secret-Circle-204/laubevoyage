@@ -55,19 +55,19 @@ export const metadata = {
   description: 'Crafting Journeys Since 1996: Your Passport to Global and Local Discoveries.',
 }
 
-import { cookies } from 'next/headers'
+import { getLocaleContext } from '@/lib/get-locale-context'
 import { SessionResolver } from '@/application/auth/session-resolver'
 
 export default async function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
 
-  const cookieStore = await cookies()
-  const localeCookie = cookieStore.get('laube-locale')?.value as 'ar' | 'en' | 'fr' | undefined
-  const currencyCookie = cookieStore.get('laube-currency')?.value as 'EGP' | 'USD' | 'EUR' | 'GBP' | 'SAR' | 'AED' | undefined
+  const ctx = await getLocaleContext()
+  console.log(`[RootLayout] resolved context with currency = "${ctx.currency}", requestContextId = "${ctx.requestContextId || ''}"`)
 
   const session = await SessionResolver.resolve()
-  const initialLocale = localeCookie || session.preferredLanguage as any || 'en'
-  const initialCurrency = currencyCookie || session.preferredCurrency as any || 'EGP'
+
+  const initialLocale = ctx.language
+  const initialCurrency = ctx.currency
   const dir = initialLocale === 'ar' ? 'rtl' : 'ltr'
 
   return (

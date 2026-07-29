@@ -7,4 +7,5 @@ export interface Language {
   isActive: boolean
   isDefault: boolean
   displayOrder: number
+  preferredDisplayCurrencyCode?: string | null
 }

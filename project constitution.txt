@@ -960,3 +960,13 @@ Elite
 > **Before introducing any new architectural abstraction (folder, file, service, helper, DTO, loader, query, builder, mapper, registry, hook, provider, utility, or component), an architectural audit must first prove that no equivalent abstraction already exists anywhere in the project. Preference must always be given to extending the existing architecture over introducing parallel structures.**
 > 
 > (قبل تقديم أي تجريد معماري جديد — سواء كان مجلداً، ملفاً، خدمة، دالة مساعدة، DTO، Loader، Query، Builder، Mapper، Registry، Hook، Provider، Utility، أو Component — يجب أولاً إجراء تدقيق معماري يثبت عدم وجود تجريد مكافئ بالفعل في أي مكان بالمشروع. يجب دائماً إعطاء الأولوية القصوى لتوسيع البنية المعمارية القائمة بدلاً من إدخال هياكل موازية).
+
+---
+
+قاعدة حسم عملة العرض المفضلة للغة (Preferred Display Currency Resolution Rule):
+تعتبر عملة العرض المفضلة للغة (`preferredDisplayCurrency`) خيار عرض تسويقي واختيار منتج (Merchandising/Product Preference) فقط لتسهيل العرض لزوار المرة الأولى، ولا تمثل حقيقة لغوية أو جغرافية أو عملة محاسبية ثابتة. غياب هذا الإعداد لأي لغة لا يعتبر خطأ قاتلاً يوقف النظام، بل يتم تخطيه تلقائياً لمواصلة تسلسل الحسم (Cascade) نحو عملة الدولة ثم عملة المنصة الافتراضية.
+
+---
+
+قاعدة استدامة قرار المستخدم (Decision Persistence Rule):
+يتم استخدام `preferredDisplayCurrency` للزيارة الأولى للمستخدم فقط (First-time visit fallback). بمجرد أن يقوم المستخدم بتغيير العملة بشكل صريح في الواجهة، تصبح قيمة الكوكيز (`Cookie Currency`) هي مصدر الحقيقة الأوحد والنهائي (SSOT)، ولا يجوز بأي حال من الأحوال إعادة فرض أو تغطيتها بالعملة المفضلة للغة مرة أخرى عند تحديث الصفحة أو التصفح.

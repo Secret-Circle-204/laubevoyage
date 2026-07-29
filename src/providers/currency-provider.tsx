@@ -2,8 +2,9 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { setCurrencyAction } from '@/application/actions/customer-actions'
 
-type CurrencyCode = 'EGP' | 'USD' | 'EUR' | 'GBP' | 'SAR' | 'AED'
+type CurrencyCode = string
 
 interface CurrencyContextType {
   currency: CurrencyCode
@@ -23,14 +24,12 @@ export function CurrencyProvider({
   const [currency, setCurrencyState] = useState<CurrencyCode>(initialCurrency)
 
   useEffect(() => {
-    const savedCurrency = (localStorage.getItem('laube-currency') as CurrencyCode) || initialCurrency
-    setCurrencyState(savedCurrency)
+    setCurrencyState(initialCurrency)
   }, [initialCurrency])
 
-  const setCurrency = (newCurrency: CurrencyCode) => {
-    setCurrencyState(newCurrency)
+  const setCurrency = async (newCurrency: CurrencyCode) => {
     localStorage.setItem('laube-currency', newCurrency)
-    document.cookie = `laube-currency=${newCurrency}; path=/; max-age=31536000; SameSite=Lax`
+    await setCurrencyAction(newCurrency)
     router.refresh()
   }
 

@@ -3,8 +3,9 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { setLocaleAction } from '@/application/actions/customer-actions'
 
-type Locale = 'ar' | 'en' | 'fr'
+type Locale = string
 type Direction = 'rtl' | 'ltr'
 
 interface LocaleContextType {
@@ -27,16 +28,19 @@ export function LocaleProvider({
   const [direction, setDirection] = useState<Direction>(initialLocale === 'ar' ? 'rtl' : 'ltr')
 
   useEffect(() => {
+    setLocaleState(initialLocale)
+  }, [initialLocale])
+
+  useEffect(() => {
     const dir = locale === 'ar' ? 'rtl' : 'ltr'
     setDirection(dir)
     document.documentElement.setAttribute('lang', locale)
     document.documentElement.setAttribute('dir', dir)
   }, [locale])
 
-  const setLocale = (newLocale: Locale) => {
-    setLocaleState(newLocale)
+  const setLocale = async (newLocale: Locale) => {
     localStorage.setItem('laube-locale', newLocale)
-    document.cookie = `laube-locale=${newLocale}; path=/; max-age=31536000; SameSite=Lax`
+    await setLocaleAction(newLocale)
     router.refresh()
   }
 

@@ -13,7 +13,7 @@ export async function getDashboardOverviewAction(
     }
 
     const { dashboard, localization, currency } = await getDomainServices()
-    const ctx = localization.buildContext(localeContext)
+    const ctx = await localization.buildContext(localeContext)
 
     // 1. Fetch Raw Domain Projection
     const rawProjection = await dashboard.getPortalOverview(customerId)

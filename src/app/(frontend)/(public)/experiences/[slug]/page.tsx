@@ -14,8 +14,8 @@ export async function generateMetadata(props: {
   const params = await props.params
   const searchParams = await props.searchParams
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
   const adults = Number(searchParams.adults) || 2
 
   const data = await ExperienceDetailsLoader.loadBySlug(params.slug, { locale, currency, adults })
@@ -37,8 +37,8 @@ export default async function Page(props: {
   const params = await props.params
   const searchParams = await props.searchParams
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
   const adults = Number(searchParams.adults) || 2
 
   const data = await ExperienceDetailsLoader.loadBySlug(params.slug, { locale, currency, adults })

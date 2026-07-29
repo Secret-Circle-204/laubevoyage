@@ -1,47 +1,85 @@
 import type { PayloadRequest } from 'payload'
 import { TranslationService } from '../translation/service'
 import { PricingFacade } from '../currency/facade'
+import { LanguageService } from '../languages/service'
 import type { ConvertedPrice } from '../currency/types'
 import type { LocaleContext, LocaleContextInputs, CurrencyCode } from '@/types/locale'
 import { DEFAULT_LOCALE_CONTEXT, Language, MeasurementSystem } from '@/types/locale'
 import { JsonTranslationDictionary, type ITranslationDictionary } from '../translation/dictionary'
 
+import { countryCatalogRegistry } from '../destination/country-registry'
+
 /**
  * Localization Domain Service — Presentation Gateway & Single Decision Owner
  * Central orchestrator for all locale-dependent operations via Dependency Injection:
- * - Single Decision Owner for resolving traveler's LocaleContext via modular private resolution methods
+ * - Single Decision Owner for resolving traveler's LocaleContext via async resolution pipeline
+ * - Delegates language resolution to LanguageDomain (CMS Languages collection)
+ * - Delegates currency resolution & country mapping to CurrencyDomain (CMS Currencies collection)
  * - Delegates UI Infrastructure texts to ITranslationDictionary (0ms JSON lookup)
  * - Delegates dynamic CMS content translation to the Translation Domain & Engine
- * - Delegates price conversion & currency resolution to the Currency Domain
  * - Formats dates, numbers, and money on the server
  */
 export class LocalizationService {
   private translationService: TranslationService
   private pricingFacade: PricingFacade
+  private languageService?: LanguageService
   private uiDictionary: ITranslationDictionary
 
   constructor(
     translationService: TranslationService,
     pricingFacade: PricingFacade,
     uiDictionary?: ITranslationDictionary,
+    languageService?: LanguageService,
   ) {
     this.translationService = translationService
     this.pricingFacade = pricingFacade
+    this.languageService = languageService
     this.uiDictionary = uiDictionary || new JsonTranslationDictionary()
   }
 
   /**
-   * Single Decision Owner for Locale Context Resolution.
+   * Single Decision Owner Pipeline for building LocaleContext.
    * Receives raw facts contract (LocaleContextInputs or Partial<LocaleContext>) and applies independent cascades.
    */
-  buildContext(inputs?: LocaleContextInputs | Partial<LocaleContext>): LocaleContext {
+  async buildContext(inputs?: LocaleContextInputs | Partial<LocaleContext>): Promise<LocaleContext> {
     const raw = this.normalizeInputs(inputs)
-    const language = this.resolveLanguage(raw)
-    const currency = this.resolveCurrency(raw)
+    let countryConfig
+    if (raw.geoCountry) {
+      try {
+        countryConfig = await countryCatalogRegistry.get(raw.geoCountry)
+      } catch (err) {
+        // Fallback
+      }
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[LocalizationService] geoCountry = "${raw.geoCountry || ''}"`)
+      console.log(`[LocalizationService] country.currencyCode = "${countryConfig?.currencyCode || ''}"`)
+      console.log(`[LocalizationService] country.defaultLanguageCode = "${countryConfig?.defaultLanguageCode || ''}"`)
+    }
+
+    const language = await this.resolveLanguage(raw, countryConfig?.defaultLanguageCode || undefined)
+
+    let languagePreferredCurrencyCode: string | undefined = undefined
+    if (this.languageService) {
+      languagePreferredCurrencyCode = await this.languageService.resolvePreferredCurrency(language)
+    }
+
+    const currency = await this.resolveCurrency(raw, countryConfig?.currencyCode || undefined, languagePreferredCurrencyCode)
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[LocalizationService] resolvedLanguage = "${language}"`)
+      console.log(`[LocalizationService] resolvedCurrency = "${currency}"`)
+    }
+
     const country = this.resolveCountry(raw)
-    const timezone = this.resolveTimezone(raw)
-    const measurement = this.resolveMeasurement(raw)
-    const weekStart = this.resolveWeekStart(raw)
+    const timezone = this.resolveTimezone(raw, countryConfig?.timezone || undefined)
+    const measurement = this.resolveMeasurement(raw, countryConfig?.measurementSystem || undefined)
+    const weekStart = this.resolveWeekStart(raw, countryConfig?.weekStart)
+
+    const requestContextId = inputs && 'requestContextId' in inputs && inputs.requestContextId
+      ? inputs.requestContextId
+      : `req-${Math.random().toString(36).substring(2, 9)}`
 
     return this.assembleContext({
       language,
@@ -50,7 +88,7 @@ export class LocalizationService {
       timezone,
       measurement,
       weekStart,
-    })
+    }, requestContextId)
   }
 
   private normalizeInputs(inputs?: LocaleContextInputs | Partial<LocaleContext>): LocaleContextInputs {
@@ -67,72 +105,73 @@ export class LocalizationService {
     }
   }
 
-  private resolveLanguage(inputs: LocaleContextInputs): Language {
-    if (inputs.cookieLocale && ['en', 'ar', 'fr'].includes(inputs.cookieLocale)) {
-      return inputs.cookieLocale as Language
+  private async resolveLanguage(inputs: LocaleContextInputs, geoDefaultLanguageCode?: string): Promise<Language> {
+    if (this.languageService) {
+      const resolved = await this.languageService.resolveDisplayLanguage({
+        cookieLocale: inputs.cookieLocale,
+        sessionLanguage: inputs.sessionLanguage,
+        acceptLanguage: inputs.acceptLanguage,
+        geoDefaultLanguageCode,
+      })
+      return resolved as Language
     }
-    if (inputs.sessionLanguage && ['en', 'ar', 'fr'].includes(inputs.sessionLanguage)) {
-      return inputs.sessionLanguage as Language
-    }
+    if (inputs.cookieLocale) return inputs.cookieLocale as Language
+    if (inputs.sessionLanguage) return inputs.sessionLanguage as Language
     if (inputs.acceptLanguage) {
       const primaryLang = inputs.acceptLanguage.split(',')[0]?.split('-')[0]?.split(';')[0]?.trim()
-      if (primaryLang && ['en', 'ar', 'fr'].includes(primaryLang)) {
-        return primaryLang as Language
-      }
+      if (primaryLang) return primaryLang as Language
     }
     return DEFAULT_LOCALE_CONTEXT.language
   }
 
-  private resolveCurrency(inputs: LocaleContextInputs): CurrencyCode {
-    const candidate = inputs.cookieCurrency || inputs.sessionCurrency
-    if (candidate && ['EGP', 'USD', 'EUR', 'GBP', 'SAR', 'AED'].includes(candidate)) {
-      return candidate as CurrencyCode
-    }
-    if (inputs.geoCountry) {
-      const countryCurrencyMap: Record<string, CurrencyCode> = {
-        EG: 'EGP',
-        US: 'USD',
-        SA: 'SAR',
-        AE: 'AED',
-        GB: 'GBP',
-        DE: 'EUR',
-        FR: 'EUR',
-        IT: 'EUR',
-        ES: 'EUR',
-      }
-      const geoCurr = countryCurrencyMap[inputs.geoCountry]
-      if (geoCurr) return geoCurr
-    }
-    return 'EGP' as CurrencyCode
+  private async resolveCurrency(
+    inputs: LocaleContextInputs,
+    geoCurrencyCode?: string,
+    languagePreferredCurrencyCode?: string
+  ): Promise<CurrencyCode> {
+    const resolved = await this.pricingFacade.resolveDisplayCurrency({
+      cookieCurrency: inputs.cookieCurrency,
+      sessionCurrency: inputs.sessionCurrency,
+      geoCountry: inputs.geoCountry,
+      geoCurrencyCode,
+      languagePreferredCurrencyCode,
+    })
+    return resolved as CurrencyCode
   }
 
   private resolveCountry(inputs: LocaleContextInputs): string {
     return inputs.geoCountry || DEFAULT_LOCALE_CONTEXT.country
   }
 
-  private resolveTimezone(inputs: LocaleContextInputs): string {
-    return inputs.geoTimezone || DEFAULT_LOCALE_CONTEXT.timezone
+  private resolveTimezone(inputs: LocaleContextInputs, geoTimezone?: string): string {
+    return inputs.geoTimezone || geoTimezone || DEFAULT_LOCALE_CONTEXT.timezone
   }
 
-  private resolveMeasurement(inputs: LocaleContextInputs): MeasurementSystem {
-    if (inputs.geoCountry === 'US') {
-      return MeasurementSystem.IMPERIAL
+  private resolveMeasurement(inputs: LocaleContextInputs, geoMeasurement?: string): MeasurementSystem {
+    if (geoMeasurement === 'imperial' || geoMeasurement === 'metric') {
+      return geoMeasurement as MeasurementSystem
     }
     return DEFAULT_LOCALE_CONTEXT.measurement
   }
 
-  private resolveWeekStart(inputs: LocaleContextInputs): 0 | 1 | 6 {
+  private resolveWeekStart(inputs: LocaleContextInputs, geoWeekStart?: number | null): 0 | 1 | 6 {
+    if (geoWeekStart === 0 || geoWeekStart === 1 || geoWeekStart === 6) {
+      return geoWeekStart
+    }
     return DEFAULT_LOCALE_CONTEXT.weekStart
   }
 
-  private assembleContext(resolved: {
-    language: Language
-    currency: CurrencyCode
-    country: string
-    timezone: string
-    measurement: MeasurementSystem
-    weekStart: 0 | 1 | 6
-  }): LocaleContext {
+  private assembleContext(
+    resolved: {
+      language: Language
+      currency: CurrencyCode
+      country: string
+      timezone: string
+      measurement: MeasurementSystem
+      weekStart: 0 | 1 | 6
+    },
+    requestContextId?: string
+  ): LocaleContext {
     return {
       language: resolved.language,
       currency: resolved.currency,
@@ -140,6 +179,7 @@ export class LocalizationService {
       timezone: resolved.timezone,
       measurement: resolved.measurement,
       weekStart: resolved.weekStart,
+      requestContextId,
     }
   }
 

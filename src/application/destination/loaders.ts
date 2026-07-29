@@ -8,7 +8,7 @@ export class DestinationsCatalogLoader {
   static async load(options?: DestinationQueryOptions): Promise<DestinationsCatalogDTO> {
     try {
       const { destination, localization } = await getDomainServices()
-      const ctx = localization.buildContext({
+      const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })
@@ -104,7 +104,7 @@ export class CountryLoader {
   ): Promise<CountryDetailsDTO | null> {
     try {
       const { destination, localization } = await getDomainServices()
-      const ctx = localization.buildContext({
+      const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })
@@ -177,7 +177,7 @@ export class CityLoader {
   ): Promise<CityExperiencesDTO | null> {
     try {
       const { destination, localization, experience } = await getDomainServices()
-      const ctx = localization.buildContext({
+      const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })

@@ -21,9 +21,9 @@ export async function resolvePricingAction(params: {
       ? (params.locale as Language)
       : Language.EN
 
-    const ctx = localization.buildContext({
-      language,
-      currency: params.currency,
+    const ctx = await localization.buildContext({
+      cookieLocale: params.locale,
+      cookieCurrency: params.currency,
     })
 
     const { totalCost, unitPrice } = await bookingPricingUseCase.calculate({

@@ -3,6 +3,7 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { cookies } from 'next/headers'
+import { revalidatePath } from 'next/cache'
 import { getDomainServices } from '@/domains/factory'
 
 export interface RegisterFormData {
@@ -161,6 +162,40 @@ export async function logoutCustomerAction() {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Logout failed',
+    }
+  }
+}
+
+export async function setLocaleAction(locale: string) {
+  try {
+    const cookieStore = await cookies()
+    cookieStore.set('laube-locale', locale, {
+      path: '/',
+      maxAge: 31536000,
+      sameSite: 'lax',
+    })
+    return { success: true }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to set locale',
+    }
+  }
+}
+
+export async function setCurrencyAction(currency: string) {
+  try {
+    const cookieStore = await cookies()
+    cookieStore.set('laube-currency', currency, {
+      path: '/',
+      maxAge: 31536000,
+      sameSite: 'lax',
+    })
+    return { success: true }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to set currency',
     }
   }
 }

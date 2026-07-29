@@ -9,8 +9,8 @@ import { SessionProvider, type CustomerSessionState } from './session-provider'
 
 export interface AppProvidersProps {
   children: React.ReactNode
-  initialLocale?: 'ar' | 'en' | 'fr'
-  initialCurrency?: 'EGP' | 'USD' | 'EUR' | 'GBP' | 'SAR' | 'AED'
+  initialLocale?: string
+  initialCurrency?: string
   initialSession?: CustomerSessionState
 }
 

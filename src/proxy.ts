@@ -131,18 +131,18 @@ export function proxy(request: NextRequest) {
     // A. Bot User-Agent Check
     const userAgent = request.headers.get('user-agent')
     if (isBot(userAgent)) {
-      return new NextResponse(
-        JSON.stringify({ success: false, error: 'Forbidden request' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      )
+      return new NextResponse(JSON.stringify({ success: false, error: 'Forbidden request' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     // B. Origin/Referer Validation (CSRF mitigation)
     if (!isValidOrigin(request)) {
-      return new NextResponse(
-        JSON.stringify({ success: false, error: 'Invalid origin request' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      )
+      return new NextResponse(JSON.stringify({ success: false, error: 'Invalid origin request' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     // C. Token Bucket Rate Limiting (10 requests per minute per IP)
@@ -163,7 +163,7 @@ export function proxy(request: NextRequest) {
             'Content-Type': 'application/json',
             'Retry-After': '60',
           },
-        }
+        },
       )
     }
   }
@@ -178,6 +178,7 @@ export function proxy(request: NextRequest) {
     request.headers.get('x-vercel-ip-country') ||
     request.headers.get('cf-ipcountry') ||
     request.headers.get('x-country-code') ||
+    request.nextUrl.searchParams.get('geo') ||
     ''
   ).toUpperCase()
 
@@ -187,11 +188,9 @@ export function proxy(request: NextRequest) {
   if (acceptLanguage) response.headers.set('x-laube-accept-language', acceptLanguage)
   if (geoCountry) response.headers.set('x-laube-country', geoCountry)
 
-  // Backward compatibility header forwarding
-  const resolvedLocale = cookieLocale || acceptLanguage.split(',')[0]?.split('-')[0] || 'en'
-  const resolvedCurrency = cookieCurrency || 'EGP'
-  response.headers.set('x-laube-locale', resolvedLocale)
-  response.headers.set('x-laube-currency', resolvedCurrency)
+  // Header forwarding
+  if (cookieLocale) response.headers.set('x-laube-locale', cookieLocale)
+  if (cookieCurrency) response.headers.set('x-laube-currency', cookieCurrency)
 
   // 6. Inject Security Headers on all HTTP responses
   response.headers.set('X-Frame-Options', 'DENY')
@@ -203,7 +202,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|images).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|images).*)'],
 }

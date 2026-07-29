@@ -12,9 +12,9 @@ export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
+  const locale = cookieStore.get('laube-locale')?.value
   const { localization } = await getDomainServices()
-  const ctx = localization.buildContext({ language: locale as any })
+  const ctx = await localization.buildContext({ cookieLocale: locale })
 
   const title = localization.translateUiKey('catalog.meta.title', ctx)
   const description = localization.translateUiKey('catalog.meta.description', ctx)
@@ -28,8 +28,8 @@ export default async function Page(props: {
   const searchParams = await props.searchParams
   const parsedFilters = ExperienceSearchParser.parse(searchParams)
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
 
   const data = await ExperiencesCatalogLoader.load(parsedFilters, { locale, currency })
 

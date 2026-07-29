@@ -8,7 +8,7 @@ export class BlogCatalogLoader {
 
     try {
       const { content, localization } = await getDomainServices()
-      const ctx = localization.buildContext({ cookieLocale: params?.locale })
+      const ctx = await localization.buildContext({ cookieLocale: params?.locale })
       const articlesRes = await content.getBlogArticles(params)
 
       const rawTexts: string[] = []
@@ -74,7 +74,7 @@ export class ArticleLoader {
   static async loadBySlug(slug: string, options?: { locale?: string }): Promise<BlogArticleDTO | null> {
     try {
       const { content, localization } = await getDomainServices()
-      const ctx = localization.buildContext({ cookieLocale: options?.locale })
+      const ctx = await localization.buildContext({ cookieLocale: options?.locale })
       const doc = (await content.getArticleBySlug(slug)) as any
       if (!doc) return null
 
@@ -109,7 +109,7 @@ export class FaqLoader {
   static async load(options?: { locale?: string }): Promise<FaqPageDTO> {
     try {
       const { content, localization } = await getDomainServices()
-      const ctx = localization.buildContext({ cookieLocale: options?.locale })
+      const ctx = await localization.buildContext({ cookieLocale: options?.locale })
       const faqsRes = await content.getFaqs()
 
       const rawTexts: string[] = []

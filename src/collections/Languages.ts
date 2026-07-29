@@ -70,6 +70,14 @@ export const Languages: CollectionConfig = {
         description: 'Order of appearance in the language switcher dropdown',
       },
     },
+    {
+      name: 'preferredDisplayCurrency',
+      type: 'relationship',
+      relationTo: 'currencies',
+      admin: {
+        description: 'The recommended display currency chosen for users browsing in this language (e.g. USD for English, EUR for German)',
+      },
+    },
   ],
   timestamps: true,
 }

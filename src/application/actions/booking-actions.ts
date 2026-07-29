@@ -32,7 +32,7 @@ export async function confirmCheckoutAction(params: {
     const { booking, experience, payment, localization } = await getDomainServices()
 
     // Single Source of Truth: Resolve currency on server from Localization Domain (Fail-Fast)
-    const localeCtx = localization.buildContext({ language: Language.EN, currency: 'USD' })
+    const localeCtx = await localization.buildContext({ cookieLocale: 'en', cookieCurrency: 'USD' })
     if (!localeCtx.currency) {
       throw new Error('[confirmCheckoutAction] LocalizationDomain failed to resolve target currency.')
     }

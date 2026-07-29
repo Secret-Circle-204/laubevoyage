@@ -15,6 +15,11 @@ import * as migration_20260728_165414 from './20260728_165414';
 import * as migration_20260728_170912 from './20260728_170912';
 import * as migration_20260728_171042 from './20260728_171042';
 import * as migration_20260728_174211 from './20260728_174211';
+import * as migration_20260729_142840 from './20260729_142840';
+import * as migration_20260729_155209 from './20260729_155209';
+import * as migration_20260729_155308_add_country_default_lang from './20260729_155308_add_country_default_lang';
+import * as migration_20260729_164215_add_language_default_currency from './20260729_164215_add_language_default_currency';
+import * as migration_20260729_172246_rename_language_default_currency from './20260729_172246_rename_language_default_currency';
 
 export const migrations = [
   {
@@ -100,6 +105,31 @@ export const migrations = [
   {
     up: migration_20260728_174211.up,
     down: migration_20260728_174211.down,
-    name: '20260728_174211'
+    name: '20260728_174211',
+  },
+  {
+    up: migration_20260729_142840.up,
+    down: migration_20260729_142840.down,
+    name: '20260729_142840',
+  },
+  {
+    up: migration_20260729_155209.up,
+    down: migration_20260729_155209.down,
+    name: '20260729_155209',
+  },
+  {
+    up: migration_20260729_155308_add_country_default_lang.up,
+    down: migration_20260729_155308_add_country_default_lang.down,
+    name: '20260729_155308_add_country_default_lang',
+  },
+  {
+    up: migration_20260729_164215_add_language_default_currency.up,
+    down: migration_20260729_164215_add_language_default_currency.down,
+    name: '20260729_164215_add_language_default_currency',
+  },
+  {
+    up: migration_20260729_172246_rename_language_default_currency.up,
+    down: migration_20260729_172246_rename_language_default_currency.down,
+    name: '20260729_172246_rename_language_default_currency'
   },
 ];

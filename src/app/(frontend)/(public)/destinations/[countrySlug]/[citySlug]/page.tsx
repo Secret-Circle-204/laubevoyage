@@ -12,8 +12,8 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const params = await props.params
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
 
   const data = await CityLoader.loadBySlugs(params.countrySlug, params.citySlug, { locale, currency })
 
@@ -32,8 +32,8 @@ export default async function Page(props: {
 }) {
   const params = await props.params
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
 
   const data = await CityLoader.loadBySlugs(params.countrySlug, params.citySlug, { locale, currency })
 

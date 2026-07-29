@@ -10,8 +10,8 @@ export const revalidate = 3600
 export async function generateMetadata(props: { params: Promise<{ countrySlug: string }> }): Promise<Metadata> {
   const params = await props.params
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
 
   const data = await CountryLoader.loadBySlug(params.countrySlug, { locale, currency })
 
@@ -28,8 +28,8 @@ export async function generateMetadata(props: { params: Promise<{ countrySlug: s
 export default async function Page(props: { params: Promise<{ countrySlug: string }> }) {
   const params = await props.params
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
 
   const data = await CountryLoader.loadBySlug(params.countrySlug, { locale, currency })
 

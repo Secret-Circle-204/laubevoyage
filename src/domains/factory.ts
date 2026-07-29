@@ -3,6 +3,7 @@ import config from '@payload-config'
 
 import { DestinationRepository } from './destination/repository'
 import { DestinationService } from './destination/service'
+import { countryCatalogRegistry } from './destination/country-registry'
 
 import { ExperienceRepository } from './experience/repository'
 import { ExperienceService } from './experience/service'
@@ -76,6 +77,7 @@ async function buildDomainServices() {
   EventOutboxService.getInstance(outboxRepository)
 
   const destinationRepository = new DestinationRepository(payload)
+  countryCatalogRegistry.setRepository(destinationRepository)
   const experienceRepository = new ExperienceRepository(payload)
   const contentRepository = new ContentRepository(payload)
   const bookingRepository = new BookingRepository(payload)
@@ -117,9 +119,10 @@ async function buildDomainServices() {
     },
   }
 
+  const languageService = new LanguageService(languageRepository)
   const pricingPipeline = new PricingPipeline(serviceRateProvider, serviceSettingsProvider)
   const pricingFacade = new PricingFacade(pricingPipeline)
-  const localizationService = new LocalizationService(translationService, pricingFacade)
+  const localizationService = new LocalizationService(translationService, pricingFacade, undefined, languageService)
   const notificationService = new NotificationService(notificationRepository)
   const loyaltyService = new LoyaltyService(loyaltyRepository)
   const customerService = new CustomerService(customerRepository)
@@ -153,7 +156,6 @@ async function buildDomainServices() {
   const dashboardService = new DashboardService(dashboardRepository, dashboardQueryBus)
   const destinationService = new DestinationService(destinationRepository)
   const maintenanceService = new MaintenanceService(maintenanceRepository, bookingService)
-  const languageService = new LanguageService(languageRepository)
 
   // 3. Bootstrap system event subscribers & background workers (Executed ONCE on application startup)
   const outboxService = EventOutboxService.getInstance(outboxRepository)

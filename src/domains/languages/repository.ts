@@ -36,16 +36,31 @@ export class LanguageRepository {
         limit: 100,
       })
 
-      const languages: Language[] = (res.docs || []).map((doc: any) => ({
-        id: String(doc.id),
-        name: doc.name,
-        nativeName: doc.nativeName,
-        code: doc.code,
-        isRTL: !!doc.isRTL,
-        isActive: !!doc.isActive,
-        isDefault: !!doc.isDefault,
-        displayOrder: typeof doc.displayOrder === 'number' ? doc.displayOrder : 0,
-      }))
+      const languages: Language[] = (res.docs || []).map((doc: any) => {
+        let preferredDisplayCurrencyCode: string | null = null
+        if (doc.preferredDisplayCurrency) {
+          if (typeof doc.preferredDisplayCurrency === 'object' && 'isoCode' in doc.preferredDisplayCurrency) {
+            preferredDisplayCurrencyCode = doc.preferredDisplayCurrency.isoCode
+          } else if (typeof doc.preferredDisplayCurrency === 'string') {
+            preferredDisplayCurrencyCode = doc.preferredDisplayCurrency
+          } else {
+            throw new Error(
+              `FATAL CONFIGURATION ERROR: Language "${doc.name}" points to a broken or missing preferredDisplayCurrency record (ID: ${JSON.stringify(doc.preferredDisplayCurrency)}).`
+            )
+          }
+        }
+        return {
+          id: String(doc.id),
+          name: doc.name,
+          nativeName: doc.nativeName,
+          code: doc.code,
+          isRTL: !!doc.isRTL,
+          isActive: !!doc.isActive,
+          isDefault: !!doc.isDefault,
+          displayOrder: typeof doc.displayOrder === 'number' ? doc.displayOrder : 0,
+          preferredDisplayCurrencyCode,
+        }
+      })
 
       this.activeLanguagesCache = languages
       return languages
@@ -75,6 +90,18 @@ export class LanguageRepository {
 
       if (res.docs && res.docs.length > 0) {
         const doc = res.docs[0] as any
+        let preferredDisplayCurrencyCode: string | null = null
+        if (doc.preferredDisplayCurrency) {
+          if (typeof doc.preferredDisplayCurrency === 'object' && 'isoCode' in doc.preferredDisplayCurrency) {
+            preferredDisplayCurrencyCode = doc.preferredDisplayCurrency.isoCode
+          } else if (typeof doc.preferredDisplayCurrency === 'string') {
+            preferredDisplayCurrencyCode = doc.preferredDisplayCurrency
+          } else {
+            throw new Error(
+              `FATAL CONFIGURATION ERROR: Language "${doc.name}" points to a broken or missing preferredDisplayCurrency record (ID: ${JSON.stringify(doc.preferredDisplayCurrency)}).`
+            )
+          }
+        }
         const lang: Language = {
           id: String(doc.id),
           name: doc.name,
@@ -84,6 +111,7 @@ export class LanguageRepository {
           isActive: !!doc.isActive,
           isDefault: !!doc.isDefault,
           displayOrder: typeof doc.displayOrder === 'number' ? doc.displayOrder : 0,
+          preferredDisplayCurrencyCode,
         }
         this.defaultLanguageCache = lang
         return lang

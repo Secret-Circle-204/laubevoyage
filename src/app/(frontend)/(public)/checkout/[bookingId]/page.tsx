@@ -35,8 +35,8 @@ export default async function Page(props: {
   }
 
   const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value || 'en'
-  const currency = cookieStore.get('laube-currency')?.value || 'EGP'
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
 
   const experienceId = searchParams.experienceId ? Number(searchParams.experienceId) : undefined
   const adults = searchParams.adults ? Number(searchParams.adults) : undefined

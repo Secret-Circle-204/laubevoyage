@@ -351,12 +351,113 @@ export interface Country {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Official national display currency for this country (SSOT)
+   */
+  currency?: (number | null) | Currency;
+  /**
+   * Official default language for this country used for default UI rendering
+   */
+  defaultLanguage?: (number | null) | Language;
+  /**
+   * Primary IANA Timezone (e.g. Europe/Berlin, Africa/Cairo)
+   */
+  timezone?: string | null;
+  measurementSystem?: ('metric' | 'imperial') | null;
+  /**
+   * First day of the week (0 = Sunday, 1 = Monday, 6 = Saturday)
+   */
+  weekStart?: number | null;
   isActive?: boolean | null;
   seo?: {
     title?: string | null;
     description?: string | null;
     keywords?: string | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Master Catalog of Currencies (Identity only, no live rates)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "currencies".
+ */
+export interface Currency {
+  id: number;
+  /**
+   * ISO 4217 Currency Code (e.g., USD, EUR, JPY)
+   */
+  isoCode: string;
+  /**
+   * ISO 4217 Numeric Code (e.g., 840 for USD)
+   */
+  numericCode: number;
+  /**
+   * Full name (e.g., US Dollar)
+   */
+  name: string;
+  /**
+   * Common symbol (e.g., $)
+   */
+  symbol: string;
+  /**
+   * Native symbol (e.g., US$)
+   */
+  nativeSymbol?: string | null;
+  /**
+   * Number of decimal places (e.g., 2 for USD, 0 for JPY)
+   */
+  decimals: number;
+  /**
+   * Enable or disable this currency in the frontend
+   */
+  isActive?: boolean | null;
+  displayOrder?: number | null;
+  isDefault?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Master catalog of active and supported website languages.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "languages".
+ */
+export interface Language {
+  id: number;
+  /**
+   * Administrative language name (e.g. English, Arabic)
+   */
+  name: string;
+  /**
+   * Language name as shown in the UI switcher (e.g. English, العربية, Français)
+   */
+  nativeName: string;
+  /**
+   * ISO language code (e.g. en, ar, fr)
+   */
+  code: string;
+  /**
+   * Check if this language is read Right-to-Left (e.g. Arabic)
+   */
+  isRTL?: boolean | null;
+  /**
+   * Enable or disable this language site-wide
+   */
+  isActive?: boolean | null;
+  /**
+   * Set as the fallback language for the entire platform
+   */
+  isDefault?: boolean | null;
+  /**
+   * Order of appearance in the language switcher dropdown
+   */
+  displayOrder?: number | null;
+  /**
+   * The recommended display currency chosen for users browsing in this language (e.g. USD for English, EUR for German)
+   */
+  preferredDisplayCurrency?: (number | null) | Currency;
   updatedAt: string;
   createdAt: string;
 }
@@ -716,56 +817,6 @@ export interface ExchangeRate {
    */
   lastError?: string | null;
   syncStatus?: ('synced' | 'failed' | 'stale') | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Master Catalog of Currencies (Identity only, no live rates)
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "currencies".
- */
-export interface Currency {
-  id: number;
-  /**
-   * ISO 4217 Currency Code (e.g., USD, EUR, JPY)
-   */
-  isoCode: string;
-  /**
-   * ISO 4217 Numeric Code (e.g., 840 for USD)
-   */
-  numericCode: number;
-  /**
-   * Full name (e.g., US Dollar)
-   */
-  name: string;
-  /**
-   * Common symbol (e.g., $)
-   */
-  symbol: string;
-  /**
-   * Native symbol (e.g., US$)
-   */
-  nativeSymbol?: string | null;
-  /**
-   * Number of decimal places (e.g., 2 for USD, 0 for JPY)
-   */
-  decimals: number;
-  /**
-   * ISO 3166-1 alpha-2 Country Codes where this currency is used
-   */
-  countryCodes?:
-    | {
-        code: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Enable or disable this currency in the frontend
-   */
-  isActive?: boolean | null;
-  displayOrder?: number | null;
-  isDefault?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1147,45 +1198,6 @@ export interface Coupon {
   status: 'active' | 'inactive' | 'expired';
   validFrom?: string | null;
   validUntil?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Master catalog of active and supported website languages.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "languages".
- */
-export interface Language {
-  id: number;
-  /**
-   * Administrative language name (e.g. English, Arabic)
-   */
-  name: string;
-  /**
-   * Language name as shown in the UI switcher (e.g. English, العربية, Français)
-   */
-  nativeName: string;
-  /**
-   * ISO language code (e.g. en, ar, fr)
-   */
-  code: string;
-  /**
-   * Check if this language is read Right-to-Left (e.g. Arabic)
-   */
-  isRTL?: boolean | null;
-  /**
-   * Enable or disable this language site-wide
-   */
-  isActive?: boolean | null;
-  /**
-   * Set as the fallback language for the entire platform
-   */
-  isDefault?: boolean | null;
-  /**
-   * Order of appearance in the language switcher dropdown
-   */
-  displayOrder?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1575,6 +1587,11 @@ export interface CountriesSelect<T extends boolean = true> {
         image?: T;
         id?: T;
       };
+  currency?: T;
+  defaultLanguage?: T;
+  timezone?: T;
+  measurementSystem?: T;
+  weekStart?: T;
   isActive?: T;
   seo?:
     | T
@@ -1767,12 +1784,6 @@ export interface CurrenciesSelect<T extends boolean = true> {
   symbol?: T;
   nativeSymbol?: T;
   decimals?: T;
-  countryCodes?:
-    | T
-    | {
-        code?: T;
-        id?: T;
-      };
   isActive?: T;
   displayOrder?: T;
   isDefault?: T;
@@ -2062,6 +2073,7 @@ export interface LanguagesSelect<T extends boolean = true> {
   isActive?: T;
   isDefault?: T;
   displayOrder?: T;
+  preferredDisplayCurrency?: T;
   updatedAt?: T;
   createdAt?: T;
 }

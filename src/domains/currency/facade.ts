@@ -16,24 +16,93 @@ export class PricingFacade {
   }
 
   /**
-   * Currency Domain Public API: Resolves a proposed currency against active catalog.
-   * Delegates to Currency Domain business policy.
+   * Currency Domain Public API: Resolves display currency against active CMS catalog.
+   * Relocates country-to-currency mapping to Currency Domain.
    */
-  async resolveDisplayCurrency(proposedCurrency?: string): Promise<string> {
-    if (!proposedCurrency) return 'USD'
-    const code = proposedCurrency.trim().toUpperCase()
+  async resolveDisplayCurrency(params?: {
+    cookieCurrency?: string
+    sessionCurrency?: string
+    geoCountry?: string
+    geoCurrencyCode?: string
+    languagePreferredCurrencyCode?: string
+  } | string): Promise<string> {
+    const raw = typeof params === 'string' ? { cookieCurrency: params } : params || {}
     const activeCurrencies = await catalogRegistry.getAll()
+    if (activeCurrencies.length === 0) {
+      throw new Error('FATAL CONFIGURATION ERROR: No active currencies are configured in the CMS.')
+    }
+
+    const defaultCurrencies = activeCurrencies.filter((c) => c.isDefault)
+    if (defaultCurrencies.length === 0) {
+      throw new Error('FATAL CONFIGURATION ERROR: No default currency is configured in the CMS (isDefault = true).')
+    }
+    if (defaultCurrencies.length > 1) {
+      throw new Error(
+        `FATAL CONFIGURATION ERROR: Multiple default currencies configured in the CMS: ${defaultCurrencies
+          .map((c) => c.isoCode)
+          .join(', ')}. Exactly one is allowed.`
+      )
+    }
+
     const supportedCodes = new Set(activeCurrencies.map((c) => c.isoCode.toUpperCase()))
 
-    if (supportedCodes.has(code)) {
-      return code
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[CurrencyService] cookieCurrency =', raw.cookieCurrency)
+      console.log('[CurrencyService] sessionCurrency =', raw.sessionCurrency)
+      console.log('[CurrencyService] languagePreferredCurrencyCode =', raw.languagePreferredCurrencyCode)
+      console.log('[CurrencyService] geoCurrencyCode =', raw.geoCurrencyCode)
+      console.log('[CurrencyService] defaultCurrency =', defaultCurrencies[0].isoCode.toUpperCase())
     }
 
-    if (supportedCodes.has('USD')) {
-      return 'USD'
+    // 1. Cookie Currency preference
+    if (raw.cookieCurrency) {
+      const cookieCurrUpper = raw.cookieCurrency.trim().toUpperCase()
+      if (supportedCodes.has(cookieCurrUpper)) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[CurrencyService] chosenCurrency = "${cookieCurrUpper}", reason = "Cookie preference"`)
+        }
+        return cookieCurrUpper
+      }
     }
 
-    return 'EGP'
+    // 2. Session Currency preference
+    if (raw.sessionCurrency) {
+      const sessionCurrUpper = raw.sessionCurrency.trim().toUpperCase()
+      if (supportedCodes.has(sessionCurrUpper)) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[CurrencyService] chosenCurrency = "${sessionCurrUpper}", reason = "Session preference"`)
+        }
+        return sessionCurrUpper
+      }
+    }
+
+    // 3. Language Preferred Currency
+    if (raw.languagePreferredCurrencyCode) {
+      const langCurrUpper = raw.languagePreferredCurrencyCode.trim().toUpperCase()
+      if (supportedCodes.has(langCurrUpper)) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[CurrencyService] chosenCurrency = "${langCurrUpper}", reason = "Language Preferred Currency"`)
+        }
+        return langCurrUpper
+      }
+    }
+
+    // 4. Geo Currency Code preference
+    if (raw.geoCurrencyCode) {
+      const geoCurrUpper = raw.geoCurrencyCode.trim().toUpperCase()
+      if (supportedCodes.has(geoCurrUpper)) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[CurrencyService] chosenCurrency = "${geoCurrUpper}", reason = "Geo Currency Code preference"`)
+        }
+        return geoCurrUpper
+      }
+    }
+
+    const fallback = defaultCurrencies[0].isoCode.toUpperCase()
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[CurrencyService] chosenCurrency = "${fallback}", reason = "CMS Default fallback"`)
+    }
+    return fallback
   }
 
   async getConvertedPrice(
