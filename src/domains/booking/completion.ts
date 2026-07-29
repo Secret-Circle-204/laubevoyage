@@ -49,6 +49,10 @@ export class BookingCompletion {
     })
 
     await this.eventBus.publish({
+      eventId: `evt_bk_comp_${bookingId}_${Date.now()}`,
+      correlationId: `corr_${bookingId}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
       type: 'BOOKING_COMPLETED',
       booking: completedBooking,
       actor: currentActor,

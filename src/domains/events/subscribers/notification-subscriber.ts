@@ -29,28 +29,41 @@ export function registerNotificationSubscribers(payload: Payload): void {
           '[NotificationSubscriber] CustomerRegisteredEvent missing required eventId.',
         )
 
-      const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName)
-      if (!acquired) return
+      const transactionID = await payload.db.beginTransaction()
+      const req = { transactionID } as any
+      try {
+        const acquired = await inboxRepo.tryAcquire(event.eventId as string, subscriberName, req)
+        if (!acquired) {
+          if (transactionID) await payload.db.rollbackTransaction(transactionID)
+          return
+        }
 
-      if (!event.email)
-        throw new Error(
-          `[NotificationSubscriber] Missing required email for customer #${event.customerId}.`,
+        if (!event.email)
+          throw new Error(
+            `[NotificationSubscriber] Missing required email for customer #${event.customerId}.`,
+          )
+
+        console.log(
+          `[NotificationSubscriber] Customer #${event.customerId} registered. Enqueuing welcome email...`,
         )
+        await notificationService.enqueueNotification({
+          referenceType: 'WELCOME',
+          referenceId: String(event.customerId),
+          recipient: event.email as string,
+          channel: 'email',
+          category: 'marketing',
+          priority: 'normal',
+          templateId: 'welcome_email',
+          translationKey: 'customer.welcome',
+          templateData: { name: event.fullName },
+        }, req)
 
-      console.log(
-        `[NotificationSubscriber] Customer #${event.customerId} registered. Enqueuing welcome email...`,
-      )
-      await notificationService.enqueueNotification({
-        referenceType: 'WELCOME',
-        referenceId: String(event.customerId),
-        recipient: event.email,
-        channel: 'email',
-        category: 'marketing',
-        priority: 'normal',
-        templateId: 'welcome_email',
-        translationKey: 'customer.welcome',
-        templateData: { name: event.fullName },
-      })
+        if (transactionID) await payload.db.commitTransaction(transactionID)
+      } catch (err: unknown) {
+        if (transactionID) await payload.db.rollbackTransaction(transactionID)
+        console.error(`[NotificationSubscriber] CUSTOMER_REGISTERED transaction failed for event ${event.eventId as string}:`, err)
+        throw err
+      }
     },
   )
 
@@ -63,27 +76,49 @@ export function registerNotificationSubscribers(payload: Payload): void {
       if (!event.eventId)
         throw new Error('[NotificationSubscriber] BookingConfirmedEvent missing required eventId.')
 
-      const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName)
-      if (!acquired) return
+      console.log(`[NotificationSubscriber] ✉️ BookingConfirmedEvent received. Enqueuing booking confirmation for Customer #${event.booking.customerId}...`);
 
-      const customer = await customerRepository.findById(event.booking.customerId)
-      if (!customer || !customer.email) {
-        throw new Error(
-          `[NotificationSubscriber] Customer #${event.booking.customerId} not found or missing email for booking confirmation.`,
-        )
+      const transactionID = await payload.db.beginTransaction()
+      const req = { transactionID } as any
+      try {
+        const acquired = await inboxRepo.tryAcquire(event.eventId as string, subscriberName, req)
+        if (!acquired) {
+          if (transactionID) await payload.db.rollbackTransaction(transactionID)
+          console.log(`[NotificationSubscriber] Idempotency Guard: Event ${event.eventId} already processed by ${subscriberName}. Skipping.`);
+          return
+        }
+
+        const customer = await customerRepository.findById(Number(event.booking.customerId), req)
+        if (!customer || !customer.email) {
+          throw new Error(
+            `[NotificationSubscriber] Customer #${event.booking.customerId} not found or missing email for booking confirmation.`,
+          )
+        }
+
+        console.log(`[NotificationSubscriber] Found customer email: ${customer.email}. Queueing notification...`);
+
+        await notificationService.enqueueNotification({
+          referenceType: 'BOOKING',
+          referenceId: String(event.booking.id),
+          recipient: customer.email,
+          channel: 'email',
+          category: 'booking',
+          priority: 'high',
+          templateId: 'booking_confirmation',
+          translationKey: 'booking.confirmed',
+          templateData: {
+            bookingNumber: event.booking.bookingNumber,
+            customerName: customer.fullName || 'Valued Customer',
+          },
+        }, req)
+
+        if (transactionID) await payload.db.commitTransaction(transactionID)
+        console.log(`[NotificationSubscriber] ✅ Successfully enqueued booking confirmation email for Booking #${event.booking.id}.`);
+      } catch (err: unknown) {
+        if (transactionID) await payload.db.rollbackTransaction(transactionID)
+        console.error(`[NotificationSubscriber] ❌ BOOKING_CONFIRMED transaction failed for event ${event.eventId as string}:`, err)
+        throw err
       }
-
-      await notificationService.enqueueNotification({
-        referenceType: 'BOOKING',
-        referenceId: String(event.booking.id),
-        recipient: customer.email,
-        channel: 'email',
-        category: 'booking',
-        priority: 'high',
-        templateId: 'booking_confirmation',
-        translationKey: 'booking.confirmed',
-        templateData: { bookingNumber: event.booking.bookingNumber },
-      })
     },
   )
 
@@ -96,31 +131,50 @@ export function registerNotificationSubscribers(payload: Payload): void {
       if (!event.eventId)
         throw new Error('[NotificationSubscriber] PaymentCompletedEvent missing required eventId.')
 
-      const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName)
-      if (!acquired) return
+      console.log(`[NotificationSubscriber] ✉️ PAYMENT_COMPLETED received. Enqueuing payment receipt for Customer #${event.customerId}...`);
 
-      let recipientEmail = event.customerEmail
-      if (!recipientEmail) {
-        const customer = await customerRepository.findById(event.customerId)
-        if (!customer || !customer.email) {
-          throw new Error(
-            `[NotificationSubscriber] Customer #${event.customerId} missing email for payment receipt.`,
-          )
+      const transactionID = await payload.db.beginTransaction()
+      const req = { transactionID } as any
+      try {
+        const acquired = await inboxRepo.tryAcquire(event.eventId as string, subscriberName, req)
+        if (!acquired) {
+          if (transactionID) await payload.db.rollbackTransaction(transactionID)
+          console.log(`[NotificationSubscriber] Idempotency Guard: Event ${event.eventId} already processed by ${subscriberName}. Skipping.`);
+          return
         }
-        recipientEmail = customer.email
-      }
 
-      await notificationService.enqueueNotification({
-        referenceType: 'PAYMENT',
-        referenceId: event.transactionId,
-        recipient: recipientEmail,
-        channel: 'email',
-        category: 'payment',
-        priority: 'high',
-        templateId: 'payment_receipt',
-        translationKey: 'payment.completed',
-        templateData: { amount: event.amount, currency: event.currency },
-      })
+        let recipientEmail = event.customerEmail
+        if (!recipientEmail) {
+          const customer = await customerRepository.findById(Number(event.customerId), req)
+          if (!customer || !customer.email) {
+            throw new Error(
+              `[NotificationSubscriber] Customer #${event.customerId} missing email for payment receipt.`,
+            )
+          }
+          recipientEmail = customer.email
+        }
+
+        console.log(`[NotificationSubscriber] Found recipient email: ${recipientEmail}. Queueing receipt notification...`);
+
+        await notificationService.enqueueNotification({
+          referenceType: 'PAYMENT',
+          referenceId: String(event.transactionId),
+          recipient: recipientEmail as string,
+          channel: 'email',
+          category: 'payment',
+          priority: 'high',
+          templateId: 'payment_receipt',
+          translationKey: 'payment.completed',
+          templateData: { amount: event.amount, currency: event.currency },
+        }, req)
+
+        if (transactionID) await payload.db.commitTransaction(transactionID)
+        console.log(`[NotificationSubscriber] ✅ Successfully enqueued payment receipt email for Transaction #${event.transactionId}.`);
+      } catch (err: unknown) {
+        if (transactionID) await payload.db.rollbackTransaction(transactionID)
+        console.error(`[NotificationSubscriber] ❌ PAYMENT_COMPLETED transaction failed for event ${event.eventId as string}:`, err)
+        throw err
+      }
     },
   )
 }

@@ -1,33 +1,45 @@
 import { LoyaltyTier } from '@/types'
 
-export interface TierDefinition {
+export interface TierDefinitionConfig {
   tier: LoyaltyTier
   minSpentEGP: number
   earnMultiplier: number
   upgradeBonus: number
 }
 
-/**
- * Tier Configuration Matrix
- * Zero magic numbers in domain code.
- */
-export const TIER_CONFIG: Record<LoyaltyTier, TierDefinition> = {
-  [LoyaltyTier.EXPLORER]: {
-    tier: LoyaltyTier.EXPLORER,
-    minSpentEGP: 0,
-    earnMultiplier: 1.0,
-    upgradeBonus: 100, // Welcome bonus
-  },
-  [LoyaltyTier.VOYAGER]: {
-    tier: LoyaltyTier.VOYAGER,
-    minSpentEGP: 5000,
-    earnMultiplier: 1.2,
-    upgradeBonus: 500,
-  },
-  [LoyaltyTier.ELITE]: {
-    tier: LoyaltyTier.ELITE,
-    minSpentEGP: 15000,
-    earnMultiplier: 1.5,
-    upgradeBonus: 1000,
-  },
-} as const
+export interface LoyaltyProgramConfig {
+  id: string
+  programCode: string
+  name: string
+  version: number
+  status: 'draft' | 'review' | 'published' | 'archived'
+  baseEarnRate: number
+  redemptionPointsUnit: number
+  redemptionValueEGP: number
+  minRedemptionPoints: number
+  maxRedemptionPercent: number
+  maxRedemptionFixedEGP?: number
+  allowPartialRedemption: boolean
+  redemptionStepUnit?: number
+  welcomeBonus: number
+  expirationMonths: number
+  bonusNeverExpires: boolean
+  tiers: Record<LoyaltyTier, TierDefinitionConfig>
+}
+
+export interface LeanRulesSnapshot {
+  baseEarnRate: number
+  tierMultiplier: number
+  redemptionPointsUnit: number
+  redemptionValueEGP: number
+  welcomeBonus: number
+  upgradeBonus?: number
+  bonusNeverExpires?: boolean
+}
+
+export class LoyaltyProgramConfigurationException extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'LoyaltyProgramConfigurationException'
+  }
+}

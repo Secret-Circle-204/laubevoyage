@@ -32,11 +32,27 @@ export class NotificationService {
     attachments?: NotificationAttachment[]
     sendAt?: string
     customerId?: number
-  }): Promise<{ queued: boolean; jobId: string; reason?: string }> {
-    return this.workflowEngine.executeEnqueueWorkflow(params)
+  }, req?: any): Promise<{ queued: boolean; jobId: string; reason?: string }> {
+    return this.workflowEngine.executeEnqueueWorkflow(params, req)
   }
 
   async processNextJob(): Promise<boolean> {
     return this.workflowEngine.worker.processNextJob()
+  }
+
+  public startWorker(): void {
+    const symbol = Symbol.for('laube.notification.worker.started')
+    if ((global as any)[symbol]) return
+    ;(global as any)[symbol] = true
+
+    setInterval(() => {
+      this.workflowEngine.worker.processNextJob().catch((err) => {
+        console.error('[NotificationWorker] Execution error:', err)
+      })
+    }, 5000)
+
+    if (process.env.ARCH_TRACE === 'true') {
+      console.log('[NotificationService] NotificationWorker started successfully (5s interval).')
+    }
   }
 }

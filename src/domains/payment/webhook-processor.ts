@@ -38,6 +38,7 @@ export class WebhookProcessor {
 
     const eventId = payload.id
     const eventType = payload.type
+    console.log(`[WebhookProcessor] 📡 Received Stripe webhook event ${eventId} (Type: ${eventType})`);
 
     const isProcessed = await this.ledger.isProcessed(eventId)
     const policyResult = PaymentPolicy.canProcessWebhook(isProcessed)
@@ -67,7 +68,8 @@ export class WebhookProcessor {
       }
 
       const bookingId = Number(bookingIdRaw)
-      let transaction = transactionIdRaw
+      console.log(`[WebhookProcessor] 💳 checkout.session.completed processing for Booking #${bookingId}, CustomerEmail: ${customerEmail}`);
+      const transaction = transactionIdRaw
         ? await this.repository.findByTransactionId(
             transactionIdRaw,
             options?.dbTransaction as PayloadRequest,
@@ -102,6 +104,7 @@ export class WebhookProcessor {
         timestamp: new Date().toISOString(),
       }
 
+      console.log(`[WebhookProcessor] 📝 Appending payment attempt and recording processed webhook for Transaction: ${transaction.transactionId}`);
       await this.repository.appendAttempt(
         transaction.transactionId,
         attemptRecord,
@@ -119,7 +122,7 @@ export class WebhookProcessor {
       )
 
       const correlationId =
-        options?.correlationId || sessionObj.metadata?.correlationId || `corr_stripe_${Date.now()}`
+        options?.correlationId || (sessionObj.metadata as any)?.correlationId || `corr_stripe_${Date.now()}`
       const paymentCompletedEvent = {
         type: 'PAYMENT_COMPLETED',
         eventId: `evt_stripe_${eventId}`,
@@ -133,16 +136,18 @@ export class WebhookProcessor {
         customerId: updatedAggregate.customerId,
         customerEmail,
         provider: 'stripe' as const,
-        amount: attemptRecord.amount,
-        currency: attemptRecord.currency,
+        amount: attemptRecord?.amount || (sessionObj.amount_total ? sessionObj.amount_total / 100 : 0),
+        currency: attemptRecord?.currency || sessionObj.currency?.toUpperCase() || 'EGP',
         gatewayReference: gatewayRef || undefined,
         attemptId,
         attemptNumber,
       }
 
       if (this.outboxRepository) {
+        console.log(`[WebhookProcessor] 📤 Queueing PAYMENT_COMPLETED event into Outbox (EventID: ${paymentCompletedEvent.eventId})`);
         await this.outboxRepository.add(paymentCompletedEvent, options?.dbTransaction)
       } else {
+        console.log(`[WebhookProcessor] 📢 Publishing PAYMENT_COMPLETED event directly to EventBus (EventID: ${paymentCompletedEvent.eventId})`);
         await this.eventBus.publish(paymentCompletedEvent)
       }
 
@@ -186,11 +191,11 @@ export class WebhookProcessor {
       options?.dbTransaction as PayloadRequest,
     )
     if (!transaction) {
-      transaction = await this.repository.create(
+      transaction = await this.repository.createTransaction(
         {
           bookingId,
           customerId: 0,
-          provider: 'paymob',
+          provider: 'paymob' as any,
           status: 'pending',
           session: { sessionId: `paymob_${eventId}`, url: '' },
         },
@@ -198,9 +203,13 @@ export class WebhookProcessor {
       )
     }
 
+    if (!transaction) {
+      throw new Error(`[WebhookProcessor] Paymob transaction not found and creation failed.`);
+    }
+
     const webhookRecord = {
       eventId,
-      provider: 'paymob' as const,
+      provider: 'paymob' as any,
       eventType: payload.eventType,
       bookingId,
       processedAt: new Date().toISOString(),
@@ -212,7 +221,7 @@ export class WebhookProcessor {
     const attemptRecord = {
       attemptId,
       attemptNumber,
-      provider: 'paymob' as const,
+      provider: 'paymob' as any,
       amount: 0,
       currency: 'EGP',
       status: 'successful' as const,
@@ -238,7 +247,7 @@ export class WebhookProcessor {
 
     const correlationId = options?.correlationId || `corr_paymob_${Date.now()}`
     const paymentCompletedEvent = {
-      type: 'PAYMENT_COMPLETED',
+      type: 'PAYMENT_COMPLETED' as const,
       eventId: `evt_paymob_${eventId}`,
       correlationId,
       eventVersion: 1,
@@ -249,7 +258,7 @@ export class WebhookProcessor {
       bookingId: updatedAggregate.bookingId,
       customerId: updatedAggregate.customerId,
       customerEmail: 'customer@laube.com', // Resolved dynamically by subscriber if customer document exists
-      provider: 'paymob' as const,
+      provider: 'paymob' as any,
       amount: attemptRecord.amount,
       currency: attemptRecord.currency,
       gatewayReference: attemptRecord.transactionReference,

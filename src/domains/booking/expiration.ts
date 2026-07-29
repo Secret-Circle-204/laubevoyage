@@ -113,6 +113,10 @@ export class BookingExpiration {
 
     // Step 6 & 7: Emit BookingExpiredEvent to trigger notification subscriber
     await this.eventBus.publish({
+      eventId: `evt_bk_exp_${booking.id}_${Date.now()}`,
+      correlationId: `corr_${booking.id}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
       type: 'BOOKING_EXPIRED',
       booking: expiredBooking,
       reason: 'Payment window timed out',

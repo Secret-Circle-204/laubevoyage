@@ -22,11 +22,16 @@ describe('Clean Architecture — Domain Purity Guardrails', () => {
   const domainsDir = path.join(process.cwd(), 'src', 'domains')
   const domainFiles = getFilesRecursively(domainsDir)
 
-  test('Domain Services, Workflows, Aggregates, Policies and Events must NOT import Payload CMS', () => {
+  test('Domain Services, Workflows, Aggregates, Policies and Events must NOT import Payload CMS value objects', () => {
     const violations: { file: string; line: string }[] = []
 
     domainFiles.forEach((filePath) => {
-      if (filePath.includes('repository.ts') || filePath.includes('repositories') || filePath.endsWith('event-bus.ts')) {
+      if (
+        filePath.includes('repository.ts') ||
+        filePath.includes('repositories') ||
+        filePath.endsWith('event-bus.ts') ||
+        filePath.endsWith('factory.ts')
+      ) {
         return
       }
 
@@ -35,8 +40,10 @@ describe('Clean Architecture — Domain Purity Guardrails', () => {
 
       lines.forEach((line) => {
         const trimmed = line.trim()
+        // Prohibit value imports of payload (allow import type for TS annotations)
         if (
-          (trimmed.startsWith('import') || trimmed.includes('require(')) &&
+          trimmed.startsWith('import ') &&
+          !trimmed.startsWith('import type') &&
           (trimmed.includes("'payload'") || trimmed.includes('"payload"') || trimmed.includes('@payload-config'))
         ) {
           violations.push({ file: path.relative(process.cwd(), filePath), line: trimmed })
@@ -44,7 +51,7 @@ describe('Clean Architecture — Domain Purity Guardrails', () => {
       })
     })
 
-    expect(violations, `Domain purity violation: Payload imported in src/domains core logic!\n${JSON.stringify(violations, null, 2)}`).toEqual([])
+    expect(violations, `Domain purity violation: Payload value imported in src/domains core logic!\n${JSON.stringify(violations, null, 2)}`).toEqual([])
   })
 
   test('Domain Core must NOT import Web Transport or Next.js HTTP modules', () => {

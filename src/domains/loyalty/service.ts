@@ -1,7 +1,9 @@
-import type { LoyaltyTier } from '@/types'
+import { LoyaltyTier } from '@/types'
 import { LoyaltyWorkflowEngine } from './workflow'
 import { LoyaltyRepository } from './repository'
+import { PointsCalculator } from './points-calculator'
 import type { AdminAdjustmentParams, PointLedgerRecord } from './types'
+import type { LoyaltyProgramConfig } from './tier-config'
 
 /**
  * Loyalty Domain Service (Enterprise Thin Facade)
@@ -18,8 +20,8 @@ export class LoyaltyService {
   /**
    * Grant welcome bonus to new customer email account.
    */
-  async grantWelcomeBonus(userId: number): Promise<PointLedgerRecord> {
-    return this.workflowEngine.grantWelcomeBonus(userId)
+  async grantWelcomeBonus(userId: number, config?: LoyaltyProgramConfig): Promise<PointLedgerRecord> {
+    return this.workflowEngine.grantWelcomeBonus(userId, config)
   }
 
   /**
@@ -30,29 +32,31 @@ export class LoyaltyService {
     bookingId: number,
     amountSpentEGP: number,
     bookingNumber?: string,
+    config?: LoyaltyProgramConfig,
   ): Promise<PointLedgerRecord> {
-    return this.workflowEngine.earnPointsForBooking(userId, bookingId, amountSpentEGP, bookingNumber)
+    return this.workflowEngine.earnPointsForBooking(userId, bookingId, amountSpentEGP, bookingNumber, config)
   }
 
   async getBalance(userId: number): Promise<number> {
     return this.workflowEngine.getCustomerBalance(userId)
   }
 
-  async calculatePointValueInEGP(points: number): Promise<number> {
-    return points * 0.1
+  async calculatePointValueInEGP(points: number, config?: LoyaltyProgramConfig): Promise<number> {
+    const activeConfig = await this.workflowEngine.getActiveConfig(config)
+    return PointsCalculator.calculatePointsMonetaryValueEGP(points, activeConfig)
   }
 
-  async calculateEarnedPoints(amountEGP: number, tier?: string): Promise<number> {
-    const rate = tier === 'elite' ? 1.5 : tier === 'voyager' ? 1.2 : 1.0
-    return Math.floor(amountEGP * rate)
+  async calculateEarnedPoints(amountEGP: number, tier: LoyaltyTier = LoyaltyTier.EXPLORER, config?: LoyaltyProgramConfig): Promise<number> {
+    const activeConfig = await this.workflowEngine.getActiveConfig(config)
+    return PointsCalculator.calculateEarnedPoints(amountEGP, tier, activeConfig)
   }
 
-  async earn(params: { customerId: number; points: number; sourceEvent: string; referenceId: string }): Promise<PointLedgerRecord> {
-    return this.workflowEngine.earnPointsForBooking(params.customerId, Number(params.referenceId) || 1, params.points * 10)
+  async earn(params: { customerId: number; points: number; sourceEvent: string; referenceId: string }, config?: LoyaltyProgramConfig): Promise<PointLedgerRecord> {
+    return this.workflowEngine.earnPointsForBooking(params.customerId, Number(params.referenceId) || 1, params.points * 10, undefined, config)
   }
 
-  async evaluateTier(customerId: number): Promise<LoyaltyTier> {
-    return this.workflowEngine.evaluateAndUpgradeTier(customerId)
+  async evaluateTier(customerId: number, config?: LoyaltyProgramConfig): Promise<LoyaltyTier> {
+    return this.workflowEngine.evaluateAndUpgradeTier(customerId, 0, config)
   }
 
   /**
@@ -62,9 +66,11 @@ export class LoyaltyService {
     userId: number,
     pointsToRedeem: number,
     bookingId: number,
+    bookingTotalEGP: number = 0,
     reason?: string,
+    config?: LoyaltyProgramConfig,
   ): Promise<PointLedgerRecord> {
-    return this.workflowEngine.redeemPoints(userId, pointsToRedeem, bookingId, reason)
+    return this.workflowEngine.redeemPoints(userId, pointsToRedeem, bookingId, bookingTotalEGP, reason, config)
   }
 
   /**
@@ -95,8 +101,8 @@ export class LoyaltyService {
   /**
    * Evaluate if customer qualifies for automatic tier upgrade based on total annual spending.
    */
-  async evaluateAndUpgradeTier(userId: number, additionalSpentEGP = 0): Promise<LoyaltyTier> {
-    return this.workflowEngine.evaluateAndUpgradeTier(userId, additionalSpentEGP)
+  async evaluateAndUpgradeTier(userId: number, additionalSpentEGP = 0, config?: LoyaltyProgramConfig): Promise<LoyaltyTier> {
+    return this.workflowEngine.evaluateAndUpgradeTier(userId, additionalSpentEGP, config)
   }
 
   /**

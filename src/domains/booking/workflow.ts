@@ -8,9 +8,9 @@ import { BookingCancellation } from './cancellation'
 import { BookingExpiration } from './expiration'
 import { BookingCompletion } from './completion'
 import { BookingQueries } from './queries'
-import { CustomerRepository } from '../customer/repository'
+import type { CustomerRepository } from '../customer/repository'
 import { ExperienceService } from '../experience/service'
-import { ExperienceRepository } from '../experience/repository'
+import type { ExperienceRepository } from '../experience/repository'
 import { ExperienceWorkflowEngine } from '../experience/workflow'
 import { LoyaltyService } from '../loyalty/service'
 import { PricingPipeline } from '../currency/pipeline'
@@ -45,24 +45,10 @@ export class BookingWorkflowEngine {
       this.repository = new BookingRepository(activePayload!)
     }
 
-    const custRepo =
-      customerRepository ||
-      (activePayload ? new CustomerRepository(activePayload) : ({} as CustomerRepository))
-
-    // Auto-instantiate ExperienceService fallback to avoid test breakdowns
-    const pipeline = pricingPipeline || new (PricingPipeline as any)()
-    let expSvc: ExperienceService
-    if (experienceService) {
-      expSvc = experienceService
-    } else if (activePayload) {
-      const expRepo = new ExperienceRepository(activePayload)
-      const expWorkflow = new ExperienceWorkflowEngine(expRepo, pipeline)
-      expSvc = new ExperienceService(expRepo, expWorkflow)
-    } else {
-      expSvc = {} as ExperienceService
-    }
-
+    const custRepo = customerRepository || ({} as CustomerRepository)
+    const expSvc = experienceService || ({} as ExperienceService)
     const loySvc = loyaltyService || ({} as LoyaltyService)
+    const pipeline = pricingPipeline || ({} as PricingPipeline)
 
     this.creator = new BookingCreator(this.repository, custRepo, expSvc, loySvc, pipeline)
     this.confirmation = new BookingConfirmation(this.repository)
@@ -86,12 +72,17 @@ export class BookingWorkflowEngine {
   async executePaymentWorkflow(
     bookingId: number,
     paymentAttempt: PaymentAttempt,
+    req?: any,
   ): Promise<BookingAggregate> {
-    return this.confirmation.markAsPaid(bookingId, paymentAttempt)
+    return this.confirmation.markAsPaid(bookingId, paymentAttempt, undefined, req)
   }
 
-  async executeConfirmationWorkflow(bookingId: number, actor?: Actor): Promise<BookingAggregate> {
-    return this.confirmation.confirm(bookingId, actor)
+  async executeConfirmationWorkflow(bookingId: number, actor?: Actor, req?: any): Promise<BookingAggregate> {
+    return this.confirmation.confirm(bookingId, actor, req)
+  }
+
+  async publishBookingConfirmedEvent(booking: BookingAggregate, actor?: Actor): Promise<void> {
+    return this.confirmation.publishBookingConfirmedEvent(booking, actor)
   }
 
   async executeCancellationWorkflow(

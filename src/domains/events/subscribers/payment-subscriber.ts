@@ -31,33 +31,54 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
         )
       }
 
-      const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName)
-      if (!acquired) {
-        console.log(
-          `[BookingPaymentSubscriber] Idempotency Guard: Event ${event.eventId} already processed by ${subscriberName}. Skipping.`,
-        )
-        return
+      console.log(`[BookingPaymentSubscriber] 💳 PAYMENT_COMPLETED received for Booking #${event.bookingId}. Processing booking status update...`);
+
+      const transactionID = await payload.db.beginTransaction()
+      const req = { transactionID } as any
+      try {
+        const acquired = await inboxRepo.tryAcquire(event.eventId as string, subscriberName, req)
+        if (!acquired) {
+          if (transactionID) await payload.db.rollbackTransaction(transactionID)
+          console.log(
+            `[BookingPaymentSubscriber] Idempotency Guard: Event ${event.eventId as string} already processed by ${subscriberName}. Skipping.`,
+          )
+          return
+        }
+
+        const bookingId = event.bookingId
+        const { booking } = await getDomainServices()
+
+        const paymentAttempt = {
+          attemptId: event.attemptId || `pay_att_${event.transactionId}`,
+          attemptNumber: event.attemptNumber || 1,
+          provider: event.provider as any,
+          amount: event.amount,
+          currency: event.currency,
+          status: 'successful' as const,
+          transactionReference: (event.gatewayReference || event.transactionId) as string,
+          timestamp: event.occurredAt || new Date().toISOString(),
+        }
+
+        // 1. Mark booking as paid in Booking Domain
+        await booking.markAsPaid(Number(bookingId), paymentAttempt, req)
+
+        // 2. Confirm booking in Booking Domain (updates status to CONFIRMED inside transaction T1)
+        const confirmedBooking = await booking.confirm(Number(bookingId), undefined, req)
+
+        // 3. COMMIT TRANSACTION FIRST: Persist status update to PostgreSQL disk officially!
+        if (transactionID) {
+          await payload.db.commitTransaction(transactionID)
+          console.log(`[BookingPaymentSubscriber] ✅ Transaction committed successfully for Booking #${bookingId}.`);
+        }
+
+        // 4. POST-COMMIT DOMAIN EVENT DISPATCH: Publish event ONLY AFTER successful commit!
+        const { booking: bookingDomain } = await getDomainServices()
+        await bookingDomain.publishBookingConfirmedEvent(confirmedBooking)
+      } catch (err: unknown) {
+        if (transactionID) await payload.db.rollbackTransaction(transactionID)
+        console.error(`[BookingPaymentSubscriber] ❌ Transaction failed for event ${event.eventId as string}:`, err)
+        throw err
       }
-
-      const bookingId = event.bookingId
-      const { booking } = await getDomainServices()
-
-      const paymentAttempt = {
-        attemptId: event.attemptId || `pay_att_${event.transactionId}`,
-        attemptNumber: event.attemptNumber || 1,
-        provider: event.provider,
-        amount: event.amount,
-        currency: event.currency,
-        status: 'successful' as const,
-        transactionReference: event.gatewayReference || event.transactionId,
-        timestamp: event.occurredAt || new Date().toISOString(),
-      }
-
-      // 1. Mark booking as paid in Booking Domain
-      await booking.markAsPaid(bookingId, paymentAttempt)
-
-      // 2. Confirm booking in Booking Domain
-      await booking.confirm(bookingId)
     },
   )
 }

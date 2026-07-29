@@ -1,45 +1,83 @@
 import type { LoyaltyRepository } from './repository'
 import type { PointLedgerRecord } from './types'
-import { LoyaltyPolicy } from './policy'
-import { ProjectionRebuilder } from './projection-rebuilder'
+import { PointsCalculator } from './points-calculator'
+import type { LoyaltyProgramConfig, LeanRulesSnapshot } from './tier-config'
 
 /**
  * Points Redeem Processor Sub-Service
- * Handles point redemptions with Projection Drift Guard auto-rebuild.
+ * Handles point redemptions with FIFO Consumption Strategy and dynamic LoyaltyProgramConfig validation.
+ * Prioritizes deducting points from the oldest unexpired earned ledger entries.
  */
 export class PointsRedeemProcessor {
   private repository: LoyaltyRepository
-  private projectionRebuilder: ProjectionRebuilder
 
   constructor(repository: LoyaltyRepository) {
     this.repository = repository
-    this.projectionRebuilder = new ProjectionRebuilder(repository)
   }
 
   async redeemForBooking(
     customerId: number,
     pointsToRedeem: number,
     bookingId: number,
-    reason: string,
+    bookingTotalEGP: number,
+    config: LoyaltyProgramConfig,
+    reason?: string,
   ): Promise<PointLedgerRecord> {
-    // 1. Fetch current running balance from ledger (Source of Truth)
-    let currentBalance = await this.repository.getCurrentBalance(customerId)
+    // 1. Fetch current running balance from ledger
+    const currentBalance = await this.repository.getCurrentBalance(customerId)
 
-    // 2. Validate policy
-    const policyResult = LoyaltyPolicy.canRedeem(currentBalance, pointsToRedeem)
+    // 2. Validate redemption against business policy and Wallet economics
+    const policyResult = PointsCalculator.validateRedemptionAmount(
+      pointsToRedeem,
+      currentBalance,
+      bookingTotalEGP,
+      config,
+    )
     if (!policyResult.allowed) {
-      throw new Error(`[LoyaltyPolicy] Cannot redeem points: ${policyResult.reason}`)
+      throw new Error(`[PointsRedeemProcessor] Cannot redeem points: ${policyResult.reason}`)
     }
 
-    // 3. Append negative redeem ledger entry (-pointsToRedeem)
+    // 3. FIFO Consumption Strategy: Fetch ledger history to trace oldest earned entries
+    const ledgerHistory = await this.repository.getLedgerHistory(customerId, 100)
+    const earnedEntries = ledgerHistory
+      .filter((e) => e.points > 0 && e.type !== 'expiration')
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+
+    let remainingToDeduct = pointsToRedeem
+    const consumedLedgerIds: string[] = []
+
+    for (const entry of earnedEntries) {
+      if (remainingToDeduct <= 0) break
+      consumedLedgerIds.push(entry.id)
+      remainingToDeduct -= entry.points
+    }
+
+    const leanSnapshot: LeanRulesSnapshot = {
+      baseEarnRate: config.baseEarnRate,
+      tierMultiplier: 1.0,
+      redemptionPointsUnit: config.redemptionPointsUnit,
+      redemptionValueEGP: config.redemptionValueEGP,
+      welcomeBonus: config.welcomeBonus,
+    }
+
+    // 4. Append negative redeem ledger entry (-pointsToRedeem)
     return this.repository.appendLedgerEntry(
       customerId,
       'redeem',
       -pointsToRedeem,
-      reason,
+      reason || `Redeemed ${pointsToRedeem} points for booking #${bookingId}`,
       'booking',
       String(bookingId),
       bookingId,
+      undefined,
+      {
+        programId: config.id,
+        programCode: config.programCode,
+        programVersion: config.version,
+        consumptionStrategy: 'fifo',
+        consumedLedgerIds,
+        rulesSnapshot: leanSnapshot,
+      },
     )
   }
 }

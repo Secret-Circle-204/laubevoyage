@@ -1,20 +1,24 @@
 import { LoyaltyTier } from '@/types'
-import { TIER_CONFIG } from './tier-config'
+import type { LoyaltyProgramConfig } from './tier-config'
 import type { LoyaltyPolicyResult } from './types'
 
 /**
- * Tier Policy
- * Business logic predicates governing loyalty tier qualification and upgrade bonuses.
+ * Pure Tier Policy
+ * Business logic predicates governing loyalty tier qualification and upgrade eligibility.
+ * Pure Domain Class: Accepts dynamic LoyaltyProgramConfig.
  */
 export class TierPolicy {
   /**
    * Determine the highest eligible tier for a given cumulative spent total in EGP.
    */
-  static evaluateEligibleTier(totalSpentEGP: number): LoyaltyTier {
-    if (totalSpentEGP >= TIER_CONFIG[LoyaltyTier.ELITE].minSpentEGP) {
+  static evaluateEligibleTier(totalSpentEGP: number, config: LoyaltyProgramConfig): LoyaltyTier {
+    const eliteThreshold = config.tiers[LoyaltyTier.ELITE]?.minSpentEGP ?? 15000
+    const voyagerThreshold = config.tiers[LoyaltyTier.VOYAGER]?.minSpentEGP ?? 5000
+
+    if (totalSpentEGP >= eliteThreshold) {
       return LoyaltyTier.ELITE
     }
-    if (totalSpentEGP >= TIER_CONFIG[LoyaltyTier.VOYAGER].minSpentEGP) {
+    if (totalSpentEGP >= voyagerThreshold) {
       return LoyaltyTier.VOYAGER
     }
     return LoyaltyTier.EXPLORER
@@ -23,8 +27,12 @@ export class TierPolicy {
   /**
    * Validate if a customer is eligible for tier upgrade (Upgrades only, no downgrades).
    */
-  static canUpgradeTier(currentTier: LoyaltyTier, totalSpentEGP: number): LoyaltyPolicyResult {
-    const eligibleTier = this.evaluateEligibleTier(totalSpentEGP)
+  static canUpgradeTier(
+    currentTier: LoyaltyTier,
+    totalSpentEGP: number,
+    config: LoyaltyProgramConfig,
+  ): LoyaltyPolicyResult {
+    const eligibleTier = this.evaluateEligibleTier(totalSpentEGP, config)
 
     const tierRanks: Record<LoyaltyTier, number> = {
       [LoyaltyTier.EXPLORER]: 1,

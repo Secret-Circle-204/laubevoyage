@@ -30,7 +30,7 @@ export class PaymentRepository {
       collection: 'payment-transactions',
       data: data as unknown as Record<string, any>,
       req,
-    })
+    } as any)
 
     return this.mapDocToAggregate(doc)
   }

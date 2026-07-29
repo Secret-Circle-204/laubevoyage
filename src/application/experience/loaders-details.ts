@@ -10,8 +10,8 @@ export class ExperienceDetailsLoader {
     try {
       const { experience, localization, bookingPricingUseCase } = await getApplicationServices()
       const ctx = localization.buildContext({
-        language: (options?.locale || 'en') as any,
-        currency: (options?.currency || 'EGP') as any,
+        cookieLocale: options?.locale,
+        cookieCurrency: options?.currency,
       })
 
       let exp = await experience.getBySlug(slugOrId)

@@ -4,14 +4,14 @@ import type { HomeDTO } from './dto'
 
 export class HomePageLoader {
   static async load(params?: { locale?: string; currency?: string }): Promise<HomeDTO> {
-    const locale = params?.locale || 'en'
-    const currency = params?.currency || 'EGP'
-
     try {
       const { destination, localization, experience } = await getDomainServices()
-      const ctx = localization.buildContext({ language: locale as any, currency: currency as any })
+      const ctx = localization.buildContext({
+        cookieLocale: params?.locale,
+        cookieCurrency: params?.currency,
+      })
 
-      const overview = await destination.getHomePageOverview(currency)
+      const overview = await destination.getHomePageOverview(ctx.currency)
 
       // Collect all raw texts for 1 Single Batch Request
       const rawTexts: string[] = []

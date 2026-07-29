@@ -8,6 +8,7 @@ import { seedUsers } from './seeders/users.seed'
 import { seedDestinations } from './seeders/destinations.seed'
 import { seedExperiences } from './seeders/experiences.seed'
 import { seedFaqs } from './seeders/faqs.seed'
+import { seedLoyaltyProgram } from './seeders/loyalty-program.seed'
 import { cleanupDuplicateTranslations } from './seeders/cleanup-translations.seed'
 
 /**
@@ -54,6 +55,10 @@ async function seed() {
 
   if (target === 'all' || target === 'faqs') {
     await seedFaqs(payload)
+  }
+
+  if (target === 'all' || target === 'loyalty') {
+    await seedLoyaltyProgram(payload)
   }
 
   if (target === 'all' || target === 'cleanup') {

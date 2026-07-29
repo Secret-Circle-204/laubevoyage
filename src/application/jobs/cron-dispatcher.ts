@@ -41,4 +41,20 @@ export class CronDispatcher {
       durationMs: Date.now() - startTime,
     }
   }
+
+  public static startWorker(): void {
+    const symbol = Symbol.for('laube.cron.dispatcher.started')
+    if ((global as any)[symbol]) return
+    ;(global as any)[symbol] = true
+
+    setInterval(() => {
+      CronDispatcher.runHourlyJob().catch((err) => {
+        console.error('[CronDispatcher] Hourly job execution error:', err)
+      })
+    }, 60 * 60 * 1000)
+
+    if (process.env.ARCH_TRACE === 'true') {
+      console.log('[CronDispatcher] Hourly scheduler started successfully (1h interval).')
+    }
+  }
 }

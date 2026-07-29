@@ -22,6 +22,20 @@ export enum MeasurementSystem {
 }
 
 /**
+ * Raw input facts for resolving Locale Context.
+ * Carries un-normalized raw facts from cookies, session, request headers, and Edge Geo.
+ */
+export interface LocaleContextInputs {
+  cookieLocale?: string
+  cookieCurrency?: string
+  sessionLanguage?: string
+  sessionCurrency?: string
+  acceptLanguage?: string
+  geoCountry?: string
+  geoTimezone?: string
+}
+
+/**
  * Locale Context — carries all user-specific presentation preferences.
  * Language, Currency, Country, Timezone, Measurement, Calendar are all independent.
  */

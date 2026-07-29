@@ -96,11 +96,22 @@ export async function DELETE(request: NextRequest) {
       throw new Error('[DELETE /api/bookings] No valid booking IDs provided for deletion.')
     }
 
+    const isHardPurge = searchParams.get('purge') === 'true' || searchParams.get('hard') === 'true'
+
+    const user = await services.customer.authenticateRequest(request.headers)
+    const actor = user
+      ? { type: 'customer' as const, id: user.id }
+      : { type: 'system' as const, id: 'admin' }
+
     for (const id of ids) {
-      await services.booking.cancel(id, 'Cancelled via API DELETE request', { type: 'customer', id: user.id })
+      if (isHardPurge) {
+        await services.booking.delete(id)
+      } else {
+        await services.booking.cancel(id, 'Cancelled via API DELETE request', actor)
+      }
     }
 
-    return NextResponse.json({ success: true, count: ids.length, deletedIds: ids }, { status: 200 })
+    return NextResponse.json({ success: true, count: ids.length, deletedIds: ids, purged: isHardPurge }, { status: 200 })
   } catch (error: unknown) {
     console.error('Error deleting booking(s):', error)
     return NextResponse.json(

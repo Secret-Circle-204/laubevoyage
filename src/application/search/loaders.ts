@@ -10,8 +10,8 @@ export class GlobalSearchLoader {
     try {
       const { search, localization } = await getDomainServices()
       const ctx = localization.buildContext({
-        language: (queryDTO.locale || 'en') as any,
-        currency: (queryDTO.currency || 'EGP') as any,
+        cookieLocale: queryDTO.locale,
+        cookieCurrency: queryDTO.currency,
       })
 
       const domainResponse = await search.search({

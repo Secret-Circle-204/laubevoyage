@@ -8,7 +8,7 @@ import { BookingHistoryService } from './history'
 import { BookingNumberGenerator } from './number-generator'
 import { LoyaltyService } from '../loyalty/service'
 import { PricingPipeline } from '../currency/pipeline'
-import { CustomerRepository } from '../customer/repository'
+import type { CustomerRepository } from '../customer/repository'
 import { ExperienceService } from '../experience/service'
 
 import { BookingPricingSnapshotAssembler } from './pricing-snapshot-assembler'
@@ -45,6 +45,7 @@ export class BookingCreator {
     if (!departure || departure.basePriceEGP === undefined) {
       throw new Error(`[BookingCreator] Invalid or unresolved bookable departure read model.`)
     }
+    console.log(`[BookingCreator] 🏁 Creating booking draft for User #${params.userId}, Experience #${departure.experienceId}, Date: ${departure.date}`);
     const experienceId = departure.experienceId
     const startDate = departure.date
 
@@ -119,7 +120,7 @@ export class BookingCreator {
       status: BookingStatus.DRAFT,
       travelers: params.travelers,
       startDate: startDate,
-      endDate: params.endDate,
+      endDate: params.endDate || startDate,
       source: params.source,
       version: 1,
       pricingSnapshot,
@@ -131,6 +132,7 @@ export class BookingCreator {
     }
 
     const booking = await this.repository.create(bookingData)
+    console.log(`[BookingCreator] Draft Booking #${booking.id} created successfully with BookingNumber ${bookingNumber}. pricingSnapshot:`, pricingSnapshot);
 
     // 8. Create Capacity Hold & Point Hold entities
     const seatsCount = params.travelers.length
@@ -153,6 +155,7 @@ export class BookingCreator {
     }
 
     // 9. Update Aggregate with Hold Entities
+    console.log(`[BookingCreator] CapacityHold & PointHold generated. Finalizing draft for Booking #${booking.id}`);
     return this.repository.update(booking.id, {
       capacityHold,
       pointHold,

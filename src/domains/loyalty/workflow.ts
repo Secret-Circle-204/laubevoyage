@@ -8,14 +8,17 @@ import { AdminAdjustmentService } from './admin-adjustment'
 import { TierEvaluator } from './tier-evaluator'
 import { ProjectionRebuilder } from './projection-rebuilder'
 import { LoyaltyQueries } from './queries'
+import { PointHoldService } from './point-hold'
 import type { AdminAdjustmentParams, PointLedgerRecord } from './types'
 import type { LoyaltyTier } from '@/types'
+import type { LoyaltyProgramConfig } from './tier-config'
+import { loyaltyProgramRegistry } from './program-registry'
 import { EventBus } from '../events/event-bus'
 
 /**
  * Loyalty Workflow Engine
- * Central deterministic orchestrator for all loyalty point lifecycle workflows via Constructor Dependency Injection.
- * Symmetrical architecture with BookingWorkflowEngine and PaymentWorkflowEngine.
+ * Central deterministic orchestrator for all loyalty point lifecycle workflows.
+ * Fetches active published program policy via LoyaltyProgramRegistry.
  */
 export class LoyaltyWorkflowEngine {
   public repository: LoyaltyRepository
@@ -27,6 +30,7 @@ export class LoyaltyWorkflowEngine {
   public tierEvaluator: TierEvaluator
   public projectionRebuilder: ProjectionRebuilder
   public queries: LoyaltyQueries
+  public pointHoldService: PointHoldService
   private eventBus: EventBus
 
   constructor(repository?: LoyaltyRepository | Payload) {
@@ -43,11 +47,17 @@ export class LoyaltyWorkflowEngine {
     this.tierEvaluator = new TierEvaluator(this.repository)
     this.projectionRebuilder = new ProjectionRebuilder(this.repository)
     this.queries = new LoyaltyQueries(this.repository)
+    this.pointHoldService = new PointHoldService()
     this.eventBus = EventBus.getInstance()
   }
 
-  async grantWelcomeBonus(userId: number): Promise<PointLedgerRecord> {
-    return this.pointsEarner.grantWelcomeBonus(userId)
+  async getActiveConfig(pinnedConfig?: LoyaltyProgramConfig): Promise<LoyaltyProgramConfig> {
+    return loyaltyProgramRegistry.getProgram(this.repository, pinnedConfig)
+  }
+
+  async grantWelcomeBonus(userId: number, config?: LoyaltyProgramConfig): Promise<PointLedgerRecord> {
+    const activeConfig = await this.getActiveConfig(config)
+    return this.pointsEarner.grantWelcomeBonus(userId, activeConfig)
   }
 
   async earnPointsForBooking(
@@ -55,26 +65,29 @@ export class LoyaltyWorkflowEngine {
     bookingId: number,
     amountSpentEGP: number,
     bookingNumber = String(bookingId),
+    config?: LoyaltyProgramConfig,
   ): Promise<PointLedgerRecord> {
-    return this.pointsEarner.earnForBooking(userId, amountSpentEGP, bookingId, bookingNumber)
-  }
-
-  async executeEarnWorkflow(
-    customerId: number,
-    amountSpentEGP: number,
-    bookingId: number,
-    bookingNumber = String(bookingId),
-  ): Promise<PointLedgerRecord> {
-    return this.pointsEarner.earnForBooking(customerId, amountSpentEGP, bookingId, bookingNumber)
+    const activeConfig = await this.getActiveConfig(config)
+    return this.pointsEarner.earnForBooking(userId, amountSpentEGP, bookingId, bookingNumber, activeConfig)
   }
 
   async redeemPoints(
     userId: number,
     pointsToRedeem: number,
     bookingId: number,
+    bookingTotalEGP: number,
     reason = 'Checkout discount redemption',
+    config?: LoyaltyProgramConfig,
   ): Promise<PointLedgerRecord> {
-    return this.pointsRedeemer.redeemForBooking(userId, pointsToRedeem, bookingId, reason)
+    const activeConfig = await this.getActiveConfig(config)
+    return this.pointsRedeemer.redeemForBooking(
+      userId,
+      pointsToRedeem,
+      bookingId,
+      bookingTotalEGP,
+      activeConfig,
+      reason,
+    )
   }
 
   async refundPointsForCancellation(
@@ -93,8 +106,13 @@ export class LoyaltyWorkflowEngine {
     return this.adminAdjustment.executeAdjustment(params)
   }
 
-  async evaluateAndUpgradeTier(userId: number, additionalSpentEGP = 0): Promise<LoyaltyTier> {
-    const res = await this.tierEvaluator.evaluateAndUpgrade(userId, additionalSpentEGP)
+  async evaluateAndUpgradeTier(
+    userId: number,
+    additionalSpentEGP = 0,
+    config?: LoyaltyProgramConfig,
+  ): Promise<LoyaltyTier> {
+    const activeConfig = await this.getActiveConfig(config)
+    const res = await this.tierEvaluator.evaluateAndUpgrade(userId, additionalSpentEGP, activeConfig)
     return res.newTier
   }
 

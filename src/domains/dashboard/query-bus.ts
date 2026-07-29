@@ -1,9 +1,9 @@
 import { CustomerQueries } from '../customer/queries'
 import { LoyaltyQueries } from '../loyalty/queries'
 import { BookingQueries } from '../booking/queries'
-import { CustomerRepository } from '../customer/repositories/customer-repository'
-import { LoyaltyRepository } from '../loyalty/repository'
-import { BookingRepository } from '../booking/repository'
+import type { CustomerRepository } from '../customer/repositories/customer-repository'
+import type { LoyaltyRepository } from '../loyalty/repository'
+import type { BookingRepository } from '../booking/repository'
 
 /**
  * Dashboard Query Bus

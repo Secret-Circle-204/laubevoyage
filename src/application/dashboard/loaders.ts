@@ -1,6 +1,6 @@
 import { getDomainServices } from '@/domains/factory'
 import type { BookingAggregate } from '@/domains/booking/types'
-import type { CustomerPortalOverviewDTO } from './dto'
+import type { CustomerPortalOverviewDTO, CustomerNotificationItemDTO } from './dto'
 
 export class CustomerPortalLoader {
   static async loadOverview(
@@ -10,8 +10,8 @@ export class CustomerPortalLoader {
     try {
       const { dashboard, localization } = await getDomainServices()
       const ctx = localization.buildContext({
-        language: (options?.locale || 'en') as any,
-        currency: (options?.currency || 'EGP') as any,
+        cookieLocale: options?.locale,
+        cookieCurrency: options?.currency,
       })
 
       const projection = await dashboard.getPortalOverview(customerId)
@@ -52,18 +52,37 @@ export class CustomerPortalLoader {
         })
       )
 
+      const currentTier = (projection?.loyalty?.tier || 'explorer').toLowerCase()
+      const pts = projection?.loyalty?.pointsBalance || 0
+      let pointsToNextTier = 0
+      let nextTierName = 'Elite'
+
+      if (currentTier === 'explorer') {
+        pointsToNextTier = Math.max(0, 1000 - pts)
+        nextTierName = 'Voyager'
+      } else if (currentTier === 'voyager') {
+        pointsToNextTier = Math.max(0, 5000 - pts)
+        nextTierName = 'Elite'
+      } else {
+        pointsToNextTier = 0
+        nextTierName = 'Elite (Max Tier)'
+      }
+
       return {
         customerId,
         fullName: rawTitle,
         email: projection?.customer?.email || '',
-        tier: (projection?.loyalty?.tier || 'explorer') as 'explorer' | 'voyager' | 'elite',
-        points: projection?.loyalty?.pointsBalance || 0,
+        tier: (currentTier as 'explorer' | 'voyager' | 'elite'),
+        points: pts,
         nextTierProgressPercent: projection?.loyalty?.tierProgressPercentage || 0,
+        pointsToNextTier,
+        nextTierName,
         activeBookingsCount: projection?.trips?.activeBookingsCount || 0,
         recentBookings,
         unreadNotificationsCount: 0,
       }
-    } catch {
+    } catch (err) {
+      console.error(`[CustomerPortalLoader] Failed loading overview for customer #${customerId}:`, err)
       return {
         customerId,
         fullName: '',
@@ -71,10 +90,59 @@ export class CustomerPortalLoader {
         tier: 'explorer',
         points: 0,
         nextTierProgressPercent: 0,
+        pointsToNextTier: 1000,
+        nextTierName: 'Voyager',
         activeBookingsCount: 0,
         recentBookings: [],
         unreadNotificationsCount: 0,
       }
+    }
+  }
+
+  static async loadNotifications(customerId: number): Promise<CustomerNotificationItemDTO[]> {
+    try {
+      const { notification, customer } = await getDomainServices()
+      const cust = await customer.getById(customerId).catch(() => null)
+      if (!cust || !cust.email) return []
+
+      const repo = (notification as any).workflowEngine?.repository
+      if (!repo || typeof repo.findByRecipient !== 'function') return []
+
+      const logs = await repo.findByRecipient(cust.email, 20)
+      return logs.map((log: any) => {
+        let title = 'System Notification'
+        let text = `Notification regarding ${log.referenceType} #${log.referenceId}`
+
+        if (log.templateId === 'booking_confirmation') {
+          title = 'Booking Confirmation'
+          text = `Your booking ${log.templateData?.bookingNumber || ''} has been confirmed.`
+        } else if (log.templateId === 'payment_receipt') {
+          title = 'Payment Receipt'
+          text = `Payment of ${log.templateData?.amount || ''} ${log.templateData?.currency || ''} received.`
+        } else if (log.templateId === 'welcome_email') {
+          title = 'Welcome to L\'Aube Voyage'
+          text = `Welcome ${log.templateData?.name || ''}! We are glad to have you.`
+        } else if (log.templateId === 'tier_upgraded') {
+          title = 'Membership Tier Upgraded'
+          text = `Congratulations! You have been upgraded to ${log.templateData?.newTier || 'Elite'}.`
+        }
+
+        return {
+          id: log.jobId,
+          title,
+          text,
+          time: new Date(log.createdAt).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }),
+          unread: log.status === 'queued' || log.status === 'processing',
+          templateId: log.templateId,
+        }
+      })
+    } catch (err) {
+      console.error(`[CustomerPortalLoader] Failed loading notifications for customer #${customerId}:`, err)
+      return []
     }
   }
 }
@@ -82,59 +150,63 @@ export class CustomerPortalLoader {
 export class BookingDetailsLoader {
   static async loadByNumber(bookingNumber: string, options?: { locale?: string; currency?: string }) {
     try {
-      const { booking, experience, localization } = await getDomainServices()
+      const { booking, experience, localization, loyalty } = await getDomainServices()
       const ctx = localization.buildContext({
-        language: (options?.locale || 'en') as any,
-        currency: (options?.currency || 'EGP') as any,
+        cookieLocale: options?.locale,
+        cookieCurrency: options?.currency,
       })
 
       const bookingDoc = await booking.getByBookingNumber(bookingNumber)
       if (!bookingDoc) {
-        // Fallback mockup prepared entirely on the server
-        const baseEGP = 15000
-        const totalEGP = 15000 * 2
-        const formattedTotal = await localization.formatPrice(totalEGP, ctx)
-
-        return {
-          bookingNumber,
-          experienceTitle: "Cairo & Pyramids 3-Day Luxury Package",
-          departureDate: "Oct 15, 2026",
-          passengersCount: 2,
-          basePriceText: "15,000 EGP",
-          exchangeRateText: "1 EGP = 0.02 USD",
-          totalCost: formattedTotal,
-          pointsEarned: 150,
-          status: "confirmed",
-        }
+        console.warn(`[BookingDetailsLoader] Booking #${bookingNumber} not found.`)
+        return null
       }
 
-      const totalEGP = bookingDoc.pricingSnapshot?.subtotalEGP || bookingDoc.pricingSnapshot?.basePriceEGP || 0
+      const snapshot = bookingDoc.pricingSnapshot
+      if (!snapshot) {
+        throw new Error(`[BookingDetailsLoader] Booking #${bookingNumber} is missing pricingSnapshot.`)
+      }
+
+      const totalEGP = snapshot.totalAmountEGP || snapshot.subtotalEGP || snapshot.basePriceEGP || 0
       const formattedTotal = await localization.formatPrice(totalEGP, ctx)
 
-      let experienceTitle = "Cairo & Pyramids 3-Day Luxury Package"
+      let experienceTitle = `Experience #${bookingDoc.experienceId}`
       try {
         const exp = await experience.getById(bookingDoc.experienceId)
-        if (exp) {
+        if (exp && exp.title) {
           experienceTitle = exp.title
         }
-      } catch {}
+      } catch (expErr) {
+        console.error(`[BookingDetailsLoader] Failed to load experience #${bookingDoc.experienceId}:`, expErr)
+      }
 
-      const rate = bookingDoc.pricingSnapshot?.exchangeRate || 1
-      const rateText = `1 EGP = ${rate} ${bookingDoc.pricingSnapshot?.displayCurrency || 'EGP'}`
+      const rate = snapshot.exchangeRate || 1
+      const rateText = `1 EGP = ${rate} ${snapshot.displayCurrency || 'EGP'}`
+
+      // Single Source of Truth: Retrieve earned points directly from immutable point-ledger
+      let pointsEarned = 0
+      try {
+        const ledgerEntries = await loyalty.getCustomerLedgerHistory(bookingDoc.customerId, 50)
+        const earnEntry = ledgerEntries.find((e) => e.bookingId === bookingDoc.id && e.type === 'earn')
+        if (earnEntry) pointsEarned = earnEntry.points
+      } catch (ledgerErr) {
+        console.error(`[BookingDetailsLoader] Failed to load point ledger for customer #${bookingDoc.customerId}:`, ledgerErr)
+      }
 
       return {
         bookingNumber: bookingDoc.bookingNumber,
         experienceTitle,
         departureDate: bookingDoc.startDate,
         passengersCount: bookingDoc.travelers?.length || 1,
-        basePriceText: `${bookingDoc.pricingSnapshot?.basePriceEGP?.toLocaleString() || '15,000'} EGP`,
+        basePriceText: `${(snapshot.basePriceEGP || 0).toLocaleString()} EGP`,
         exchangeRateText: rateText,
         totalCost: formattedTotal,
-        pointsEarned: bookingDoc.pointsEarned || 0,
+        pointsEarned,
         status: bookingDoc.status,
       }
-    } catch {
-      return null;
+    } catch (err) {
+      console.error(`[BookingDetailsLoader] Error loading booking #${bookingNumber}:`, err)
+      return null
     }
   }
 }

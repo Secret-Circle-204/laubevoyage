@@ -13,6 +13,10 @@ export class MaintenanceRepository {
     this.payload = payload
   }
 
+  get payloadInstance(): Payload | undefined {
+    return this.payload
+  }
+
   async saveLog(log: MaintenanceLogEntity): Promise<void> {
     this.logStore.set(log.logId, log)
     if (!this.payload) {

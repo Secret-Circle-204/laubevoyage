@@ -1,135 +1,114 @@
-import type { PointHoldEntity, PointHoldStatus } from './types'
+import type { LoyaltyProgramConfig } from './tier-config'
+import type { PointHoldStatus } from './types'
 
-export interface CreatePointHoldParams {
+export interface PointReservationEntity {
+  reservationId: string
   bookingId: number
   customerId: number
-  pointsHeld: number
-  valueEGP?: number
+  pointsReserved: number
+  valueEGP: number
+  status: PointHoldStatus
+  configSnapshot?: LoyaltyProgramConfig
+  expiresAt: string
+  createdAt: string
+}
+
+export interface CreateReservationParams {
+  bookingId: number
+  customerId: number
+  pointsReserved: number
+  valueEGP: number
+  configSnapshot?: LoyaltyProgramConfig
   holdMinutes?: number
 }
 
 /**
- * Point Hold Service
- * Manages point hold entity lifecycle during booking checkout.
- * Lifecycle: held -> committed (on payment success) or released/expired (on checkout cancellation/expiry).
+ * Point Reservation Engine (Double-Spend Protection)
+ * Manages active checkout point reservations without writing to immutable PointLedger.
+ * Prevents customers from opening multiple browser tabs to double-spend the same points.
  */
 export class PointHoldService {
-  private activeHolds: Map<string, PointHoldEntity> = new Map()
+  private activeReservations: Map<string, PointReservationEntity> = new Map()
 
   /**
-   * Static factory method for creating a point hold.
+   * Reserve points for an active checkout session.
    */
-  static createHold(params: CreatePointHoldParams): PointHoldEntity {
+  reservePoints(params: CreateReservationParams): PointReservationEntity {
     const holdMinutes = params.holdMinutes || 15
-    const holdId = `p_hold_${params.bookingId}_${Date.now()}`
+    const reservationId = `p_res_${params.bookingId}_${Date.now()}`
     const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000).toISOString()
 
-    return {
-      holdId,
+    const reservation: PointReservationEntity = {
+      reservationId,
       bookingId: params.bookingId,
       customerId: params.customerId,
-      pointsHeld: params.pointsHeld,
+      pointsReserved: params.pointsReserved,
+      valueEGP: params.valueEGP,
       status: 'held',
+      configSnapshot: params.configSnapshot,
       expiresAt,
       createdAt: new Date().toISOString(),
     }
+
+    this.activeReservations.set(reservationId, reservation)
+    return reservation
   }
 
   /**
-   * Static method to commit a hold.
+   * Commit reservation upon payment success.
    */
-  static commitHold(hold: PointHoldEntity | string): PointHoldEntity {
-    if (typeof hold === 'string') {
-      return {
-        holdId: hold,
-        bookingId: 0,
-        customerId: 0,
-        pointsHeld: 0,
-        status: 'committed',
-        expiresAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+  commitReservation(reservationId: string): PointReservationEntity | undefined {
+    const res = this.activeReservations.get(reservationId)
+    if (res) {
+      res.status = 'committed'
+      return res
+    }
+    return undefined
+  }
+
+  /**
+   * Release reservation upon checkout cancellation or payment failure.
+   */
+  releaseReservation(reservationId: string): PointReservationEntity | undefined {
+    const res = this.activeReservations.get(reservationId)
+    if (res) {
+      res.status = 'released'
+      this.activeReservations.delete(reservationId)
+      return res
+    }
+    return undefined
+  }
+
+  /**
+   * Get active total reserved points for a customer across open checkouts.
+   */
+  getCustomerActiveReservedPoints(customerId: number): number {
+    const now = new Date().getTime()
+    let total = 0
+
+    for (const res of this.activeReservations.values()) {
+      if (
+        res.customerId === customerId &&
+        res.status === 'held' &&
+        new Date(res.expiresAt).getTime() > now
+      ) {
+        total += res.pointsReserved
       }
     }
-    return { ...hold, status: 'committed' }
+
+    return total
   }
 
   /**
-   * Static method to release a hold.
+   * Find active reservation by booking ID.
    */
-  static releaseHold(hold: PointHoldEntity | string): PointHoldEntity {
-    if (typeof hold === 'string') {
-      return {
-        holdId: hold,
-        bookingId: 0,
-        customerId: 0,
-        pointsHeld: 0,
-        status: 'released',
-        expiresAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-      }
-    }
-    return { ...hold, status: 'released' }
-  }
-
-  /**
-   * Static method to expire a hold.
-   */
-  static expireHold(hold: PointHoldEntity | string): PointHoldEntity {
-    if (typeof hold === 'string') {
-      return {
-        holdId: hold,
-        bookingId: 0,
-        customerId: 0,
-        pointsHeld: 0,
-        status: 'expired',
-        expiresAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-      }
-    }
-    return { ...hold, status: 'expired' }
-  }
-
-  /**
-   * Instance method to hold points.
-   */
-  holdPoints(bookingId: number, customerId: number, points: number, holdMinutes: number = 15): PointHoldEntity {
-    const hold = PointHoldService.createHold({
-      bookingId,
-      customerId,
-      pointsHeld: points,
-      holdMinutes,
-    })
-    this.activeHolds.set(hold.holdId, hold)
-    return hold
-  }
-
-  /**
-   * Instance method to commit hold.
-   */
-  commitHold(holdId: string): PointHoldEntity {
-    return PointHoldService.commitHold(holdId)
-  }
-
-  /**
-   * Instance method to release hold.
-   */
-  releaseHold(holdId: string): PointHoldEntity {
-    return PointHoldService.releaseHold(holdId)
-  }
-
-  /**
-   * Instance method to expire hold.
-   */
-  expireHold(holdId: string): PointHoldEntity {
-    return PointHoldService.expireHold(holdId)
-  }
-
-  /**
-   * Find active hold by booking ID.
-   */
-  findByBookingId(bookingId: number): PointHoldEntity | undefined {
-    return Array.from(this.activeHolds.values()).find(
-      (h) => h.bookingId === bookingId && h.status === 'held',
+  findByBookingId(bookingId: number): PointReservationEntity | undefined {
+    const now = new Date().getTime()
+    return Array.from(this.activeReservations.values()).find(
+      (r) =>
+        r.bookingId === bookingId &&
+        r.status === 'held' &&
+        new Date(r.expiresAt).getTime() > now,
     )
   }
 }

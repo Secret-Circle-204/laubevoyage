@@ -34,11 +34,11 @@ import { Redirects } from './collections/Redirects'
 import { Reviews } from './collections/Reviews'
 import { Coupons } from './collections/Coupons'
 import { DepartureSlots } from './collections/DepartureSlots'
-
 import { Languages } from './collections/Languages'
 import { EventOutbox } from './collections/EventOutbox'
 import { EventInbox } from './collections/EventInbox'
 import { SystemSettings } from './globals/SystemSettings'
+import { LoyaltySettings } from './globals/LoyaltySettings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -83,7 +83,7 @@ export default buildConfig({
     EventOutbox,
     EventInbox,
   ],
-  globals: [SystemSettings],
+  globals: [SystemSettings, LoyaltySettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

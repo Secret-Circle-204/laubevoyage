@@ -111,14 +111,25 @@ export async function checkBookingStatusAction(params: { transactionId?: string;
       return { success: false, error: 'Unauthorized' }
     }
 
-    const { booking, payment } = await getDomainServices()
+    const { booking, payment, loyalty } = await getDomainServices()
 
     if (params.transactionId) {
       const tx = await payment.getByTransactionId(params.transactionId)
       if (tx) {
         const bookingDoc = await booking.getById(tx.bookingId)
         if (bookingDoc && bookingDoc.customerId === session.customerId) {
-          return { success: true, status: bookingDoc.status, bookingNumber: bookingDoc.bookingNumber }
+          const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
+          const earnEntry = ledgerEntries.find((e) => e.bookingId === bookingDoc.id && e.type === 'earn')
+          const earnedPoints = earnEntry ? earnEntry.points : 0
+
+          return {
+            success: true,
+            status: bookingDoc.status,
+            paymentStatus: tx.status,
+            bookingNumber: bookingDoc.bookingNumber,
+            pricingSnapshot: bookingDoc.pricingSnapshot,
+            earnedPoints,
+          }
         }
       }
     }
@@ -126,7 +137,18 @@ export async function checkBookingStatusAction(params: { transactionId?: string;
     if (params.bookingNumber) {
       const bookingDoc = await booking.getByBookingNumber(params.bookingNumber)
       if (bookingDoc && bookingDoc.customerId === session.customerId) {
-        return { success: true, status: bookingDoc.status, bookingNumber: bookingDoc.bookingNumber }
+        const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
+        const earnEntry = ledgerEntries.find((e) => e.bookingId === bookingDoc.id && e.type === 'earn')
+        const earnedPoints = earnEntry ? earnEntry.points : 0
+
+        return {
+          success: true,
+          status: bookingDoc.status,
+          paymentStatus: 'unknown',
+          bookingNumber: bookingDoc.bookingNumber,
+          pricingSnapshot: bookingDoc.pricingSnapshot,
+          earnedPoints,
+        }
       }
     }
 

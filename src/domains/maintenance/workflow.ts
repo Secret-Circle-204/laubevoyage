@@ -39,7 +39,12 @@ export class MaintenanceWorkflowEngine {
     workerId = 'worker_node_1',
   ): Promise<{ success: boolean; itemsProcessed: number }> {
     const startTime = performance.now()
-    const activeLease = MaintenanceLeaseService.getActiveLease(jobName)
+    const payload = this.repository.payloadInstance
+    if (!payload) {
+      throw new Error('[MaintenanceWorkflowEngine] Cannot execute job workflow without initialized Payload instance.')
+    }
+
+    const activeLease = await MaintenanceLeaseService.getActiveLease(payload, jobName)
 
     // Policy check for lease lock
     const policyResult = MaintenancePolicy.canExecuteJob(jobName, activeLease?.workerId)
@@ -49,7 +54,7 @@ export class MaintenanceWorkflowEngine {
     }
 
     // Acquire distributed lock
-    const acquired = MaintenanceLeaseService.acquireLease(jobName, workerId)
+    const acquired = await MaintenanceLeaseService.acquireLease(payload, jobName, workerId)
     if (!acquired) {
       console.warn(`[MaintenanceWorkflowEngine] Could not acquire lease lock for job: ${jobName}`)
       return { success: false, itemsProcessed: 0 }
@@ -80,7 +85,7 @@ export class MaintenanceWorkflowEngine {
       status = 'failed'
       errorDetails = err instanceof Error ? err.message : String(err)
     } finally {
-      MaintenanceLeaseService.releaseLease(jobName, workerId)
+      await MaintenanceLeaseService.releaseLease(payload, jobName, workerId)
     }
 
     const durationMs = performance.now() - startTime

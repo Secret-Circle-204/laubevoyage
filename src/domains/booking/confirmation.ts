@@ -7,6 +7,7 @@ import { PointHoldService } from '../loyalty/point-hold'
 import { BookingHistoryService } from './history'
 import { PaymentAttemptsService } from './payment-attempts'
 import { EventBus } from '../events/event-bus'
+import { EventOutboxService } from '../events/outbox'
 
 /**
  * Booking Confirmation Sub-Service
@@ -24,8 +25,9 @@ export class BookingConfirmation {
   /**
    * Mark booking as PAID (called by Payment Adapter webhook).
    */
-  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, actor?: Actor): Promise<BookingAggregate> {
-    const booking = await this.repository.findById(bookingId)
+  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, actor?: Actor, req?: any): Promise<BookingAggregate> {
+    console.log(`[BookingConfirmation] 💳 markAsPaid called for Booking #${bookingId}. Attempt status: ${paymentAttempt.status}, transactionRef: ${paymentAttempt.transactionReference}`);
+    const booking = await this.repository.findById(bookingId, req)
     
     // Record payment attempt
     const updatedAttempts = PaymentAttemptsService.recordAttempt(booking.paymentAttempts, {
@@ -57,14 +59,15 @@ export class BookingConfirmation {
       paymentAttempts: updatedAttempts,
       timeline: updatedTimeline,
       auditTrail: updatedAudit,
-    })
+    }, req)
   }
 
   /**
    * Confirm booking after successful payment.
    */
-  async confirm(bookingId: number, actor?: Actor): Promise<BookingAggregate> {
-    const booking = await this.repository.findById(bookingId)
+  async confirm(bookingId: number, actor?: Actor, req?: any): Promise<BookingAggregate> {
+    console.log(`[BookingConfirmation] 🔐 confirm called for Booking #${bookingId}`);
+    const booking = await this.repository.findById(bookingId, req)
 
     // Validate confirmation policy
     const policyResult = BookingPolicy.canConfirm(booking)
@@ -103,16 +106,32 @@ export class BookingConfirmation {
       pointHold: committedPointHold,
       timeline: updatedTimeline,
       auditTrail: updatedAudit,
-    })
+    }, req)
 
-    // Publish BookingConfirmedEvent to decoupled listeners (Loyalty, Notification, Analytics)
-    await this.eventBus.publish({
+    console.log(`[BookingConfirmation] 🎉 Booking #${bookingId} status updated to CONFIRMED in repository.`);
+    return confirmedBooking
+  }
+
+  /**
+   * Post-Commit Domain Event Dispatcher:
+   * Records BOOKING_CONFIRMED event into Transactional Outbox ONLY AFTER the database transaction has committed.
+   */
+  async publishBookingConfirmedEvent(booking: BookingAggregate, actor?: Actor): Promise<void> {
+    const currentActor: Actor = actor || { id: 'system', type: 'system', name: 'Booking Confirmation Service' }
+    console.log(`[BookingConfirmation] 📤 Recording POST-COMMIT BOOKING_CONFIRMED event into Outbox for Booking #${booking.id}...`);
+
+    const outboxService = EventOutboxService.getInstance()
+    await outboxService.record({
+      eventId: `evt_bk_conf_${booking.id}_${Date.now()}`,
+      correlationId: `corr_${booking.id}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
       type: 'BOOKING_CONFIRMED',
-      booking: confirmedBooking,
+      aggregateType: 'Booking',
+      aggregateId: String(booking.id),
+      booking,
       actor: currentActor,
       timestamp: new Date().toISOString(),
     })
-
-    return confirmedBooking
   }
 }

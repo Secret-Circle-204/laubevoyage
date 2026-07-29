@@ -15,8 +15,8 @@ export class ExperiencesCatalogLoader {
     try {
       const { experience, localization } = await getDomainServices()
       const ctx = localization.buildContext({
-        language: (options?.locale || 'en') as any,
-        currency: (options?.currency || 'EGP') as any,
+        cookieLocale: options?.locale,
+        cookieCurrency: options?.currency,
       })
 
       const catalog = await experience.getCatalog({

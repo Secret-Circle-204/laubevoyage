@@ -4,18 +4,154 @@ import { LoyaltyTier } from '@/types'
 import type { LoyaltyAggregate } from './aggregate'
 import type { LoyaltyProjection } from './projection'
 import type { PointLedgerRecord, LedgerEntryType, LedgerReferenceType } from './types'
+import type { LoyaltyProgramConfig, TierDefinitionConfig } from './tier-config'
+import { LoyaltyProgramConfigurationException } from './tier-config'
 import { LedgerValidator } from './ledger-validator'
 
 /**
  * Loyalty Repository
- * Sole data persistence layer for the Loyalty Domain.
- * Manages Append-Only PointLedger transactions and customer loyalty projections.
+ * Sole data persistence & retrieval layer for the Loyalty Domain.
+ * Manages Append-Only PointLedger transactions, customer loyalty projections, and published LoyaltyProgram database queries.
+ * Enforces STRICT FAIL FAST: No hardcoded fallback values for business rules in code.
+ * Zero Caching Responsibilities: Caching is managed separately by LoyaltyProgramRegistry.
  */
 export class LoyaltyRepository {
   private payload: Payload
 
   constructor(payload: Payload) {
     this.payload = payload
+  }
+
+  /**
+   * Fetch active published LoyaltyProgramConfig directly from Payload CMS database.
+   * STRICT FAIL FAST: Throws LoyaltyProgramConfigurationException if configuration is missing or invalid.
+   */
+  async getActiveProgramConfig(
+    _programCode?: string,
+    req?: PayloadRequest,
+  ): Promise<LoyaltyProgramConfig> {
+    const doc = await this.payload.findGlobal({
+      slug: 'loyalty-settings',
+      req,
+    })
+
+    if (!doc) {
+      throw new LoyaltyProgramConfigurationException(
+        `[LoyaltyRepository CRITICAL ERROR] No LoyaltySettings global configuration document found in database. Fail fast enforced.`,
+      )
+    }
+
+    return this.mapDocToProgramConfig(doc)
+  }
+
+  /**
+   * Map Payload document to strongly-typed LoyaltyProgramConfig.
+   * STRICT FAIL FAST: Throws explicit exception if any business configuration field is missing.
+   */
+  private mapDocToProgramConfig(doc: Record<string, any>): LoyaltyProgramConfig {
+    if (!doc.programCode) {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: missing required programCode.',
+      )
+    }
+    if (typeof doc.baseEarnRate !== 'number') {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: missing required baseEarnRate.',
+      )
+    }
+    if (typeof doc.redemptionPointsUnit !== 'number') {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: missing required redemptionPointsUnit.',
+      )
+    }
+    if (typeof doc.redemptionValueEGP !== 'number') {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: missing required redemptionValueEGP.',
+      )
+    }
+    if (typeof doc.minRedemptionPoints !== 'number') {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: missing required minRedemptionPoints.',
+      )
+    }
+    if (typeof doc.maxRedemptionPercent !== 'number') {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: missing required maxRedemptionPercent.',
+      )
+    }
+    if (typeof doc.welcomeBonus !== 'number') {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: missing required welcomeBonus.',
+      )
+    }
+    if (typeof doc.expirationMonths !== 'number') {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: missing required expirationMonths.',
+      )
+    }
+    if (!Array.isArray(doc.tiers) || doc.tiers.length === 0) {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: tier rules matrix is required.',
+      )
+    }
+
+    const tiersMap = {} as Record<LoyaltyTier, TierDefinitionConfig>
+
+    doc.tiers.forEach((t: any) => {
+      const tierKey = (t.tier as string).toUpperCase() as keyof typeof LoyaltyTier
+      const enumValue = LoyaltyTier[tierKey]
+      if (enumValue) {
+        if (
+          typeof t.minSpentEGP !== 'number' ||
+          typeof t.earnMultiplier !== 'number' ||
+          typeof t.upgradeBonus !== 'number'
+        ) {
+          throw new LoyaltyProgramConfigurationException(
+            `Invalid LoyaltyProgram document: incomplete attributes for tier ${t.tier}.`,
+          )
+        }
+        tiersMap[enumValue] = {
+          tier: enumValue,
+          minSpentEGP: t.minSpentEGP,
+          earnMultiplier: t.earnMultiplier,
+          upgradeBonus: t.upgradeBonus,
+        }
+      }
+    })
+
+    // Verify all tiers exist in configured matrix
+    if (
+      !tiersMap[LoyaltyTier.EXPLORER] ||
+      !tiersMap[LoyaltyTier.VOYAGER] ||
+      !tiersMap[LoyaltyTier.ELITE]
+    ) {
+      throw new LoyaltyProgramConfigurationException(
+        'Invalid LoyaltyProgram document: tier rules matrix must contain explorer, voyager, and elite definitions.',
+      )
+    }
+
+    return {
+      id: String(doc.id),
+      programCode: doc.programCode,
+      name: doc.name || doc.programCode,
+      version: doc.version || 1,
+      status: doc.status || 'published',
+      baseEarnRate: doc.baseEarnRate,
+      redemptionPointsUnit: doc.redemptionPointsUnit,
+      redemptionValueEGP: doc.redemptionValueEGP,
+      minRedemptionPoints: doc.minRedemptionPoints,
+      maxRedemptionPercent: doc.maxRedemptionPercent,
+      maxRedemptionFixedEGP:
+        typeof doc.maxRedemptionFixedEGP === 'number' ? doc.maxRedemptionFixedEGP : undefined,
+      allowPartialRedemption:
+        typeof doc.allowPartialRedemption === 'boolean' ? doc.allowPartialRedemption : true,
+      redemptionStepUnit:
+        typeof doc.redemptionStepUnit === 'number' ? doc.redemptionStepUnit : undefined,
+      welcomeBonus: doc.welcomeBonus,
+      expirationMonths: doc.expirationMonths,
+      bonusNeverExpires: typeof doc.bonusNeverExpires === 'boolean' ? doc.bonusNeverExpires : true,
+      tiers: tiersMap,
+    }
   }
 
   /**
@@ -119,7 +255,11 @@ export class LoyaltyRepository {
     return result.docs.length > 0 ? result.docs[0].balance : 0
   }
 
-  async getLedgerHistory(customerId: number, limit = 20, req?: PayloadRequest): Promise<PointLedgerRecord[]> {
+  async getLedgerHistory(
+    customerId: number,
+    limit = 20,
+    req?: PayloadRequest,
+  ): Promise<PointLedgerRecord[]> {
     const result = await this.payload.find({
       collection: 'point-ledger',
       where: {
@@ -133,11 +273,13 @@ export class LoyaltyRepository {
     return result.docs.map((doc) => this.mapDocToLedgerRecord(doc))
   }
 
-
   /**
    * Fetch Customer Loyalty Aggregate & Projection.
    */
-  async getCustomerAggregate(customerId: number, req?: PayloadRequest): Promise<{ aggregate: LoyaltyAggregate; projection: LoyaltyProjection }> {
+  async getCustomerAggregate(
+    customerId: number,
+    req?: PayloadRequest,
+  ): Promise<{ aggregate: LoyaltyAggregate; projection: LoyaltyProjection }> {
     const customer = await this.payload.findByID({
       collection: 'customers',
       id: customerId,
@@ -157,8 +299,16 @@ export class LoyaltyRepository {
       tier,
       totalSpentEGP,
       tierHistory: [],
-      createdAt: customer.createdAt ? (typeof customer.createdAt === 'string' ? customer.createdAt : new Date(customer.createdAt).toISOString()) : new Date().toISOString(),
-      updatedAt: customer.updatedAt ? (typeof customer.updatedAt === 'string' ? customer.updatedAt : new Date(customer.updatedAt).toISOString()) : new Date().toISOString(),
+      createdAt: customer.createdAt
+        ? typeof customer.createdAt === 'string'
+          ? customer.createdAt
+          : new Date(customer.createdAt).toISOString()
+        : new Date().toISOString(),
+      updatedAt: customer.updatedAt
+        ? typeof customer.updatedAt === 'string'
+          ? customer.updatedAt
+          : new Date(customer.updatedAt).toISOString()
+        : new Date().toISOString(),
     }
 
     const projection: LoyaltyProjection = {
@@ -244,10 +394,22 @@ export class LoyaltyRepository {
       referenceType: doc.referenceType as LedgerReferenceType,
       referenceId: doc.referenceId ? String(doc.referenceId) : undefined,
       reason: doc.reason,
-      bookingId: doc.booking ? (typeof doc.booking === 'object' ? Number(doc.booking.id) : Number(doc.booking)) : undefined,
-      expiresAt: doc.expiresAt ? (typeof doc.expiresAt === 'string' ? doc.expiresAt : new Date(doc.expiresAt).toISOString()) : undefined,
+      bookingId: doc.booking
+        ? typeof doc.booking === 'object'
+          ? Number(doc.booking.id)
+          : Number(doc.booking)
+        : undefined,
+      expiresAt: doc.expiresAt
+        ? typeof doc.expiresAt === 'string'
+          ? doc.expiresAt
+          : new Date(doc.expiresAt).toISOString()
+        : undefined,
       metadata: doc.metadata as Record<string, unknown> | undefined,
-      createdAt: doc.createdAt ? (typeof doc.createdAt === 'string' ? doc.createdAt : new Date(doc.createdAt).toISOString()) : new Date().toISOString(),
+      createdAt: doc.createdAt
+        ? typeof doc.createdAt === 'string'
+          ? doc.createdAt
+          : new Date(doc.createdAt).toISOString()
+        : new Date().toISOString(),
     }
   }
 }

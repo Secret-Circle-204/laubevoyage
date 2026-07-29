@@ -53,7 +53,7 @@ export class NotificationWorkflowEngine {
     attachments?: NotificationAttachment[]
     sendAt?: string
     customerId?: number
-  }): Promise<{ queued: boolean; jobId: string; reason?: string }> {
+  }, req?: any): Promise<{ queued: boolean; jobId: string; reason?: string }> {
     // 1. Check Rate Limiting for OTPs
     if (
       params.category === 'marketing' &&
@@ -68,6 +68,7 @@ export class NotificationWorkflowEngine {
       params.referenceId,
       params.channel,
       params.templateId,
+      req,
     )
 
     if (existing) {
@@ -100,7 +101,7 @@ export class NotificationWorkflowEngine {
     }
 
     // 3. Save to repository & Enqueue to async non-blocking priority queue
-    await this.repository.saveJob(job)
+    await this.repository.saveJob(job, req)
     this.queue.enqueue(job)
 
     return { queued: true, jobId }

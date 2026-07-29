@@ -3,10 +3,13 @@ import type { LayoutDTO, NavigationItemDTO, CurrencyOptionDTO, LocaleOptionDTO }
 
 export class LayoutLoader {
   static async load(params?: { locale?: string; currency?: string; customerId?: number }): Promise<LayoutDTO> {
-    const locale = params?.locale || 'en'
-    const currency = params?.currency || 'EGP'
-
-    const { content, customer, language, currency: currencyService } = await getDomainServices()
+    const { content, customer, language, currency: currencyService, localization } = await getDomainServices()
+    const ctx = localization.buildContext({
+      cookieLocale: params?.locale,
+      cookieCurrency: params?.currency,
+    })
+    const locale = ctx.language
+    const currency = ctx.currency
     const navigationMenu: NavigationItemDTO[] = await content.getNavigationMenu(locale)
     const footerNavigation = await content.getFooterNavigation(locale)
 

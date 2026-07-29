@@ -54,18 +54,25 @@ export class BookingService {
   /**
    * Mark as paid (called by PaymentService webhook adapter).
    */
-  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt): Promise<void> {
+  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, req?: any): Promise<void> {
     if (!paymentAttempt) {
       throw new Error('[BookingService] markAsPaid requires a valid PaymentAttempt object.')
     }
-    await this.workflowEngine.executePaymentWorkflow(bookingId, paymentAttempt)
+    await this.workflowEngine.executePaymentWorkflow(bookingId, paymentAttempt, req)
   }
 
   /**
    * Confirm booking after successful payment.
    */
-  async confirm(bookingId: number, _paymentId?: string): Promise<void> {
-    await this.workflowEngine.executeConfirmationWorkflow(bookingId)
+  async confirm(bookingId: number, _paymentId?: string, req?: any): Promise<BookingAggregate> {
+    return this.workflowEngine.executeConfirmationWorkflow(bookingId, undefined, req)
+  }
+
+  /**
+   * Post-Commit Event Dispatcher
+   */
+  async publishBookingConfirmedEvent(booking: BookingAggregate, actor?: Actor): Promise<void> {
+    await this.workflowEngine.publishBookingConfirmedEvent(booking, actor)
   }
 
   /**

@@ -11,9 +11,9 @@ describe('Payment Domain: State Machine Unit Tests', () => {
   })
 
   it('should forbid invalid state transitions', () => {
-    expect(isPaymentTransitionAllowed('initiated', 'successful')).toBe(false)
+    expect(isPaymentTransitionAllowed('initiated', 'refunded')).toBe(false)
     expect(isPaymentTransitionAllowed('failed', 'successful')).toBe(false)
-    expect(() => validatePaymentTransition('initiated', 'successful')).toThrowError(
+    expect(() => validatePaymentTransition('initiated', 'refunded')).toThrowError(
       '[PaymentStateMachine] Forbidden transition',
     )
   })

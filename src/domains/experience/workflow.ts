@@ -53,8 +53,11 @@ export class ExperienceWorkflowEngine {
     const snapshot = await this.pipelineEngine.calculatePricingSnapshot(basePriceEGP, context)
 
     await this.eventBus.publish({
+      eventId: `evt_snap_${snapshot.snapshotId}_${Date.now()}`,
+      correlationId: `corr_${context.experienceId}`,
+      occurredAt: new Date().toISOString(),
       type: 'PRICING_SNAPSHOT_CREATED',
-      eventVersion: 'v1',
+      eventVersion: 1,
       snapshotId: snapshot.snapshotId,
       experienceId: context.experienceId,
       departureId: context.departureId,
@@ -87,8 +90,11 @@ export class ExperienceWorkflowEngine {
     )
 
     await this.eventBus.publish({
+      eventId: `evt_inv_res_${result.holdId}_${Date.now()}`,
+      correlationId: `corr_${bookingId}`,
+      occurredAt: new Date().toISOString(),
       type: 'INVENTORY_RESERVED',
-      eventVersion: 'v1',
+      eventVersion: 1,
       departureId,
       experienceId,
       seatsReserved: seats,

@@ -15,6 +15,27 @@ export class PricingFacade {
     this.pricingPipeline = pricingPipeline
   }
 
+  /**
+   * Currency Domain Public API: Resolves a proposed currency against active catalog.
+   * Delegates to Currency Domain business policy.
+   */
+  async resolveDisplayCurrency(proposedCurrency?: string): Promise<string> {
+    if (!proposedCurrency) return 'USD'
+    const code = proposedCurrency.trim().toUpperCase()
+    const activeCurrencies = await catalogRegistry.getAll()
+    const supportedCodes = new Set(activeCurrencies.map((c) => c.isoCode.toUpperCase()))
+
+    if (supportedCodes.has(code)) {
+      return code
+    }
+
+    if (supportedCodes.has('USD')) {
+      return 'USD'
+    }
+
+    return 'EGP'
+  }
+
   async getConvertedPrice(
     basePriceEGP: number,
     targetCurrency: string,

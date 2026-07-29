@@ -65,6 +65,10 @@ export class BookingCancellation {
 
     // Publish BookingCancelledEvent
     await this.eventBus.publish({
+      eventId: `evt_bk_canc_${bookingId}_${Date.now()}`,
+      correlationId: `corr_${bookingId}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
       type: 'BOOKING_CANCELLED',
       booking: cancelledBooking,
       actor,

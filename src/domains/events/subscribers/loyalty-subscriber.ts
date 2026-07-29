@@ -42,6 +42,8 @@ export function registerLoyaltySubscriber(payload: Payload): void {
       const customerId = booking.customerId
       const totalAmountEGP = booking.pricingSnapshot.totalAmountEGP
 
+      console.log(`[LoyaltySubscriber] 🎁 Processing points for Customer #${customerId} for booking #${booking.id} (BookingAmount: ${totalAmountEGP} EGP)`);
+
       const customer = await customerService.getProfile(customerId)
       if (!customer) {
         throw new Error(
@@ -50,6 +52,7 @@ export function registerLoyaltySubscriber(payload: Payload): void {
       }
 
       const pointsEarned = await loyaltyService.calculateEarnedPoints(totalAmountEGP)
+      console.log(`[LoyaltySubscriber] Calculated earned points: ${pointsEarned} points for amount ${totalAmountEGP} EGP.`);
 
       if (pointsEarned > 0) {
         await loyaltyService.earnPointsForBooking(
@@ -58,9 +61,14 @@ export function registerLoyaltySubscriber(payload: Payload): void {
           totalAmountEGP,
           booking.bookingNumber,
         )
+        console.log(`[LoyaltySubscriber] ✅ Earned ${pointsEarned} points successfully credited to Customer #${customerId}.`);
+      } else {
+        console.log(`[LoyaltySubscriber] ℹ️ Zero points earned for this booking.`);
       }
 
+      console.log(`[LoyaltySubscriber] Evaluating tier upgrade for Customer #${customerId}...`);
       await loyaltyService.evaluateAndUpgradeTier(customerId, totalAmountEGP)
+      console.log(`[LoyaltySubscriber] ✅ Tier evaluation completed for Customer #${customerId}.`);
     },
   )
 }

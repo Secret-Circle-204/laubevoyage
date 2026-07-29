@@ -222,7 +222,7 @@ export class CustomerRepository {
   }
 
   async deleteAssociatedData(customerId: number, req?: PayloadRequest): Promise<void> {
-    const where = { customerId: { equals: customerId } }
+    const where = { customer: { equals: customerId } }
     const collections = [
       'customer-travelers',
       'customer-addresses',
@@ -236,13 +236,13 @@ export class CustomerRepository {
         collection: collection as any,
         where,
         req,
-      }).catch((e) => console.error(`[CustomerRepository] Error purging ${collection} for customer ${customerId}:`, e))
+      })
     }
   }
 
   async updateLoyaltyProfile(
     customerId: number,
-    loyaltyData: { tier?: string; points?: number; totalSpent?: number; tierAchievedAt?: string },
+    loyaltyData: { tier?: 'explorer' | 'voyager' | 'elite'; points?: number; totalSpent?: number; tierAchievedAt?: string },
     req?: PayloadRequest,
   ): Promise<void> {
     const customerDoc = await this.payload.findByID({ collection: 'customers', id: customerId, req })
@@ -253,6 +253,7 @@ export class CustomerRepository {
         loyalty: {
           ...customerDoc.loyalty,
           ...loyaltyData,
+          tier: (loyaltyData.tier || customerDoc.loyalty?.tier) as any,
         },
       },
       req,

@@ -72,6 +72,39 @@ export class DashboardProjectionRepository {
 
   async saveProjection(projection: CustomerPortalProjection, req?: PayloadRequest): Promise<CustomerPortalProjection> {
     this.projectionMap.set(projection.customerId, projection)
+    try {
+      const existing = await this.payload.find({
+        collection: 'dashboard-projections',
+        where: { customer: { equals: projection.customerId } },
+        limit: 1,
+        req,
+      })
+
+      if (existing.docs.length > 0) {
+        await this.payload.update({
+          collection: 'dashboard-projections',
+          id: existing.docs[0].id,
+          data: {
+            projectionJson: projection as any,
+            version: projection.version || 1,
+          },
+          req,
+        })
+      } else {
+        await this.payload.create({
+          collection: 'dashboard-projections',
+          data: {
+            projectionId: projection.projectionId,
+            customer: projection.customerId,
+            projectionJson: projection as any,
+            version: projection.version || 1,
+          },
+          req,
+        })
+      }
+    } catch (err: any) {
+      console.warn(`[DashboardProjectionRepository] Non-blocking DB save skipped:`, err.message)
+    }
     return projection
   }
 }

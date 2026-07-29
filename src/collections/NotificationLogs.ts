@@ -78,6 +78,10 @@ export const NotificationLogs: CollectionConfig = {
       required: true,
     },
     {
+      name: 'templateData',
+      type: 'json',
+    },
+    {
       name: 'status',
       type: 'select',
       required: true,

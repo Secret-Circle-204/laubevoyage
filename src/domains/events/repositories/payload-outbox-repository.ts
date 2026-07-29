@@ -51,6 +51,59 @@ export class PayloadOutboxRepository implements IOutboxRepository {
     return result.docs.map((doc) => this.mapDocToRecord(doc))
   }
 
+  async claimPending(limit: number = 20, workerId: string): Promise<DomainOutboxRecord[]> {
+    const pool = (this.payload.db as any).pool
+    if (!pool || typeof pool.query !== 'function') {
+      // Fallback for mock environments/non-postgres setups
+      return this.findPending(limit)
+    }
+
+    const nowIso = new Date().toISOString()
+    const lockExpiresAt = new Date(Date.now() + 60000).toISOString() // 1 minute lock
+
+    try {
+      // Atomic query using SELECT FOR UPDATE SKIP LOCKED to ensure Process/Worker isolation
+      const query = `
+        UPDATE event_outbox
+        SET status = 'processing',
+            worker_id = $1,
+            lock_expires_at = $2,
+            updated_at = NOW()
+        WHERE id IN (
+          SELECT id FROM event_outbox
+          WHERE (status = 'pending' OR (status = 'processing' AND lock_expires_at <= $3))
+             OR (status = 'failed' AND (next_retry_at IS NULL OR next_retry_at <= $3))
+          ORDER BY created_at ASC
+          LIMIT $4
+          FOR UPDATE SKIP LOCKED
+        )
+        RETURNING *;
+      `
+      const res = await pool.query(query, [workerId, lockExpiresAt, nowIso, limit])
+      return res.rows.map((row: any) => this.mapDocToRecord({
+        ...row,
+        eventId: row.event_id,
+        correlationId: row.correlation_id,
+        causationId: row.causation_id,
+        eventType: row.event_type,
+        eventVersion: Number(row.event_version),
+        aggregateType: row.aggregate_type,
+        aggregateId: row.aggregate_id,
+        payload: row.payload,
+        status: row.status,
+        retryCount: Number(row.retry_count),
+        nextRetryAt: row.next_retry_at ? new Date(row.next_retry_at).toISOString() : undefined,
+        errorMessage: row.error_message,
+        publishedAt: row.published_at ? new Date(row.published_at).toISOString() : undefined,
+        occurredAt: row.occurred_at ? new Date(row.occurred_at).toISOString() : undefined,
+        createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+      }))
+    } catch (error: unknown) {
+      console.error('[PayloadOutboxRepository] claimPending transaction failed under DB load. Waiting for next tick:', error)
+      return []
+    }
+  }
+
   async markAsPublished(eventId: string): Promise<void> {
     const found = await this.payload.find({
       collection: 'event-outbox',
@@ -65,6 +118,8 @@ export class PayloadOutboxRepository implements IOutboxRepository {
         data: {
           status: 'published',
           publishedAt: new Date().toISOString(),
+          workerId: null,
+          lockExpiresAt: null,
         },
       })
     }
@@ -91,6 +146,8 @@ export class PayloadOutboxRepository implements IOutboxRepository {
           errorMessage,
           nextRetryAt,
           retryCount: newRetryCount,
+          workerId: null,
+          lockExpiresAt: null,
         },
       })
     }
@@ -110,6 +167,8 @@ export class PayloadOutboxRepository implements IOutboxRepository {
         data: {
           status: 'dead_letter',
           errorMessage,
+          workerId: null,
+          lockExpiresAt: null,
         },
       })
 

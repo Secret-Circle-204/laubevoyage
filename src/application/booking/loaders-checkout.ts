@@ -17,11 +17,9 @@ export class CheckoutPageLoader {
     try {
       const { booking, experience, payment, localization, pricingFacade, bookingPricingUseCase } = await getApplicationServices()
 
-      const locale = options?.locale || 'en'
-      const currency = options?.currency || 'EGP'
       const ctx = localization.buildContext({
-        language: locale as any,
-        currency: currency as any,
+        cookieLocale: options?.locale,
+        cookieCurrency: options?.currency,
       })
 
       const gateways: PaymentGatewayDTO[] = await payment.getAvailableGateways()

@@ -1036,6 +1036,7 @@ The purpose is to expose architectural defects immediately instead of hiding the
 Never introduce fallback values that hide missing data or invalid state.
 
 Forbidden examples include (but are not limited to):
+
 - `value || 'USD'`
 - `value ?? 'USD'`
 - `provider || 'stripe'`
@@ -1052,6 +1053,7 @@ or any similar fallback that allows execution to continue silently.
 ## REQUIRED BEHAVIOR
 
 Whenever required business data or configuration is missing:
+
 1. Throw an explicit `Error` or `DomainException` immediately.
 2. Stop execution cleanly and loudly.
 3. Expose the exact root cause in error diagnostics.
@@ -1061,11 +1063,13 @@ Never silently recover or invent data.
 ### Examples:
 
 **BAD:**
+
 ```ts
 const currency = locale.currency || 'USD'
 ```
 
 **GOOD:**
+
 ```ts
 if (!locale.currency) {
   throw new Error('[LocalizationService] Missing required currency in locale context.')
@@ -1074,11 +1078,13 @@ const currency = locale.currency
 ```
 
 **BAD:**
+
 ```ts
 const secret = process.env.STRIPE_SECRET_KEY || ''
 ```
 
 **GOOD:**
+
 ```ts
 const secret = process.env.STRIPE_SECRET_KEY
 if (!secret) {
@@ -1087,11 +1093,13 @@ if (!secret) {
 ```
 
 **BAD:**
+
 ```ts
 return session.url || undefined
 ```
 
 **GOOD:**
+
 ```ts
 if (!session.url) {
   throw new Error('[StripePaymentAdapter] Stripe Checkout Session did not return a hosted URL.')
@@ -1103,4 +1111,74 @@ return session.url
 
 Before finishing any implementation, perform a "Fallback Audit" over every modified file. Reject the implementation if you find any `||`, `??`, default parameter, empty string fallback, empty array fallback, default object fallback, fake value, mock value, guessed value, inferred business value, or silent catch that hides an error. Replace every occurrence with explicit validation and fail-fast behavior. The task is not complete until zero business fallbacks remain.
 
+---
 
+# 24. PRODUCTION ARCHITECTURAL INVARIANT – PROCESS INDEPENDENCE
+
+The architecture must not assume or depend on the existence of a single Node.js process, a single application instance, or a single server.
+
+Every background component, coordination mechanism, lifecycle, and state transition must remain correct regardless of deployment topology, including:
+
+- Single-process development environments
+- Multiple Node.js processes
+- PM2 cluster mode
+- Multiple application instances
+- Containerized deployments
+- Future horizontal scaling
+
+No business correctness may rely on:
+
+- In-memory state
+- Module scope
+- Singleton lifetime
+- Process-local caches
+- Process-local locks
+- Symbol.for(...)
+- Static variables
+- Startup ordering
+- Request routing affinity
+
+Process-local memory may be used exclusively as an implementation optimization (cache, buffering, throttling, batching, etc.), but never as the authoritative source of business state or execution ownership.
+
+Whenever exclusive ownership, coordination, recovery, scheduling, or synchronization is required, it must rely on durable shared infrastructure capable of coordinating all running processes.
+
+---
+
+# 25. PRODUCTION ARCHITECTURAL INVARIANT – BUSINESS CORRECTNESS BEFORE THROUGHPUT
+
+The primary objective of the production architecture is business correctness, not execution speed.
+
+Every optimization must preserve deterministic business behavior under concurrency, retries, failures, duplicate delivery, process restarts, and horizontal scaling.
+
+No optimization may introduce ambiguity regarding ownership, execution order, or business state consistency.
+
+Performance improvements must always be implemented after correctness guarantees are established and must never weaken those guarantees.
+
+---
+
+# 26. ARCHITECTURAL REQUIREMENT – IDEMPOTENT BACKGROUND EXECUTION
+
+Every background operation must be designed to be safely executable more than once.
+
+Background workers must assume that duplicate execution, retries, process restarts, and concurrent scheduling are possible production scenarios.
+
+Business operations must therefore be idempotent whenever possible, ensuring that repeated execution produces the same final business state without duplication or corruption.
+
+Exclusive ownership mechanisms reduce duplicate execution but must not be considered the sole correctness guarantee. System correctness must be preserved even if a background operation runs multiple times.
+
+---
+
+# 27. PRODUCTION-ONLY ARCHITECTURAL AUDIT & REVIEW PROTOCOL
+
+إذا كان الهدف من جميع المراجعات المعمارية هو تقييم المشروع بوصفه **نظاماً إنتاجياً (Production Environment)**، فيجب الالتزام بالقواعد التالية أثناء جميع عمليات التدقيق:
+
+- اعتبار المشروع يعمل وفق إعدادات الإنتاج الفعلية فقط.
+- عدم إدخال أو مناقشة سيناريوهات **Mock** أو **Unit Tests** أو بيئات الاختبار، ما لم يكن التدقيق موجهاً إليها صراحة.
+- عدم اعتبار الفروع الاحتياطية (Fallback Paths) أو الشيفرات المخصصة للتوافق مع بيئات أخرى جزءاً من مسار التنفيذ الإنتاجي، ما لم توجد أدلة تثبت استخدامها في بيئة الإنتاج الحالية.
+- عدم إدخال احتمالات مستقبلية أو فرضيات تتعلق بتغيير قاعدة البيانات أو الـ Adapters أو البنية التشغيلية، إلا إذا كانت جزءاً من المشروع الحالي.
+
+وبناءً على ذلك، يجب أن تعتمد جميع الاستنتاجات على **مسار التنفيذ الفعلي في بيئة الإنتاج** كما تحدده إعدادات المشروع الحالية، وليس على وجود فروع احتياطية داخل الكود لم تُستخدم في التشغيل الإنتاجي.
+
+وبعبارة أخرى:
+
+> **يُراجع الكود وفق إعدادات الإنتاج الفعلية للمشروع، وليس وفق الفروع الاحتياطية أو البيئات الاختبارية أو السيناريوهات الافتراضية، ما لم يكن نطاق التدقيق ينص صراحةً على مراجعة تلك البيئات.**

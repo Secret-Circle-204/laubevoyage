@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 export const EventInbox: CollectionConfig = {
   slug: 'event-inbox',
+  // lockDocuments: false,
   admin: {
     useAsTitle: 'idempotencyKey',
     defaultColumns: ['idempotencyKey', 'processedEventId', 'subscriberName', 'processedAt'],

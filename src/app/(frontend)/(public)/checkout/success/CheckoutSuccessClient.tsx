@@ -19,12 +19,20 @@ export function CheckoutSuccessClient({
   const [confirmedBookingNumber, setConfirmedBookingNumber] = useState<string | undefined>(
     bookingNumber,
   )
+  const [earnedPoints, setEarnedPoints] = useState<number | undefined>(undefined)
+  const [totalAmountDisplay, setTotalAmountDisplay] = useState<string | undefined>(undefined)
   const isPollingRef = useRef<boolean>(true)
 
   useEffect(() => {
     isPollingRef.current = true
     let attempts = 0
-    const maxAttempts = 30 // 30 attempts * 2 seconds = 60s timeout limit
+    const maxAttempts = 8 // ~80s total timeout with exponential delay
+
+    const getNextDelay = (attemptCount: number): number => {
+      // 1s, 2s, 4s, 8s, 16s, capped at 16s
+      const delay = Math.pow(2, attemptCount - 1) * 1000
+      return Math.min(delay, 16000)
+    }
 
     const pollStatus = async () => {
       if (!isPollingRef.current) return
@@ -45,6 +53,15 @@ export function CheckoutSuccessClient({
             if (res.bookingNumber) {
               setConfirmedBookingNumber(res.bookingNumber)
             }
+            if (typeof res.earnedPoints === 'number') {
+              setEarnedPoints(res.earnedPoints)
+            }
+            if (res.pricingSnapshot) {
+              const amountStr = res.pricingSnapshot.displayAmount
+                ? `${res.pricingSnapshot.displayCurrency || '$'}${res.pricingSnapshot.displayAmount}`
+                : `${res.pricingSnapshot.totalAmountEGP} EGP`
+              setTotalAmountDisplay(amountStr)
+            }
             isPollingRef.current = false
             return
           } else if (currentStatus === 'cancelled' || currentStatus === 'failed') {
@@ -64,7 +81,8 @@ export function CheckoutSuccessClient({
       }
 
       if (isPollingRef.current) {
-        setTimeout(pollStatus, 2000)
+        const nextDelay = getNextDelay(attempts)
+        setTimeout(pollStatus, nextDelay)
       }
     }
 
@@ -99,13 +117,16 @@ export function CheckoutSuccessClient({
                   Verifying Payment Status
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                  Payment received. Waiting for payment webhook confirmation...
+                  Payment received. Processing your reservation confirmation...
                 </p>
               </div>
 
               <div className="bg-slate-100 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
                 <span>Ref: {confirmedBookingNumber || transactionId || 'LBV-PAYMENT'}</span>
-                <span className="text-[#00aeef] font-bold">Polling check #{pollCount}</span>
+                <span className="text-[#00aeef] font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#00aeef] animate-ping" />
+                  Updating...
+                </span>
               </div>
             </div>
           )}
@@ -139,6 +160,18 @@ export function CheckoutSuccessClient({
                   <span className="text-slate-500">Status:</span>
                   <span className="font-bold text-emerald-500 uppercase">Confirmed & Paid</span>
                 </div>
+                {totalAmountDisplay && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Total Paid:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{totalAmountDisplay}</span>
+                  </div>
+                )}
+                {typeof earnedPoints === 'number' && (
+                  <div className="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2">
+                    <span className="text-slate-500">Loyalty Points Earned:</span>
+                    <span className="font-bold text-amber-500">+{earnedPoints.toLocaleString()} Points</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -172,7 +205,7 @@ export function CheckoutSuccessClient({
                   Payment Processing
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                  Your payment was received. Confirmation webhook processing is taking longer than expected. You can check your booking status anytime in your dashboard.
+                  Your reservation is being finalized in the background. You can check your booking status anytime in your dashboard.
                 </p>
               </div>
 

@@ -6,6 +6,15 @@ import * as migration_20260725_144323_add_departure_slots_collection from './202
 import * as migration_20260725_144943_add_capacity_total_to_experiences from './20260725_144943_add_capacity_total_to_experiences';
 import * as migration_20260725_153250_clean_single_source_of_truth from './20260725_153250_clean_single_source_of_truth';
 import * as migration_20260726_171618_alter_experience_price_nullable from './20260726_171618_alter_experience_price_nullable';
+import * as migration_20260727_164841_EventInbox from './20260727_164841_EventInbox';
+import * as migration_20260727_183134 from './20260727_183134';
+import * as migration_20260727_183349_create_maintenance_leases from './20260727_183349_create_maintenance_leases';
+import * as migration_20260728_131603 from './20260728_131603';
+import * as migration_20260728_164241_create_loyalty_programs from './20260728_164241_create_loyalty_programs';
+import * as migration_20260728_165414 from './20260728_165414';
+import * as migration_20260728_170912 from './20260728_170912';
+import * as migration_20260728_171042 from './20260728_171042';
+import * as migration_20260728_174211 from './20260728_174211';
 
 export const migrations = [
   {
@@ -46,6 +55,51 @@ export const migrations = [
   {
     up: migration_20260726_171618_alter_experience_price_nullable.up,
     down: migration_20260726_171618_alter_experience_price_nullable.down,
-    name: '20260726_171618_alter_experience_price_nullable'
+    name: '20260726_171618_alter_experience_price_nullable',
+  },
+  {
+    up: migration_20260727_164841_EventInbox.up,
+    down: migration_20260727_164841_EventInbox.down,
+    name: '20260727_164841_EventInbox',
+  },
+  {
+    up: migration_20260727_183134.up,
+    down: migration_20260727_183134.down,
+    name: '20260727_183134',
+  },
+  {
+    up: migration_20260727_183349_create_maintenance_leases.up,
+    down: migration_20260727_183349_create_maintenance_leases.down,
+    name: '20260727_183349_create_maintenance_leases',
+  },
+  {
+    up: migration_20260728_131603.up,
+    down: migration_20260728_131603.down,
+    name: '20260728_131603',
+  },
+  {
+    up: migration_20260728_164241_create_loyalty_programs.up,
+    down: migration_20260728_164241_create_loyalty_programs.down,
+    name: '20260728_164241_create_loyalty_programs',
+  },
+  {
+    up: migration_20260728_165414.up,
+    down: migration_20260728_165414.down,
+    name: '20260728_165414',
+  },
+  {
+    up: migration_20260728_170912.up,
+    down: migration_20260728_170912.down,
+    name: '20260728_170912',
+  },
+  {
+    up: migration_20260728_171042.up,
+    down: migration_20260728_171042.down,
+    name: '20260728_171042',
+  },
+  {
+    up: migration_20260728_174211.up,
+    down: migration_20260728_174211.down,
+    name: '20260728_174211'
   },
 ];

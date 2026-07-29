@@ -2,6 +2,10 @@ import React from 'react'
 import type { Metadata } from 'next'
 import { Card, Badge } from '@/components/ui'
 
+import { SessionResolver } from '@/application/auth/session-resolver'
+import { CustomerPortalLoader } from '@/application/dashboard/loaders'
+import { redirect } from 'next/navigation'
+
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -9,7 +13,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const notifications: any[] = []
+  const session = await SessionResolver.resolve()
+  if (!session.isAuthenticated || !session.customerId) {
+    redirect('/login')
+  }
+
+  const notifications = await CustomerPortalLoader.loadNotifications(session.customerId)
 
   return (
     <div className="flex flex-col gap-6">

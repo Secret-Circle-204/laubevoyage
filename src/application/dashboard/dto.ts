@@ -18,7 +18,19 @@ export interface CustomerPortalOverviewDTO {
   tier: 'explorer' | 'voyager' | 'elite'
   points: number
   nextTierProgressPercent: number
+  pointsToNextTier: number
+  nextTierName: string
   activeBookingsCount: number
   recentBookings: CustomerBookingCardDTO[]
   unreadNotificationsCount: number
 }
+
+export interface CustomerNotificationItemDTO {
+  id: string
+  title: string
+  text: string
+  time: string
+  unread: boolean
+  templateId: string
+}
+

@@ -50,7 +50,7 @@ export class CustomerService {
     const outbox = EventOutboxService.getInstance()
     await outbox.recordAndPublish({
       type: 'CUSTOMER_REGISTERED',
-      eventVersion: 'v1',
+      eventVersion: 1,
       customerId: customer.customerId,
       email: customer.email,
       fullName: customer.fullName,
@@ -120,7 +120,7 @@ export class CustomerService {
 
   async updateLoyaltyProfile(
     customerId: number,
-    loyaltyData: { tier?: string; points?: number; totalSpent?: number; tierAchievedAt?: string },
+    loyaltyData: { tier?: 'explorer' | 'voyager' | 'elite'; points?: number; totalSpent?: number; tierAchievedAt?: string },
   ): Promise<void> {
     await this.repository.updateLoyaltyProfile(customerId, loyaltyData)
   }

@@ -51,13 +51,24 @@ import { systemSettingsRegistry } from './system/settings-registry'
 import { PayloadOutboxRepository } from './events/repositories/payload-outbox-repository'
 import { EventOutboxService } from './events/outbox'
 
+export type DomainServices = Awaited<ReturnType<typeof buildDomainServices>>
+
+let cachedDomainServicesPromise: Promise<DomainServices> | null = null
+
 /**
  * Domain Service Factory (Composition Root)
  * Pure Inversion of Control & Constructor Dependency Injection Container.
+ * Singleton Memoized Container: Built exactly once per process lifecycle.
  * Instantiates Repositories with Payload and injects Repositories into Domain Services.
- * Completely encapsulates Payload CMS initialization away from the Application & Domain Layers.
  */
-export async function getDomainServices() {
+export async function getDomainServices(): Promise<DomainServices> {
+  if (!cachedDomainServicesPromise) {
+    cachedDomainServicesPromise = buildDomainServices()
+  }
+  return cachedDomainServicesPromise
+}
+
+async function buildDomainServices() {
   const payload = await getPayload({ config })
 
   // 1. Instantiate Repositories & Providers
@@ -77,7 +88,7 @@ export async function getDomainServices() {
   const compositeRateProvider = new CompositeExchangeRateProvider()
   const systemRepository = new SystemRepository(payload)
   systemSettingsRegistry.setRepository(systemRepository)
-  const loyaltyRepository = new LoyaltyRepository(payload, customerRepository)
+  const loyaltyRepository = new LoyaltyRepository(payload)
   const notificationRepository = new NotificationRepository(payload)
   const translationRepository = new TranslationRepository(payload)
   const maintenanceRepository = new MaintenanceRepository(payload)
@@ -144,9 +155,13 @@ export async function getDomainServices() {
   const maintenanceService = new MaintenanceService(maintenanceRepository, bookingService)
   const languageService = new LanguageService(languageRepository)
 
-  // 3. Bootstrap system event subscribers
+  // 3. Bootstrap system event subscribers & background workers (Executed ONCE on application startup)
+  const outboxService = EventOutboxService.getInstance(outboxRepository)
   const systemIntegrationService = new SystemIntegrationService(payload)
-  await systemIntegrationService.bootstrapSystem()
+  await systemIntegrationService.bootstrapSystem({
+    outboxService,
+    notificationService,
+  })
 
   // 4. Return Pure Injected Domain Services Container
   return {
@@ -169,3 +184,4 @@ export async function getDomainServices() {
     pricingFacade,
   }
 }
+

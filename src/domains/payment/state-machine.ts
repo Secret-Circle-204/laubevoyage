@@ -2,7 +2,7 @@ import type { PaymentStatusType } from './types'
 
 /** Map of allowed payment state transitions */
 const ALLOWED_PAYMENT_TRANSITIONS: Record<PaymentStatusType, PaymentStatusType[]> = {
-  initiated: ['processing', 'failed'],
+  initiated: ['processing', 'successful', 'failed'],
   processing: ['successful', 'failed'],
   successful: ['refunded', 'partially_refunded'],
   failed: [],
@@ -17,9 +17,9 @@ const ALLOWED_PAYMENT_TRANSITIONS: Record<PaymentStatusType, PaymentStatusType[]
 export function validatePaymentTransition(from: PaymentStatusType, to: PaymentStatusType): void {
   const allowed = ALLOWED_PAYMENT_TRANSITIONS[from]
 
-  if (!allowed || !allowed.includes(to)) {
+  if (!allowed.includes(to)) {
     throw new Error(
-      `[PaymentStateMachine] Forbidden transition: "${from}" → "${to}". Allowed from "${from}": [${(allowed || []).join(', ')}]`,
+      `[PaymentStateMachine] Forbidden transition: "${from}" → "${to}". Allowed from "${from}": [${allowed.join(', ')}]`,
     )
   }
 }
@@ -29,5 +29,5 @@ export function validatePaymentTransition(from: PaymentStatusType, to: PaymentSt
  */
 export function isPaymentTransitionAllowed(from: PaymentStatusType, to: PaymentStatusType): boolean {
   const allowed = ALLOWED_PAYMENT_TRANSITIONS[from]
-  return !!allowed && allowed.includes(to)
+  return allowed.includes(to)
 }

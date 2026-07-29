@@ -28,6 +28,30 @@ export class CurrencyService {
     return catalogRegistry.getAll(this.repository)
   }
 
+  /**
+   * Domain Resolution Policy: Resolves a proposed currency against supported active currencies.
+   * Business Policy:
+   * 1. If proposed currency is active in catalogRegistry -> returns it.
+   * 2. If proposed currency is unsupported (e.g. JPY) -> returns 'USD' (International Tourism Benchmark).
+   * 3. Fallback -> 'EGP' (Platform Base Currency).
+   */
+  async resolveDisplayCurrency(proposedCurrency?: string): Promise<string> {
+    if (!proposedCurrency) return 'USD'
+    const code = proposedCurrency.trim().toUpperCase()
+    const activeCurrencies = await this.getActiveCurrencies()
+    const supportedCodes = new Set(activeCurrencies.map((c) => c.isoCode.toUpperCase()))
+
+    if (supportedCodes.has(code)) {
+      return code
+    }
+
+    if (supportedCodes.has('USD')) {
+      return 'USD'
+    }
+
+    return 'EGP'
+  }
+
   async markAllStale(errorMessage: string, attemptTime: string) {
     const result = await this.repository.markAllStale(errorMessage, attemptTime)
     rateRegistry.invalidate()

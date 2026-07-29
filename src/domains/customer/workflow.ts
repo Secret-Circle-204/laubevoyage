@@ -79,7 +79,7 @@ export class CustomerWorkflowEngine {
 
     await this.eventOutbox.recordAndPublish({
       type: 'CUSTOMER_REGISTERED',
-      eventVersion: 'v1',
+      eventVersion: 1,
       customerId: customer.customerId,
       email: customer.email,
       fullName: customer.fullName,
@@ -132,7 +132,7 @@ export class CustomerWorkflowEngine {
         // 5. Publish verification event ONLY on real transition
         await this.eventOutbox.recordAndPublish({
           type: 'CUSTOMER_EMAIL_VERIFIED',
-          eventVersion: 'v1',
+          eventVersion: 1,
           customerId: customer.customerId,
           email: customer.email,
           verifiedAt: customer.emailVerifiedAt || new Date().toISOString(),

@@ -170,16 +170,26 @@ export function proxy(request: NextRequest) {
 
   const response = NextResponse.next()
 
-  // 3. Resolve Locale Priority: Cookie ('laube-locale') -> Accept-Language Header -> Default ('en')
-  const cookieLocale = request.cookies.get('laube-locale')?.value
-  const acceptLanguage = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0]
-  const resolvedLocale = cookieLocale || acceptLanguage || 'en'
+  // 3. Extract Raw Visitor Context Facts (Pure Pass-Through Edge Gateway)
+  const cookieLocale = request.cookies.get('laube-locale')?.value || ''
+  const cookieCurrency = request.cookies.get('laube-currency')?.value || ''
+  const acceptLanguage = request.headers.get('accept-language') || ''
+  const geoCountry = (
+    request.headers.get('x-vercel-ip-country') ||
+    request.headers.get('cf-ipcountry') ||
+    request.headers.get('x-country-code') ||
+    ''
+  ).toUpperCase()
 
-  // 4. Resolve Currency Priority: Cookie ('laube-currency') -> Default ('EGP')
-  const cookieCurrency = request.cookies.get('laube-currency')?.value
+  // 4. Attach Raw Context Facts Headers (Zero decision logic, zero fallbacks)
+  if (cookieLocale) response.headers.set('x-laube-cookie-locale', cookieLocale)
+  if (cookieCurrency) response.headers.set('x-laube-cookie-currency', cookieCurrency)
+  if (acceptLanguage) response.headers.set('x-laube-accept-language', acceptLanguage)
+  if (geoCountry) response.headers.set('x-laube-country', geoCountry)
+
+  // Backward compatibility header forwarding
+  const resolvedLocale = cookieLocale || acceptLanguage.split(',')[0]?.split('-')[0] || 'en'
   const resolvedCurrency = cookieCurrency || 'EGP'
-
-  // 5. Attach Resolved Context Headers
   response.headers.set('x-laube-locale', resolvedLocale)
   response.headers.set('x-laube-currency', resolvedCurrency)
 

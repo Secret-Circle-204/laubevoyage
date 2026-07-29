@@ -36,8 +36,8 @@ export class PaymentWebhookLedger {
   /**
    * Record a processed webhook event ID.
    */
-  async recordProcessed(transactionId: string, webhook: WebhookLedgerRecord): Promise<void> {
+  async recordProcessed(transactionId: string, webhook: WebhookLedgerRecord, req?: any): Promise<void> {
     this.memoryCache.add(webhook.eventId)
-    await this.repository.appendWebhook(transactionId, webhook)
+    await this.repository.appendWebhook(transactionId, webhook, req)
   }
 }

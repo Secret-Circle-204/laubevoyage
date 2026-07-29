@@ -2,9 +2,18 @@ import type { CollectionConfig } from 'payload'
 
 export const EventOutbox: CollectionConfig = {
   slug: 'event-outbox',
+  // lockDocuments: false,
   admin: {
     useAsTitle: 'eventId',
-    defaultColumns: ['eventId', 'eventType', 'aggregateType', 'aggregateId', 'status', 'retryCount', 'occurredAt'],
+    defaultColumns: [
+      'eventId',
+      'eventType',
+      'aggregateType',
+      'aggregateId',
+      'status',
+      'retryCount',
+      'occurredAt',
+    ],
   },
   access: {
     read: () => true,
@@ -67,6 +76,7 @@ export const EventOutbox: CollectionConfig = {
       defaultValue: 'pending',
       options: [
         { label: 'Pending', value: 'pending' },
+        { label: 'Processing', value: 'processing' },
         { label: 'Published', value: 'published' },
         { label: 'Failed', value: 'failed' },
         { label: 'Dead Letter', value: 'dead_letter' },
@@ -95,6 +105,16 @@ export const EventOutbox: CollectionConfig = {
       name: 'occurredAt',
       type: 'date',
       required: true,
+    },
+    {
+      name: 'workerId',
+      type: 'text',
+      index: true,
+    },
+    {
+      name: 'lockExpiresAt',
+      type: 'date',
+      index: true,
     },
   ],
   timestamps: true,

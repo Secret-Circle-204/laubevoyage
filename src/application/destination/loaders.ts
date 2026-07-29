@@ -9,8 +9,8 @@ export class DestinationsCatalogLoader {
     try {
       const { destination, localization } = await getDomainServices()
       const ctx = localization.buildContext({
-        language: (options?.locale || 'en') as any,
-        currency: (options?.currency || 'EGP') as any,
+        cookieLocale: options?.locale,
+        cookieCurrency: options?.currency,
       })
 
       const countriesRes = await destination.getCountries(options)
@@ -105,8 +105,8 @@ export class CountryLoader {
     try {
       const { destination, localization } = await getDomainServices()
       const ctx = localization.buildContext({
-        language: (options?.locale || 'en') as any,
-        currency: (options?.currency || 'EGP') as any,
+        cookieLocale: options?.locale,
+        cookieCurrency: options?.currency,
       })
 
       const countryDoc = (await destination.getCountry(countrySlug, options)) as Record<
@@ -178,8 +178,8 @@ export class CityLoader {
     try {
       const { destination, localization, experience } = await getDomainServices()
       const ctx = localization.buildContext({
-        language: (options?.locale || 'en') as any,
-        currency: (options?.currency || 'EGP') as any,
+        cookieLocale: options?.locale,
+        cookieCurrency: options?.currency,
       })
 
       const cityDoc = (await destination.getCity(citySlug, options)) as Record<string, any> | null

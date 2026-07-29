@@ -69,6 +69,10 @@ export interface StripeWebhookPayload {
       payment_intent?: string | null
       amount_total?: number | null
       currency?: string | null
+      customer_details?: {
+        email?: string | null
+      } | null
+      customer_email?: string | null
     }
   }
 }

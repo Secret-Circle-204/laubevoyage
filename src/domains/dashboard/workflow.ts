@@ -9,9 +9,9 @@ import { DashboardPolicy } from './policy'
 import type { CustomerPortalProjection, DashboardWidget } from './types'
 import { DashboardWidgetProvider } from './widget-provider'
 import { DashboardMetrics } from './metrics'
-import { CustomerRepository } from '../customer/repositories/customer-repository'
-import { LoyaltyRepository } from '../loyalty/repository'
-import { BookingRepository } from '../booking/repository'
+import type { CustomerRepository } from '../customer/repositories/customer-repository'
+import type { LoyaltyRepository } from '../loyalty/repository'
+import type { BookingRepository } from '../booking/repository'
 
 /**
  * Dashboard Workflow Engine
@@ -39,11 +39,7 @@ export class DashboardWorkflowEngine {
     if (queryBus && 'customerQueries' in queryBus) {
       this.queryBus = queryBus as DashboardQueryBus
     } else {
-      const activePayload = (queryBus || repository) as Payload
-      const customerRepo = new CustomerRepository(activePayload)
-      const loyaltyRepo = new LoyaltyRepository(activePayload)
-      const bookingRepo = new BookingRepository(activePayload)
-      this.queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo)
+      this.queryBus = (queryBus as unknown as DashboardQueryBus) || ({} as DashboardQueryBus)
     }
 
     this.overviewAggregator = new DashboardOverviewAggregator(this.queryBus)

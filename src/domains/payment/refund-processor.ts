@@ -55,6 +55,10 @@ export class RefundProcessor {
 
     // 4. Emit PaymentRefundedEvent after DB commit
     await this.eventBus.publish({
+      eventId: `evt_pay_ref_${updatedTransaction.transactionId}_${Date.now()}`,
+      correlationId: `corr_${updatedTransaction.bookingId}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
       type: 'PAYMENT_REFUNDED',
       transactionId: updatedTransaction.transactionId,
       bookingId: updatedTransaction.bookingId,

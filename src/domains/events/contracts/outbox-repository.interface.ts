@@ -21,6 +21,7 @@ export interface DomainOutboxRecord {
 export interface IOutboxRepository {
   add(event: BaseDomainEvent, dbTransaction?: unknown): Promise<DomainOutboxRecord>
   findPending(limit?: number): Promise<DomainOutboxRecord[]>
+  claimPending(limit: number, workerId: string): Promise<DomainOutboxRecord[]>
   markAsPublished(eventId: string): Promise<void>
   markAsFailed(eventId: string, errorMessage: string, nextRetryAt: string, newRetryCount: number): Promise<void>
   markAsDeadLetter(eventId: string, errorMessage: string): Promise<void>

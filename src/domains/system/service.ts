@@ -1,5 +1,5 @@
 import type { Payload } from 'payload'
-import { SystemIntegrationWorkflowEngine } from './workflow'
+import { SystemIntegrationWorkflowEngine, type SystemBootstrapOptions } from './workflow'
 import type { SystemHealthReportDTO, ProductionReadinessDTO } from './types'
 
 /**
@@ -13,8 +13,8 @@ export class SystemIntegrationService {
     this.workflowEngine = new SystemIntegrationWorkflowEngine(payload)
   }
 
-  async bootstrapSystem(): Promise<{ success: boolean; eventSubscribersCount: number }> {
-    return this.workflowEngine.bootstrapSystem()
+  async bootstrapSystem(options?: SystemBootstrapOptions): Promise<{ success: boolean; eventSubscribersCount: number }> {
+    return this.workflowEngine.bootstrapSystem(options)
   }
 
   async getSystemHealth(): Promise<SystemHealthReportDTO> {

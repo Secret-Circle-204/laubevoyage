@@ -49,7 +49,9 @@ export default async function Page() {
             />
           </div>
           <span className="text-xs text-slate-400 text-right font-medium">
-            350 more points to reach ELITE Tier
+            {data.pointsToNextTier > 0
+              ? `${data.pointsToNextTier.toLocaleString()} more points to reach ${data.nextTierName.toUpperCase()} Tier`
+              : 'Highest Membership Tier Achieved!'}
           </span>
         </div>
       </Card>

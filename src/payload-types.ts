@@ -97,6 +97,8 @@ export interface Config {
     coupons: Coupon;
     languages: Language;
     'departure-slots': DepartureSlot;
+    'event-outbox': EventOutbox;
+    'event-inbox': EventInbox;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -133,6 +135,8 @@ export interface Config {
     coupons: CouponsSelect<false> | CouponsSelect<true>;
     languages: LanguagesSelect<false> | LanguagesSelect<true>;
     'departure-slots': DepartureSlotsSelect<false> | DepartureSlotsSelect<true>;
+    'event-outbox': EventOutboxSelect<false> | EventOutboxSelect<true>;
+    'event-inbox': EventInboxSelect<false> | EventInboxSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -144,9 +148,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'system-settings': SystemSetting;
+    'loyalty-settings': LoyaltySetting;
   };
   globalsSelect: {
     'system-settings': SystemSettingsSelect<false> | SystemSettingsSelect<true>;
+    'loyalty-settings': LoyaltySettingsSelect<false> | LoyaltySettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -970,6 +976,15 @@ export interface NotificationLog {
   category: 'marketing' | 'booking' | 'payment' | 'loyalty';
   priority: 'critical' | 'high' | 'normal' | 'low';
   templateId: string;
+  templateData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   status: 'queued' | 'processing' | 'sent' | 'delivered' | 'failed' | 'dlq';
   attempts?: number | null;
   lastError?: string | null;
@@ -1199,6 +1214,52 @@ export interface DepartureSlot {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-outbox".
+ */
+export interface EventOutbox {
+  id: number;
+  eventId: string;
+  correlationId: string;
+  causationId?: string | null;
+  eventType: string;
+  eventVersion: number;
+  aggregateType: string;
+  aggregateId: string;
+  payload:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status: 'pending' | 'processing' | 'published' | 'failed' | 'dead_letter';
+  retryCount: number;
+  nextRetryAt?: string | null;
+  errorMessage?: string | null;
+  publishedAt?: string | null;
+  occurredAt: string;
+  workerId?: string | null;
+  lockExpiresAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-inbox".
+ */
+export interface EventInbox {
+  id: number;
+  idempotencyKey: string;
+  processedEventId: string;
+  subscriberName: string;
+  processedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1336,6 +1397,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'departure-slots';
         value: number | DepartureSlot;
+      } | null)
+    | ({
+        relationTo: 'event-outbox';
+        value: number | EventOutbox;
+      } | null)
+    | ({
+        relationTo: 'event-inbox';
+        value: number | EventInbox;
       } | null);
   globalSlug?: string | null;
   user:
@@ -1873,6 +1942,7 @@ export interface NotificationLogsSelect<T extends boolean = true> {
   category?: T;
   priority?: T;
   templateId?: T;
+  templateData?: T;
   status?: T;
   attempts?: T;
   lastError?: T;
@@ -2016,6 +2086,42 @@ export interface DepartureSlotsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-outbox_select".
+ */
+export interface EventOutboxSelect<T extends boolean = true> {
+  eventId?: T;
+  correlationId?: T;
+  causationId?: T;
+  eventType?: T;
+  eventVersion?: T;
+  aggregateType?: T;
+  aggregateId?: T;
+  payload?: T;
+  status?: T;
+  retryCount?: T;
+  nextRetryAt?: T;
+  errorMessage?: T;
+  publishedAt?: T;
+  occurredAt?: T;
+  workerId?: T;
+  lockExpiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "event-inbox_select".
+ */
+export interface EventInboxSelect<T extends boolean = true> {
+  idempotencyKey?: T;
+  processedEventId?: T;
+  subscriberName?: T;
+  processedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -2090,6 +2196,80 @@ export interface SystemSetting {
   createdAt?: string | null;
 }
 /**
+ * Single Source of Truth for Loyalty Program Business Policy Configuration
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "loyalty-settings".
+ */
+export interface LoyaltySetting {
+  id: number;
+  /**
+   * Sequential version number stored in point ledger metadata for historical auditing
+   */
+  version: number;
+  /**
+   * Core system loyalty program identifier (e.g., LAUBE_LOYALTY)
+   */
+  programCode: string;
+  /**
+   * Human-readable title displayed in customer portal
+   */
+  name: string;
+  /**
+   * Standard loyalty points earned per 1 EGP base spend
+   */
+  baseEarnRate: number;
+  /**
+   * Number of points per discount unit (e.g., 100 points)
+   */
+  redemptionPointsUnit: number;
+  /**
+   * EGP monetary discount value per points unit (e.g., 10 EGP per 100 points)
+   */
+  redemptionValueEGP: number;
+  /**
+   * Minimum points balance required before customer can redeem
+   */
+  minRedemptionPoints: number;
+  /**
+   * Forces redemption points to be multiples of this step (e.g. 50 points)
+   */
+  redemptionStepUnit?: number | null;
+  /**
+   * Maximum percentage of total booking EGP payable via points (e.g. 80%)
+   */
+  maxRedemptionPercent: number;
+  /**
+   * Optional absolute upper limit in EGP discount per booking (e.g., 5000 EGP)
+   */
+  maxRedemptionFixedEGP?: number | null;
+  /**
+   * If checked, customer can choose any custom point amount up to limit
+   */
+  allowPartialRedemption?: boolean | null;
+  /**
+   * Loyalty points granted upon new customer account creation
+   */
+  welcomeBonus: number;
+  /**
+   * Rolling validity period for earned points in months (e.g. 12 months)
+   */
+  expirationMonths: number;
+  /**
+   * Welcome and Tier Upgrade bonuses do not expire under rolling expiration
+   */
+  bonusNeverExpires?: boolean | null;
+  tiers: {
+    tier: 'explorer' | 'voyager' | 'elite';
+    minSpentEGP: number;
+    earnMultiplier: number;
+    upgradeBonus: number;
+    id?: string | null;
+  }[];
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "system-settings_select".
  */
@@ -2102,6 +2282,38 @@ export interface SystemSettingsSelect<T extends boolean = true> {
   autoSyncExchangeRates?: T;
   exchangeSyncInterval?: T;
   exchangeRateCacheTtl?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "loyalty-settings_select".
+ */
+export interface LoyaltySettingsSelect<T extends boolean = true> {
+  version?: T;
+  programCode?: T;
+  name?: T;
+  baseEarnRate?: T;
+  redemptionPointsUnit?: T;
+  redemptionValueEGP?: T;
+  minRedemptionPoints?: T;
+  redemptionStepUnit?: T;
+  maxRedemptionPercent?: T;
+  maxRedemptionFixedEGP?: T;
+  allowPartialRedemption?: T;
+  welcomeBonus?: T;
+  expirationMonths?: T;
+  bonusNeverExpires?: T;
+  tiers?:
+    | T
+    | {
+        tier?: T;
+        minSpentEGP?: T;
+        earnMultiplier?: T;
+        upgradeBonus?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
