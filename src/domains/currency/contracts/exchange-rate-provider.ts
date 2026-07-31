@@ -1,11 +1,8 @@
-export interface ExchangeRateCatalog {
-  baseCurrency: string
-  rates: Record<string, number>
-  updatedAt: string
-}
+import type { ExchangeRateProviderResult, ExchangeRateSource } from '../types'
 
 export interface ExchangeRateProvider {
-  readonly providerId: string
-
-  fetchLatestRates(baseCurrency?: string): Promise<ExchangeRateCatalog>
+  readonly name: string
+  readonly source: ExchangeRateSource
+  hasApiKey(): boolean
+  fetchRates(baseCurrency: string): Promise<ExchangeRateProviderResult>
 }

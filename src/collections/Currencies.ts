@@ -63,6 +63,13 @@ export const Currencies: CollectionConfig = {
     },
 
     {
+      name: 'flagCode',
+      type: 'text',
+      admin: {
+        description: 'Two-letter country code for flags (e.g., us, eu, eg, sa)',
+      },
+    },
+    {
       name: 'isActive',
       type: 'checkbox',
       defaultValue: true,

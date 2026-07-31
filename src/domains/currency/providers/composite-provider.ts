@@ -1,4 +1,6 @@
-import type { ExchangeRateProvider } from './types'
+import type { ExchangeRateProvider } from '../contracts/exchange-rate-provider'
+import type { ExchangeRateProviderResult } from '../types'
+import { EXCHANGE_RATE_SOURCES } from '../types'
 import { ExchangeRateApiProvider } from './exchangerate-api'
 import { FawazAhmedCurrencyProvider } from './fawazahmed-provider'
 import { OpenExchangeProvider } from './openexchange'
@@ -12,8 +14,12 @@ import { OpenExchangeProvider } from './openexchange'
  */
 export class CompositeExchangeRateProvider implements ExchangeRateProvider {
   readonly name = 'Composite-Exchange-Pipeline'
+  readonly source = EXCHANGE_RATE_SOURCES.EXCHANGE_RATE_API
+  readonly providers: ExchangeRateProvider[]
 
-  private providers: ExchangeRateProvider[]
+  hasApiKey() {
+    return true
+  }
 
   constructor(customProviders?: ExchangeRateProvider[]) {
     this.providers = customProviders || [
@@ -23,17 +29,17 @@ export class CompositeExchangeRateProvider implements ExchangeRateProvider {
     ]
   }
 
-  async fetchRates(baseCurrency = 'EGP'): Promise<Record<string, number>> {
+  async fetchRates(baseCurrency = 'EGP'): Promise<ExchangeRateProviderResult> {
     const errors: string[] = []
 
     for (const provider of this.providers) {
       try {
         console.log(`[CurrencyPipeline] Attempting rate sync via provider: ${provider.name}`)
-        const rates = await provider.fetchRates(baseCurrency)
+        const result = await provider.fetchRates(baseCurrency)
 
-        if (rates && Object.keys(rates).length > 0) {
+        if (result.rates && Object.keys(result.rates).length > 0) {
           console.log(`[CurrencyPipeline] Rate sync successful via: ${provider.name}`)
-          return rates
+          return result
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)

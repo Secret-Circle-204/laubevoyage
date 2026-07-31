@@ -28,6 +28,8 @@ export interface NotificationJobEntity {
   maxAttempts: number
   lastError?: string
   sentAt?: string
+  nextAttemptAt?: string
+  lastAttemptAt?: string
   createdAt: string
 }
 

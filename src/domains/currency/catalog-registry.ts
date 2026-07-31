@@ -10,6 +10,7 @@ export interface CurrencyIdentity {
   isActive: boolean
   displayOrder: number
   isDefault: boolean
+  flagCode?: string | null
 }
 
 class CurrencyCatalogRegistry {
@@ -40,7 +41,20 @@ class CurrencyCatalogRegistry {
     if (repo) {
       try {
         const { docs } = await repo.findActiveCurrencies()
+        const seenIso = new Set<string>()
+        let hasBaseCurrency = false
+
         for (const doc of docs) {
+          const iso = doc.isoCode.toUpperCase().trim()
+          if (seenIso.has(iso)) {
+            throw new Error(`FATAL EXCHANGE CONFIGURATION ERROR: Duplicate active currency ISO code configured in CMS: ${iso}`)
+          }
+          seenIso.add(iso)
+
+          if (iso === 'EGP') {
+            hasBaseCurrency = true
+          }
+
           newCache.set(doc.isoCode, {
             isoCode: doc.isoCode,
             numericCode: doc.numericCode,
@@ -51,10 +65,16 @@ class CurrencyCatalogRegistry {
             isActive: doc.isActive ?? true,
             displayOrder: doc.displayOrder ?? 0,
             isDefault: doc.isDefault ?? false,
+            flagCode: doc.flagCode || null,
           })
+        }
+
+        if (!hasBaseCurrency) {
+          throw new Error('FATAL EXCHANGE CONFIGURATION ERROR: Platform base currency "EGP" is missing or inactive in currencies collection.')
         }
       } catch (err: unknown) {
         console.error('[CurrencyCatalogRegistry] Failed loading currencies from repository:', err)
+        throw err
       }
     }
 

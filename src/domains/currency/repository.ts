@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import type { ExchangeRateSource } from './types'
 
 export class CurrencyRepository {
   private payload: Payload
@@ -53,7 +54,7 @@ export class CurrencyRepository {
     fromCurrency: string
     toCurrency: string
     rate: number
-    source: 'OpenExchange' | 'ECB' | 'Fixer' | 'Manual'
+    source: ExchangeRateSource
     syncStatus: 'synced' | 'failed' | 'stale'
     timestamp: string
   }) {
@@ -100,5 +101,21 @@ export class CurrencyRepository {
         },
       })
     }
+  }
+
+  async getLatestRateSync(): Promise<{ source: ExchangeRateSource; lastSuccess: string } | null> {
+    const existing = await this.payload.find({
+      collection: 'exchange-rates',
+      limit: 1,
+      sort: '-lastSuccess',
+      depth: 0,
+    })
+    if (existing.docs.length > 0 && existing.docs[0].lastSuccess && existing.docs[0].source) {
+      return {
+        source: existing.docs[0].source as ExchangeRateSource,
+        lastSuccess: new Date(existing.docs[0].lastSuccess).toISOString(),
+      }
+    }
+    return null
   }
 }

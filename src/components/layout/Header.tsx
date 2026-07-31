@@ -8,6 +8,7 @@ import { useTheme } from '@/providers/theme-provider'
 import { Button, Badge } from '@/components/ui'
 import { ThemeToggle } from './ThemeToggle'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { CurrencySwitcher } from './CurrencySwitcher'
 import type { LayoutDTO } from '@/application/layout/dto'
 
 export interface HeaderProps {
@@ -32,7 +33,7 @@ export function Header({ data }: HeaderProps) {
   }, [])
 
   const navLinks = data?.navigationMenu || []
-  const availableCurrencies = data?.supportedCurrencies?.map((c) => c.code) || []
+  const availableCurrencies = data?.supportedCurrencies || []
   const availableLocales = data?.supportedLocales || []
 
   const isDark = theme === 'dark'
@@ -89,21 +90,12 @@ export function Header({ data }: HeaderProps) {
 
           {/* Currency Switcher */}
           {availableCurrencies.length > 0 && (
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value as any)}
-              className={`text-xs font-bold rounded-lg px-2.5 py-1.5 border-0 cursor-pointer focus:ring-2 focus:ring-[#00aeef] ${
-                isDark
-                  ? 'bg-slate-800 text-slate-200'
-                  : 'bg-slate-100 text-slate-800'
-              }`}
-            >
-              {availableCurrencies.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <CurrencySwitcher
+              currency={currency}
+              setCurrency={setCurrency}
+              availableCurrencies={availableCurrencies}
+              isDark={isDark}
+            />
           )}
 
           {/* Locale Switcher */}
@@ -190,17 +182,12 @@ export function Header({ data }: HeaderProps) {
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               {availableCurrencies.length > 0 && (
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value as any)}
-                  className="bg-slate-800 text-white text-xs font-bold rounded-lg px-2 py-1"
-                >
-                  {availableCurrencies.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+                <CurrencySwitcher
+                  currency={currency}
+                  setCurrency={setCurrency}
+                  availableCurrencies={availableCurrencies}
+                  isDark={true}
+                />
               )}
               {availableLocales.length > 0 && (
                 <LanguageSwitcher

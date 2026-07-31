@@ -221,7 +221,7 @@ export class CustomerRepository {
     }
   }
 
-  async deleteAssociatedData(customerId: number, req?: PayloadRequest): Promise<void> {
+  async cleanupProfileAssociatedData(customerId: number, req?: PayloadRequest): Promise<void> {
     const where = { customer: { equals: customerId } }
     const collections = [
       'customer-travelers',

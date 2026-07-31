@@ -1,12 +1,15 @@
 import { CustomerWorkflowEngine, type VerificationResult } from './workflow'
 import { CustomerRepository } from './repositories/customer-repository'
 import type { CustomerAggregate } from './aggregate'
-import type {
-  CompanionTravelerEntity,
-  CustomerAddressEntity,
-  DeviceSessionEntity,
-  CustomerPreferencesInput,
+import {
+  type CompanionTravelerEntity,
+  type CustomerAddressEntity,
+  type DeviceSessionEntity,
+  type CustomerPreferencesInput,
+  type CustomerDeletionDependencyChecker,
+  CustomerDeletionNotAllowedException,
 } from './types'
+import { CustomerPolicy } from './policy'
 import { EventOutboxService } from '../events/outbox'
 
 /**
@@ -16,10 +19,15 @@ import { EventOutboxService } from '../events/outbox'
  */
 export class CustomerService {
   private repository: CustomerRepository
+  private dependencyChecker: CustomerDeletionDependencyChecker
   private workflowEngine: CustomerWorkflowEngine
 
-  constructor(repository: CustomerRepository) {
+  constructor(
+    repository: CustomerRepository,
+    dependencyChecker: CustomerDeletionDependencyChecker,
+  ) {
     this.repository = repository
+    this.dependencyChecker = dependencyChecker
     this.workflowEngine = new CustomerWorkflowEngine(repository)
   }
 
@@ -123,5 +131,20 @@ export class CustomerService {
     loyaltyData: { tier?: 'explorer' | 'voyager' | 'elite'; points?: number; totalSpent?: number; tierAchievedAt?: string },
   ): Promise<void> {
     await this.repository.updateLoyaltyProfile(customerId, loyaltyData)
+  }
+
+  async ensureDeletionAllowed(customerId: number, req?: any): Promise<void> {
+    const customer = await this.getById(customerId)
+    const checks = await this.dependencyChecker.checkDependencies(customerId, req)
+    const policyResult = CustomerPolicy.canDeleteAccount(customer, checks)
+
+    if (!policyResult.allowed) {
+      throw new CustomerDeletionNotAllowedException(
+        policyResult.reason || 'Deletion not allowed',
+        policyResult.code,
+      )
+    }
+
+    await this.repository.cleanupProfileAssociatedData(customerId, req)
   }
 }

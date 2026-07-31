@@ -20,6 +20,9 @@ import * as migration_20260729_155209 from './20260729_155209';
 import * as migration_20260729_155308_add_country_default_lang from './20260729_155308_add_country_default_lang';
 import * as migration_20260729_164215_add_language_default_currency from './20260729_164215_add_language_default_currency';
 import * as migration_20260729_172246_rename_language_default_currency from './20260729_172246_rename_language_default_currency';
+import * as migration_20260729_184928_add_flag_code from './20260729_184928_add_flag_code';
+import * as migration_20260729_193424_add_notification_retry_telemetry from './20260729_193424_add_notification_retry_telemetry';
+import * as migration_20260729_195718_update_exchange_rates_sources from './20260729_195718_update_exchange_rates_sources';
 
 export const migrations = [
   {
@@ -130,6 +133,21 @@ export const migrations = [
   {
     up: migration_20260729_172246_rename_language_default_currency.up,
     down: migration_20260729_172246_rename_language_default_currency.down,
-    name: '20260729_172246_rename_language_default_currency'
+    name: '20260729_172246_rename_language_default_currency',
+  },
+  {
+    up: migration_20260729_184928_add_flag_code.up,
+    down: migration_20260729_184928_add_flag_code.down,
+    name: '20260729_184928_add_flag_code',
+  },
+  {
+    up: migration_20260729_193424_add_notification_retry_telemetry.up,
+    down: migration_20260729_193424_add_notification_retry_telemetry.down,
+    name: '20260729_193424_add_notification_retry_telemetry',
+  },
+  {
+    up: migration_20260729_195718_update_exchange_rates_sources.up,
+    down: migration_20260729_195718_update_exchange_rates_sources.down,
+    name: '20260729_195718_update_exchange_rates_sources'
   },
 ];

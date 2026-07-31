@@ -56,3 +56,22 @@ export interface CustomerPreferencesInput {
   preferredLanguage?: string
   preferredCurrency?: string
 }
+
+export class CustomerDeletionNotAllowedException extends Error {
+  code: string
+  constructor(reason: string, code = 'DELETION_NOT_ALLOWED') {
+    super(reason)
+    this.name = 'CustomerDeletionNotAllowedException'
+    this.code = code
+  }
+}
+
+export interface CustomerDeletionDependencyChecker {
+  checkDependencies(customerId: number, req?: any): Promise<{
+    bookingCount: number
+    pointLedgerCount: number
+    reviewCount: number
+    paymentCount: number
+  }>
+}
+

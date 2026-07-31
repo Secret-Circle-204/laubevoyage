@@ -1,7 +1,7 @@
 import type { NotificationQueue } from './queue'
 import type { NotificationDispatcher } from './dispatcher'
 import type { NotificationRepository } from './repository'
-import { NotificationPolicy } from './policy'
+import { NotificationPolicy, NotificationRetryScheduler } from './policy'
 
 /**
  * Background Notification Worker Engine
@@ -59,6 +59,7 @@ export class NotificationWorker {
 
     job.status = 'processing'
     job.attempts += 1
+    job.lastAttemptAt = new Date().toISOString()
     await this.repository.saveJob(job)
 
     try {
@@ -74,22 +75,29 @@ export class NotificationWorker {
 
       console.error(`[NotificationWorker] ❌ Job ${job.jobId} dispatch failed: ${result.error || 'Unknown error'}`);
 
-      if (job.attempts >= job.maxAttempts) {
+      const delaySeconds = NotificationRetryScheduler.calculateNextAttemptDelay(job.channel, job.attempts)
+
+      if (delaySeconds === null) {
         console.error(`[NotificationWorker] 🚨 Job ${job.jobId} exceeded max attempts. Routing to DLQ.`);
         job.status = 'dlq'
         job.lastError = result.error || 'Max retries reached'
       } else {
         job.status = 'failed'
         job.lastError = result.error
+        job.nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
       }
     } catch (err: any) {
       console.error(`[NotificationWorker] ❌ Exception during job ${job.jobId} execution: ${err.message}`);
-      if (job.attempts >= job.maxAttempts) {
+      const delaySeconds = NotificationRetryScheduler.calculateNextAttemptDelay(job.channel, job.attempts)
+
+      if (delaySeconds === null) {
         job.status = 'dlq'
+        job.lastError = err.message || 'Max retries reached'
       } else {
         job.status = 'failed'
+        job.lastError = err.message
+        job.nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
       }
-      job.lastError = err.message
     }
 
     await this.repository.saveJob(job)

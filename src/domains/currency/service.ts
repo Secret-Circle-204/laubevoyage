@@ -3,8 +3,10 @@ import { rateRegistry } from './rate-registry'
 import { catalogRegistry } from './catalog-registry'
 import { CurrencyRepository } from './repository'
 import { CompositeExchangeRateProvider } from './providers/composite-provider'
-import type { ExchangeRateProvider } from './providers/types'
-import { ExchangeRateUnavailableError } from './types'
+import type { ExchangeRateProvider } from './contracts/exchange-rate-provider'
+import type { ExchangeRateSource } from './types'
+import { ExchangeRateUnavailableError, EXCHANGE_RATE_SOURCES } from './types'
+import { CurrencySyncPolicy } from './policy'
 
 /**
  * Currency Domain Service
@@ -76,7 +78,7 @@ export class CurrencyService {
     fromCurrency: string
     toCurrency: string
     rate: number
-    source: 'OpenExchange' | 'ECB' | 'Fixer' | 'Manual'
+    source: ExchangeRateSource
     syncStatus: 'synced' | 'failed' | 'stale'
     timestamp: string
   }) {
@@ -85,32 +87,93 @@ export class CurrencyService {
     return result
   }
 
-  async syncExchangeRates(): Promise<{ success: boolean; message: string; timestamp: string }> {
-    let rates: Record<string, number> = {}
-    let source: 'OpenExchange' | 'ECB' | 'Fixer' | 'Manual' = 'OpenExchange'
-    let syncStatus: 'synced' | 'failed' | 'stale' = 'synced'
+  /**
+   * Helper to retrieve list of providers (flattens composite provider)
+   */
+  private getProviders(): ExchangeRateProvider[] {
+    if ('providers' in this.rateProvider && Array.isArray((this.rateProvider as any).providers)) {
+      return (this.rateProvider as any).providers
+    }
+    return [this.rateProvider]
+  }
 
-    const now = new Date().toISOString()
+  async syncExchangeRates(force = false): Promise<{ success: boolean; message: string; timestamp: string; skipped?: boolean }> {
+    const now = new Date()
+    const nowIso = now.toISOString()
+    const providers = this.getProviders()
+    const orderedProviders = CurrencySyncPolicy.getOrderedProviders(providers)
 
-    try {
-      rates = await this.rateProvider.fetchRates('EGP')
-    } catch (primaryError) {
-      console.error('[CurrencyService] Primary Rate Provider Failed:', primaryError)
-      const primaryMsg = primaryError instanceof Error ? primaryError.message : String(primaryError)
+    console.log(`[CurrencyService] Starting rate sync cycle (forceSync: ${force}). Providers in priority: ${orderedProviders.map(p => p.name).join(', ')}`)
+
+    // 1. Freshness Policy check
+    if (!force) {
+      const latestSync = await this.repository.getLatestRateSync()
+      if (latestSync) {
+        const needsSync = CurrencySyncPolicy.shouldSync(latestSync.source, latestSync.lastSuccess, now)
+        if (!needsSync) {
+          console.log(`[CurrencyService] Sync skipped: Rates are still fresh. Last synced via ${latestSync.source} at ${latestSync.lastSuccess}.`)
+          return {
+            success: true,
+            message: 'Sync skipped: Rates are still fresh.',
+            timestamp: nowIso,
+            skipped: true,
+          }
+        }
+      }
+    }
+
+    // 2. Fetch rates with failover
+    let activeProviderUsed: ExchangeRateProvider | null = null
+    let fetchedRates: Record<string, number> = {}
+    const skippedProviders: string[] = []
+    const failedProviders: string[] = []
+
+    for (const provider of orderedProviders) {
+      // API key policy validation
+      const requiresKey = CurrencySyncPolicy.requiresApiKey(provider.source)
+      if (requiresKey && !provider.hasApiKey()) {
+        skippedProviders.push(`${provider.name} (API key missing)`)
+        continue
+      }
+
       try {
-        await this.repository.markAllStale(primaryMsg, now)
+        console.log(`[CurrencyService] Fetching rates using provider: ${provider.name}`)
+        const result = await provider.fetchRates('EGP')
+        if (result.rates && Object.keys(result.rates).length > 0) {
+          fetchedRates = result.rates
+          activeProviderUsed = provider
+          break
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.warn(`[CurrencyService] Provider ${provider.name} failed: ${msg}`)
+        failedProviders.push(`${provider.name}: ${msg}`)
+      }
+    }
+
+    // Handle skipped / all failed scenario
+    if (!activeProviderUsed) {
+      const errorMsg = `All rate providers failed. Skips: [${skippedProviders.join(', ')}] | Errors: [${failedProviders.join(' | ')}]`
+      console.error(`[CurrencyService] ${errorMsg}`)
+      try {
+        await this.repository.markAllStale(errorMsg, nowIso)
         rateRegistry.invalidate()
       } catch (dbError) {
         console.error('[CurrencyService] Failed marking rates as stale:', dbError)
       }
-      return { success: false, message: 'All providers failed. Kept old rates but marked as STALE.', timestamp: now }
+      return {
+        success: false,
+        message: 'All providers failed. Kept old rates but marked as STALE.',
+        timestamp: nowIso,
+      }
     }
 
+    // Save rates
     const activeCurrencies = await this.repository.findActiveCurrencies()
     const activeIsoCodes = new Set(activeCurrencies.docs.map(c => c.isoCode.toUpperCase()))
 
     let updated = 0
-    for (const [currency, rate] of Object.entries(rates)) {
+    for (const [currency, rate] of Object.entries(fetchedRates)) {
       if (!rate) continue
       const currencyUpper = currency.toUpperCase()
       if (!activeIsoCodes.has(currencyUpper)) continue
@@ -119,15 +182,20 @@ export class CurrencyService {
         fromCurrency: 'EGP',
         toCurrency: currencyUpper,
         rate,
-        source,
-        syncStatus,
-        timestamp: now,
+        source: activeProviderUsed.source,
+        syncStatus: 'synced',
+        timestamp: nowIso,
       })
       updated++
     }
 
     rateRegistry.invalidate()
-    return { success: true, message: `Updated ${updated} exchange rates`, timestamp: now }
+    console.log(`[CurrencyService] Sync completed successfully. Updated ${updated} exchange rates via ${activeProviderUsed.name}.`)
+    return {
+      success: true,
+      message: `Updated ${updated} exchange rates via ${activeProviderUsed.name}`,
+      timestamp: nowIso,
+    }
   }
 
   /**

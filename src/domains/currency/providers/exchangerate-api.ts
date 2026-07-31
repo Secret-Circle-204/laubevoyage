@@ -1,4 +1,6 @@
-import type { ExchangeRateProvider } from './types'
+import type { ExchangeRateProvider } from '../contracts/exchange-rate-provider'
+import type { ExchangeRateProviderResult } from '../types'
+import { EXCHANGE_RATE_SOURCES } from '../types'
 
 /**
  * ExchangeRate-API Open Provider (Free, Open, High-Availability Endpoint)
@@ -9,8 +11,13 @@ import type { ExchangeRateProvider } from './types'
  */
 export class ExchangeRateApiProvider implements ExchangeRateProvider {
   readonly name = 'ExchangeRate-API'
+  readonly source = EXCHANGE_RATE_SOURCES.EXCHANGE_RATE_API
 
-  async fetchRates(baseCurrency = 'EGP'): Promise<Record<string, number>> {
+  hasApiKey() {
+    return true
+  }
+
+  async fetchRates(baseCurrency = 'EGP'): Promise<ExchangeRateProviderResult> {
     const url = `https://open.er-api.com/v6/latest/${baseCurrency}`
 
     const response = await fetch(url)
@@ -24,6 +31,9 @@ export class ExchangeRateApiProvider implements ExchangeRateProvider {
       throw new Error(`[ExchangeRateApiProvider] Invalid response format from API`)
     }
 
-    return data.rates
+    return {
+      source: EXCHANGE_RATE_SOURCES.EXCHANGE_RATE_API,
+      rates: data.rates,
+    }
   }
 }

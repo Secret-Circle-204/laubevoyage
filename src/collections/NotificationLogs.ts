@@ -108,6 +108,14 @@ export const NotificationLogs: CollectionConfig = {
       name: 'sentAt',
       type: 'date',
     },
+    {
+      name: 'nextAttemptAt',
+      type: 'date',
+    },
+    {
+      name: 'lastAttemptAt',
+      type: 'date',
+    },
   ],
   timestamps: true,
 }

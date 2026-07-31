@@ -28,3 +28,21 @@ export class NotificationPolicy {
     return { allowed: true }
   }
 }
+
+export class NotificationRetryScheduler {
+  private static readonly RETRY_DELAYS_BY_CHANNEL: Record<string, number[]> = {
+    email: [30, 300], // Attempt 2: 30s, Attempt 3: 5m
+    sms: [30, 300],
+    push: [30, 300],
+    whatsapp: [30, 300],
+  }
+
+  static calculateNextAttemptDelay(channel: string, attempts: number): number | null {
+    const delays = this.RETRY_DELAYS_BY_CHANNEL[channel] || [30, 300]
+    const index = attempts - 1
+    if (index >= 0 && index < delays.length) {
+      return delays[index]
+    }
+    return null
+  }
+}

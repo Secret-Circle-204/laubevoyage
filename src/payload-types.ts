@@ -410,6 +410,10 @@ export interface Currency {
    */
   decimals: number;
   /**
+   * Two-letter country code for flags (e.g., us, eu, eg, sa)
+   */
+  flagCode?: string | null;
+  /**
    * Enable or disable this currency in the frontend
    */
   isActive?: boolean | null;
@@ -799,7 +803,7 @@ export interface ExchangeRate {
    * Exchange rate from base currency
    */
   rate: number;
-  source: 'OpenExchange' | 'ECB' | 'Fixer' | 'Manual';
+  source: 'OpenExchange' | 'ExchangeRate-API' | 'FawazAhmed-CDN' | 'Manual';
   /**
    * Actual timestamp the rate was fetched/changed
    */
@@ -1040,6 +1044,8 @@ export interface NotificationLog {
   attempts?: number | null;
   lastError?: string | null;
   sentAt?: string | null;
+  nextAttemptAt?: string | null;
+  lastAttemptAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1784,6 +1790,7 @@ export interface CurrenciesSelect<T extends boolean = true> {
   symbol?: T;
   nativeSymbol?: T;
   decimals?: T;
+  flagCode?: T;
   isActive?: T;
   displayOrder?: T;
   isDefault?: T;
@@ -1958,6 +1965,8 @@ export interface NotificationLogsSelect<T extends boolean = true> {
   attempts?: T;
   lastError?: T;
   sentAt?: T;
+  nextAttemptAt?: T;
+  lastAttemptAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

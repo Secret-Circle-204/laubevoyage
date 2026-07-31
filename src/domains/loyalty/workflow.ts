@@ -56,7 +56,13 @@ export class LoyaltyWorkflowEngine {
   }
 
   async grantWelcomeBonus(userId: number, config?: LoyaltyProgramConfig): Promise<PointLedgerRecord> {
+    console.log(`[LoyaltyWorkflowEngine.grantWelcomeBonus] Received parameter config: ${!!config}, PID: ${process.pid}, Uptime: ${process.uptime()}s`)
     const activeConfig = await this.getActiveConfig(config)
+    console.log(`[LoyaltyWorkflowEngine.grantWelcomeBonus] Config resolved:`, {
+      baseEarnRate: activeConfig.baseEarnRate,
+      redemptionPointsUnit: activeConfig.redemptionPointsUnit,
+      redemptionValueEGP: activeConfig.redemptionValueEGP,
+    })
     return this.pointsEarner.grantWelcomeBonus(userId, activeConfig)
   }
 

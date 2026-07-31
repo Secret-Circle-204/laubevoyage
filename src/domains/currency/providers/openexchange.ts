@@ -1,4 +1,6 @@
-import type { ExchangeRateProvider } from './types'
+import type { ExchangeRateProvider } from '../contracts/exchange-rate-provider'
+import type { ExchangeRateProviderResult } from '../types'
+import { EXCHANGE_RATE_SOURCES } from '../types'
 
 /**
  * Open Exchange Rates Provider (Free tier)
@@ -10,13 +12,18 @@ import type { ExchangeRateProvider } from './types'
  */
 export class OpenExchangeProvider implements ExchangeRateProvider {
   readonly name = 'openexchange'
+  readonly source = EXCHANGE_RATE_SOURCES.OPEN_EXCHANGE
   private appId: string
 
   constructor() {
     this.appId = process.env.OPEN_EXCHANGE_APP_ID || ''
   }
 
-  async fetchRates(baseCurrency: string): Promise<Record<string, number>> {
+  hasApiKey() {
+    return !!this.appId
+  }
+
+  async fetchRates(baseCurrency: string): Promise<ExchangeRateProviderResult> {
     if (!this.appId) {
       throw new Error('[OpenExchangeProvider] OPEN_EXCHANGE_APP_ID environment variable is not set')
     }
@@ -37,7 +44,10 @@ export class OpenExchangeProvider implements ExchangeRateProvider {
 
     // If the requested base is USD, return directly
     if (baseCurrency === 'USD') {
-      return data.rates
+      return {
+        source: EXCHANGE_RATE_SOURCES.OPEN_EXCHANGE,
+        rates: data.rates,
+      }
     }
 
     // Convert all rates relative to the requested base currency
@@ -51,6 +61,9 @@ export class OpenExchangeProvider implements ExchangeRateProvider {
       rebased[currency] = (rate as number) / baseRate
     }
 
-    return rebased
+    return {
+      source: EXCHANGE_RATE_SOURCES.OPEN_EXCHANGE,
+      rates: rebased,
+    }
   }
 }

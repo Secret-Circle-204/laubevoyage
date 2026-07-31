@@ -72,6 +72,13 @@ export class PointsEarnProcessor {
     customerId: number,
     config: LoyaltyProgramConfig,
   ): Promise<PointLedgerRecord> {
+    console.log(`[PointsEarner.grantWelcomeBonus] Triggered. PID: ${process.pid}, Uptime: ${process.uptime()}s`)
+    console.log(`[PointsEarner.grantWelcomeBonus] Config received:`, {
+      baseEarnRate: config.baseEarnRate,
+      redemptionPointsUnit: config.redemptionPointsUnit,
+      redemptionValueEGP: config.redemptionValueEGP,
+      welcomeBonus: config.welcomeBonus,
+    })
     const existingBonus = await this.repository.findLedgerByReference(
       'system_welcome',
       String(customerId),

@@ -1,4 +1,6 @@
-import type { ExchangeRateProvider } from './types'
+import type { ExchangeRateProvider } from '../contracts/exchange-rate-provider'
+import type { ExchangeRateProviderResult } from '../types'
+import { EXCHANGE_RATE_SOURCES } from '../types'
 
 /**
  * FawazAhmed Currency API Provider (CDN-Backed Backup Provider)
@@ -9,8 +11,13 @@ import type { ExchangeRateProvider } from './types'
  */
 export class FawazAhmedCurrencyProvider implements ExchangeRateProvider {
   readonly name = 'FawazAhmed-CDN'
+  readonly source = EXCHANGE_RATE_SOURCES.FAWAZ_AHMED
 
-  async fetchRates(baseCurrency = 'EGP'): Promise<Record<string, number>> {
+  hasApiKey() {
+    return true
+  }
+
+  async fetchRates(baseCurrency = 'EGP'): Promise<ExchangeRateProviderResult> {
     const code = baseCurrency.toLowerCase()
     const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${code}.json`
 
@@ -34,6 +41,9 @@ export class FawazAhmedCurrencyProvider implements ExchangeRateProvider {
       }
     }
 
-    return uppercaseRates
+    return {
+      source: EXCHANGE_RATE_SOURCES.FAWAZ_AHMED,
+      rates: uppercaseRates,
+    }
   }
 }

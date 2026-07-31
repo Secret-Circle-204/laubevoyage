@@ -14,6 +14,7 @@ export interface CurrencyOptionDTO {
   code: string
   name: string
   symbol: string
+  flagCode?: string
 }
 
 export interface LocaleOptionDTO {

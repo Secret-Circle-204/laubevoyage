@@ -39,4 +39,18 @@ export class ExchangeRateUnavailableError extends Error {
   }
 }
 
+export const EXCHANGE_RATE_SOURCES = {
+  OPEN_EXCHANGE: 'OpenExchange',
+  EXCHANGE_RATE_API: 'ExchangeRate-API',
+  FAWAZ_AHMED: 'FawazAhmed-CDN',
+  MANUAL: 'Manual',
+} as const
+
+export type ExchangeRateSource = typeof EXCHANGE_RATE_SOURCES[keyof typeof EXCHANGE_RATE_SOURCES]
+
+export interface ExchangeRateProviderResult {
+  source: ExchangeRateSource
+  rates: Record<string, number>
+}
+
 

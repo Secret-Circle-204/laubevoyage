@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { rateRegistry } from '@/domains/currency/rate-registry'
+import { EXCHANGE_RATE_SOURCES } from '@/domains/currency/types'
 
 export const ExchangeRates: CollectionConfig = {
   slug: 'exchange-rates',
@@ -57,13 +58,11 @@ export const ExchangeRates: CollectionConfig = {
     {
       name: 'source',
       type: 'select',
-      options: [
-        { label: 'OpenExchange', value: 'OpenExchange' },
-        { label: 'ECB', value: 'ECB' },
-        { label: 'Fixer', value: 'Fixer' },
-        { label: 'Manual', value: 'Manual' },
-      ],
-      defaultValue: 'OpenExchange',
+      options: Object.values(EXCHANGE_RATE_SOURCES).map((val) => ({
+        label: val,
+        value: val,
+      })),
+      defaultValue: EXCHANGE_RATE_SOURCES.OPEN_EXCHANGE,
       required: true,
     },
     {

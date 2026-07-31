@@ -54,9 +54,44 @@ class ExchangeRateRegistry {
 
     if (repo) {
       try {
+        const activeCurrenciesRes = await repo.findActiveCurrencies()
+        const activeIsoCodes = new Set(
+          (activeCurrenciesRes.docs || []).map((c) => c.isoCode.toUpperCase().trim())
+        )
+
+        // 1. Duplicate ISO validation
+        const seenActive = new Set<string>()
+        for (const code of activeIsoCodes) {
+          if (seenActive.has(code)) {
+            throw new Error(`FATAL EXCHANGE CONFIGURATION ERROR: Duplicate active currency ISO code configured in CMS: ${code}`)
+          }
+          seenActive.add(code)
+        }
+
         const { docs } = await repo.findExchangeRates(this.baseCurrency)
+        const dbRates = new Map<string, any>()
+
         for (const doc of docs) {
-          newCache.set(doc.toCurrency, {
+          const toCurr = doc.toCurrency.toUpperCase().trim()
+
+          // 2. Validate zero/negative rate
+          if (doc.rate <= 0) {
+            throw new Error(`FATAL EXCHANGE CONFIGURATION ERROR: Exchange rate for ${toCurr} is non-positive: ${doc.rate}`)
+          }
+
+          dbRates.set(toCurr, doc)
+        }
+
+        // 3. Verify every active currency has a valid rate
+        for (const code of activeIsoCodes) {
+          if (code === this.baseCurrency) continue
+          if (!dbRates.has(code)) {
+            throw new Error(`FATAL EXCHANGE CONFIGURATION ERROR: Active currency ${code} is active but no exchange rate exists.`)
+          }
+        }
+
+        for (const [toCurr, doc] of dbRates.entries()) {
+          newCache.set(toCurr, {
             fromCurrency: doc.fromCurrency,
             toCurrency: doc.toCurrency,
             rate: doc.rate,
@@ -66,6 +101,7 @@ class ExchangeRateRegistry {
         }
       } catch (err: unknown) {
         console.error('[ExchangeRateRegistry] Failed loading exchange rates:', err)
+        throw err
       }
     }
 

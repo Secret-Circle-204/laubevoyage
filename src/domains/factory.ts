@@ -125,7 +125,44 @@ async function buildDomainServices() {
   const localizationService = new LocalizationService(translationService, pricingFacade, undefined, languageService)
   const notificationService = new NotificationService(notificationRepository)
   const loyaltyService = new LoyaltyService(loyaltyRepository)
-  const customerService = new CustomerService(customerRepository)
+  const customerDeletionDependencyChecker = {
+    checkDependencies: async (customerId: number, req?: any) => {
+      const [bookings, pointLedgers, reviews, payments] = await Promise.all([
+        payload.find({
+          collection: 'bookings',
+          where: { user: { equals: customerId } },
+          limit: 0,
+          req,
+        }),
+        payload.find({
+          collection: 'point-ledger',
+          where: { user: { equals: customerId } },
+          limit: 0,
+          req,
+        }),
+        payload.find({
+          collection: 'reviews',
+          where: { customer: { equals: customerId } },
+          limit: 0,
+          req,
+        }),
+        payload.find({
+          collection: 'payment-transactions',
+          where: { customerId: { equals: customerId } },
+          limit: 0,
+          req,
+        }),
+      ])
+      return {
+        bookingCount: bookings.totalDocs,
+        pointLedgerCount: pointLedgers.totalDocs,
+        reviewCount: reviews.totalDocs,
+        paymentCount: payments.totalDocs,
+      }
+    },
+  }
+
+  const customerService = new CustomerService(customerRepository, customerDeletionDependencyChecker)
 
   const experienceWorkflowEngine = new ExperienceWorkflowEngine(
     experienceRepository,

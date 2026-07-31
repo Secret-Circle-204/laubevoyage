@@ -20,6 +20,7 @@ export class LayoutLoader {
         code: c.isoCode,
         name: c.name,
         symbol: c.symbol,
+        flagCode: c.flagCode || undefined,
       }))
     } catch (err) {
       console.error('[LayoutLoader] Failed fetching supported currencies from database:', err)

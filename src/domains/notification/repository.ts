@@ -55,6 +55,8 @@ export class NotificationRepository {
         status: doc.status,
         attempts: doc.attempts || 1,
         maxAttempts: doc.maxAttempts || 3,
+        nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
+        lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
         createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
       }
     } catch {
@@ -91,6 +93,8 @@ export class NotificationRepository {
         status: doc.status,
         attempts: doc.attempts || 0,
         maxAttempts: doc.maxAttempts || 3,
+        nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
+        lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
         createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
       }))
     } catch {
@@ -103,6 +107,7 @@ export class NotificationRepository {
    */
   async findRecoverableJobs(limit = 50, req?: any): Promise<NotificationJobEntity[]> {
     try {
+      const nowIso = new Date().toISOString()
       const res = await this.payload.find({
         collection: 'notification-logs',
         where: {
@@ -113,6 +118,13 @@ export class NotificationRepository {
               and: [
                 { status: { equals: 'failed' } },
                 { attempts: { less_than: 3 } },
+                {
+                  or: [
+                    { nextAttemptAt: { less_than_equal: nowIso } },
+                    { nextAttemptAt: { equals: null } },
+                    { nextAttemptAt: { exists: false } },
+                  ],
+                },
               ],
             },
           ],
@@ -136,6 +148,8 @@ export class NotificationRepository {
         status: doc.status,
         attempts: doc.attempts || 0,
         maxAttempts: doc.maxAttempts || 3,
+        nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
+        lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
         createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
       }))
     } catch (error) {
@@ -164,6 +178,8 @@ export class NotificationRepository {
             attempts: job.attempts,
             lastError: job.lastError || null,
             sentAt: job.sentAt || null,
+            nextAttemptAt: job.nextAttemptAt || null,
+            lastAttemptAt: job.lastAttemptAt || null,
           },
           req,
         })
@@ -190,6 +206,8 @@ export class NotificationRepository {
             attempts: job.attempts,
             lastError: job.lastError || null,
             sentAt: job.sentAt || null,
+            nextAttemptAt: job.nextAttemptAt || null,
+            lastAttemptAt: job.lastAttemptAt || null,
           } as any,
           req,
         })
