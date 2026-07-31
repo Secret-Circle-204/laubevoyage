@@ -27,14 +27,27 @@ export function registerDashboardProjectionSubscribers(payload: Payload): void {
     'BOOKING_CONFIRMED',
     'DashboardSubscriber.updateProjectionOnBooking',
     async (event) => {
+      const customerId = event.booking.customerId
       try {
         console.log(
-          `[DashboardSubscriber] BookingConfirmedEvent received. Updating CQRS Projection for customer #${event.booking.customerId}...`,
+          `[DashboardSubscriber] BookingConfirmedEvent received. Updating CQRS Projection for customer #${customerId}...`,
         )
         const projection = await workflowEngine.overviewAggregator.aggregatePortalOverview(
-          event.booking.customerId,
+          customerId,
         )
         await workflowEngine.repository.saveProjection(projection)
+        workflowEngine.repository.invalidate(customerId)
+
+        // Publish DASHBOARD_PROJECTION_REBUILT event for Presentation layers
+        const localBus = EventBus.getInstance()
+        await localBus.publish({
+          type: 'DASHBOARD_PROJECTION_REBUILT',
+          eventId: `evt_dash_rebuilt_${customerId}_${Date.now()}`,
+          correlationId: event.correlationId,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          customerId,
+        })
       } catch (err: unknown) {
         console.error(
           `[DashboardSubscriber] Error updating CQRS projection:`,
@@ -48,14 +61,27 @@ export function registerDashboardProjectionSubscribers(payload: Payload): void {
     'LOYALTY_EARNED',
     'DashboardSubscriber.updateProjectionOnLoyalty',
     async (event) => {
+      const customerId = event.customerId
       try {
         console.log(
-          `[DashboardSubscriber] LoyaltyEarnedEvent received. Updating CQRS Projection for customer #${event.customerId}...`,
+          `[DashboardSubscriber] LoyaltyEarnedEvent received. Updating CQRS Projection for customer #${customerId}...`,
         )
         const projection = await workflowEngine.overviewAggregator.aggregatePortalOverview(
-          event.customerId,
+          customerId,
         )
         await workflowEngine.repository.saveProjection(projection)
+        workflowEngine.repository.invalidate(customerId)
+
+        // Publish DASHBOARD_PROJECTION_REBUILT event for Presentation layers
+        const localBus = EventBus.getInstance()
+        await localBus.publish({
+          type: 'DASHBOARD_PROJECTION_REBUILT',
+          eventId: `evt_dash_rebuilt_loy_${customerId}_${Date.now()}`,
+          correlationId: event.correlationId,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          customerId,
+        })
       } catch (err: unknown) {
         console.error(
           `[DashboardSubscriber] Error updating CQRS projection:`,

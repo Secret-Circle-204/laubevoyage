@@ -17,8 +17,6 @@ class CurrencyCatalogRegistry {
   private static instance: CurrencyCatalogRegistry
   private cache: Map<string, CurrencyIdentity> = new Map()
   private initialized = false
-  private lastLoadedAt = 0
-  private readonly TTL_MS = 60 * 60 * 1000
   private repository?: CurrencyRepository
 
   private constructor() {}
@@ -80,16 +78,11 @@ class CurrencyCatalogRegistry {
 
     this.cache = newCache
     this.initialized = true
-    this.lastLoadedAt = Date.now()
-  }
-
-  private isStale(): boolean {
-    return Date.now() - this.lastLoadedAt > this.TTL_MS
   }
 
   public async get(isoCode: string, repository?: CurrencyRepository): Promise<CurrencyIdentity | undefined> {
     const repo = repository || this.repository
-    if (!this.initialized || this.isStale()) {
+    if (!this.initialized) {
       await this.load(repo)
     }
     return this.cache.get(isoCode)
@@ -97,7 +90,7 @@ class CurrencyCatalogRegistry {
 
   public async getAll(repository?: CurrencyRepository): Promise<CurrencyIdentity[]> {
     const repo = repository || this.repository
-    if (!this.initialized || this.isStale()) {
+    if (!this.initialized) {
       await this.load(repo)
     }
     return Array.from(this.cache.values()).sort((a, b) => a.displayOrder - b.displayOrder)

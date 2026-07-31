@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { extractSlotsPayload } from './hooks/extractSlotsPayload'
 import { syncDepartureSlots } from './hooks/syncDepartureSlots'
+import { EventBus } from '@/domains/events/event-bus'
 
 const PRICING_SOURCE_BY_TYPE = {
   daily_tour: 'catalog',
@@ -18,7 +19,35 @@ export const Experiences: CollectionConfig = {
   },
   hooks: {
     beforeChange: [extractSlotsPayload],
-    afterChange: [syncDepartureSlots],
+    afterChange: [
+      syncDepartureSlots,
+      async ({ doc }) => {
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'EXPERIENCE_MUTATED',
+          eventId: `evt_exp_${doc.id}_${Date.now()}`,
+          correlationId: `corr_exp_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          slug: doc.slug,
+        })
+        return doc
+      },
+    ],
+    afterDelete: [
+      async ({ doc }) => {
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'EXPERIENCE_MUTATED',
+          eventId: `evt_exp_del_${doc.id}_${Date.now()}`,
+          correlationId: `corr_exp_del_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          slug: doc.slug,
+        })
+        return doc
+      },
+    ],
     beforeDelete: [
       async ({ req, id }) => {
         // Enforce business rule: Do not allow deletion of experience if there are paid/confirmed/completed bookings

@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 import { DestinationsCatalogLoader } from '@/application/destination/loaders'
 import { DestinationsCatalogPage } from '@/components/features/destination/DestinationsCatalogPage'
 
-export const revalidate = 3600
+
 
 export async function generateMetadata(): Promise<Metadata> {
   return {

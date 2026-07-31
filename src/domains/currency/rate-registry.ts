@@ -12,8 +12,6 @@ class ExchangeRateRegistry {
   private static instance: ExchangeRateRegistry
   private cache: Map<string, ExchangeRateData> = new Map()
   private initialized = false
-  private lastLoadedAt = 0
-  private readonly TTL_MS = 30 * 60 * 1000
   private repository?: CurrencyRepository
 
   private baseCurrency = 'EGP'
@@ -27,7 +25,6 @@ class ExchangeRateRegistry {
       lastUpdate: new Date().toISOString(),
     })
     this.initialized = false
-    this.lastLoadedAt = 0
   }
 
   public static getInstance(): ExchangeRateRegistry {
@@ -107,13 +104,11 @@ class ExchangeRateRegistry {
 
     this.cache = newCache
     this.initialized = true
-    this.lastLoadedAt = Date.now()
   }
 
   public async getRate(targetCurrency: string, repository?: CurrencyRepository): Promise<ExchangeRateData | undefined> {
     const repo = repository || this.repository
-    const isStale = Date.now() - this.lastLoadedAt > this.TTL_MS
-    if (!this.initialized || isStale) {
+    if (!this.initialized) {
       await this.load(repo)
     }
     return this.cache.get(targetCurrency)
@@ -121,7 +116,6 @@ class ExchangeRateRegistry {
 
   public invalidate(): void {
     this.initialized = false
-    this.lastLoadedAt = 0
   }
 }
 

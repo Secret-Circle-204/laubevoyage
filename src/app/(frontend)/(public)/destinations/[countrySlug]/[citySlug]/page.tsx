@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { CityLoader } from '@/application/destination/loaders'
 import { CityExperiencesPage } from '@/components/features/destination/CityExperiencesPage'
 
-export const revalidate = 3600
+
 
 export async function generateMetadata(props: {
   params: Promise<{ countrySlug: string; citySlug: string }>

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { EventBus } from '@/domains/events/event-bus'
 
 export const Countries: CollectionConfig = {
   slug: 'countries',
@@ -8,6 +9,38 @@ export const Countries: CollectionConfig = {
   },
   access: {
     read: () => true,
+  },
+  hooks: {
+    afterChange: [
+      async ({ doc }) => {
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'COUNTRY_MUTATED',
+          eventId: `evt_country_${doc.id}_${Date.now()}`,
+          correlationId: `corr_country_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          countryCode: doc.code,
+          slug: doc.slug,
+        })
+        return doc
+      },
+    ],
+    afterDelete: [
+      async ({ doc }) => {
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'COUNTRY_MUTATED',
+          eventId: `evt_country_del_${doc.id}_${Date.now()}`,
+          correlationId: `corr_country_del_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          countryCode: doc.code,
+          slug: doc.slug,
+        })
+        return doc
+      },
+    ],
   },
   fields: [
     {

@@ -2,6 +2,29 @@ import { describe, it, expect } from 'vitest'
 import { LoyaltyPolicy } from '@/domains/loyalty/policy'
 import { TierPolicy } from '@/domains/loyalty/tier-policy'
 import { LoyaltyTier } from '@/types'
+import type { LoyaltyProgramConfig } from '@/domains/loyalty/tier-config'
+
+const mockConfig: LoyaltyProgramConfig = {
+  id: 'test',
+  programCode: 'TEST',
+  name: 'Test Program',
+  version: 1,
+  status: 'published',
+  baseEarnRate: 1,
+  redemptionPointsUnit: 100,
+  redemptionValueEGP: 10,
+  minRedemptionPoints: 100,
+  maxRedemptionPercent: 20,
+  allowPartialRedemption: true,
+  welcomeBonus: 0,
+  expirationMonths: 12,
+  bonusNeverExpires: true,
+  tiers: {
+    explorer: { tier: LoyaltyTier.EXPLORER, minSpentEGP: 0, earnMultiplier: 1.0, upgradeBonus: 0 },
+    voyager: { tier: LoyaltyTier.VOYAGER, minSpentEGP: 5000, earnMultiplier: 1.2, upgradeBonus: 0 },
+    elite: { tier: LoyaltyTier.ELITE, minSpentEGP: 15000, earnMultiplier: 1.5, upgradeBonus: 0 },
+  }
+}
 
 describe('Loyalty Domain: Policy Unit Tests', () => {
   describe('canEarn', () => {
@@ -32,10 +55,10 @@ describe('Loyalty Domain: Policy Unit Tests', () => {
 
   describe('TierPolicy', () => {
     it('should evaluate correct tier based on cumulative spent EGP', () => {
-      expect(TierPolicy.evaluateEligibleTier(0)).toBe(LoyaltyTier.EXPLORER)
-      expect(TierPolicy.evaluateEligibleTier(4999)).toBe(LoyaltyTier.EXPLORER)
-      expect(TierPolicy.evaluateEligibleTier(5000)).toBe(LoyaltyTier.VOYAGER)
-      expect(TierPolicy.evaluateEligibleTier(15000)).toBe(LoyaltyTier.ELITE)
+      expect(TierPolicy.evaluateEligibleTier(0, mockConfig)).toBe(LoyaltyTier.EXPLORER)
+      expect(TierPolicy.evaluateEligibleTier(4999, mockConfig)).toBe(LoyaltyTier.EXPLORER)
+      expect(TierPolicy.evaluateEligibleTier(5000, mockConfig)).toBe(LoyaltyTier.VOYAGER)
+      expect(TierPolicy.evaluateEligibleTier(15000, mockConfig)).toBe(LoyaltyTier.ELITE)
     })
   })
 })

@@ -19,9 +19,9 @@ export function validateEnv(): EnvConfig {
 
   const config: EnvConfig = {
     NODE_ENV: process.env.NODE_ENV as any,
-    APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-    PAYLOAD_SECRET: process.env.PAYLOAD_SECRET,
-    DATABASE_URI: process.env.DATABASE_URI,
+    APP_URL: process.env.NEXT_PUBLIC_APP_URL || '',
+    PAYLOAD_SECRET: process.env.PAYLOAD_SECRET || '',
+    DATABASE_URI: process.env.DATABASE_URI || '',
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     PAYMOB_API_KEY: process.env.PAYMOB_API_KEY,

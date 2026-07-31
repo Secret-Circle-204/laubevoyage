@@ -12,8 +12,18 @@ export class TierPolicy {
    * Determine the highest eligible tier for a given cumulative spent total in EGP.
    */
   static evaluateEligibleTier(totalSpentEGP: number, config: LoyaltyProgramConfig): LoyaltyTier {
-    const eliteThreshold = config.tiers[LoyaltyTier.ELITE]?.minSpentEGP ?? 15000
-    const voyagerThreshold = config.tiers[LoyaltyTier.VOYAGER]?.minSpentEGP ?? 5000
+    const eliteConfig = config.tiers[LoyaltyTier.ELITE]
+    const voyagerConfig = config.tiers[LoyaltyTier.VOYAGER]
+
+    if (!eliteConfig) {
+      throw new Error('[TierPolicy] Critical configuration error: Elite tier definition is missing from loyalty program.')
+    }
+    if (!voyagerConfig) {
+      throw new Error('[TierPolicy] Critical configuration error: Voyager tier definition is missing from loyalty program.')
+    }
+
+    const eliteThreshold = eliteConfig.minSpentEGP
+    const voyagerThreshold = voyagerConfig.minSpentEGP
 
     if (totalSpentEGP >= eliteThreshold) {
       return LoyaltyTier.ELITE

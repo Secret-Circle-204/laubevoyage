@@ -16,8 +16,6 @@ export class CountryCatalogRegistry {
   private static instance: CountryCatalogRegistry
   private cache: Map<string, CountryConfiguration> = new Map()
   private initialized = false
-  private lastLoadedAt = 0
-  private readonly TTL_MS = 60 * 60 * 1000 // 1 Hour TTL
   private repository?: DestinationRepository
 
   private constructor() {}
@@ -51,16 +49,11 @@ export class CountryCatalogRegistry {
 
     this.cache = newCache
     this.initialized = true
-    this.lastLoadedAt = Date.now()
-  }
-
-  private isStale(): boolean {
-    return Date.now() - this.lastLoadedAt > this.TTL_MS
   }
 
   public async get(code: string, repository?: DestinationRepository): Promise<CountryConfiguration | undefined> {
     const repo = repository || this.repository
-    if (!this.initialized || this.isStale()) {
+    if (!this.initialized) {
       await this.load(repo)
     }
     return this.cache.get(code.toUpperCase())
@@ -68,7 +61,7 @@ export class CountryCatalogRegistry {
 
   public async getAll(repository?: DestinationRepository): Promise<CountryConfiguration[]> {
     const repo = repository || this.repository
-    if (!this.initialized || this.isStale()) {
+    if (!this.initialized) {
       await this.load(repo)
     }
     return Array.from(this.cache.values())

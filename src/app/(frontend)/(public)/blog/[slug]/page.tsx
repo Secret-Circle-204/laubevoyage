@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { ArticleLoader } from '@/application/blog/loaders'
 import { ArticleReaderPage } from '@/components/features/blog/ArticleReaderPage'
 
-export const revalidate = 3600
+
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const params = await props.params

@@ -8,6 +8,13 @@ import { registerLoyaltySubscriber } from '../events/subscribers/loyalty-subscri
 import { registerBookingPaymentSubscriber } from '../events/subscribers/payment-subscriber'
 import { registerLoyaltyNotificationSubscriber } from '../events/subscribers/loyalty-notification-subscriber'
 import { registerInventorySubscriber } from '../events/subscribers/inventory-subscriber'
+import {
+  registerSystemCacheSubscriber,
+  registerCurrencyCacheSubscriber,
+  registerDestinationCacheSubscriber,
+  registerContentCacheSubscriber,
+} from '../events/subscribers/cache-subscribers'
+import { registerPresentationSubscriber } from '../events/subscribers/presentation-subscriber'
 import { EventBus } from '../events/event-bus'
 import type { SystemHealthReportDTO, ProductionReadinessDTO } from './types'
 import type { EventOutboxService } from '../events/outbox'
@@ -108,7 +115,20 @@ export class SystemIntegrationWorkflowEngine {
     registerLoyaltyNotificationSubscriber(this.payload)
     registerInventorySubscriber(this.payload)
 
-    return { success: true, eventSubscribersCount: 7 }
+    // Event-driven RAM registry cache invalidators (Safe for all node runtimes/workers)
+    registerSystemCacheSubscriber()
+    registerCurrencyCacheSubscriber()
+    registerDestinationCacheSubscriber()
+    registerContentCacheSubscriber()
+
+    // Next.js Presentation Cache Revalidation Subscriber (Isolated to app server request process)
+    let revalidatorsRegistered = 0
+    if (process.env.NEXT_RUNTIME || process.env.NEXT_ENV === 'true') {
+      registerPresentationSubscriber()
+      revalidatorsRegistered = 1
+    }
+
+    return { success: true, eventSubscribersCount: 11 + revalidatorsRegistered }
   }
 
   async getSystemHealth(): Promise<SystemHealthReportDTO> {

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { EventBus } from '@/domains/events/event-bus'
 
 export const Currencies: CollectionConfig = {
   slug: 'currencies',
@@ -9,6 +10,34 @@ export const Currencies: CollectionConfig = {
   },
   access: {
     read: () => true, // Publicly readable for active currencies
+  },
+  hooks: {
+    afterChange: [
+      async ({ doc }) => {
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'CURRENCY_CATALOG_UPDATED',
+          eventId: `evt_curr_${doc.id}_${Date.now()}`,
+          correlationId: `corr_curr_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+        })
+        return doc
+      },
+    ],
+    afterDelete: [
+      async ({ doc }) => {
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'CURRENCY_CATALOG_UPDATED',
+          eventId: `evt_curr_del_${doc.id}_${Date.now()}`,
+          correlationId: `corr_curr_del_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+        })
+        return doc
+      },
+    ],
   },
   fields: [
     {

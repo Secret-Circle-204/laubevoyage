@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { BlogCatalogLoader } from '@/application/blog/loaders'
 import { BlogCatalogPage } from '@/components/features/blog/BlogCatalogPage'
 
-export const revalidate = 3600
+
 
 export async function generateMetadata(): Promise<Metadata> {
   return {

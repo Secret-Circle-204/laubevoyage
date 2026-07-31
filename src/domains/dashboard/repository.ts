@@ -7,14 +7,18 @@ import type { CustomerPortalProjection } from './types'
  */
 export class DashboardProjectionRepository {
   private payload: Payload
-  private projectionMap: Map<number, CustomerPortalProjection> = new Map()
+  private static projectionMap: Map<number, CustomerPortalProjection> = new Map()
 
   constructor(payload: Payload) {
     this.payload = payload
   }
 
+  public invalidate(customerId: number): void {
+    DashboardProjectionRepository.projectionMap.delete(customerId)
+  }
+
   async findByCustomerId(customerId: number, req?: PayloadRequest): Promise<CustomerPortalProjection | null> {
-    const cached = this.projectionMap.get(customerId)
+    const cached = DashboardProjectionRepository.projectionMap.get(customerId)
     if (cached) return cached
 
     try {
@@ -63,7 +67,7 @@ export class DashboardProjectionRepository {
         updatedAt: new Date().toISOString(),
       }
 
-      this.projectionMap.set(customerId, projection)
+      DashboardProjectionRepository.projectionMap.set(customerId, projection)
       return projection
     } catch {
       return null
@@ -71,7 +75,7 @@ export class DashboardProjectionRepository {
   }
 
   async saveProjection(projection: CustomerPortalProjection, req?: PayloadRequest): Promise<CustomerPortalProjection> {
-    this.projectionMap.set(projection.customerId, projection)
+    DashboardProjectionRepository.projectionMap.set(projection.customerId, projection)
     try {
       const existing = await this.payload.find({
         collection: 'dashboard-projections',

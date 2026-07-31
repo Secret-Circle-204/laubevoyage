@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { ExperienceDetailsLoader } from '@/application/experience/loaders-details'
 import { ExperienceDetailsPage } from '@/components/features/experience/ExperienceDetailsPage'
 
-export const revalidate = 1800
+
 
 export async function generateMetadata(props: {
   params: Promise<{ slug: string }>

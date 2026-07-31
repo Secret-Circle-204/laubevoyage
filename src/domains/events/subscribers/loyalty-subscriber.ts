@@ -18,7 +18,10 @@ export function registerLoyaltySubscriber(payload: Payload): void {
   const loyaltyRepository = new LoyaltyRepository(payload)
   const customerRepository = new CustomerRepository(payload)
   const loyaltyService = new LoyaltyService(loyaltyRepository)
-  const customerService = new CustomerService(customerRepository)
+  const dummyChecker = {
+    checkDependencies: async () => ({ bookingCount: 0, pointLedgerCount: 0, reviewCount: 0, paymentCount: 0 })
+  }
+  const customerService = new CustomerService(customerRepository, dummyChecker)
 
   eventBus.subscribe<BookingConfirmedEvent>(
     'BOOKING_CONFIRMED',

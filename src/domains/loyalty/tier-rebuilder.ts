@@ -1,6 +1,7 @@
 import type { LoyaltyRepository } from './repository'
 import { TierPolicy } from './tier-policy'
 import { LoyaltyTier } from '@/types'
+import { loyaltyProgramRegistry } from './program-registry'
 
 /**
  * Tier Rebuilder Service
@@ -14,7 +15,8 @@ export class TierRebuilder {
   }
 
   async rebuildCustomerTier(customerId: number, confirmedBookingsSpentEGP: number): Promise<LoyaltyTier> {
-    const eligibleTier = TierPolicy.evaluateEligibleTier(confirmedBookingsSpentEGP)
+    const config = await loyaltyProgramRegistry.getProgram(this.repository)
+    const eligibleTier = TierPolicy.evaluateEligibleTier(confirmedBookingsSpentEGP, config)
     await this.repository.updateCustomerTier(customerId, eligibleTier, 0)
     return eligibleTier
   }
