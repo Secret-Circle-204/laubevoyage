@@ -32,8 +32,10 @@ export class BookingExpiration {
 
     let expiredCount = 0
     for (const booking of expiredDrafts) {
-      const success = await this.expireBookingWithRetry(booking, 3)
-      if (success) expiredCount += 1
+      const updated = await this.expireBookingWithRetry(booking, 3)
+      if (updated && updated.status === BookingStatus.CANCELLED) {
+        expiredCount += 1
+      }
     }
 
     return expiredCount
@@ -42,15 +44,14 @@ export class BookingExpiration {
   /**
    * Execute 7-step expiration pipeline with retry and DLQ fallback.
    */
-  private async expireBookingWithRetry(booking: BookingAggregate, maxRetries: number = 3): Promise<boolean> {
+  private async expireBookingWithRetry(booking: BookingAggregate, maxRetries: number = 3): Promise<BookingAggregate | null> {
     let attempt = 0
     let lastError: Error | null = null
 
     while (attempt < maxRetries) {
       try {
         attempt += 1
-        await this.executeExpirationPipeline(booking)
-        return true
+        return await this.executeExpirationPipeline(booking)
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
         console.warn(`[BookingExpiration] Retry ${attempt}/${maxRetries} failed for booking #${booking.bookingNumber}:`, lastError.message)
@@ -64,7 +65,7 @@ export class BookingExpiration {
     console.error(`[BookingExpiration] CRITICAL: Max retries exceeded for booking #${booking.bookingNumber}. Moving to DLQ.`)
     this.deadLetterQueue.push(booking)
     this.emitAdminSecurityAlert(booking, lastError)
-    return false
+    return null
   }
 
   /**
@@ -78,49 +79,59 @@ export class BookingExpiration {
    * 7. Trigger Notification
    */
   private async executeExpirationPipeline(booking: BookingAggregate): Promise<BookingAggregate> {
-    // Step 2 & 3: Release holds if active
-    let expiredCapacity = booking.capacityHold
-    if (booking.capacityHold && booking.capacityHold.status === 'active') {
-      expiredCapacity = CapacityHoldService.expireHold(booking.capacityHold)
-
-      try {
-        if (typeof this.experienceService?.getDepartureSlotByDate === 'function' && typeof this.experienceService?.releaseCapacity === 'function') {
-          const slot = await this.experienceService.getDepartureSlotByDate(
-            booking.capacityHold.experienceId,
-            booking.capacityHold.date,
-          )
-          if (slot && slot.departureId) {
-            await this.experienceService.releaseCapacity(slot.departureId, booking.capacityHold.seats)
-            console.log(`[BookingExpiration] Released slot capacity: Slot ID ${slot.departureId}, ${booking.capacityHold.seats} seats.`)
-          }
-        }
-      } catch (err: any) {
-        console.error(`[BookingExpiration] Failed to release slot capacity:`, err)
-      }
+    // Fresh look up to prevent TOCTOU race conditions (e.g. concurrent paid/confirmed status update)
+    const latestBooking = await this.repository.findById(booking.id)
+    if (latestBooking.status !== BookingStatus.DRAFT && latestBooking.status !== BookingStatus.PENDING_PAYMENT) {
+      console.log(`[BookingExpiration] Booking #${booking.bookingNumber} status has changed to ${latestBooking.status} concurrently. Skipping expiration.`)
+      return latestBooking
     }
 
-    const expiredPointHold = booking.pointHold
-      ? PointHoldService.expireHold(booking.pointHold)
+    if (!latestBooking.capacityHold || latestBooking.capacityHold.status !== 'active') {
+      console.log(`[BookingExpiration] Booking #${booking.bookingNumber} capacityHold status is no longer active. Skipping expiration.`)
+      return latestBooking
+    }
+
+    // Step 2 & 3: Release holds if active
+    let expiredCapacity = latestBooking.capacityHold
+    expiredCapacity = CapacityHoldService.expireHold(latestBooking.capacityHold)
+
+    try {
+      if (typeof this.experienceService?.getDepartureSlotByDate === 'function' && typeof this.experienceService?.releaseCapacity === 'function') {
+        const slot = await this.experienceService.getDepartureSlotByDate(
+          latestBooking.capacityHold.experienceId,
+          latestBooking.capacityHold.date,
+        )
+        if (slot && slot.departureId) {
+          await this.experienceService.releaseCapacity(slot.departureId, latestBooking.capacityHold.seats)
+          console.log(`[BookingExpiration] Released slot capacity: Slot ID ${slot.departureId}, ${latestBooking.capacityHold.seats} seats.`)
+        }
+      }
+    } catch (err: any) {
+      console.error(`[BookingExpiration] Failed to release slot capacity:`, err)
+    }
+
+    const expiredPointHold = latestBooking.pointHold
+      ? PointHoldService.expireHold(latestBooking.pointHold)
       : null
 
     // Step 4: Append Customer Timeline
-    const updatedTimeline = BookingHistoryService.appendTimelineEntry(booking.timeline, {
+    const updatedTimeline = BookingHistoryService.appendTimelineEntry(latestBooking.timeline, {
       stepKey: 'booking_expired',
       title: 'Booking Expired',
       description: 'Your booking draft expired due to payment window timeout.',
     })
 
     // Step 5: Append System Audit
-    const updatedAudit = BookingHistoryService.appendAuditEntry(booking.auditTrail, {
+    const updatedAudit = BookingHistoryService.appendAuditEntry(latestBooking.auditTrail, {
       actor: { id: 'system', type: 'system', name: 'Expiration Worker' },
       action: 'BOOKING_EXPIRED',
       reason: 'Payment window timed out',
-      previousValue: booking.status,
+      previousValue: latestBooking.status,
       newValue: BookingStatus.CANCELLED,
     })
 
     // Step 1: Update status in repository
-    const expiredBooking = await this.repository.update(booking.id, {
+    const expiredBooking = await this.repository.update(latestBooking.id, {
       status: BookingStatus.CANCELLED,
       capacityHold: expiredCapacity,
       pointHold: expiredPointHold,
@@ -131,8 +142,8 @@ export class BookingExpiration {
 
     // Step 6 & 7: Emit BookingExpiredEvent to trigger notification subscriber
     await this.eventBus.publish({
-      eventId: `evt_bk_exp_${booking.id}_${Date.now()}`,
-      correlationId: `corr_${booking.id}`,
+      eventId: `evt_bk_exp_${latestBooking.id}_${Date.now()}`,
+      correlationId: `corr_${latestBooking.id}`,
       eventVersion: 1,
       occurredAt: new Date().toISOString(),
       type: 'BOOKING_EXPIRED',

@@ -36,6 +36,7 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
     }
 
     mockPayload.find.mockResolvedValue({ docs: [mockExpiredDraft] })
+    mockPayload.findByID.mockResolvedValue(mockExpiredDraft)
     mockPayload.update.mockImplementation((params: any) => Promise.resolve({ ...mockExpiredDraft, ...params.data }))
 
     const expiredCount = await expirationService.processExpiredBookings(15)
@@ -58,11 +59,13 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
       status: 'draft',
       user: 5,
       experience: 12,
+      capacityHold: { holdId: 'c2', status: 'active' },
       createdAt: '2026-07-22T10:00:00.000Z',
       updatedAt: '2026-07-22T10:00:00.000Z',
     }
 
     mockPayload.find.mockResolvedValue({ docs: [mockUnresolvableDraft] })
+    mockPayload.findByID.mockResolvedValue(mockUnresolvableDraft)
     // Simulate persistent database error during update
     mockPayload.update.mockRejectedValue(new Error('PERSISTENT_DB_LOCK_TIMEOUT'))
 
@@ -82,5 +85,31 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
     )
 
     consoleSpy.mockRestore()
+  })
+
+  it('should skip expiration if booking status changes to paid/confirmed concurrently (TOCTOU guard)', async () => {
+    const mockExpiredDraft = {
+      id: 101,
+      bookingNumber: 'LBV-260723-00042',
+      status: 'draft',
+      user: 5,
+      experience: 12,
+      capacityHold: { holdId: 'c1', status: 'active' },
+      pointHold: { holdId: 'p1', status: 'held' },
+      timeline: [],
+      auditTrail: [],
+      travelers: [{ email: 'john@example.com' }],
+      createdAt: '2026-07-22T10:00:00.000Z',
+      updatedAt: '2026-07-22T10:00:00.000Z',
+    }
+
+    // find returns the booking, but by the time findByID executes, it is paid/confirmed
+    mockPayload.find.mockResolvedValue({ docs: [mockExpiredDraft] })
+    mockPayload.findByID.mockResolvedValue({ ...mockExpiredDraft, status: 'confirmed' })
+
+    const expiredCount = await expirationService.processExpiredBookings(15)
+
+    expect(expiredCount).toBe(0)
+    expect(mockPayload.update).not.toHaveBeenCalled()
   })
 })
