@@ -95,6 +95,7 @@ export interface Config {
     redirects: Redirect;
     reviews: Review;
     coupons: Coupon;
+    'contact-requests': ContactRequest;
     languages: Language;
     'departure-slots': DepartureSlot;
     'event-outbox': EventOutbox;
@@ -133,6 +134,7 @@ export interface Config {
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     coupons: CouponsSelect<false> | CouponsSelect<true>;
+    'contact-requests': ContactRequestsSelect<false> | ContactRequestsSelect<true>;
     languages: LanguagesSelect<false> | LanguagesSelect<true>;
     'departure-slots': DepartureSlotsSelect<false> | DepartureSlotsSelect<true>;
     'event-outbox': EventOutboxSelect<false> | EventOutboxSelect<true>;
@@ -237,6 +239,8 @@ export interface Customer {
   firstName: string;
   lastName: string;
   phone?: string | null;
+  passportNumber?: string | null;
+  nationality?: string | null;
   status: 'active' | 'inactive' | 'suspended' | 'pending_verification' | 'pending_deletion' | 'deleted';
   failedLoginAttempts?: number | null;
   lockedUntil?: string | null;
@@ -558,6 +562,14 @@ export interface Experience {
         id?: string | null;
       }[]
     | null;
+  itinerary?:
+    | {
+        dayNumber: number;
+        title: string;
+        description: string;
+        id?: string | null;
+      }[]
+    | null;
   policies?: {
     root: {
       type: string;
@@ -598,12 +610,22 @@ export interface Experience {
 export interface Booking {
   id: number;
   bookingNumber: string;
+  idempotencyKey?: string | null;
   user: number | Customer;
   experience: number | Experience;
   /**
    * Status can only be changed through BookingService
    */
-  status: 'draft' | 'pending_payment' | 'paid' | 'confirmed' | 'completed' | 'cancelled' | 'refunded';
+  status:
+    | 'draft'
+    | 'pending_payment'
+    | 'paid'
+    | 'confirmed'
+    | 'completed'
+    | 'cancelled'
+    | 'refunded'
+    | 'expired'
+    | 'payment_received_after_expiry';
   travelers: {
     firstName: string;
     lastName: string;
@@ -1209,6 +1231,19 @@ export interface Coupon {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-requests".
+ */
+export interface ContactRequest {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "departure-slots".
  */
 export interface DepartureSlot {
@@ -1409,6 +1444,10 @@ export interface PayloadLockedDocument {
         value: number | Coupon;
       } | null)
     | ({
+        relationTo: 'contact-requests';
+        value: number | ContactRequest;
+      } | null)
+    | ({
         relationTo: 'languages';
         value: number | Language;
       } | null)
@@ -1509,6 +1548,8 @@ export interface CustomersSelect<T extends boolean = true> {
   firstName?: T;
   lastName?: T;
   phone?: T;
+  passportNumber?: T;
+  nationality?: T;
   status?: T;
   failedLoginAttempts?: T;
   lockedUntil?: T;
@@ -1673,6 +1714,14 @@ export interface ExperiencesSelect<T extends boolean = true> {
         item?: T;
         id?: T;
       };
+  itinerary?:
+    | T
+    | {
+        dayNumber?: T;
+        title?: T;
+        description?: T;
+        id?: T;
+      };
   policies?: T;
   isActive?: T;
   seo?:
@@ -1692,6 +1741,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
  */
 export interface BookingsSelect<T extends boolean = true> {
   bookingNumber?: T;
+  idempotencyKey?: T;
   user?: T;
   experience?: T;
   status?: T;
@@ -2067,6 +2117,18 @@ export interface CouponsSelect<T extends boolean = true> {
   status?: T;
   validFrom?: T;
   validUntil?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-requests_select".
+ */
+export interface ContactRequestsSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  subject?: T;
+  message?: T;
   updatedAt?: T;
   createdAt?: T;
 }

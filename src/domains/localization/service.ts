@@ -41,7 +41,9 @@ export class LocalizationService {
    * Single Decision Owner Pipeline for building LocaleContext.
    * Receives raw facts contract (LocaleContextInputs or Partial<LocaleContext>) and applies independent cascades.
    */
-  async buildContext(inputs?: LocaleContextInputs | Partial<LocaleContext>): Promise<LocaleContext> {
+  async buildContext(
+    inputs?: LocaleContextInputs | Partial<LocaleContext>,
+  ): Promise<LocaleContext> {
     const raw = this.normalizeInputs(inputs)
     let countryConfig
     if (raw.geoCountry) {
@@ -54,18 +56,29 @@ export class LocalizationService {
 
     if (process.env.NODE_ENV !== 'production') {
       console.log(`[LocalizationService] geoCountry = "${raw.geoCountry || ''}"`)
-      console.log(`[LocalizationService] country.currencyCode = "${countryConfig?.currencyCode || ''}"`)
-      console.log(`[LocalizationService] country.defaultLanguageCode = "${countryConfig?.defaultLanguageCode || ''}"`)
+      console.log(
+        `[LocalizationService] country.currencyCode = "${countryConfig?.currencyCode || ''}"`,
+      )
+      console.log(
+        `[LocalizationService] country.defaultLanguageCode = "${countryConfig?.defaultLanguageCode || ''}"`,
+      )
     }
 
-    const language = await this.resolveLanguage(raw, countryConfig?.defaultLanguageCode || undefined)
+    const language = await this.resolveLanguage(
+      raw,
+      countryConfig?.defaultLanguageCode || undefined,
+    )
 
     let languagePreferredCurrencyCode: string | undefined = undefined
     if (this.languageService) {
       languagePreferredCurrencyCode = await this.languageService.resolvePreferredCurrency(language)
     }
 
-    const currency = await this.resolveCurrency(raw, countryConfig?.currencyCode || undefined, languagePreferredCurrencyCode)
+    const currency = await this.resolveCurrency(
+      raw,
+      countryConfig?.currencyCode || undefined,
+      languagePreferredCurrencyCode,
+    )
 
     if (process.env.NODE_ENV !== 'production') {
       console.log(`[LocalizationService] resolvedLanguage = "${language}"`)
@@ -77,21 +90,27 @@ export class LocalizationService {
     const measurement = this.resolveMeasurement(raw, countryConfig?.measurementSystem || undefined)
     const weekStart = this.resolveWeekStart(raw, countryConfig?.weekStart)
 
-    const requestContextId = inputs && 'requestContextId' in inputs && inputs.requestContextId
-      ? inputs.requestContextId
-      : `req-${Math.random().toString(36).substring(2, 9)}`
+    const requestContextId =
+      inputs && 'requestContextId' in inputs && inputs.requestContextId
+        ? inputs.requestContextId
+        : `req-${Math.random().toString(36).substring(2, 9)}`
 
-    return this.assembleContext({
-      language,
-      currency,
-      country,
-      timezone,
-      measurement,
-      weekStart,
-    }, requestContextId)
+    return this.assembleContext(
+      {
+        language,
+        currency,
+        country,
+        timezone,
+        measurement,
+        weekStart,
+      },
+      requestContextId,
+    )
   }
 
-  private normalizeInputs(inputs?: LocaleContextInputs | Partial<LocaleContext>): LocaleContextInputs {
+  private normalizeInputs(
+    inputs?: LocaleContextInputs | Partial<LocaleContext>,
+  ): LocaleContextInputs {
     if (!inputs) return {}
     const raw = inputs as Record<string, any>
     return {
@@ -105,7 +124,10 @@ export class LocalizationService {
     }
   }
 
-  private async resolveLanguage(inputs: LocaleContextInputs, geoDefaultLanguageCode?: string): Promise<Language> {
+  private async resolveLanguage(
+    inputs: LocaleContextInputs,
+    geoDefaultLanguageCode?: string,
+  ): Promise<Language> {
     if (this.languageService) {
       const resolved = await this.languageService.resolveDisplayLanguage({
         cookieLocale: inputs.cookieLocale,
@@ -127,7 +149,7 @@ export class LocalizationService {
   private async resolveCurrency(
     inputs: LocaleContextInputs,
     geoCurrencyCode?: string,
-    languagePreferredCurrencyCode?: string
+    languagePreferredCurrencyCode?: string,
   ): Promise<CurrencyCode> {
     const resolved = await this.pricingFacade.resolveDisplayCurrency({
       cookieCurrency: inputs.cookieCurrency,
@@ -147,7 +169,10 @@ export class LocalizationService {
     return inputs.geoTimezone || geoTimezone || DEFAULT_LOCALE_CONTEXT.timezone
   }
 
-  private resolveMeasurement(inputs: LocaleContextInputs, geoMeasurement?: string): MeasurementSystem {
+  private resolveMeasurement(
+    inputs: LocaleContextInputs,
+    geoMeasurement?: string,
+  ): MeasurementSystem {
     if (geoMeasurement === 'imperial' || geoMeasurement === 'metric') {
       return geoMeasurement as MeasurementSystem
     }
@@ -170,7 +195,7 @@ export class LocalizationService {
       measurement: MeasurementSystem
       weekStart: 0 | 1 | 6
     },
-    requestContextId?: string
+    requestContextId?: string,
   ): LocaleContext {
     return {
       language: resolved.language,
@@ -236,6 +261,26 @@ export class LocalizationService {
    */
   async formatPrice(basePriceEGP: number, ctx: LocaleContext): Promise<ConvertedPrice> {
     return this.pricingFacade.getConvertedPrice(basePriceEGP, ctx.currency, ctx.language || 'en')
+  }
+
+  /**
+   * Format a price that has already been converted (e.g. from database snapshots).
+   * Ensures symbols, decimals, and rounding are pulled from the standard catalog.
+   */
+  async formatAlreadyConvertedPrice(
+    convertedAmount: number,
+    baseAmountEGP: number,
+    targetCurrency: string,
+    exchangeRate: number,
+    ctx: LocaleContext,
+  ): Promise<ConvertedPrice> {
+    return this.pricingFacade.formatAlreadyConvertedPrice(
+      convertedAmount,
+      baseAmountEGP,
+      targetCurrency,
+      exchangeRate,
+      ctx.language,
+    )
   }
 
   // =========================================================================

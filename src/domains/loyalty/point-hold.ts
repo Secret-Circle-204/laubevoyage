@@ -1,5 +1,6 @@
 import type { LoyaltyProgramConfig } from './tier-config'
 import type { PointHoldStatus } from './types'
+import type { PointHoldEntity } from '../booking/types'
 
 export interface PointReservationEntity {
   reservationId: string
@@ -110,5 +111,50 @@ export class PointHoldService {
         r.status === 'held' &&
         new Date(r.expiresAt).getTime() > now,
     )
+  }
+
+  // Stateless static methods for Booking Domain holds integration
+  static createHold(params: {
+    bookingId: number
+    customerId: number
+    pointsHeld: number
+    valueEGP: number
+    holdDurationMs?: number
+  }): PointHoldEntity {
+    const duration = params.holdDurationMs || 15 * 60 * 1000 // 15 mins
+    const now = new Date()
+    const expiresAt = new Date(now.getTime() + duration)
+
+    return {
+      holdId: `p_hold_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      bookingId: params.bookingId,
+      customerId: params.customerId,
+      pointsHeld: params.pointsHeld,
+      valueEGP: params.valueEGP,
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      status: 'held',
+    }
+  }
+
+  static commitHold(hold: PointHoldEntity): PointHoldEntity {
+    return {
+      ...hold,
+      status: 'committed',
+    }
+  }
+
+  static releaseHold(hold: PointHoldEntity): PointHoldEntity {
+    return {
+      ...hold,
+      status: 'released',
+    }
+  }
+
+  static expireHold(hold: PointHoldEntity): PointHoldEntity {
+    return {
+      ...hold,
+      status: 'expired',
+    }
   }
 }

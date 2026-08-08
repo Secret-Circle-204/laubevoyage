@@ -12,10 +12,22 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
   // Traveler Details Form State
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
+  const [firstName, setFirstName] = useState(data.leadTraveler?.firstName || '')
+  const [lastName, setLastName] = useState(data.leadTraveler?.lastName || '')
+  const [email, setEmail] = useState(data.leadTraveler?.email || '')
+  const [phone, setPhone] = useState(data.leadTraveler?.phone || '')
+
+  const idempotencyKey = React.useMemo(() => {
+    if (typeof window === 'undefined') return ''
+    const storageKey = `laube_chk_key_${data.experienceId}_${data.slotId || 'noslot'}`
+    let key = sessionStorage.getItem(storageKey)
+    if (!key) {
+      const attemptUUID = Math.random().toString(36).substring(2, 9) + Date.now().toString(36)
+      key = `checkout:${data.experienceId}:${data.slotId || 'noslot'}:${attemptUUID}`
+      sessionStorage.setItem(storageKey, key)
+    }
+    return key
+  }, [data.experienceId, data.slotId])
 
   const handleConfirmPayment = async () => {
     if (!firstName || !email) {
@@ -25,17 +37,49 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
 
     setIsSubmitting(true)
     try {
+      const travelersArray = []
+      travelersArray.push({ firstName, lastName, email, phone, type: 'adult' })
+
+      for (let i = 1; i < data.adultsCount; i++) {
+        travelersArray.push({
+          firstName: `Guest ${i + 1}`,
+          lastName: 'Adult',
+          email: `guest${i + 1}_adult@example.com`,
+          phone: phone || '0000000000',
+          type: 'adult',
+        })
+      }
+
+      for (let i = 0; i < data.childrenCount; i++) {
+        travelersArray.push({
+          firstName: `Guest ${i + 1}`,
+          lastName: 'Child',
+          email: `guest${i + 1}_child@example.com`,
+          phone: phone || '0000000000',
+          type: 'child',
+        })
+      }
+
       const res = await confirmCheckoutAction({
         bookingId: data.bookingId,
         experienceId: data.experienceId,
         slotId: data.slotId,
         adults: data.adultsCount,
-        travelers: [{ firstName, lastName, email, phone }],
+        travelers: travelersArray,
         gatewayId: selectedGateway,
+        idempotencyKey,
       })
+
       if (res.success && 'transactionId' in res) {
         const txId = typeof res.transactionId === 'string' ? res.transactionId : 'payment'
         const checkoutUrl = 'checkoutUrl' in res && typeof res.checkoutUrl === 'string' ? res.checkoutUrl : undefined
+        const bookingNumber = 'bookingNumber' in res && typeof res.bookingNumber === 'string' ? res.bookingNumber : undefined
+
+        if (bookingNumber && typeof window !== 'undefined') {
+          const newPath = `/checkout/${bookingNumber}?experienceId=${data.experienceId}`
+          window.history.replaceState({}, '', newPath)
+        }
+
         addToast({
           type: 'success',
           title: 'Payment Processed!',

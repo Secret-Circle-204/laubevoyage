@@ -14,11 +14,11 @@ export class ExperienceSearchService {
   }
 
   async searchExperiences(params: ExperienceSearchQueryParams): Promise<ExperienceAggregate[]> {
-    // In production, queries the search projection index
-    if (params.cityId) {
-      const exp = await this.repository.findById(1).catch(() => null)
-      return exp ? [exp] : []
+    try {
+      return await this.repository.findFiltered(params)
+    } catch (err) {
+      console.error('[ExperienceSearchService] Failed searching experiences:', err)
+      throw err
     }
-    return []
   }
 }

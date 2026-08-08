@@ -14,6 +14,8 @@ export enum BookingStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   REFUNDED = 'refunded',
+  EXPIRED = 'expired',
+  PAYMENT_RECEIVED_AFTER_EXPIRY = 'payment_received_after_expiry',
 }
 
 export type BookingTransition =
@@ -25,6 +27,11 @@ export type BookingTransition =
   | { from: BookingStatus.CONFIRMED; to: BookingStatus.CANCELLED }
   | { from: BookingStatus.PAID; to: BookingStatus.REFUNDED }
   | { from: BookingStatus.CONFIRMED; to: BookingStatus.REFUNDED }
+  | { from: BookingStatus.DRAFT; to: BookingStatus.EXPIRED }
+  | { from: BookingStatus.PENDING_PAYMENT; to: BookingStatus.EXPIRED }
+  | { from: BookingStatus.EXPIRED; to: BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY }
+  | { from: BookingStatus.EXPIRED; to: BookingStatus.CANCELLED }
+  | { from: BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY; to: BookingStatus.CANCELLED }
 
 // ============================================================================
 // EXPERIENCE DOMAIN (DESTINATION)

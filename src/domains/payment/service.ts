@@ -1,3 +1,5 @@
+import { BookingStatus } from '@/types'
+import { BookingPolicy } from '../booking/policy'
 import type { CreateSessionParams, RefundParams, RefundResult, PaymentProviderType } from './types'
 import type { PaymentAggregate } from './aggregate'
 import { PaymentWorkflowEngine } from './workflow'
@@ -43,6 +45,46 @@ export class PaymentService {
       throw new Error('[PaymentService] Gateway ID is required for payment checkout processing.')
     }
     const providerType = params.gatewayId.toLowerCase() as PaymentProviderType
+
+    const booking = await this.bookingRepository.findById(params.bookingId)
+    const existingTx = await this.paymentRepository.findByBookingId(params.bookingId)
+
+    // 1. Check if existing transaction is already paid (allows reconciliation post-expiry)
+    if (existingTx && existingTx.status === 'initiated' && existingTx.session?.sessionId) {
+      try {
+        const adapter = PaymentAdapterFactory.resolve(existingTx.provider as PaymentProviderType)
+        const stripeStatus = await adapter.retrievePaymentStatus({ providerSessionId: existingTx.session.sessionId })
+
+        if (stripeStatus.status === 'paid') {
+          console.log(`[PaymentService] Existing transaction ${existingTx.transactionId} is already paid. Reconciling...`)
+          await this.reconcilePendingPayments()
+          return { success: false, error: 'This payment has already been completed. Re-routing...' }
+        }
+
+        // If it is open/active, we can reuse it only if the hold is NOT expired.
+        if (stripeStatus.status === 'open' && existingTx.session.url) {
+          const holdExpired = booking.capacityHold?.expiresAt && new Date() >= new Date(booking.capacityHold.expiresAt)
+          if (!holdExpired) {
+            console.log(`[PaymentService] Reusing active initiated payment session: ${existingTx.transactionId}`);
+            return { success: true, transactionId: existingTx.transactionId, checkoutUrl: existingTx.session.url }
+          }
+        } else {
+          // Terminal/expired old session: mark it failed and allow a new session
+          console.log(`[PaymentService] Old Stripe session ${existingTx.session.sessionId} is expired/failed. Marking old transaction as failed.`)
+          await this.paymentRepository.updateStatus(existingTx.transactionId, 'failed')
+        }
+      } catch (err) {
+        console.error(`[PaymentService] Failed checking status of existing checkout session:`, err)
+      }
+    }
+
+    // 2. Block new/retry payment session if capacity hold is expired
+    if (booking.capacityHold?.expiresAt) {
+      if (new Date() >= new Date(booking.capacityHold.expiresAt)) {
+        return { success: false, error: 'Booking capacity hold expired. Please start a new checkout flow.' }
+      }
+    }
+
     const adapter = PaymentAdapterFactory.resolve(providerType)
 
     const baseUrl = params.appUrl || process.env.NEXT_PUBLIC_APP_URL
@@ -50,7 +92,6 @@ export class PaymentService {
       throw new Error('[PaymentService] Missing appUrl parameter or NEXT_PUBLIC_APP_URL environment variable.')
     }
 
-    const booking = await this.bookingRepository.findById(params.bookingId)
     const userDoc = await this.customerRepository.findById(booking.customerId)
     const experienceDoc = await this.experienceRepository.findById(booking.experienceId)
 
@@ -187,5 +228,75 @@ export class PaymentService {
    */
   async getByBookingId(bookingId: number): Promise<PaymentAggregate | null> {
     return this.workflowEngine.queries.getByBookingId(bookingId)
+  }
+
+  /**
+   * Reconcile any pending payment transactions (called by CronDispatcher / background processes)
+   */
+  async reconcilePendingPayments(): Promise<number> {
+    const pendingTransactions = await this.paymentRepository.findPendingTransactions()
+    let reconciledCount = 0
+
+    for (const tx of pendingTransactions) {
+      if (tx.provider !== 'stripe') continue
+      
+      const sessionId = tx.session?.sessionId
+      if (!sessionId) continue
+
+      try {
+        const adapter = PaymentAdapterFactory.resolve('stripe')
+        const stripeStatus = await adapter.retrievePaymentStatus({ providerSessionId: sessionId })
+        
+        if (stripeStatus.status === 'paid') {
+          console.log(`[PaymentReconciliation] Found paid Stripe session for Transaction ${tx.transactionId}. Reconciling...`)
+          
+          const { getDomainServices } = await import('../factory')
+          const { booking } = await getDomainServices()
+          const bookingDoc = await booking.getById(tx.bookingId)
+
+          const attemptRecord = {
+            attemptId: `att_recon_${tx.transactionId}`,
+            attemptNumber: tx.attempts.length + 1,
+            provider: 'stripe' as const,
+            amount: tx.attempts[0]?.amount || 0,
+            currency: tx.attempts[0]?.currency || 'EGP',
+            status: 'successful' as const,
+            transactionReference: sessionId,
+            timestamp: new Date().toISOString(),
+          }
+
+          // Evaluate booking policy to verify if confirmation is allowed
+          const canConfirmResult = BookingPolicy.canConfirm(bookingDoc)
+          if (canConfirmResult.allowed) {
+            await booking.markAsPaid(tx.bookingId, attemptRecord)
+            await booking.confirm(tx.bookingId)
+            await this.paymentRepository.updateStatus(tx.transactionId, 'successful')
+          } else {
+            console.warn(`[PaymentReconciliation] BookingPolicy canConfirm rejected for Booking #${tx.bookingId}: ${canConfirmResult.reason}`)
+            // Keep/set status to CANCELLED/EXPIRED, but record attempt and set metadata flags
+            await booking.markAsPaid(tx.bookingId, attemptRecord)
+            
+            const metadata = bookingDoc.metadata || {}
+            metadata.paymentReceivedAfterExpiry = true
+            metadata.manualRefundRequired = true
+            metadata.reconciliationNotes = `payment_received_after_expiry: ${canConfirmResult.reason}`
+            
+            await booking.update(tx.bookingId, {
+              status: BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY,
+              metadata,
+            })
+            await this.paymentRepository.updateStatus(tx.transactionId, 'successful')
+          }
+          reconciledCount++
+        } else if (stripeStatus.status === 'failed') {
+          console.log(`[PaymentReconciliation] Stripe session expired/failed for Transaction ${tx.transactionId}. Marking attempt as failed.`)
+          await this.paymentRepository.updateStatus(tx.transactionId, 'failed')
+        }
+      } catch (err: any) {
+        console.error(`[PaymentReconciliation] Failed reconciling Transaction ${tx.transactionId}:`, err)
+      }
+    }
+
+    return reconciledCount
   }
 }

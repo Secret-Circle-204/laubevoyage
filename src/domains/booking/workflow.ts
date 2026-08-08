@@ -1,4 +1,4 @@
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import { BookingStatus } from '@/types'
 import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
 import { BookingRepository } from './repository'
@@ -52,8 +52,8 @@ export class BookingWorkflowEngine {
 
     this.creator = new BookingCreator(this.repository, custRepo, expSvc, loySvc, pipeline)
     this.confirmation = new BookingConfirmation(this.repository)
-    this.cancellation = new BookingCancellation(this.repository)
-    this.expiration = new BookingExpiration(this.repository)
+    this.cancellation = new BookingCancellation(this.repository, expSvc)
+    this.expiration = new BookingExpiration(this.repository, expSvc)
     this.completion = new BookingCompletion(this.repository)
     this.queries = new BookingQueries(this.repository)
   }
@@ -61,23 +61,24 @@ export class BookingWorkflowEngine {
   async executeCheckoutWorkflow(
     params: CreateBookingParams,
     actor?: Actor,
+    req?: PayloadRequest,
   ): Promise<BookingAggregate> {
-    return this.creator.createDraft(params)
+    return this.creator.createDraft(params, req)
   }
 
-  async executePendingPaymentWorkflow(bookingId: number): Promise<BookingAggregate> {
-    return this.repository.updateStatus(bookingId, BookingStatus.PENDING_PAYMENT)
+  async executePendingPaymentWorkflow(bookingId: number, req?: PayloadRequest): Promise<BookingAggregate> {
+    return this.repository.updateStatus(bookingId, BookingStatus.PENDING_PAYMENT, req)
   }
 
   async executePaymentWorkflow(
     bookingId: number,
     paymentAttempt: PaymentAttempt,
-    req?: any,
+    req?: PayloadRequest,
   ): Promise<BookingAggregate> {
     return this.confirmation.markAsPaid(bookingId, paymentAttempt, undefined, req)
   }
 
-  async executeConfirmationWorkflow(bookingId: number, actor?: Actor, req?: any): Promise<BookingAggregate> {
+  async executeConfirmationWorkflow(bookingId: number, actor?: Actor, req?: PayloadRequest): Promise<BookingAggregate> {
     return this.confirmation.confirm(bookingId, actor, req)
   }
 

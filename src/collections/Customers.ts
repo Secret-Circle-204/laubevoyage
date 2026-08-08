@@ -47,6 +47,14 @@ export const Customers: CollectionConfig = {
       type: 'text',
     },
     {
+      name: 'passportNumber',
+      type: 'text',
+    },
+    {
+      name: 'nationality',
+      type: 'text',
+    },
+    {
       name: 'status',
       type: 'select',
       required: true,

@@ -1,27 +1,28 @@
-import type { Payload } from 'payload'
 import { EventBus } from '../event-bus'
 import type { TierUpgradedEvent } from '../loyalty-events'
-import { NotificationService } from '../../notification/service'
-import { NotificationRepository } from '../../notification/repository'
-import { CustomerRepository } from '../../customer/repository'
+import type { CustomerService } from '../../customer/service'
+import type { NotificationService } from '../../notification/service'
 
 /**
  * Loyalty Notification Subscriber
  * Listens to TierUpgradedEvent to enqueue notification jobs.
  */
-export function registerLoyaltyNotificationSubscriber(payload: Payload): void {
+export function registerLoyaltyNotificationSubscriber(
+  customerService: CustomerService,
+  notificationService: NotificationService,
+): void {
   const eventBus = EventBus.getInstance()
-  const notificationRepository = new NotificationRepository(payload)
-  const customerRepository = new CustomerRepository(payload)
-  const notificationService = new NotificationService(notificationRepository)
 
   eventBus.subscribe<TierUpgradedEvent>(
     'TIER_UPGRADED',
     'LoyaltyNotificationSubscriber.enqueueTierUpgradeNotification',
     async (event) => {
       try {
-        const customer = await customerRepository.findById(event.customerId).catch(() => null)
-        if (!customer?.email) return
+        const customer = await customerService.getById(event.customerId)
+        if (!customer) {
+          throw new Error(`Customer with ID ${event.customerId} not found.`)
+        }
+        if (!customer.email) return
 
         await notificationService.enqueueNotification({
           referenceType: 'LOYALTY_TIER',

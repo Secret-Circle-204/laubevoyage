@@ -6,6 +6,7 @@ import { CapacityHoldService } from './capacity-hold'
 import { PointHoldService } from '../loyalty/point-hold'
 import { BookingHistoryService } from './history'
 import { EventBus } from '../events/event-bus'
+import { ExperienceService } from '../experience/service'
 
 /**
  * Booking Cancellation Sub-Service
@@ -13,10 +14,12 @@ import { EventBus } from '../events/event-bus'
  */
 export class BookingCancellation {
   private repository: BookingRepository
+  private experienceService: ExperienceService
   private eventBus: EventBus
 
-  constructor(repository: BookingRepository) {
+  constructor(repository: BookingRepository, experienceService: ExperienceService) {
     this.repository = repository
+    this.experienceService = experienceService
     this.eventBus = EventBus.getInstance()
   }
 
@@ -29,10 +32,24 @@ export class BookingCancellation {
       throw new Error(`[BookingPolicy] Cancellation forbidden: ${policyResult.reason}`)
     }
 
-    // Release capacity hold
-    const releasedCapacity = booking.capacityHold
-      ? CapacityHoldService.releaseHold(booking.capacityHold)
-      : null
+    // Release capacity hold if active
+    let releasedCapacity = booking.capacityHold
+    if (booking.capacityHold && booking.capacityHold.status === 'active') {
+      releasedCapacity = CapacityHoldService.releaseHold(booking.capacityHold)
+
+      try {
+        const slot = await this.experienceService.getDepartureSlotByDate(
+          booking.capacityHold.experienceId,
+          booking.capacityHold.date,
+        )
+        if (slot && slot.departureId) {
+          await this.experienceService.releaseCapacity(slot.departureId, booking.capacityHold.seats)
+          console.log(`[BookingCancellation] Released slot capacity: Slot ID ${slot.departureId}, ${booking.capacityHold.seats} seats.`)
+        }
+      } catch (err: any) {
+        console.error(`[BookingCancellation] Failed to release slot capacity:`, err)
+      }
+    }
 
     // Release point hold
     const releasedPointHold = booking.pointHold

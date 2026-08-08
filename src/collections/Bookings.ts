@@ -27,6 +27,15 @@ export const Bookings: CollectionConfig = {
       },
     },
     {
+      name: 'idempotencyKey',
+      type: 'text',
+      unique: true,
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'user',
       type: 'relationship',
       relationTo: 'customers',
@@ -54,6 +63,8 @@ export const Bookings: CollectionConfig = {
         { label: 'Completed', value: 'completed' },
         { label: 'Cancelled', value: 'cancelled' },
         { label: 'Refunded', value: 'refunded' },
+        { label: 'Expired', value: 'expired' },
+        { label: 'Payment Received After Expiry', value: 'payment_received_after_expiry' },
       ],
       admin: {
         position: 'sidebar',

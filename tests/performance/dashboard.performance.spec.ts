@@ -14,7 +14,21 @@ describe('Dashboard Domain: Performance Budget & CQRS Read Model Tests', () => {
       find: vi.fn().mockResolvedValue({ docs: [] }),
       update: vi.fn(),
     }
-    workflowEngine = new DashboardWorkflowEngine(mockPayload)
+    const mockQueryBus: any = {
+      customerQueries: { getById: vi.fn().mockResolvedValue({ email: 'ahmed@laube.com', fullName: 'Ahmed', status: 'active' }) },
+      loyaltyQueries: {
+        getProjection: vi.fn().mockResolvedValue({ tier: 'voyager', balance: 500, totalSpentEGP: 25000 }),
+        getActiveProgramConfig: vi.fn().mockResolvedValue({
+          baseEarnRate: 0.1,
+          tiers: {
+            voyager: { minSpentEGP: 50000 },
+            elite: { minSpentEGP: 150000 },
+          }
+        })
+      },
+      bookingQueries: { getByCustomerId: vi.fn().mockResolvedValue([{ bookingNumber: '#LBV-101', status: 'confirmed' }]) },
+    }
+    workflowEngine = new DashboardWorkflowEngine(mockPayload, mockQueryBus)
   })
 
   it('should enforce CQRS projection cache read duration < 5ms on warm cache', async () => {

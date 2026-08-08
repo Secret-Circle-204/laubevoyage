@@ -19,6 +19,8 @@ import { EventBus } from '../events/event-bus'
 import type { SystemHealthReportDTO, ProductionReadinessDTO } from './types'
 import type { EventOutboxService } from '../events/outbox'
 import type { NotificationService } from '../notification/service'
+import type { CustomerService } from '../customer/service'
+import type { LoyaltyService } from '../loyalty/service'
 import { CronDispatcher } from '@/application/jobs/cron-dispatcher'
 
 // Global key for tracking subscriber bootstrap status across request lifecycles
@@ -27,6 +29,8 @@ const BOOTSTRAP_SYMBOL = Symbol.for('laube.subscribers.bootstrapped')
 export interface SystemBootstrapOptions {
   outboxService?: EventOutboxService
   notificationService?: NotificationService
+  customerService?: CustomerService
+  loyaltyService?: LoyaltyService
 }
 
 /**
@@ -98,21 +102,25 @@ export class SystemIntegrationWorkflowEngine {
     ;(global as any)[BOOTSTRAP_SYMBOL] = true
     this.isBootstrapped = true
 
-    // 2. Run database-level bootstrap recovery routines
-    await this.runBootstrapRecovery()
-
-    // 3. Start Infrastructure Background Workers (Encapsulated Service Delegation)
-    this.startInfrastructureWorkers(options)
-
-    // 4. Wire Master Event Bus Subscribers (Clean Drizzle and Payload listeners)
+    // 2. Wire Master Event Bus Subscribers (Clean Drizzle and Payload listeners)
     MasterEventBus.clearSubscribers()
+
+    if (
+      !options?.customerService ||
+      !options?.loyaltyService ||
+      !options?.notificationService
+    ) {
+      throw new Error(
+        '[SystemWorkflowEngine] Bootstrap failed: required dependencies (customerService, loyaltyService, notificationService) are missing in options.',
+      )
+    }
 
     registerDashboardProjectionSubscribers(this.payload)
     registerNotificationSubscribers(this.payload)
     registerCustomerSubscribers(this.payload)
-    registerLoyaltySubscriber(this.payload)
+    registerLoyaltySubscriber(this.payload, options.customerService, options.loyaltyService)
     registerBookingPaymentSubscriber(this.payload)
-    registerLoyaltyNotificationSubscriber(this.payload)
+    registerLoyaltyNotificationSubscriber(options.customerService, options.notificationService)
     registerInventorySubscriber(this.payload)
 
     // Event-driven RAM registry cache invalidators (Safe for all node runtimes/workers)
@@ -129,6 +137,18 @@ export class SystemIntegrationWorkflowEngine {
     }
 
     return { success: true, eventSubscribersCount: 11 + revalidatorsRegistered }
+  }
+
+  async startBackgroundWorkers(options?: SystemBootstrapOptions): Promise<void> {
+    const symbol = Symbol.for('laube.system.workers.started')
+    if ((global as any)[symbol]) return
+    ;(global as any)[symbol] = true
+
+    // Run database-level bootstrap recovery routines
+    await this.runBootstrapRecovery()
+
+    // Start Infrastructure Background Workers
+    this.startInfrastructureWorkers(options)
   }
 
   async getSystemHealth(): Promise<SystemHealthReportDTO> {

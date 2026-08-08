@@ -131,7 +131,7 @@ export class BookingRepository {
   /**
    * Find uncompleted draft or pending payment bookings created before cutoff date.
    */
-  async findExpiredDrafts(cutoffIso: string, req?: PayloadRequest): Promise<BookingAggregate[]> {
+  async findExpiredDrafts(nowIso: string, req?: PayloadRequest): Promise<BookingAggregate[]> {
     const result = await this.payload.find({
       collection: 'bookings',
       where: {
@@ -139,13 +139,42 @@ export class BookingRepository {
           { status: { equals: 'draft' } },
           { status: { equals: 'pending_payment' } },
         ],
-        createdAt: { less_than: cutoffIso },
       },
       limit: 100,
       req,
     })
 
-    return result.docs.map((doc) => this.mapDocToAggregate(doc))
+    const now = new Date(nowIso)
+    const expiredDocs = result.docs.filter((doc) => {
+      const hold = doc.capacityHold as any
+      if (hold) {
+        if (hold.status === 'active') {
+          if (!hold.expiresAt) return true
+          return new Date(hold.expiresAt) <= now
+        }
+        return false
+      }
+      return true
+    })
+
+    return expiredDocs.map((doc) => this.mapDocToAggregate(doc))
+  }
+
+  /**
+   * Find a booking by its unique idempotency key.
+   */
+  async getByIdempotencyKey(idempotencyKey: string, req?: PayloadRequest): Promise<BookingAggregate | null> {
+    const result = await this.payload.find({
+      collection: 'bookings',
+      where: {
+        idempotencyKey: { equals: idempotencyKey },
+      },
+      limit: 1,
+      req,
+    })
+
+    const doc = result.docs[0]
+    return doc ? this.mapDocToAggregate(doc) : null
   }
 
   /**
@@ -180,6 +209,8 @@ export class BookingRepository {
       timeline: doc.timeline || [],
       auditTrail: doc.auditTrail || [],
       documents: doc.documents || {},
+      metadata: doc.metadata || {},
+      idempotencyKey: doc.idempotencyKey || undefined,
       createdAt: doc.createdAt ? (typeof doc.createdAt === 'string' ? doc.createdAt : new Date(doc.createdAt).toISOString()) : new Date().toISOString(),
       updatedAt: doc.updatedAt ? (typeof doc.updatedAt === 'string' ? doc.updatedAt : new Date(doc.updatedAt).toISOString()) : new Date().toISOString(),
     }

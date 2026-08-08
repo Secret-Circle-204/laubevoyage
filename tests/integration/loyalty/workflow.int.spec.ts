@@ -11,6 +11,37 @@ describe('Loyalty Domain: LoyaltyWorkflowEngine Integration Tests', () => {
       findByID: vi.fn(),
       find: vi.fn(),
       update: vi.fn(),
+      findGlobal: vi.fn().mockResolvedValue({
+        programCode: 'welcome',
+        baseEarnRate: 0.1,
+        redemptionPointsUnit: 100,
+        redemptionValueEGP: 10,
+        minRedemptionPoints: 100,
+        maxRedemptionPercent: 10,
+        welcomeBonus: 1000,
+        expirationMonths: 12,
+        isActive: true,
+        tiers: [
+          {
+            tier: 'explorer',
+            minSpentEGP: 0,
+            earnMultiplier: 1,
+            upgradeBonus: 0,
+          },
+          {
+            tier: 'voyager',
+            minSpentEGP: 50000,
+            earnMultiplier: 1.5,
+            upgradeBonus: 1000,
+          },
+          {
+            tier: 'elite',
+            minSpentEGP: 150000,
+            earnMultiplier: 2.0,
+            upgradeBonus: 5000,
+          }
+        ]
+      }),
     }
     workflowEngine = new LoyaltyWorkflowEngine(mockPayload)
   })
@@ -42,7 +73,7 @@ describe('Loyalty Domain: LoyaltyWorkflowEngine Integration Tests', () => {
     mockPayload.create.mockResolvedValue(mockLedgerDoc)
     mockPayload.update.mockResolvedValue(mockCustomerDoc)
 
-    const record = await workflowEngine.executeEarnWorkflow(5, 5000, 1, 'LBV-260723-00042')
+    const record = await workflowEngine.earnPointsForBooking(5, 1, 5000, 'LBV-260723-00042')
 
     expect(mockPayload.create).toHaveBeenCalledWith(
       expect.objectContaining({

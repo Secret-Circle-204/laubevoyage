@@ -3,6 +3,7 @@ import { getDomainServices } from '@/domains/factory'
 import { getBusinessDateString } from '@/lib/date'
 import type { DestinationQueryOptions } from '@/domains/destination/types'
 import type { DestinationsCatalogDTO, CountryDetailsDTO, CityExperiencesDTO } from './dto'
+import { serializeLexicalToText } from '@/lib/lexical'
 
 export class DestinationsCatalogLoader {
   static async load(options?: DestinationQueryOptions): Promise<DestinationsCatalogDTO> {
@@ -26,14 +27,14 @@ export class DestinationsCatalogLoader {
       for (const countryDoc of (countriesRes.docs || []) as Record<string, any>[]) {
         const countryId = Number(countryDoc.id)
         rawTexts.push(String(countryDoc.name || ''))
-        rawTexts.push(typeof countryDoc.description === 'string' ? countryDoc.description : '')
+        rawTexts.push(serializeLexicalToText(countryDoc.description))
 
         const citiesRes = await destination.getCitiesByCountry(countryId, options)
         const cityDocs = (citiesRes.docs || []) as Record<string, any>[]
 
         for (const cityDoc of cityDocs) {
           rawTexts.push(String(cityDoc.name || ''))
-          rawTexts.push(typeof cityDoc.description === 'string' ? cityDoc.description : '')
+          rawTexts.push(serializeLexicalToText(cityDoc.description))
         }
 
         countryRecords.push({ countryDoc, cityDocs })
@@ -120,13 +121,13 @@ export class CountryLoader {
       // Collect all texts for 1 Single Batch Request
       const rawTexts: string[] = [
         String(countryDoc.name || ''),
-        typeof countryDoc.description === 'string' ? countryDoc.description : '',
+        serializeLexicalToText(countryDoc.description),
       ]
 
       for (const cDoc of citiesRes.docs || []) {
         const c = cDoc as Record<string, any>
         rawTexts.push(String(c.name || ''))
-        rawTexts.push(typeof c.description === 'string' ? c.description : '')
+        rawTexts.push(serializeLexicalToText(c.description))
       }
 
       const translated = await localization.translateBatch(rawTexts, ctx)
@@ -194,9 +195,9 @@ export class CityLoader {
       // Collect all texts for 1 Single Batch Request
       const rawTexts: string[] = [
         String(cityDoc.name || ''),
-        typeof cityDoc.description === 'string' ? cityDoc.description : '',
+        serializeLexicalToText(cityDoc.description),
         String(countryDoc?.name || ''),
-        typeof countryDoc?.description === 'string' ? countryDoc.description : '',
+        serializeLexicalToText(countryDoc?.description),
       ]
 
       for (const expDoc of experiencesRes.docs || []) {

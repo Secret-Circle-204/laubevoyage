@@ -24,6 +24,23 @@ export function CheckoutSuccessClient({
   const isPollingRef = useRef<boolean>(true)
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const keysToRemove: string[] = []
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i)
+          if (key && key.startsWith('laube_chk_key_')) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach((key) => sessionStorage.removeItem(key))
+      } catch (err) {
+        console.error('[CheckoutSuccessClient] Failed clearing checkout keys:', err)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     isPollingRef.current = true
     let attempts = 0
     const maxAttempts = 8 // ~80s total timeout with exponential delay
@@ -56,7 +73,9 @@ export function CheckoutSuccessClient({
             if (typeof res.earnedPoints === 'number') {
               setEarnedPoints(res.earnedPoints)
             }
-            if (res.pricingSnapshot) {
+            if (res.formattedTotalPrice) {
+              setTotalAmountDisplay(res.formattedTotalPrice)
+            } else if (res.pricingSnapshot) {
               const amountStr = res.pricingSnapshot.displayAmount
                 ? `${res.pricingSnapshot.displayCurrency || '$'}${res.pricingSnapshot.displayAmount}`
                 : `${res.pricingSnapshot.totalAmountEGP} EGP`

@@ -33,18 +33,6 @@ export class ExperienceDetailsLoader {
 
       const [translatedTitle, translatedLocation] = await localization.translateBatch([rawTitle, locationText], ctx)
 
-      const descTag = localization.translateUiKey('experience.details.descTag', ctx) || 'Experience luxury journeys, curated itineraries, and unforgettable private tours across Egypt.'
-      const day1Title = localization.translateUiKey('experience.details.day1Title', ctx) || 'Arrival & Welcome Reception'
-      const day1Desc = localization.translateUiKey('experience.details.day1Desc', ctx) || 'Meet & assist upon arrival, transfer to luxury accommodation with VIP welcome drink.'
-      const day2Title = localization.translateUiKey('experience.details.day2Title', ctx) || 'Guided Excursion & Cultural Journey'
-      const day2Desc = localization.translateUiKey('experience.details.day2Desc', ctx) || 'Explore iconic ancient landmarks with expert Egyptologist guide and luxury private transport.'
-
-      const inc1 = localization.translateUiKey('experience.details.inc1', ctx) || 'VIP Private Transfers'
-      const inc2 = localization.translateUiKey('experience.details.inc2', ctx) || '5-Star Luxury Accommodation'
-      const inc3 = localization.translateUiKey('experience.details.inc3', ctx) || 'Expert Egyptologist Guide'
-      const exc1 = localization.translateUiKey('experience.details.exc1', ctx) || 'International Airfare'
-      const exc2 = localization.translateUiKey('experience.details.exc2', ctx) || 'Personal Expenses & Tipping'
-
       const dbSlots = await experience.findSlotsByExperienceId(exp.id)
       const departureSlots = dbSlots.map((s) => ({
         id: s.id || 1,
@@ -66,6 +54,51 @@ export class ExperienceDetailsLoader {
         ctx,
       })
 
+      // Dynamic translations for itinerary days
+      const rawDays = exp.itinerary || []
+      const dayTextsToTranslate: string[] = []
+      for (const day of rawDays) {
+        dayTextsToTranslate.push(day.title)
+        dayTextsToTranslate.push(day.description)
+      }
+      
+      const translatedDayTexts = dayTextsToTranslate.length > 0 
+        ? await localization.translateBatch(dayTextsToTranslate, ctx) 
+        : []
+
+      let dayTextIdx = 0
+      const itinerary = rawDays.map((day) => {
+        const title = translatedDayTexts[dayTextIdx++] || day.title
+        const description = translatedDayTexts[dayTextIdx++] || day.description
+        return {
+          dayNumber: day.dayNumber,
+          title,
+          description,
+        }
+      })
+
+      // Dynamic translations for inclusions/exclusions
+      const rawInclusions = exp.included || []
+      const rawExclusions = exp.excluded || []
+      const servicesToTranslate = [...rawInclusions, ...rawExclusions]
+      const translatedServices = servicesToTranslate.length > 0
+        ? await localization.translateBatch(servicesToTranslate, ctx)
+        : []
+      
+      const includedServices = translatedServices.slice(0, rawInclusions.length)
+      const excludedServices = translatedServices.slice(rawInclusions.length)
+
+      // Dynamic translation for description
+      const rawDescription = exp.descriptionHtml || ''
+      const [translatedDescription] = rawDescription
+        ? await localization.translateBatch([rawDescription], ctx)
+        : [rawDescription]
+
+      // Dynamic images from gallery
+      const images = Array.isArray(exp.gallery) && exp.gallery.length > 0
+        ? exp.gallery
+        : (exp.heroUrl ? [exp.heroUrl] : ['/images/hero-bg.jpg'])
+
       return {
         id: Number(item.id),
         slug: item.slug || String(item.id),
@@ -77,23 +110,12 @@ export class ExperienceDetailsLoader {
         rating: item.rating || 5,
         reviewsCount: item.reviewsCount || 12,
         initialAdults: adultsCount,
-        descriptionHtml: `<p>${translatedTitle || rawTitle} - ${descTag}</p>`,
-        images: item.heroUrl ? [item.heroUrl] : ['/images/hero-bg.jpg'],
-        itinerary: [
-          {
-            dayNumber: 1,
-            title: day1Title,
-            description: day1Desc,
-          },
-          {
-            dayNumber: 2,
-            title: day2Title,
-            description: day2Desc,
-          },
-        ],
+        descriptionHtml: translatedDescription || rawDescription,
+        images,
+        itinerary,
         departureSlots,
-        includedServices: [inc1, inc2, inc3],
-        excludedServices: [exc1, exc2],
+        includedServices,
+        excludedServices,
         pricing: {
           unitPrice: pricingRes.unitPrice,
           totalPrice: pricingRes.totalCost,

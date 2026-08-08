@@ -24,7 +24,7 @@ export class LayoutLoader {
       }))
     } catch (err) {
       console.error('[LayoutLoader] Failed fetching supported currencies from database:', err)
-      supportedCurrencies = []
+      throw err
     }
 
     let supportedLocales: LocaleOptionDTO[] = []
@@ -36,10 +36,11 @@ export class LayoutLoader {
       }))
     } catch (err) {
       console.error('[LayoutLoader] Failed fetching supported languages from database:', err)
-      supportedLocales = []
+      throw err
     }
 
     let userSession: LayoutDTO['userSession'] = undefined
+    let unreadNotificationsCount = 0
     if (params?.customerId) {
       try {
         const customerDoc = await customer.getById(params.customerId)
@@ -51,8 +52,16 @@ export class LayoutLoader {
           points: customerDoc.loyalty?.points || 0,
           tier: (customerDoc.loyalty?.tier || 'explorer') as string,
         }
-      } catch {
-        userSession = { isAuthenticated: false }
+
+        const { notification } = await getDomainServices()
+        const repo = (notification as any).workflowEngine?.repository
+        if (repo && typeof repo.findByRecipient === 'function' && customerDoc.email) {
+          const logs = await repo.findByRecipient(customerDoc.email, 20)
+          unreadNotificationsCount = logs.filter((log: any) => log.status === 'queued' || log.status === 'processing').length
+        }
+      } catch (err) {
+        console.error('[LayoutLoader] Failed loading customer session data:', err)
+        throw err
       }
     }
 
@@ -64,7 +73,7 @@ export class LayoutLoader {
       supportedCurrencies,
       supportedLocales,
       userSession,
-      unreadNotificationsCount: 0,
+      unreadNotificationsCount,
     }
   }
 }

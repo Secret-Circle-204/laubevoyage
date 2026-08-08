@@ -1,9 +1,7 @@
 import { EventBus } from '../event-bus'
 import type { BookingConfirmedEvent } from '../booking-events'
-import { LoyaltyService } from '../../loyalty/service'
-import { CustomerService } from '../../customer/service'
-import { CustomerRepository } from '../../customer/repository'
-import { LoyaltyRepository } from '../../loyalty/repository'
+import type { LoyaltyService } from '../../loyalty/service'
+import type { CustomerService } from '../../customer/service'
 import { PayloadInboxRepository } from '../repositories/payload-inbox-repository'
 import type { Payload } from 'payload'
 
@@ -12,16 +10,13 @@ import type { Payload } from 'payload'
  * Listens to BookingConfirmedEvent to award points and evaluate tier progression via LoyaltyService.
  * Atomic Inbox Guard protected for Exactly-Once processing & Fail-Fast validation.
  */
-export function registerLoyaltySubscriber(payload: Payload): void {
+export function registerLoyaltySubscriber(
+  payload: Payload,
+  customerService: CustomerService,
+  loyaltyService: LoyaltyService,
+): void {
   const eventBus = EventBus.getInstance()
   const inboxRepo = new PayloadInboxRepository(payload)
-  const loyaltyRepository = new LoyaltyRepository(payload)
-  const customerRepository = new CustomerRepository(payload)
-  const loyaltyService = new LoyaltyService(loyaltyRepository)
-  const dummyChecker = {
-    checkDependencies: async () => ({ bookingCount: 0, pointLedgerCount: 0, reviewCount: 0, paymentCount: 0 })
-  }
-  const customerService = new CustomerService(customerRepository, dummyChecker)
 
   eventBus.subscribe<BookingConfirmedEvent>(
     'BOOKING_CONFIRMED',

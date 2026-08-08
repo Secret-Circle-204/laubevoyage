@@ -1,3 +1,4 @@
+import type { PayloadRequest } from 'payload'
 import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
 import { BookingWorkflowEngine } from './workflow'
 import { BookingRepository } from './repository'
@@ -39,22 +40,22 @@ export class BookingService {
   /**
    * Create a new booking in draft state.
    */
-  async create(data: CreateBookingParams): Promise<number> {
-    const booking = await this.workflowEngine.executeCheckoutWorkflow(data)
+  async create(data: CreateBookingParams, req?: PayloadRequest): Promise<number> {
+    const booking = await this.workflowEngine.executeCheckoutWorkflow(data, undefined, req)
     return booking.id
   }
 
   /**
    * Move booking to pending payment via Workflow Engine.
    */
-  async moveToPendingPayment(bookingId: number): Promise<void> {
-    await this.workflowEngine.executePendingPaymentWorkflow(bookingId)
+  async moveToPendingPayment(bookingId: number, req?: PayloadRequest): Promise<void> {
+    await this.workflowEngine.executePendingPaymentWorkflow(bookingId, req)
   }
 
   /**
    * Mark as paid (called by PaymentService webhook adapter).
    */
-  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, req?: any): Promise<void> {
+  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, req?: PayloadRequest): Promise<void> {
     if (!paymentAttempt) {
       throw new Error('[BookingService] markAsPaid requires a valid PaymentAttempt object.')
     }
@@ -64,7 +65,7 @@ export class BookingService {
   /**
    * Confirm booking after successful payment.
    */
-  async confirm(bookingId: number, _paymentId?: string, req?: any): Promise<BookingAggregate> {
+  async confirm(bookingId: number, _paymentId?: string, req?: PayloadRequest): Promise<BookingAggregate> {
     return this.workflowEngine.executeConfirmationWorkflow(bookingId, undefined, req)
   }
 
@@ -114,8 +115,8 @@ export class BookingService {
   /**
    * Release expired booking holds (called by CronDispatcher)
    */
-  async releaseExpiredHolds(minutes: number = 15): Promise<number> {
-    return this.processExpiredBookings(minutes)
+  async releaseExpiredHolds(_minutes?: number): Promise<number> {
+    return this.processExpiredBookings()
   }
 
   /**
@@ -144,5 +145,19 @@ export class BookingService {
    */
   async delete(bookingId: number): Promise<void> {
     await this.repository.delete(bookingId)
+  }
+
+  /**
+   * Update booking details.
+   */
+  async update(bookingId: number, data: Partial<BookingAggregate>, req?: PayloadRequest): Promise<BookingAggregate> {
+    return this.repository.update(bookingId, data, req)
+  }
+
+  /**
+   * Get booking by idempotency key.
+   */
+  async getByIdempotencyKey(idempotencyKey: string, req?: PayloadRequest): Promise<BookingAggregate | null> {
+    return this.repository.getByIdempotencyKey(idempotencyKey, req)
   }
 }

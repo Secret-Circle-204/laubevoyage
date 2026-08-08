@@ -12,6 +12,7 @@ export interface EnvConfig {
   STRIPE_WEBHOOK_SECRET?: string
   PAYMOB_API_KEY?: string
   PAYMOB_HMAC_SECRET?: string
+  INTERNAL_REVALIDATION_TOKEN?: string
 }
 
 export function validateEnv(): EnvConfig {
@@ -26,6 +27,7 @@ export function validateEnv(): EnvConfig {
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     PAYMOB_API_KEY: process.env.PAYMOB_API_KEY,
     PAYMOB_HMAC_SECRET: process.env.PAYMOB_HMAC_SECRET,
+    INTERNAL_REVALIDATION_TOKEN: process.env.INTERNAL_REVALIDATION_TOKEN,
   }
 
   if (isProd) {
@@ -37,6 +39,14 @@ export function validateEnv(): EnvConfig {
     if (!process.env.DATABASE_URI) {
       throw new Error(
         '[SECURITY CRITICAL] Missing mandatory DATABASE_URI environment variable in production.',
+      )
+    }
+    if (
+      !process.env.INTERNAL_REVALIDATION_TOKEN ||
+      process.env.INTERNAL_REVALIDATION_TOKEN === 'laube-internal-token-2026'
+    ) {
+      throw new Error(
+        '[SECURITY CRITICAL] INTERNAL_REVALIDATION_TOKEN must be a secure, random string in production.',
       )
     }
   }

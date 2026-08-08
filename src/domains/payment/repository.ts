@@ -222,6 +222,22 @@ export class PaymentRepository {
   }
 
   /**
+   * Find all payment transactions in 'initiated' or 'pending' state.
+   */
+  async findPendingTransactions(req?: PayloadRequest): Promise<PaymentAggregate[]> {
+    const result = await this.payload.find({
+      collection: 'payment-transactions',
+      where: {
+        status: { equals: 'initiated' },
+      },
+      limit: 100,
+      req,
+    })
+
+    return result.docs.map((doc) => this.mapDocToAggregate(doc))
+  }
+
+  /**
    * Map Payload document to strongly-typed PaymentAggregate.
    */
   private mapDocToAggregate(doc: Record<string, any>): PaymentAggregate {

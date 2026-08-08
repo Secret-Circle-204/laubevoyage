@@ -35,6 +35,29 @@ export class CronDispatcher {
       executedTasks.push('currency_rate_refresh_skipped')
     }
 
+    // Task 3: Release Expired Booking Holds
+    try {
+      if (typeof booking.releaseExpiredHolds === 'function') {
+        await booking.releaseExpiredHolds()
+      }
+      executedTasks.push('release_expired_holds')
+    } catch (err: any) {
+      console.error('[CronDispatcher] Failed releasing expired holds:', err)
+      executedTasks.push('release_expired_holds_failed')
+    }
+
+    // Task 4: Reconcile Pending Payments
+    try {
+      const { payment } = await getDomainServices()
+      if (typeof (payment as any).reconcilePendingPayments === 'function') {
+        await (payment as any).reconcilePendingPayments()
+      }
+      executedTasks.push('payment_reconciliation')
+    } catch (err: any) {
+      console.error('[CronDispatcher] Failed payment reconciliation:', err)
+      executedTasks.push('payment_reconciliation_failed')
+    }
+
     return {
       success: true,
       executedTasks,
@@ -47,14 +70,24 @@ export class CronDispatcher {
     if ((global as any)[symbol]) return
     ;(global as any)[symbol] = true
 
+    // 1. Hourly Scheduled Tasks (Completions, Rates, Reconciliation)
     setInterval(() => {
       CronDispatcher.runHourlyJob().catch((err) => {
         console.error('[CronDispatcher] Hourly job execution error:', err)
       })
     }, 60 * 60 * 1000)
 
+    // 2. 1-Minute Scheduled Tasks (Hold Expiration Reaper)
+    setInterval(() => {
+      getDomainServices().then(({ booking }) => {
+        booking.releaseExpiredHolds().catch((err) => {
+          console.error('[CronDispatcher] Expiration reaper execution error:', err)
+        })
+      })
+    }, 60 * 1000)
+
     if (process.env.ARCH_TRACE === 'true') {
-      console.log('[CronDispatcher] Hourly scheduler started successfully (1h interval).')
+      console.log('[CronDispatcher] Hourly scheduler (1h) and Expiration reaper (1m) started successfully.')
     }
   }
 }

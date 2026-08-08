@@ -24,11 +24,12 @@ export class CheckoutPageLoader {
 
       const gateways: PaymentGatewayDTO[] = await payment.getAvailableGateways()
       const session = await SessionResolver.resolve()
+      if (!session.customerId) return null
       const availableLoyaltyPoints = session.points ?? 0
 
       if (bookingId !== 'new') {
         const bookingDoc = await booking.getByBookingNumber(bookingId)
-        if (!bookingDoc) return null
+        if (!bookingDoc || (bookingDoc.status !== 'draft' && bookingDoc.status !== 'pending_payment')) return null
 
         const expDoc = await experience.getById(bookingDoc.experienceId)
         if (!expDoc) return null
@@ -37,11 +38,35 @@ export class CheckoutPageLoader {
         const adultsCount = travelers.filter((t) => t.type !== 'child').length || travelers.length
         const childrenCount = travelers.filter((t) => t.type === 'child').length
 
+        const firstTraveler = travelers[0]
+        const leadTraveler = firstTraveler
+          ? {
+              firstName: firstTraveler.firstName || '',
+              lastName: firstTraveler.lastName || '',
+              email: firstTraveler.email || '',
+              phone: firstTraveler.phone || '',
+            }
+          : undefined
+
         const snapshot = bookingDoc.pricingSnapshot
         if (!snapshot) return null
 
-        const subtotalFormatted = await localization.formatPrice(snapshot.subtotalEGP, ctx)
-        const totalFormatted = await localization.formatPrice(snapshot.subtotalEGP, ctx)
+        const subtotalConverted = snapshot.subtotalEGP * (snapshot.exchangeRate || 1)
+        const subtotalFormatted = await localization.formatAlreadyConvertedPrice(
+          subtotalConverted,
+          snapshot.subtotalEGP,
+          snapshot.displayCurrency || 'EGP',
+          snapshot.exchangeRate || 1,
+          ctx
+        )
+
+        const totalFormatted = await localization.formatAlreadyConvertedPrice(
+          snapshot.displayAmount,
+          snapshot.totalAmountEGP,
+          snapshot.displayCurrency || 'EGP',
+          snapshot.exchangeRate || 1,
+          ctx
+        )
 
         const imageUrl = expDoc.heroUrl || ''
 
@@ -64,6 +89,7 @@ export class CheckoutPageLoader {
           totalCost: totalFormatted,
           availableLoyaltyPoints,
           gateways,
+          leadTraveler,
         }
       }
 
@@ -91,6 +117,18 @@ export class CheckoutPageLoader {
 
       const imageUrl = expDoc.heroUrl || ''
 
+      const { getDomainServices } = await import('@/domains/factory')
+      const { customer } = await getDomainServices()
+      const customerDoc = await customer.getById(session.customerId).catch(() => null)
+      const leadTraveler = customerDoc
+        ? {
+            firstName: customerDoc.firstName || '',
+            lastName: customerDoc.lastName || '',
+            email: customerDoc.email || '',
+            phone: customerDoc.phone || '',
+          }
+        : undefined
+
       return {
         bookingId: 'new',
         experienceId: expId,
@@ -108,9 +146,11 @@ export class CheckoutPageLoader {
         totalCost: totalCost,
         availableLoyaltyPoints,
         gateways,
+        leadTraveler,
       }
-    } catch {
-      return null
+    } catch (err) {
+      console.error(`[CheckoutPageLoader] Failed loading checkout page for booking #${bookingId}:`, err)
+      throw err
     }
   }
 }

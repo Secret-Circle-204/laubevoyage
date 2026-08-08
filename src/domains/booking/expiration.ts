@@ -5,6 +5,7 @@ import { CapacityHoldService } from './capacity-hold'
 import { PointHoldService } from '../loyalty/point-hold'
 import { BookingHistoryService } from './history'
 import { EventBus } from '../events/event-bus'
+import { ExperienceService } from '../experience/service'
 
 /**
  * Booking Expiration Sub-Service
@@ -12,20 +13,22 @@ import { EventBus } from '../events/event-bus'
  */
 export class BookingExpiration {
   private repository: BookingRepository
+  private experienceService: ExperienceService
   private eventBus: EventBus
   private deadLetterQueue: BookingAggregate[] = []
 
-  constructor(repository: BookingRepository) {
+  constructor(repository: BookingRepository, experienceService: ExperienceService) {
     this.repository = repository
+    this.experienceService = experienceService
     this.eventBus = EventBus.getInstance()
   }
 
   /**
    * Scan and expire uncompleted draft or pending payment bookings past expiration window.
    */
-  async processExpiredBookings(expirationWindowMinutes: number = 15): Promise<number> {
-    const cutoffDate = new Date(Date.now() - expirationWindowMinutes * 60 * 1000).toISOString()
-    const expiredDrafts = await this.repository.findExpiredDrafts(cutoffDate)
+  async processExpiredBookings(_expirationWindowMinutes?: number): Promise<number> {
+    const nowIso = new Date().toISOString()
+    const expiredDrafts = await this.repository.findExpiredDrafts(nowIso)
 
     let expiredCount = 0
     for (const booking of expiredDrafts) {
@@ -39,7 +42,6 @@ export class BookingExpiration {
   /**
    * Execute 7-step expiration pipeline with retry and DLQ fallback.
    */
-
   private async expireBookingWithRetry(booking: BookingAggregate, maxRetries: number = 3): Promise<boolean> {
     let attempt = 0
     let lastError: Error | null = null
@@ -52,7 +54,7 @@ export class BookingExpiration {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
         console.warn(`[BookingExpiration] Retry ${attempt}/${maxRetries} failed for booking #${booking.bookingNumber}:`, lastError.message)
-        
+
         // Exponential backoff wait
         await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 100))
       }
@@ -76,10 +78,26 @@ export class BookingExpiration {
    * 7. Trigger Notification
    */
   private async executeExpirationPipeline(booking: BookingAggregate): Promise<BookingAggregate> {
-    // Step 2 & 3: Release holds
-    const expiredCapacity = booking.capacityHold
-      ? CapacityHoldService.expireHold(booking.capacityHold)
-      : null
+    // Step 2 & 3: Release holds if active
+    let expiredCapacity = booking.capacityHold
+    if (booking.capacityHold && booking.capacityHold.status === 'active') {
+      expiredCapacity = CapacityHoldService.expireHold(booking.capacityHold)
+
+      try {
+        if (typeof this.experienceService?.getDepartureSlotByDate === 'function' && typeof this.experienceService?.releaseCapacity === 'function') {
+          const slot = await this.experienceService.getDepartureSlotByDate(
+            booking.capacityHold.experienceId,
+            booking.capacityHold.date,
+          )
+          if (slot && slot.departureId) {
+            await this.experienceService.releaseCapacity(slot.departureId, booking.capacityHold.seats)
+            console.log(`[BookingExpiration] Released slot capacity: Slot ID ${slot.departureId}, ${booking.capacityHold.seats} seats.`)
+          }
+        }
+      } catch (err: any) {
+        console.error(`[BookingExpiration] Failed to release slot capacity:`, err)
+      }
+    }
 
     const expiredPointHold = booking.pointHold
       ? PointHoldService.expireHold(booking.pointHold)

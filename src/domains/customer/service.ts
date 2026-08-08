@@ -98,6 +98,23 @@ export class CustomerService {
     return this.getById(customerId)
   }
 
+  async saveProfile(customer: CustomerAggregate): Promise<CustomerAggregate> {
+    const updated = await this.repository.save(customer)
+
+    const outbox = EventOutboxService.getInstance()
+    await outbox.recordAndPublish({
+      type: 'CUSTOMER_UPDATED',
+      eventVersion: 1,
+      customerId: updated.customerId,
+      email: updated.email,
+      fullName: updated.fullName,
+      status: updated.status,
+      timestamp: new Date().toISOString(),
+    })
+
+    return updated
+  }
+
   async getTravelers(customerId: number): Promise<CompanionTravelerEntity[]> {
     return this.workflowEngine.profileManager.getTravelers(customerId)
   }

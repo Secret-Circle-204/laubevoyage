@@ -17,6 +17,10 @@ export class LoyaltyService {
     this.workflowEngine = new LoyaltyWorkflowEngine(repository)
   }
 
+  async getActiveConfig(config?: LoyaltyProgramConfig): Promise<LoyaltyProgramConfig> {
+    return this.workflowEngine.getActiveConfig(config)
+  }
+
   /**
    * Grant welcome bonus to new customer email account.
    */

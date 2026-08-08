@@ -2,7 +2,7 @@ import React from 'react'
 import type { Metadata } from 'next'
 import { Card, Badge } from '@/components/ui'
 import { CustomerPortalLoader } from '@/application/dashboard/loaders'
-
+import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
 
@@ -18,7 +18,11 @@ export default async function Page() {
     redirect('/login')
   }
 
-  const data = await CustomerPortalLoader.loadOverview(session.customerId)
+  const { loyalty } = await getDomainServices()
+  const [data, history] = await Promise.all([
+    CustomerPortalLoader.loadOverview(session.customerId),
+    loyalty.getCustomerLedgerHistory(session.customerId, 50),
+  ])
 
   return (
     <div className="flex flex-col gap-8">
@@ -55,6 +59,74 @@ export default async function Page() {
           </span>
         </div>
       </Card>
+
+      <div className="flex flex-col gap-4">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Points Transaction History</h2>
+        
+        {history.length === 0 ? (
+          <Card variant="flat" padding="lg" className="text-center text-slate-500 py-12">
+            No loyalty transactions found yet. Earn points by booking experiences!
+          </Card>
+        ) : (
+          <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs font-bold uppercase border-b border-slate-100 dark:border-slate-800">
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">Transaction Reference</th>
+                    <th className="px-6 py-4">Type</th>
+                    <th className="px-6 py-4">Reason</th>
+                    <th className="px-6 py-4 text-right">Points</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {history.map((record) => {
+                    const formattedDate = new Date(record.createdAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                    const isPositive = record.points > 0
+                    
+                    return (
+                      <tr key={record.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">
+                          {formattedDate}
+                        </td>
+                        <td className="px-6 py-4 font-mono text-xs text-slate-500">
+                          {record.id}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
+                            record.type === 'earned' || record.type === 'welcome_bonus' || record.type === 'tier_bonus'
+                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                              : record.type === 'redeem' || record.type === 'redeemed'
+                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'
+                              : 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                          }`}>
+                            {record.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                          {record.reason}
+                        </td>
+                        <td className={`px-6 py-4 text-right font-bold whitespace-nowrap ${
+                          isPositive
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-rose-600 dark:text-rose-400'
+                        }`}>
+                          {isPositive ? `+${record.points}` : record.points} Pts
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

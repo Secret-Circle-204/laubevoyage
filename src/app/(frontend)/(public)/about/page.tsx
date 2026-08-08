@@ -3,13 +3,55 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Card, Badge, Button } from '@/components/ui'
+import { cookies } from 'next/headers'
+import { getDomainServices } from '@/domains/factory'
 
-export const metadata: Metadata = {
-  title: "Who We Are | L'Aube Voyage",
-  description: "Learn about L'Aube Voyage, Egypt's premier luxury travel provider delivering bespoke Nile cruises, private Egyptologist tours, and unforgettable desert safaris since 1996.",
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value
+  const { localization } = await getDomainServices()
+  const ctx = await localization.buildContext({ cookieLocale: locale })
+
+  const [title, description] = await localization.translateBatch([
+    "Who We Are | L'Aube Voyage",
+    "Learn about L'Aube Voyage, Egypt's premier luxury travel provider delivering bespoke Nile cruises, private Egyptologist tours, and unforgettable desert safaris since 1996."
+  ], ctx)
+
+  return {
+    title,
+    description,
+  }
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value
+  const { localization } = await getDomainServices()
+  const ctx = await localization.buildContext({ cookieLocale: locale })
+
+  const rawTexts = [
+    "EST. 1996", // 0
+    "WHO WE ARE", // 1
+    "Quarter Century of Elite Travel Expertise", // 2
+    "Historic Excellence", // 3
+    "A Quarter Century of", // 4
+    "Elite Expertise", // 5
+    "Founded with a passion for historic perfection, L'Aube Voyage crafts bespoke journeys across Egypt and beyond. We combine 5-star luxury accommodations with private VIP Egyptologist guides to deliver unforgettable travel experiences.", // 6
+    "Our Core Philosophy", // 7
+    "The Three Pillars of L'Aube Luxury", // 8
+    "VIP Personalization", // 9
+    "Every itinerary is tailored to your exact preferences, from private Egyptologist guides to VIP entrance access to iconic ancient monuments.", // 10
+    "Luxury Nile Fleet", // 11
+    "Experience the timeless beauty of the Nile River aboard our partner 5-star luxury cruise ships and private traditional dahabiyas.", // 12
+    "Financial Trust & Safety", // 13
+    "Fully transparent pricing snapshots in base EGP and your home currency, backed by 24/7 VIP concierge support.", // 14
+    "Ready to Explore the Secrets of Egypt?", // 15
+    "Browse our curated selection of 5-day Nile cruise packages and private Giza Pyramids day tours.", // 16
+    "Explore All Experiences →" // 17
+  ]
+
+  const t = await localization.translateBatch(rawTexts, ctx)
+
   return (
     <div className="bg-[#231F20] text-slate-100 min-h-screen transition-colors duration-500 overflow-hidden">
       {/* Hero Header */}
@@ -28,14 +70,14 @@ export default function AboutPage() {
 
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto flex flex-col items-center">
           <Badge variant="accent" size="sm" className="mb-4">
-            EST. 1996
+            {t[0]}
           </Badge>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-light text-white mb-6 tracking-tight drop-shadow-2xl">
-            WHO WE ARE
+            {t[1]}
           </h1>
           <div className="h-1 w-24 bg-[#f58220] mx-auto mb-6" />
           <p className="text-base sm:text-xl text-white/90 font-light tracking-[0.3em] uppercase max-w-2xl mx-auto border-y border-white/20 py-4 backdrop-blur-sm">
-            Quarter Century of Elite Travel Expertise
+            {t[2]}
           </p>
         </div>
       </section>
@@ -46,15 +88,15 @@ export default function AboutPage() {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-6">
             <span className="text-[#f58220] text-xs tracking-[0.4em] uppercase font-bold block">
-              Historic Excellence
+              {t[3]}
             </span>
             <h2 className="text-4xl sm:text-6xl font-serif font-light text-white leading-tight">
-              A Quarter Century of <br />
-              <span className="text-[#00aeef]">Elite Expertise</span>
+              {t[4]} <br />
+              <span className="text-[#00aeef]">{t[5]}</span>
             </h2>
             <div className="h-1 w-16 bg-[#f58220]" />
             <p className="text-slate-300 font-light leading-relaxed text-base sm:text-lg">
-              Founded with a passion for historic perfection, L&apos;Aube Voyage crafts bespoke journeys across Egypt and beyond. We combine 5-star luxury accommodations with private VIP Egyptologist guides to deliver unforgettable travel experiences.
+              {t[6]}
             </p>
           </div>
 
@@ -74,10 +116,10 @@ export default function AboutPage() {
         <div>
           <div className="text-center max-w-3xl mx-auto mb-16">
             <Badge variant="primary" className="mb-3">
-              Our Core Philosophy
+              {t[7]}
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-serif font-light text-white">
-              The Three Pillars of L&apos;Aube Luxury
+              {t[8]}
             </h2>
             <div className="h-1 w-16 bg-[#f58220] mx-auto mt-3" />
           </div>
@@ -87,9 +129,9 @@ export default function AboutPage() {
               <div className="w-14 h-14 rounded-2xl bg-[#2e3192]/20 border border-[#2e3192]/40 text-[#00aeef] flex items-center justify-center font-bold text-2xl">
                 👑
               </div>
-              <h3 className="text-2xl font-serif font-light text-white">VIP Personalization</h3>
+              <h3 className="text-2xl font-serif font-light text-white">{t[9]}</h3>
               <p className="text-sm text-slate-400 leading-relaxed font-light">
-                Every itinerary is tailored to your exact preferences, from private Egyptologist guides to VIP entrance access to iconic ancient monuments.
+                {t[10]}
               </p>
             </Card>
 
@@ -97,9 +139,9 @@ export default function AboutPage() {
               <div className="w-14 h-14 rounded-2xl bg-[#f58220]/20 border border-[#f58220]/40 text-[#f58220] flex items-center justify-center font-bold text-2xl">
                 🚢
               </div>
-              <h3 className="text-2xl font-serif font-light text-white">Luxury Nile Fleet</h3>
+              <h3 className="text-2xl font-serif font-light text-white">{t[11]}</h3>
               <p className="text-sm text-slate-400 leading-relaxed font-light">
-                Experience the timeless beauty of the Nile River aboard our partner 5-star luxury cruise ships and private traditional dahabiyas.
+                {t[12]}
               </p>
             </Card>
 
@@ -107,9 +149,9 @@ export default function AboutPage() {
               <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold text-2xl">
                 💎
               </div>
-              <h3 className="text-2xl font-serif font-light text-white">Financial Trust & Safety</h3>
+              <h3 className="text-2xl font-serif font-light text-white">{t[13]}</h3>
               <p className="text-sm text-slate-400 leading-relaxed font-light">
-                Fully transparent pricing snapshots in base EGP and your home currency, backed by 24/7 VIP concierge support.
+                {t[14]}
               </p>
             </Card>
           </div>
@@ -120,15 +162,15 @@ export default function AboutPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#2e3192]/30 via-[#00aeef]/20 to-[#f58220]/30" />
           <div className="relative z-10 flex flex-col items-center gap-4">
             <h2 className="text-3xl sm:text-5xl font-serif font-light text-white tracking-tight">
-              Ready to Explore the Secrets of Egypt?
+              {t[15]}
             </h2>
             <div className="h-1 w-16 bg-[#f58220] mx-auto" />
             <p className="max-w-xl text-slate-300 text-base font-light">
-              Browse our curated selection of 5-day Nile cruise packages and private Giza Pyramids day tours.
+              {t[16]}
             </p>
             <Link href="/experiences" className="mt-4">
               <Button variant="accent" size="lg">
-                Explore All Experiences →
+                {t[17]}
               </Button>
             </Link>
           </div>

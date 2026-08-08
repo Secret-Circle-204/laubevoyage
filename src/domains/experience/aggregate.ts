@@ -19,4 +19,13 @@ export interface ExperienceAggregate {
   createdAt: string
   updatedAt: string
   heroUrl?: string
+  gallery?: string[]
+  included?: string[]
+  excluded?: string[]
+  descriptionHtml?: string
+  itinerary?: Array<{
+    dayNumber: number
+    title: string
+    description: string
+  }>
 }

@@ -37,6 +37,7 @@ import { DepartureSlots } from './collections/DepartureSlots'
 import { Languages } from './collections/Languages'
 import { EventOutbox } from './collections/EventOutbox'
 import { EventInbox } from './collections/EventInbox'
+import { ContactRequests } from './collections/ContactRequests'
 import { SystemSettings } from './globals/SystemSettings'
 import { LoyaltySettings } from './globals/LoyaltySettings'
 
@@ -78,6 +79,7 @@ export default buildConfig({
     Redirects,
     Reviews,
     Coupons,
+    ContactRequests,
     Languages,
     DepartureSlots,
     EventOutbox,

@@ -1,6 +1,9 @@
 import React from 'react'
 import type { Metadata } from 'next'
-import { Card, Button } from '@/components/ui'
+import { getDomainServices } from '@/domains/factory'
+import { SessionResolver } from '@/application/auth/session-resolver'
+import { redirect } from 'next/navigation'
+import { SettingsFormClient } from './SettingsFormClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,25 +12,24 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
+  const session = await SessionResolver.resolve()
+  if (!session.isAuthenticated || !session.customerId) {
+    redirect('/login')
+  }
+
+  const { customer } = await getDomainServices()
+  const customerDoc = await customer.getById(session.customerId)
+
+  const initialData = customerDoc.notifications || {
+    email: true,
+    sms: false,
+    push: true,
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Account Settings & Security</h1>
-      <Card variant="flat" padding="lg" className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Preferences</h2>
-        <div className="flex flex-col gap-3 text-sm">
-          <label className="flex items-center gap-3">
-            <input type="checkbox" defaultChecked className="rounded border-slate-300 text-[#00aeef]" />
-            <span>Receive booking status updates via WhatsApp</span>
-          </label>
-          <label className="flex items-center gap-3">
-            <input type="checkbox" defaultChecked className="rounded border-slate-300 text-[#00aeef]" />
-            <span>Email newsletters & exclusive travel deals</span>
-          </label>
-        </div>
-        <Button variant="primary" size="sm" className="w-fit mt-2">
-          Save Settings
-        </Button>
-      </Card>
+      <SettingsFormClient initialData={initialData} />
     </div>
   )
 }

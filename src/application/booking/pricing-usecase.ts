@@ -56,7 +56,7 @@ export class BookingPricingUseCase {
 
     // 3. Format dynamic prices via localizationService (Currency & Translation Domains)
     const subtotalPrice = await this.localizationService.formatPrice(snapshot.subtotalEGP, ctx)
-    const totalCost = await this.localizationService.formatPrice(snapshot.subtotalEGP, ctx)
+    const totalCost = await this.localizationService.formatPrice(snapshot.totalAmountEGP, ctx)
     const unitPrice = await this.localizationService.formatPrice(departure.basePriceEGP, ctx)
 
     return {

@@ -1,6 +1,7 @@
 import React from 'react'
 import type { Metadata } from 'next'
-import { Card, Badge, Input, Button } from '@/components/ui'
+import { Card, Badge } from '@/components/ui'
+import { ContactFormClient } from './ContactFormClient'
 
 export const metadata: Metadata = {
   title: "Contact Us & VIP Concierge | L'Aube Voyage",
@@ -57,48 +58,7 @@ export default function ContactPage() {
           </Card>
 
           {/* Form Card */}
-          <Card variant="flat" padding="lg" className="lg:col-span-2">
-            <form action="/api/contact" method="POST" className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                    Your Name
-                  </label>
-                  <Input name="name" placeholder="John Doe" required className="bg-white dark:bg-slate-900" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                    Email Address
-                  </label>
-                  <Input type="email" name="email" placeholder="john@example.com" required className="bg-white dark:bg-slate-900" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Subject / Desired Destination
-                </label>
-                <Input name="subject" placeholder="Custom 5-Day Cairo & Luxor Trip" required className="bg-white dark:bg-slate-900" />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Message Details
-                </label>
-                <textarea
-                  name="message"
-                  rows={5}
-                  required
-                  placeholder="Tell us about your travel dates, number of guests, and special requests..."
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#00aeef] focus:outline-none"
-                />
-              </div>
-
-              <Button variant="primary" type="submit" size="lg" className="w-full">
-                Send Concierge Message →
-              </Button>
-            </form>
-          </Card>
+          <ContactFormClient />
         </div>
       </div>
     </div>

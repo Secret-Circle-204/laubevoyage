@@ -31,5 +31,9 @@ export class LoyaltyQueries {
   async getHistory(customerId: number, limit = 20): Promise<PointLedgerRecord[]> {
     return this.repository.getLedgerHistory(customerId, limit)
   }
+
+  async getActiveProgramConfig() {
+    return this.repository.getActiveProgramConfig()
+  }
 }
 

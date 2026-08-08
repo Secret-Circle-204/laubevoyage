@@ -45,7 +45,7 @@ export class MaintenanceLeaseService {
       return true
     }
 
-    const pool = (payload.db as any).pool
+    const pool = (payload.db as any)?.pool
     if (!pool || typeof pool.query !== 'function') {
       return true
     }
@@ -107,7 +107,7 @@ export class MaintenanceLeaseService {
       return
     }
 
-    const pool = (payload.db as any).pool
+    const pool = (payload.db as any)?.pool
     if (!pool || typeof pool.query !== 'function') {
       return
     }
@@ -146,7 +146,7 @@ export class MaintenanceLeaseService {
       return undefined
     }
 
-    const pool = (payload.db as any).pool
+    const pool = (payload.db as any)?.pool
     if (!pool || typeof pool.query !== 'function') {
       return undefined
     }

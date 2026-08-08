@@ -14,15 +14,16 @@ import { BookingStatus } from '@/types'
  *   Confirmed → Refunded
  */
 
-/** Map of allowed transitions from each state */
 const ALLOWED_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
-  [BookingStatus.DRAFT]: [BookingStatus.PENDING_PAYMENT],
-  [BookingStatus.PENDING_PAYMENT]: [BookingStatus.PAID, BookingStatus.CANCELLED],
+  [BookingStatus.DRAFT]: [BookingStatus.PENDING_PAYMENT, BookingStatus.EXPIRED, BookingStatus.CANCELLED],
+  [BookingStatus.PENDING_PAYMENT]: [BookingStatus.PAID, BookingStatus.CANCELLED, BookingStatus.EXPIRED],
   [BookingStatus.PAID]: [BookingStatus.CONFIRMED, BookingStatus.REFUNDED],
   [BookingStatus.CONFIRMED]: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.REFUNDED],
   [BookingStatus.COMPLETED]: [],
   [BookingStatus.CANCELLED]: [],
   [BookingStatus.REFUNDED]: [],
+  [BookingStatus.EXPIRED]: [BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY, BookingStatus.CANCELLED],
+  [BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY]: [BookingStatus.CANCELLED],
 }
 
 /**

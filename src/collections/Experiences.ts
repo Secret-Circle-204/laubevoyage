@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Field } from 'payload'
 import { extractSlotsPayload } from './hooks/extractSlotsPayload'
 import { syncDepartureSlots } from './hooks/syncDepartureSlots'
 import { EventBus } from '@/domains/events/event-bus'
@@ -207,6 +207,27 @@ export const Experiences: CollectionConfig = {
         },
       ],
     },
+    {
+      name: 'itinerary',
+      type: 'array',
+      fields: [
+        {
+          name: 'dayNumber',
+          type: 'number',
+          required: true,
+        },
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'description',
+          type: 'textarea',
+          required: true,
+        },
+      ],
+    } as Field,
     {
       name: 'policies',
       type: 'richText',

@@ -148,6 +148,43 @@ export class PricingFacade {
   }
 
   /**
+   * Formats a price that has already been converted (e.g. from database snapshots).
+   * Ensures symbols, decimals, and rounding are pulled from the standard catalog.
+   */
+  async formatAlreadyConvertedPrice(
+    convertedAmount: number,
+    baseAmountEGP: number,
+    targetCurrency: string,
+    exchangeRate: number,
+    locale: string = 'en',
+  ): Promise<ConvertedPrice> {
+    const currency = targetCurrency.toUpperCase()
+    const currencyIdentity = await catalogRegistry.get(currency)
+    const symbol = currencyIdentity?.symbol || currency
+    const decimals = currencyIdentity?.decimals !== undefined ? currencyIdentity.decimals : 2
+
+    const roundedAmount = await roundForCurrency(convertedAmount, currency)
+    const displayDecimals = (currency === 'EGP' && roundedAmount % 1 === 0) ? 0 : decimals
+
+    const formatted = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: displayDecimals,
+      maximumFractionDigits: displayDecimals,
+    }).format(roundedAmount)
+
+    return {
+      baseAmountEGP,
+      convertedAmount: roundedAmount,
+      currencyCode: currency,
+      currencySymbol: symbol,
+      formatted,
+      exchangeRate,
+      decimals,
+    }
+  }
+
+  /**
    * Calculate pricing snapshot for checkout based on travelers count and loyalty redemption.
    */
   async calculateCheckoutSnapshot(params: {

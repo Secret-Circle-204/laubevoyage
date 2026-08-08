@@ -1,30 +1,47 @@
 import { getDomainServices } from '@/domains/factory'
+import { getBusinessDateString } from '@/lib/date'
 import type { BookingAggregate } from '@/domains/booking/types'
 import type { CustomerPortalOverviewDTO, CustomerNotificationItemDTO } from './dto'
+import { LoyaltyTier } from '@/types'
 
 export class CustomerPortalLoader {
   static async loadOverview(
-    customerId: number = 1,
+    customerId: number,
     options?: { locale?: string; currency?: string },
   ): Promise<CustomerPortalOverviewDTO> {
     try {
-      const { dashboard, localization } = await getDomainServices()
+      const { dashboard, localization, customer: customerService, booking, experience, loyalty: loyaltyService } = await getDomainServices()
       const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })
 
-      const projection = await dashboard.getPortalOverview(customerId)
-      const rawTitle = projection?.customer?.fullName || ''
-      const { booking, experience } = await getDomainServices()
+      const [projection, customerDoc, notifications] = await Promise.all([
+        dashboard.getPortalOverview(customerId),
+        customerService.getById(customerId).catch(() => null),
+        CustomerPortalLoader.loadNotifications(customerId),
+      ])
+      const rawTitle = customerDoc?.fullName || projection?.customer?.fullName || ''
 
       // Fetch user's actual bookings
       const bookingsResult = await booking.getUserBookings(customerId, 1, 5)
       
       const recentBookings = await Promise.all(
         (bookingsResult.data || []).map(async (b: BookingAggregate) => {
-          const totalCostEGP = b.pricingSnapshot?.subtotalEGP || b.pricingSnapshot?.basePriceEGP || 0
-          const formattedCost = await localization.formatPrice(totalCostEGP, ctx)
+          const snap = b.pricingSnapshot
+          let formattedCost: any
+          if (snap && snap.displayAmount !== undefined && snap.displayCurrency) {
+            formattedCost = await localization.formatAlreadyConvertedPrice(
+              snap.displayAmount,
+              snap.totalAmountEGP || snap.basePriceEGP,
+              snap.displayCurrency,
+              snap.exchangeRate || 1,
+              ctx
+            )
+          } else {
+            const totalCostEGP = snap?.totalAmountEGP || snap?.basePriceEGP || 0
+            formattedCost = await localization.formatPrice(totalCostEGP, ctx)
+          }
 
           let experienceTitle = `Trip #${b.bookingNumber}`
           let experienceImage = '/images/hero-bg.jpg'
@@ -54,19 +71,29 @@ export class CustomerPortalLoader {
 
       const currentTier = (projection?.loyalty?.tier || 'explorer').toLowerCase()
       const pts = projection?.loyalty?.pointsBalance || 0
+
+      const loyaltyConfig = await loyaltyService.getActiveConfig()
+      const voyagerThresholdEGP = loyaltyConfig.tiers[LoyaltyTier.VOYAGER]?.minSpentEGP || 10000
+      const eliteThresholdEGP = loyaltyConfig.tiers[LoyaltyTier.ELITE]?.minSpentEGP || 50000
+
+      const voyagerPoints = voyagerThresholdEGP * loyaltyConfig.baseEarnRate
+      const elitePoints = eliteThresholdEGP * loyaltyConfig.baseEarnRate
+
       let pointsToNextTier = 0
-      let nextTierName = 'Elite'
+      let nextTierName = ''
 
       if (currentTier === 'explorer') {
-        pointsToNextTier = Math.max(0, 1000 - pts)
+        pointsToNextTier = Math.max(0, voyagerPoints - pts)
         nextTierName = 'Voyager'
       } else if (currentTier === 'voyager') {
-        pointsToNextTier = Math.max(0, 5000 - pts)
+        pointsToNextTier = Math.max(0, elitePoints - pts)
         nextTierName = 'Elite'
       } else {
         pointsToNextTier = 0
         nextTierName = 'Elite (Max Tier)'
       }
+
+      const nextTierTranslated = nextTierName ? await localization.translateText(nextTierName, ctx) : ''
 
       return {
         customerId,
@@ -76,26 +103,85 @@ export class CustomerPortalLoader {
         points: pts,
         nextTierProgressPercent: projection?.loyalty?.tierProgressPercentage || 0,
         pointsToNextTier,
-        nextTierName,
+        nextTierName: nextTierTranslated,
         activeBookingsCount: projection?.trips?.activeBookingsCount || 0,
         recentBookings,
-        unreadNotificationsCount: 0,
+        unreadNotificationsCount: notifications.filter((n) => n.unread).length,
+        passportNumber: customerDoc?.passportNumber || undefined,
+        nationality: customerDoc?.nationality || undefined,
       }
     } catch (err) {
       console.error(`[CustomerPortalLoader] Failed loading overview for customer #${customerId}:`, err)
+      throw err
+    }
+  }
+
+  static async loadBookingsHistory(
+    customerId: number,
+    options?: { locale?: string; currency?: string; page?: number; limit?: number },
+  ) {
+    try {
+      const { booking, experience, localization } = await getDomainServices()
+      const ctx = await localization.buildContext({
+        cookieLocale: options?.locale,
+        cookieCurrency: options?.currency,
+      })
+
+      const page = options?.page || 1
+      const limit = options?.limit || 100
+
+      const bookingsResult = await booking.getUserBookings(customerId, page, limit)
+      
+      const bookings = await Promise.all(
+        (bookingsResult.data || []).map(async (b: BookingAggregate) => {
+          const snapshot = b.pricingSnapshot
+          let formattedCost
+          if (snapshot && snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
+            formattedCost = await localization.formatAlreadyConvertedPrice(
+              snapshot.displayAmount,
+              snapshot.totalAmountEGP,
+              snapshot.displayCurrency,
+              snapshot.exchangeRate || 1,
+              ctx
+            )
+          } else {
+            const totalCostEGP = snapshot?.totalAmountEGP || snapshot?.subtotalEGP || snapshot?.basePriceEGP || 0
+            formattedCost = await localization.formatPrice(totalCostEGP, ctx)
+          }
+
+          let experienceTitle = `Trip #${b.bookingNumber}`
+          let experienceImage = '/images/hero-bg.jpg'
+
+          try {
+            const exp = await experience.getById(b.experienceId)
+            if (exp) {
+              experienceTitle = exp.title || experienceTitle
+              experienceImage = (exp as any).heroUrl || (exp as any).featuredImage?.url || experienceImage
+            }
+          } catch (e) {
+            console.error('Failed fetching experience title for history', e)
+          }
+
+          return {
+            id: b.id,
+            reference: b.bookingNumber,
+            experienceTitle,
+            experienceImage,
+            departureDate: b.startDate,
+            status: b.status as any,
+            passengersCount: b.travelers.length || 1,
+            totalCost: formattedCost,
+          }
+        })
+      )
+
       return {
-        customerId,
-        fullName: '',
-        email: '',
-        tier: 'explorer',
-        points: 0,
-        nextTierProgressPercent: 0,
-        pointsToNextTier: 1000,
-        nextTierName: 'Voyager',
-        activeBookingsCount: 0,
-        recentBookings: [],
-        unreadNotificationsCount: 0,
+        bookings,
+        total: bookingsResult.total || bookings.length,
       }
+    } catch (err) {
+      console.error(`[CustomerPortalLoader] Failed loading bookings history for customer #${customerId}:`, err)
+      throw err
     }
   }
 
@@ -142,7 +228,7 @@ export class CustomerPortalLoader {
       })
     } catch (err) {
       console.error(`[CustomerPortalLoader] Failed loading notifications for customer #${customerId}:`, err)
-      return []
+      throw err
     }
   }
 }
@@ -167,8 +253,19 @@ export class BookingDetailsLoader {
         throw new Error(`[BookingDetailsLoader] Booking #${bookingNumber} is missing pricingSnapshot.`)
       }
 
-      const totalEGP = snapshot.totalAmountEGP || snapshot.subtotalEGP || snapshot.basePriceEGP || 0
-      const formattedTotal = await localization.formatPrice(totalEGP, ctx)
+      let formattedTotal: any
+      if (snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
+        formattedTotal = await localization.formatAlreadyConvertedPrice(
+          snapshot.displayAmount,
+          snapshot.totalAmountEGP || snapshot.basePriceEGP,
+          snapshot.displayCurrency,
+          snapshot.exchangeRate || 1,
+          ctx
+        )
+      } else {
+        const totalEGP = snapshot.totalAmountEGP || snapshot.subtotalEGP || snapshot.basePriceEGP || 0
+        formattedTotal = await localization.formatPrice(totalEGP, ctx)
+      }
 
       let experienceTitle = `Experience #${bookingDoc.experienceId}`
       try {
@@ -206,7 +303,7 @@ export class BookingDetailsLoader {
       }
     } catch (err) {
       console.error(`[BookingDetailsLoader] Error loading booking #${bookingNumber}:`, err)
-      return null
+      throw err
     }
   }
 }

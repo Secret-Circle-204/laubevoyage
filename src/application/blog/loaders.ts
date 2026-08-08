@@ -52,20 +52,9 @@ export class BlogCatalogLoader {
           hasPrevPage: articlesRes.hasPrevPage || false,
         },
       }
-    } catch {
-      return {
-        articles: [],
-        categories: [],
-        featuredArticle: undefined,
-        pagination: {
-          page: 1,
-          limit: 9,
-          totalPages: 0,
-          totalItems: 0,
-          hasNextPage: false,
-          hasPrevPage: false,
-        },
-      }
+    } catch (err) {
+      console.error('[BlogCatalogLoader] Failed loading blog catalog:', err)
+      throw err
     }
   }
 }
@@ -99,8 +88,9 @@ export class ArticleLoader {
         featuredImageUrl: doc.featuredImage?.url || '',
         authorName: typeof doc.author === 'object' ? doc.author?.name : '',
       }
-    } catch {
-      return null
+    } catch (err) {
+      console.error(`[ArticleLoader] Failed loading article with slug ${slug}:`, err)
+      throw err
     }
   }
 }
@@ -139,11 +129,9 @@ export class FaqLoader {
         categories,
         items,
       }
-    } catch {
-      return {
-        categories: [],
-        items: [],
-      }
+    } catch (err) {
+      console.error('[FaqLoader] Failed loading FAQs:', err)
+      throw err
     }
   }
 }

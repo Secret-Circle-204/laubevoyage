@@ -193,17 +193,12 @@ async function buildDomainServices() {
   const dashboardService = new DashboardService(dashboardRepository, dashboardQueryBus)
   const destinationService = new DestinationService(destinationRepository)
   const maintenanceService = new MaintenanceService(maintenanceRepository, bookingService)
-
-  // 3. Bootstrap system event subscribers & background workers (Executed ONCE on application startup)
-  const outboxService = EventOutboxService.getInstance(outboxRepository)
   const systemIntegrationService = new SystemIntegrationService(payload)
-  await systemIntegrationService.bootstrapSystem({
-    outboxService,
-    notificationService,
-  })
 
-  // 4. Return Pure Injected Domain Services Container
+  // 3. Return Pure Injected Domain Services Container
   return {
+    payload,
+    system: systemIntegrationService,
     destination: destinationService,
     experience: experienceService,
     content: new ContentService(contentRepository),

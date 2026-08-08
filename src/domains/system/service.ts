@@ -17,6 +17,10 @@ export class SystemIntegrationService {
     return this.workflowEngine.bootstrapSystem(options)
   }
 
+  async startBackgroundWorkers(options?: SystemBootstrapOptions): Promise<void> {
+    return this.workflowEngine.startBackgroundWorkers(options)
+  }
+
   async getSystemHealth(): Promise<SystemHealthReportDTO> {
     return this.workflowEngine.getSystemHealth()
   }

@@ -72,6 +72,28 @@ export class BookingPolicy {
       }
     }
 
+    // Capacity Hold Expiry Check (Sole Source of Truth)
+    if (booking.capacityHold) {
+      if (booking.capacityHold.status === 'expired' || booking.capacityHold.status === 'released') {
+        return {
+          allowed: false,
+          code: 'CAPACITY_HOLD_EXPIRED',
+          reason: 'Cannot confirm booking: seat capacity hold has already expired or released.',
+        }
+      }
+      
+      if (booking.capacityHold.expiresAt) {
+        const expiresAt = new Date(booking.capacityHold.expiresAt)
+        if (new Date() >= expiresAt) {
+          return {
+            allowed: false,
+            code: 'CAPACITY_HOLD_EXPIRED',
+            reason: 'Cannot confirm booking: seat capacity hold duration has expired.',
+          }
+        }
+      }
+    }
+
     return { allowed: true }
   }
 

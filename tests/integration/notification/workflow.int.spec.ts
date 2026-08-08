@@ -6,10 +6,17 @@ describe('Notification Domain: Workflow & Idempotency Integration Tests', () => 
   let workflowEngine: NotificationWorkflowEngine
 
   beforeEach(() => {
+    const db: any[] = []
     mockPayload = {
-      create: vi.fn(),
+      create: vi.fn().mockImplementation((params: any) => {
+        const doc = { id: Math.floor(Math.random() * 1000), ...params.data }
+        db.push(doc)
+        return Promise.resolve(doc)
+      }),
       findByID: vi.fn(),
-      find: vi.fn().mockResolvedValue({ docs: [] }),
+      find: vi.fn().mockImplementation(() => {
+        return Promise.resolve({ docs: [...db] })
+      }),
       update: vi.fn(),
     }
     workflowEngine = new NotificationWorkflowEngine(mockPayload)
@@ -26,7 +33,7 @@ describe('Notification Domain: Workflow & Idempotency Integration Tests', () => 
       priority: 'high',
       templateId: 'booking_confirmation',
       translationKey: 'booking.confirmed',
-      templateData: { bookingNumber: '#LBV-101' },
+      templateData: { bookingNumber: '#LBV-101', customerName: 'Ahmed' },
     })
 
     expect(enqueueResult.queued).toBe(true)
@@ -47,7 +54,7 @@ describe('Notification Domain: Workflow & Idempotency Integration Tests', () => 
       priority: 'high',
       templateId: 'booking_confirmation',
       translationKey: 'booking.confirmed',
-      templateData: { bookingNumber: '#LBV-101' },
+      templateData: { bookingNumber: '#LBV-101', customerName: 'Ahmed' },
     })
 
     expect(duplicateResult.queued).toBe(false)

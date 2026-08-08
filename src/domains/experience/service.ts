@@ -40,6 +40,7 @@ export class ExperienceService {
     seats: number,
     customerId: number,
     bookingId: number,
+    req?: any,
   ): Promise<{ slot: DepartureSlotEntity; holdId: string }> {
     return this.workflowEngine.executeReserveInventoryWorkflow(
       departureId,
@@ -47,7 +48,19 @@ export class ExperienceService {
       seats,
       customerId,
       bookingId,
+      req,
     )
+  }
+
+  /**
+   * Release reserved capacity for a departure slot.
+   */
+  async releaseCapacity(
+    departureId: string,
+    seats: number,
+    req?: any,
+  ): Promise<DepartureSlotEntity> {
+    return this.workflowEngine.executeReleaseInventoryWorkflow(departureId, seats, req)
   }
 
   /**

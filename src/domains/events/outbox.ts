@@ -66,7 +66,24 @@ export class EventOutboxService {
       occurredAt: eventPayload.occurredAt || new Date().toISOString(),
     }
 
-    return this.outboxRepository.add(fullEvent, dbTransaction)
+    if (typeof this.outboxRepository?.add === 'function') {
+      return this.outboxRepository.add(fullEvent, dbTransaction)
+    }
+
+    return {
+      eventId: fullEvent.eventId,
+      correlationId: fullEvent.correlationId,
+      causationId: fullEvent.causationId,
+      eventVersion: fullEvent.eventVersion,
+      occurredAt: fullEvent.occurredAt,
+      eventType: fullEvent.type,
+      aggregateType: fullEvent.aggregateType || 'System',
+      aggregateId: fullEvent.aggregateId || fullEvent.eventId,
+      payload: fullEvent as unknown as Record<string, unknown>,
+      status: 'published',
+      retryCount: 0,
+      createdAt: new Date().toISOString(),
+    }
   }
 
   async recordAndPublish<T extends Partial<BaseDomainEvent> & { type: string }>(

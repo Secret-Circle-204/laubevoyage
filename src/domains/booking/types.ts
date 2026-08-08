@@ -126,7 +126,8 @@ export interface BookingAggregate {
   timeline: CustomerTimelineEntry[]
   auditTrail: SystemAuditEntry[]
   documents: BookingDocumentReferences
-  
+  metadata?: Record<string, unknown>
+  idempotencyKey?: string
   createdAt: string
   updatedAt: string
 }
@@ -140,6 +141,7 @@ export interface CreateBookingParams {
   currency?: CurrencyCode
   source: BookingSource
   actor?: Actor
+  idempotencyKey?: string
 }
 
 

@@ -63,25 +63,9 @@ export class GlobalSearchLoader {
           hasPrevPage: (domainResponse?.currentPage || 1) > 1,
         },
       }
-    } catch {
-      return {
-        query,
-        totalResults: 0,
-        items: [],
-        facets: {
-          categories: [],
-          minPrice: 0,
-          maxPrice: 0,
-        },
-        pagination: {
-          page: 1,
-          limit,
-          totalPages: 0,
-          totalItems: 0,
-          hasNextPage: false,
-          hasPrevPage: false,
-        },
-      }
+    } catch (err) {
+      console.error(`[GlobalSearchLoader] Failed performing global search for query "${query}":`, err)
+      throw err
     }
   }
 }

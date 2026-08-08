@@ -69,6 +69,12 @@ export class BookingConfirmation {
     console.log(`[BookingConfirmation] 🔐 confirm called for Booking #${bookingId}`);
     const booking = await this.repository.findById(bookingId, req)
 
+    // Idempotency: exit early if already confirmed or completed
+    if (booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.COMPLETED) {
+      console.log(`[BookingConfirmation] Idempotency: Booking #${bookingId} is already ${booking.status}. No-op success.`);
+      return booking
+    }
+
     // Validate confirmation policy
     const policyResult = BookingPolicy.canConfirm(booking)
     if (!policyResult.allowed) {

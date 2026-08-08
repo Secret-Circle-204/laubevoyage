@@ -23,6 +23,8 @@ export interface CustomerPortalOverviewDTO {
   activeBookingsCount: number
   recentBookings: CustomerBookingCardDTO[]
   unreadNotificationsCount: number
+  passportNumber?: string
+  nationality?: string
 }
 
 export interface CustomerNotificationItemDTO {

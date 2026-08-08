@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import { BookingStatus } from '@/types'
 import { EventBus } from '../event-bus'
 import type { PaymentCompletedEvent } from '../payment-events'
 import { getDomainServices } from '../../factory'
@@ -9,6 +10,10 @@ import { PayloadInboxRepository } from '../repositories/payload-inbox-repository
  * Listens to PaymentCompletedEvent to mark booking as paid and execute confirmation workflow in the Booking Domain.
  * Fully decouples Payment Domain from Booking Domain with Atomic Inbox Idempotency Guard & Fail-Fast validation.
  */
+export class BookingPaymentSubscriber {
+  // dummy class if needed, or we just keep the function signature below
+}
+
 export function registerBookingPaymentSubscriber(payload: Payload): void {
   const eventBus = EventBus.getInstance()
   const inboxRepo = new PayloadInboxRepository(payload)
@@ -48,6 +53,14 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
         const bookingId = event.bookingId
         const { booking } = await getDomainServices()
 
+        // Fetch current booking state to verify if already confirmed/completed
+        const currentBooking = await booking.getById(Number(bookingId))
+        if (currentBooking.status === BookingStatus.CONFIRMED || currentBooking.status === BookingStatus.COMPLETED) {
+          console.log(`[BookingPaymentSubscriber] Idempotency: Booking #${bookingId} is already ${currentBooking.status}. Skipping.`);
+          if (transactionID) await payload.db.rollbackTransaction(transactionID)
+          return
+        }
+
         const paymentAttempt = {
           attemptId: event.attemptId || `pay_att_${event.transactionId}`,
           attemptNumber: event.attemptNumber || 1,
@@ -57,6 +70,29 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
           status: 'successful' as const,
           transactionReference: (event.gatewayReference || event.transactionId) as string,
           timestamp: event.occurredAt || new Date().toISOString(),
+        }
+
+        // Check capacity hold expiration
+        const holdExpired = currentBooking.capacityHold?.expiresAt && new Date() >= new Date(currentBooking.capacityHold.expiresAt)
+        if (holdExpired) {
+          console.warn(`[BookingPaymentSubscriber] Capacity hold expired for Booking #${bookingId}. Transitioning to PAYMENT_RECEIVED_AFTER_EXPIRY.`)
+          await booking.markAsPaid(Number(bookingId), paymentAttempt, req)
+          
+          const metadata = currentBooking.metadata || {}
+          metadata.paymentReceivedAfterExpiry = true
+          metadata.manualRefundRequired = true
+          metadata.reconciliationNotes = 'payment_received_after_hold_expired'
+
+          await booking.update(Number(bookingId), {
+            status: BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY,
+            metadata,
+          }, req)
+
+          if (transactionID) {
+            await payload.db.commitTransaction(transactionID)
+            console.log(`[BookingPaymentSubscriber] ✅ Transaction committed successfully for Booking #${bookingId} (Late Payment).`);
+          }
+          return
         }
 
         // 1. Mark booking as paid in Booking Domain

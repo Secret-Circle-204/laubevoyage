@@ -23,6 +23,8 @@ import * as migration_20260729_172246_rename_language_default_currency from './2
 import * as migration_20260729_184928_add_flag_code from './20260729_184928_add_flag_code';
 import * as migration_20260729_193424_add_notification_retry_telemetry from './20260729_193424_add_notification_retry_telemetry';
 import * as migration_20260729_195718_update_exchange_rates_sources from './20260729_195718_update_exchange_rates_sources';
+import * as migration_20260731_180931 from './20260731_180931';
+import * as migration_20260808_204640_add_idempotency_key from './20260808_204640_add_idempotency_key';
 
 export const migrations = [
   {
@@ -148,6 +150,16 @@ export const migrations = [
   {
     up: migration_20260729_195718_update_exchange_rates_sources.up,
     down: migration_20260729_195718_update_exchange_rates_sources.down,
-    name: '20260729_195718_update_exchange_rates_sources'
+    name: '20260729_195718_update_exchange_rates_sources',
+  },
+  {
+    up: migration_20260731_180931.up,
+    down: migration_20260731_180931.down,
+    name: '20260731_180931',
+  },
+  {
+    up: migration_20260808_204640_add_idempotency_key.up,
+    down: migration_20260808_204640_add_idempotency_key.down,
+    name: '20260808_204640_add_idempotency_key'
   },
 ];

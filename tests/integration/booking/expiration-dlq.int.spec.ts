@@ -16,7 +16,7 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
       update: vi.fn(),
     }
     repository = new BookingRepository(mockPayload)
-    expirationService = new BookingExpiration(repository)
+    expirationService = new BookingExpiration(repository, {} as any)
   })
 
   it('should process expired draft bookings through 7-step pipeline successfully', async () => {

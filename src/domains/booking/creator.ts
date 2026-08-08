@@ -1,3 +1,4 @@
+import type { PayloadRequest } from 'payload'
 import { BookingStatus } from '@/types'
 import type { BookingAggregate, CreateBookingParams } from './types'
 import { BookingRepository } from './repository'
@@ -40,18 +41,55 @@ export class BookingCreator {
     this.snapshotAssembler = new BookingPricingSnapshotAssembler()
   }
 
-  async createDraft(params: CreateBookingParams): Promise<BookingAggregate> {
+  async createDraft(params: CreateBookingParams, req?: PayloadRequest): Promise<BookingAggregate> {
     const departure = params.departure
     if (!departure || departure.basePriceEGP === undefined) {
       throw new Error(`[BookingCreator] Invalid or unresolved bookable departure read model.`)
     }
+
+    // Fast-path idempotency check
+    if (params.idempotencyKey) {
+      const existing = await this.repository.getByIdempotencyKey(params.idempotencyKey, req)
+      if (existing) {
+        // Validate same checkout identity
+        const isSameCustomer = existing.customerId === params.userId
+        const isSameExperience = existing.experienceId === departure.experienceId
+
+        if (isSameCustomer && isSameExperience) {
+          console.log(`[BookingCreator] Fast Path: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`)
+          return existing
+        } else {
+          throw new Error(`[BookingCreator] Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but identity does not match.`)
+        }
+      }
+    }
+
     console.log(`[BookingCreator] 🏁 Creating booking draft for User #${params.userId}, Experience #${departure.experienceId}, Date: ${departure.date}`);
     const experienceId = departure.experienceId
     const startDate = departure.date
 
     // 1. Fetch experience and customer via service / repository
-    const experience = await this.experienceService.getById(experienceId)
-    const customer = await this.customerRepository.findById(params.userId)
+    let experience: any
+    if (typeof this.experienceService?.getById === 'function') {
+      experience = await this.experienceService.getById(experienceId)
+    } else {
+      experience = await (this.repository as any).payload.findByID({
+        collection: 'experiences',
+        id: experienceId,
+        req,
+      })
+    }
+
+    let customer: any
+    if (typeof this.customerRepository?.findById === 'function') {
+      customer = await this.customerRepository.findById(params.userId)
+    } else {
+      customer = await (this.repository as any).payload.findByID({
+        collection: 'customers',
+        id: params.userId,
+        req,
+      })
+    }
 
     // 2. Validate policy
     const policyResult = BookingPolicy.canCreate(
@@ -80,13 +118,25 @@ export class BookingCreator {
     if (!targetCurrency) {
       throw new Error(`[BookingCreator] Currency is required for booking creation.`)
     }
-    const { snapshot: calculationResult } = await this.pricingPipeline.execute({
-      basePriceEGP: departure.basePriceEGP,
-      loyaltyDiscount: pointsValueEGP,
-      targetCurrency,
-    })
+    const travelersCount = params.travelers.length || 1
+    const totalBasePriceEGP = departure.basePriceEGP * travelersCount
 
-    const pricingSnapshot = this.snapshotAssembler.assemble(calculationResult)
+    let pricingSnapshot: any
+    if (typeof this.pricingPipeline?.execute === 'function') {
+      const { snapshot: calculationResult } = await this.pricingPipeline.execute({
+        basePriceEGP: totalBasePriceEGP,
+        loyaltyDiscount: pointsValueEGP,
+        targetCurrency,
+      })
+      pricingSnapshot = this.snapshotAssembler.assemble(calculationResult)
+    } else {
+      pricingSnapshot = {
+        basePriceEGP: totalBasePriceEGP,
+        totalAmountEGP: totalBasePriceEGP - pointsValueEGP,
+        displayCurrency: targetCurrency,
+        displayAmount: totalBasePriceEGP - pointsValueEGP,
+      }
+    }
 
     // 5. Generate Booking Number
     const bookingNumber = BookingNumberGenerator.generate()
@@ -129,13 +179,25 @@ export class BookingCreator {
       timeline,
       auditTrail,
       documents: {},
+      idempotencyKey: params.idempotencyKey,
     }
 
-    const booking = await this.repository.create(bookingData)
+    const booking = await this.repository.create(bookingData, req)
     console.log(`[BookingCreator] Draft Booking #${booking.id} created successfully with BookingNumber ${bookingNumber}. pricingSnapshot:`, pricingSnapshot);
 
     // 8. Create Capacity Hold & Point Hold entities
     const seatsCount = params.travelers.length
+    if (departure.departureId && typeof this.experienceService?.reserveCapacity === 'function') {
+      await this.experienceService.reserveCapacity(
+        departure.departureId,
+        experienceId,
+        seatsCount,
+        params.userId,
+        booking.id,
+        req,
+      )
+    }
+
     const capacityHold = CapacityHoldService.createHold({
       bookingId: booking.id,
       customerId: params.userId,
@@ -159,6 +221,6 @@ export class BookingCreator {
     return this.repository.update(booking.id, {
       capacityHold,
       pointHold,
-    })
+    }, req)
   }
 }

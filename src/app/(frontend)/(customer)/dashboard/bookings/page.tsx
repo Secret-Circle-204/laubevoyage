@@ -2,6 +2,7 @@ import React from 'react'
 import type { Metadata } from 'next'
 import { Card, Badge, CurrencyDisplay, Button } from '@/components/ui'
 import { CustomerPortalLoader } from '@/application/dashboard/loaders'
+import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,17 +19,20 @@ export default async function Page() {
     redirect('/login')
   }
 
-  const data = await CustomerPortalLoader.loadOverview(session.customerId)
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
+  const data = await CustomerPortalLoader.loadBookingsHistory(session.customerId, { locale, currency })
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">My Bookings History</h1>
-        <Badge variant="primary">{data.recentBookings.length} Total Bookings</Badge>
+        <Badge variant="primary">{data.total} Total Bookings</Badge>
       </div>
 
       <div className="flex flex-col gap-4">
-        {data.recentBookings.map((booking) => (
+        {data.bookings.map((booking) => (
           <Card key={booking.id} variant="flat" padding="md" className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div

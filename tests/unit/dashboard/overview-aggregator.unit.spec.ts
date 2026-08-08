@@ -5,7 +5,16 @@ describe('Dashboard Domain: Overview Aggregator Unit Tests', () => {
   it('should assemble CustomerPortalProjection DTO using parallel non-blocking reads', async () => {
     const mockQueryBus: any = {
       customerQueries: { getById: vi.fn().mockResolvedValue({ email: 'ahmed@laube.com', fullName: 'Ahmed', status: 'active' }) },
-      loyaltyQueries: { getProjection: vi.fn().mockResolvedValue({ tier: 'voyager', balance: 500, totalSpent: 25000 }) },
+      loyaltyQueries: {
+        getProjection: vi.fn().mockResolvedValue({ tier: 'voyager', balance: 500, totalSpentEGP: 25000 }),
+        getActiveProgramConfig: vi.fn().mockResolvedValue({
+          baseEarnRate: 0.1,
+          tiers: {
+            voyager: { minSpentEGP: 50000 },
+            elite: { minSpentEGP: 150000 },
+          }
+        })
+      },
       bookingQueries: { getByCustomerId: vi.fn().mockResolvedValue([{ bookingNumber: '#LBV-101', status: 'confirmed' }]) },
     }
 

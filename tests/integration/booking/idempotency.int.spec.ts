@@ -34,9 +34,11 @@ describe('Layer 7: Idempotency & Double Confirmation Tests', () => {
     mockPayload.findByID.mockResolvedValue(mockAlreadyConfirmedBooking)
 
     // Attempt double confirmation
-    await expect(workflowEngine.executeConfirmationWorkflow(101)).rejects.toThrow(
-      "[BookingPolicy] Confirmation forbidden: Cannot confirm booking in 'confirmed' status. Expected 'paid'.",
-    )
+    const result = await workflowEngine.executeConfirmationWorkflow(101)
+
+    // Verify it resolved idempotently and successfully
+    expect(result.status).toBe('confirmed')
+    expect(result.id).toBe(101)
 
     // Verify update was never called a second time
     expect(mockPayload.update).not.toHaveBeenCalled()

@@ -80,6 +80,7 @@ export class ExperienceWorkflowEngine {
     seats: number,
     customerId: number,
     bookingId: number,
+    req?: any,
   ): Promise<{ slot: DepartureSlotEntity; holdId: string }> {
     const result = await this.inventoryManager.reserveCapacity(
       departureId,
@@ -87,6 +88,7 @@ export class ExperienceWorkflowEngine {
       seats,
       customerId,
       bookingId,
+      req,
     )
 
     await this.eventBus.publish({
@@ -103,5 +105,30 @@ export class ExperienceWorkflowEngine {
     })
 
     return result
+  }
+
+  /**
+   * Deterministic Release Inventory Workflow:
+   * Release Capacity -> Emit InventoryReleasedEvent
+   */
+  async executeReleaseInventoryWorkflow(
+    departureId: string,
+    seats: number,
+    req?: any,
+  ): Promise<DepartureSlotEntity> {
+    const slot = await this.inventoryManager.releaseCapacity(departureId, seats, req)
+
+    await this.eventBus.publish({
+      eventId: `evt_inv_rel_${departureId}_${Date.now()}`,
+      correlationId: `corr_release_${departureId}`,
+      occurredAt: new Date().toISOString(),
+      type: 'INVENTORY_RELEASED',
+      eventVersion: 1,
+      departureId,
+      seatsReleased: seats,
+      timestamp: new Date().toISOString(),
+    })
+
+    return slot
   }
 }

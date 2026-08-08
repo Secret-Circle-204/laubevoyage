@@ -66,6 +66,34 @@ export class StripePaymentAdapter implements IPaymentAdapter {
     return event as unknown as StripeWebhookPayload
   }
 
+  async retrievePaymentStatus(params: { providerSessionId?: string; providerTransactionId?: string }): Promise<{ status: 'paid' | 'failed' | 'open'; gatewayStatus: string }> {
+    const sessionId = params.providerSessionId
+    if (!sessionId) {
+      throw new Error('[StripePaymentAdapter] retrievePaymentStatus requires providerSessionId.')
+    }
+    const session = await stripe.checkout.sessions.retrieve(sessionId)
+    const gatewayStatus = session.status || 'unknown'
+    const paymentStatus = (session.payment_status as string) || 'unpaid'
+
+    let status: 'paid' | 'failed' | 'open' = 'open'
+    if (paymentStatus === 'paid') {
+      status = 'paid'
+    } else if (gatewayStatus === 'expired') {
+      status = 'failed'
+    } else if (gatewayStatus === 'complete' && paymentStatus !== 'paid') {
+      status = 'failed'
+    } else if (gatewayStatus === 'open') {
+      status = 'open'
+    } else {
+      status = 'failed'
+    }
+
+    return {
+      status,
+      gatewayStatus: `session:${gatewayStatus}_payment:${paymentStatus}`,
+    }
+  }
+
   async cancelSession(sessionId: string): Promise<boolean> {
     try {
       await stripe.checkout.sessions.expire(sessionId)

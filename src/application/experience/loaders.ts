@@ -88,34 +88,7 @@ export class ExperiencesCatalogLoader {
       }
     } catch (err: unknown) {
       console.error('[ExperiencesCatalogLoader] Error loading catalog:', err)
-      return {
-        filters,
-        experiences: [],
-        facets: {
-          minPrice: 0,
-          maxPrice: 0,
-          categories: [],
-        },
-        pagination: {
-          page: 1,
-          limit,
-          totalPages: 0,
-          totalItems: 0,
-          hasNextPage: false,
-          hasPrevPage: false,
-        },
-        labels: {
-          badge: 'Bespoke Portfolio',
-          title: 'Experiences Catalog',
-          description: 'Discover luxury tour packages and private daily tours carefully crafted for luxury travelers.',
-          filterAll: 'All Experiences',
-          filterPackages: 'Tour Packages',
-          filterDailyTours: 'Private Daily Tours',
-          viewItinerary: 'View Itinerary',
-          packageLabel: 'Tour Package',
-          dailyTourLabel: 'Daily Tour',
-        },
-      }
+      throw err
     }
   }
 }

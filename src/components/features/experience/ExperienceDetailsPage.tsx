@@ -203,6 +203,47 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
               </div>
             </div>
           )}
+
+          {/* Included / Excluded Services Checklist */}
+          {((data.includedServices && data.includedServices.length > 0) || 
+            (data.excludedServices && data.excludedServices.length > 0)) && (
+            <div className="border-t border-slate-200 dark:border-slate-800 pt-8">
+              <h2 className="text-3xl font-extrabold mb-6">Services Checklist</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {data.includedServices && data.includedServices.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold mb-4 text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                      <span className="text-xl">✓</span> What's Included
+                    </h3>
+                    <ul className="space-y-3">
+                      {data.includedServices.map((service, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                          <span className="text-emerald-500 font-bold">•</span>
+                          <span>{service}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {data.excludedServices && data.excludedServices.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold mb-4 text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                      <span className="text-xl">✗</span> What's Excluded
+                    </h3>
+                    <ul className="space-y-3">
+                      {data.excludedServices.map((service, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                          <span className="text-rose-500 font-bold">•</span>
+                          <span>{service}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

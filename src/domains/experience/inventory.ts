@@ -22,8 +22,9 @@ export class InventoryManager {
     seats: number,
     customerId: number,
     bookingId: number,
+    req?: any,
   ): Promise<{ slot: DepartureSlotEntity; holdId: string }> {
-    const slot = await this.repository.getDepartureSlot(departureId)
+    const slot = await this.repository.getDepartureSlot(departureId, req)
     if (!slot) {
       throw new Error(`[InventoryManager] Departure slot ${departureId} not found`)
     }
@@ -49,15 +50,15 @@ export class InventoryManager {
       capacityReserved: slot.capacityReserved + seats,
     }
 
-    const savedSlot = await this.repository.saveDepartureSlot(updatedSlot)
+    const savedSlot = await this.repository.saveDepartureSlot(updatedSlot, req)
 
     const holdId = capacityHold.holdId || `hold_${Date.now()}`
     return { slot: savedSlot, holdId }
   }
 
 
-  async releaseCapacity(departureId: string, seats: number): Promise<DepartureSlotEntity> {
-    const slot = await this.repository.getDepartureSlot(departureId)
+  async releaseCapacity(departureId: string, seats: number, req?: any): Promise<DepartureSlotEntity> {
+    const slot = await this.repository.getDepartureSlot(departureId, req)
     if (!slot) {
       throw new Error(`[InventoryManager] Departure slot ${departureId} not found`)
     }
@@ -67,6 +68,6 @@ export class InventoryManager {
       capacityReserved: Math.max(0, slot.capacityReserved - seats),
     }
 
-    return this.repository.saveDepartureSlot(updatedSlot)
+    return this.repository.saveDepartureSlot(updatedSlot, req)
   }
 }

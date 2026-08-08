@@ -16,7 +16,17 @@ describe('System Domain: Master 12-Domain Cross-Wiring Integration Tests', () =>
   })
 
   it('should boot system, wire subscribers, and certify production readiness', async () => {
-    const bootResult = await systemService.bootstrapSystem()
+    const mockCustomerService: any = {}
+    const mockLoyaltyService: any = {}
+    const mockNotificationService: any = { startWorker: vi.fn() }
+    const mockOutboxService: any = { startWorker: vi.fn() }
+
+    const bootResult = await systemService.bootstrapSystem({
+      customerService: mockCustomerService,
+      loyaltyService: mockLoyaltyService,
+      notificationService: mockNotificationService,
+      outboxService: mockOutboxService,
+    })
     expect(bootResult.success).toBe(true)
 
     const health = await systemService.getSystemHealth()

@@ -11,6 +11,8 @@ export interface CustomerAggregate {
   lastName: string
   fullName: string
   phone?: string
+  passportNumber?: string
+  nationality?: string
   isEmailVerified: boolean
   isPhoneVerified: boolean
   status: CustomerStatus
@@ -23,6 +25,7 @@ export interface CustomerAggregate {
   emailVerifiedAt?: string
   phoneVerifiedAt?: string
   loyalty?: { tier: string; points: number; totalSpentEGP: number; totalSpent?: number }
+  notifications?: { email: boolean; sms: boolean; push: boolean }
   version: number
 
   createdAt: string

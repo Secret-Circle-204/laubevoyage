@@ -5,6 +5,7 @@ import config from '@payload-config'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { getDomainServices } from '@/domains/factory'
+import { SessionResolver } from '@/application/auth/session-resolver'
 
 export interface RegisterFormData {
   email: string
@@ -196,6 +197,90 @@ export async function setCurrencyAction(currency: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to set currency',
+    }
+  }
+}
+
+export async function updateCustomerProfileAction(params: {
+  firstName: string
+  lastName: string
+  phone?: string
+  passportNumber?: string
+  nationality?: string
+}) {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || !session.customerId) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const { customer } = await getDomainServices()
+
+    // Retrieve active customer aggregate
+    const aggregate = await customer.getById(session.customerId)
+    if (!aggregate) {
+      return { success: false, error: 'Customer profile not found' }
+    }
+
+    // Apply updates to aggregate fields
+    aggregate.firstName = params.firstName
+    aggregate.lastName = params.lastName
+    aggregate.phone = params.phone
+    aggregate.passportNumber = params.passportNumber
+    aggregate.nationality = params.nationality
+
+    // Persist via Customer Domain Service
+    const updated = await customer.saveProfile(aggregate)
+
+    // Revalidate paths to refresh rendering
+    revalidatePath('/dashboard/profile')
+    revalidatePath('/dashboard')
+
+    return {
+      success: true,
+      customer: {
+        id: updated.customerId,
+        fullName: updated.fullName,
+        phone: updated.phone,
+        passportNumber: updated.passportNumber,
+        nationality: updated.nationality,
+      },
+    }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update profile',
+    }
+  }
+}
+
+export async function updateCustomerPreferencesAction(params: {
+  notifications: { email: boolean; sms: boolean; push: boolean }
+}) {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || !session.customerId) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const { customer } = await getDomainServices()
+
+    const aggregate = await customer.getById(session.customerId)
+    if (!aggregate) {
+      return { success: false, error: 'Customer not found' }
+    }
+
+    aggregate.notifications = params.notifications
+
+    await customer.saveProfile(aggregate)
+
+    revalidatePath('/dashboard/settings')
+
+    return { success: true }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update preferences',
     }
   }
 }

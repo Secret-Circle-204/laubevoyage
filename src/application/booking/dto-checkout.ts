@@ -24,4 +24,10 @@ export interface CheckoutPageDTO {
   totalCost: ConvertedPrice
   availableLoyaltyPoints: number
   gateways: PaymentGatewayDTO[]
+  leadTraveler?: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+  }
 }

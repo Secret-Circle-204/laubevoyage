@@ -1,8 +1,9 @@
 import type { Payload, PayloadRequest } from 'payload'
 import type { ExperienceAggregate } from './aggregate'
-import type { DepartureSlotEntity, ExperienceAvailabilityStatus, ExperienceType } from './types'
+import type { DepartureSlotEntity, ExperienceAvailabilityStatus, ExperienceType, ExperienceSearchQueryParams } from './types'
 import { validateAvailabilityTransition } from './state-machine'
 import { PricingPolicyRegistry } from './pricing-policy-registry'
+import { serializeLexicalToHtml } from '@/lib/lexical'
 
 /**
  * Experience Repository
@@ -67,6 +68,42 @@ export class ExperienceRepository {
     })
 
     return this.mapDocToAggregate(doc)
+  }
+
+  /**
+   * Find experiences using filters.
+   */
+  async findFiltered(params: ExperienceSearchQueryParams, req?: PayloadRequest): Promise<ExperienceAggregate[]> {
+    const where: any = { and: [] }
+
+    if (params.type) {
+      where.and.push({ type: { equals: params.type } })
+    }
+    if (params.cityId) {
+      where.and.push({ city: { equals: params.cityId } })
+    }
+    if (params.availability) {
+      where.and.push({ availability: { equals: params.availability } })
+    }
+    if (params.minPriceEGP !== undefined) {
+      where.and.push({ price: { greater_than_or_equal: params.minPriceEGP } })
+    }
+    if (params.maxPriceEGP !== undefined) {
+      where.and.push({ price: { less_than_or_equal: params.maxPriceEGP } })
+    }
+
+    if (where.and.length === 0) {
+      delete where.and
+    }
+
+    const result = await this.payload.find({
+      collection: 'experiences',
+      where,
+      limit: 100,
+      req,
+    })
+
+    return result.docs.map((doc: any) => this.mapDocToAggregate(doc))
   }
 
   /**
@@ -143,7 +180,7 @@ export class ExperienceRepository {
   /**
    * Fetch departure slot entity by departure ID.
    */
-  async getDepartureSlot(departureId: string): Promise<DepartureSlotEntity | null> {
+  async getDepartureSlot(departureId: string, req?: PayloadRequest): Promise<DepartureSlotEntity | null> {
     try {
       const result = await this.payload.find({
         collection: 'departure-slots',
@@ -151,6 +188,7 @@ export class ExperienceRepository {
           departureId: { equals: departureId },
         },
         limit: 1,
+        req,
       })
 
       const doc = result.docs[0]
@@ -183,7 +221,7 @@ export class ExperienceRepository {
   /**
    * Fetch departure slot entity by date and experience ID.
    */
-  async getDepartureSlotByDate(experienceId: number, date: string): Promise<DepartureSlotEntity | null> {
+  async getDepartureSlotByDate(experienceId: number, date: string, req?: PayloadRequest): Promise<DepartureSlotEntity | null> {
     try {
       const result = await this.payload.find({
         collection: 'departure-slots',
@@ -194,6 +232,7 @@ export class ExperienceRepository {
           ],
         },
         limit: 1,
+        req,
       })
 
       const doc = result.docs[0]
@@ -222,7 +261,7 @@ export class ExperienceRepository {
   /**
    * Save / update departure slot entity with Optimistic Locking version check.
    */
-  async saveDepartureSlot(slot: DepartureSlotEntity): Promise<DepartureSlotEntity> {
+  async saveDepartureSlot(slot: DepartureSlotEntity, req?: PayloadRequest): Promise<DepartureSlotEntity> {
     try {
       const result = await this.payload.find({
         collection: 'departure-slots',
@@ -230,30 +269,62 @@ export class ExperienceRepository {
           departureId: { equals: slot.departureId },
         },
         limit: 1,
+        req,
       })
 
       const existing = result.docs[0]
-      if (existing && existing.version !== slot.version) {
-        throw new Error(
-          `[ExperienceRepository] Optimistic Lock Failure on DepartureSlot ${slot.departureId}. Expected version ${slot.version}, found ${existing.version}.`,
-        )
-      }
-
       const nextVersion = slot.version + 1
       const capacityAvailable = Math.max(0, slot.capacityTotal - slot.capacityReserved - slot.capacitySold)
 
       if (existing) {
-        await this.payload.update({
-          collection: 'departure-slots',
-          id: existing.id,
-          data: {
-            capacityReserved: slot.capacityReserved,
-            capacitySold: slot.capacitySold,
-            capacityAvailable,
-            version: nextVersion,
-            status: slot.status as any,
-          },
-        })
+        // Atomic SQL update to ensure safety against race conditions
+        const dbAdapter = this.payload.db as any
+        const transactionID = req?.transactionID
+
+        const sqlText = `
+          UPDATE departure_slots
+          SET capacity_reserved = $1,
+              capacity_sold = $2,
+              capacity_available = $3,
+              version = $4,
+              status = $5
+          WHERE departure_id = $6
+            AND version = $7
+            AND (capacity_total - $1 - $2) >= 0;
+        `
+        const params = [
+          slot.capacityReserved,
+          slot.capacitySold,
+          capacityAvailable,
+          nextVersion,
+          slot.status,
+          slot.departureId,
+          slot.version
+        ]
+
+        const txKey = transactionID instanceof Promise ? await transactionID : transactionID
+
+        let queryResult: { rowCount: number } = { rowCount: 1 }
+        if (dbAdapter) {
+          if (txKey && dbAdapter.sessions?.[txKey]?.db?.session?.client) {
+            const client = dbAdapter.sessions[txKey].db.session.client
+            queryResult = await client.query(sqlText, params)
+          } else if (dbAdapter.pool && typeof dbAdapter.pool.query === 'function') {
+            queryResult = await dbAdapter.pool.query(sqlText, params)
+          } else if (dbAdapter.drizzle && typeof dbAdapter.drizzle.execute === 'function') {
+            const res = await dbAdapter.drizzle.execute(sqlText, params)
+            queryResult = { rowCount: res.rowCount ?? 0 }
+          } else {
+            throw new Error('[ExperienceRepository] No raw SQL database execution adapter is configured.')
+          }
+        }
+
+        if (queryResult.rowCount === 0) {
+          throw new Error(
+            `[ExperienceRepository] Atomic Optimistic Lock Failure on DepartureSlot ${slot.departureId}. Either the version (${slot.version}) has changed or capacity is exhausted.`
+          )
+        }
+
         return {
           ...slot,
           version: nextVersion,
@@ -275,6 +346,7 @@ export class ExperienceRepository {
             version: nextVersion,
             status: slot.status as any,
           },
+          req,
         })
         return {
           ...slot,
@@ -300,6 +372,34 @@ export class ExperienceRepository {
       console.warn(`[ExperienceRepository] Catalog-priced experience ${doc.id} is missing price in DB. Defaulting basePriceEGP to 0.`)
     }
 
+    const gallery = Array.isArray(doc.gallery)
+      ? doc.gallery
+          .map((img: any) => {
+            const media = img.image
+            if (media && typeof media === 'object') {
+              return media.url || ''
+            }
+            if (typeof media === 'string') {
+              return media
+            }
+            return ''
+          })
+          .filter(Boolean)
+      : []
+
+    const included = Array.isArray(doc.included) ? doc.included.map((x: any) => x.item || '').filter(Boolean) : []
+    const excluded = Array.isArray(doc.excluded) ? doc.excluded.map((x: any) => x.item || '').filter(Boolean) : []
+
+    const itinerary = Array.isArray(doc.itinerary)
+      ? doc.itinerary.map((x: any) => ({
+          dayNumber: Number(x.dayNumber) || 1,
+          title: x.title || '',
+          description: x.description || '',
+        }))
+      : []
+
+    const descriptionHtml = doc.description ? serializeLexicalToHtml(doc.description) : ''
+
     return {
       id: Number(doc.id),
       title: doc.title,
@@ -315,6 +415,11 @@ export class ExperienceRepository {
       heroUrl: doc.hero && typeof doc.hero === 'object' ? doc.hero.url || '' : '',
       createdAt: typeof doc.createdAt === 'string' ? doc.createdAt : (doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString()),
       updatedAt: typeof doc.updatedAt === 'string' ? doc.updatedAt : (doc.updatedAt ? new Date(doc.updatedAt).toISOString() : new Date().toISOString()),
+      gallery,
+      included,
+      excluded,
+      descriptionHtml,
+      itinerary,
     }
   }
 }
