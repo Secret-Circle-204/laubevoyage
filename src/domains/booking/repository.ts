@@ -1,5 +1,5 @@
 import type { Payload, PayloadRequest } from 'payload'
-import type { BookingStatus, PaginatedResponse } from '@/types'
+import type { BookingStatus, PaginatedResponse, RequestContext } from '@/types'
 import type { BookingAggregate } from './types'
 import type { Booking } from '@/payload-types'
 
@@ -16,9 +16,44 @@ export class BookingRepository {
   }
 
   /**
+   * Start a database transaction.
+   */
+  async beginTransaction(): Promise<string | number | null> {
+    return this.payload.db.beginTransaction()
+  }
+
+  /**
+   * Commit a database transaction.
+   */
+  async commitTransaction(transactionID: string | number | null): Promise<void> {
+    if (transactionID !== null && transactionID !== undefined) {
+      await this.payload.db.commitTransaction(transactionID)
+    }
+  }
+
+  /**
+   * Rollback a database transaction.
+   */
+  async rollbackTransaction(transactionID: string | number | null): Promise<void> {
+    if (transactionID !== null && transactionID !== undefined) {
+      await this.payload.db.rollbackTransaction(transactionID)
+    }
+  }
+
+  private mapContextToReq(context?: RequestContext): PayloadRequest | undefined {
+    if (!context || context.transactionId === null || context.transactionId === undefined) {
+      return undefined
+    }
+    return {
+      transactionID: context.transactionId,
+    } as unknown as PayloadRequest
+  }
+
+  /**
    * Find a booking aggregate by ID.
    */
-  async findById(id: number, req?: PayloadRequest): Promise<BookingAggregate> {
+  async findById(id: number, context?: RequestContext): Promise<BookingAggregate> {
+    const req = this.mapContextToReq(context)
     const doc = await this.payload.findByID({
       collection: 'bookings',
       id,
@@ -31,7 +66,8 @@ export class BookingRepository {
   /**
    * Find a booking aggregate by human-readable booking number.
    */
-  async findByBookingNumber(bookingNumber: string, req?: PayloadRequest): Promise<BookingAggregate | null> {
+  async findByBookingNumber(bookingNumber: string, context?: RequestContext): Promise<BookingAggregate | null> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'bookings',
       where: {
@@ -48,7 +84,8 @@ export class BookingRepository {
   /**
    * Create a new booking aggregate document.
    */
-  async create(data: Record<string, unknown>, req?: PayloadRequest): Promise<BookingAggregate> {
+  async create(data: Record<string, unknown>, context?: RequestContext): Promise<BookingAggregate> {
+    const req = this.mapContextToReq(context)
     const doc = await this.payload.create({
       collection: 'bookings',
       data: data as unknown as Booking,
@@ -61,7 +98,8 @@ export class BookingRepository {
   /**
    * Update an existing booking aggregate.
    */
-  async update(id: number, data: Record<string, unknown>, req?: PayloadRequest): Promise<BookingAggregate> {
+  async update(id: number, data: Record<string, unknown>, context?: RequestContext): Promise<BookingAggregate> {
+    const req = this.mapContextToReq(context)
     const doc = await this.payload.update({
       collection: 'bookings',
       id,
@@ -75,7 +113,8 @@ export class BookingRepository {
   /**
    * Update booking status exclusively.
    */
-  async updateStatus(id: number, status: BookingStatus, req?: PayloadRequest): Promise<BookingAggregate> {
+  async updateStatus(id: number, status: BookingStatus, context?: RequestContext): Promise<BookingAggregate> {
+    const req = this.mapContextToReq(context)
     const doc = await this.payload.update({
       collection: 'bookings',
       id,
@@ -89,14 +128,45 @@ export class BookingRepository {
   }
 
   /**
+   * Update booking status conditionally (atomic state transition).
+   * Returns null if no rows were updated (meaning the condition was not met).
+   */
+  async updateStatusConditionally(
+    id: number,
+    expectedStatuses: BookingStatus[],
+    data: Record<string, unknown>,
+    context?: RequestContext,
+  ): Promise<BookingAggregate | null> {
+    const req = this.mapContextToReq(context)
+    const result = await this.payload.update({
+      collection: 'bookings',
+      where: {
+        and: [
+          { id: { equals: id } },
+          { status: { in: expectedStatuses } },
+        ],
+      },
+      data: data as unknown as Partial<Booking>,
+      req,
+    })
+
+    const doc = result && typeof result === 'object' && 'docs' in result ? result.docs?.[0] : result
+    if (!doc) {
+      return null
+    }
+    return this.mapDocToAggregate(doc)
+  }
+
+  /**
    * Retrieve customer bookings with pagination.
    */
   async findByUser(
     userId: number,
     page: number = 1,
     limit: number = 10,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<PaginatedResponse<BookingAggregate>> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'bookings',
       where: {
@@ -120,7 +190,8 @@ export class BookingRepository {
   /**
    * Delete a booking document by ID.
    */
-  async delete(id: number, req?: PayloadRequest): Promise<void> {
+  async delete(id: number, context?: RequestContext): Promise<void> {
+    const req = this.mapContextToReq(context)
     await this.payload.delete({
       collection: 'bookings',
       id,
@@ -131,7 +202,8 @@ export class BookingRepository {
   /**
    * Find uncompleted draft or pending payment bookings created before cutoff date.
    */
-  async findExpiredDrafts(nowIso: string, req?: PayloadRequest): Promise<BookingAggregate[]> {
+  async findExpiredDrafts(nowIso: string, context?: RequestContext): Promise<BookingAggregate[]> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'bookings',
       where: {
@@ -163,7 +235,8 @@ export class BookingRepository {
   /**
    * Find a booking by its unique idempotency key.
    */
-  async getByIdempotencyKey(idempotencyKey: string, req?: PayloadRequest): Promise<BookingAggregate | null> {
+  async getByIdempotencyKey(idempotencyKey: string, context?: RequestContext): Promise<BookingAggregate | null> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'bookings',
       where: {

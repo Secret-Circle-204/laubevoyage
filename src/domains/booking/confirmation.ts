@@ -1,4 +1,4 @@
-import { BookingStatus } from '@/types'
+import { BookingStatus, RequestContext } from '@/types'
 import type { Actor, BookingAggregate, PaymentAttempt } from './types'
 import { BookingRepository } from './repository'
 import { BookingPolicy } from './policy'
@@ -8,6 +8,7 @@ import { BookingHistoryService } from './history'
 import { PaymentAttemptsService } from './payment-attempts'
 import { EventBus } from '../events/event-bus'
 import { EventOutboxService } from '../events/outbox'
+import { validateTransition } from './state-machine'
 
 /**
  * Booking Confirmation Sub-Service
@@ -25,9 +26,12 @@ export class BookingConfirmation {
   /**
    * Mark booking as PAID (called by Payment Adapter webhook).
    */
-  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, actor?: Actor, req?: any): Promise<BookingAggregate> {
+  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, actor?: Actor, context?: RequestContext): Promise<BookingAggregate> {
     console.log(`[BookingConfirmation] 💳 markAsPaid called for Booking #${bookingId}. Attempt status: ${paymentAttempt.status}, transactionRef: ${paymentAttempt.transactionReference}`);
-    const booking = await this.repository.findById(bookingId, req)
+    const booking = await this.repository.findById(bookingId, context)
+
+    // Validate transition via State Machine
+    validateTransition(booking.status, BookingStatus.PAID)
     
     // Record payment attempt
     const updatedAttempts = PaymentAttemptsService.recordAttempt(booking.paymentAttempts, {
@@ -39,35 +43,36 @@ export class BookingConfirmation {
       failureReason: paymentAttempt.failureReason,
     })
 
-    const currentActor: Actor = actor || { id: 'system', type: 'system', name: 'Payment Webhook' }
     const updatedTimeline = BookingHistoryService.appendTimelineEntry(booking.timeline, {
-      stepKey: 'payment_received',
-      title: 'Payment Received',
-      description: 'Your payment was successfully processed.',
+      stepKey: 'booking_paid',
+      title: 'Booking Paid',
+      description: `Payment attempt status: ${paymentAttempt.status}. Ref: ${paymentAttempt.transactionReference}`,
     })
 
     const updatedAudit = BookingHistoryService.appendAuditEntry(booking.auditTrail, {
-      actor: currentActor,
-      action: 'PAYMENT_SUCCESSFUL',
+      actor: actor || { id: 'system', type: 'system', name: 'Stripe Webhook' },
+      action: 'BOOKING_PAID',
+      reason: 'Payment transaction confirmed by Stripe',
       previousValue: booking.status,
       newValue: BookingStatus.PAID,
     })
 
+    // Persist paid status in repository (inside transaction)
     return this.repository.update(bookingId, {
       status: BookingStatus.PAID,
       paymentId: paymentAttempt.transactionReference || paymentAttempt.attemptId,
       paymentAttempts: updatedAttempts,
       timeline: updatedTimeline,
       auditTrail: updatedAudit,
-    }, req)
+    }, context)
   }
 
   /**
-   * Confirm booking after successful payment.
+   * Commit capacity reservations, points, and transition to CONFIRMED.
    */
-  async confirm(bookingId: number, actor?: Actor, req?: any): Promise<BookingAggregate> {
-    console.log(`[BookingConfirmation] 🔐 confirm called for Booking #${bookingId}`);
-    const booking = await this.repository.findById(bookingId, req)
+  async confirm(bookingId: number, actor?: Actor, context?: RequestContext): Promise<BookingAggregate> {
+    console.log(`[BookingConfirmation] 🚀 confirm called for Booking #${bookingId}.`);
+    const booking = await this.repository.findById(bookingId, context)
 
     // Idempotency: exit early if already confirmed or completed
     if (booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.COMPLETED) {
@@ -112,7 +117,7 @@ export class BookingConfirmation {
       pointHold: committedPointHold,
       timeline: updatedTimeline,
       auditTrail: updatedAudit,
-    }, req)
+    }, context)
 
     console.log(`[BookingConfirmation] 🎉 Booking #${bookingId} status updated to CONFIRMED in repository.`);
     return confirmedBooking

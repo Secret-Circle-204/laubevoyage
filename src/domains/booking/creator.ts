@@ -1,5 +1,5 @@
-import type { PayloadRequest } from 'payload'
 import { BookingStatus } from '@/types'
+import type { RequestContext } from '@/types'
 import type { BookingAggregate, CreateBookingParams } from './types'
 import { BookingRepository } from './repository'
 import { BookingPolicy } from './policy'
@@ -41,7 +41,7 @@ export class BookingCreator {
     this.snapshotAssembler = new BookingPricingSnapshotAssembler()
   }
 
-  async createDraft(params: CreateBookingParams, req?: PayloadRequest): Promise<BookingAggregate> {
+  async createDraft(params: CreateBookingParams, context?: RequestContext): Promise<BookingAggregate> {
     const departure = params.departure
     if (!departure || departure.basePriceEGP === undefined) {
       throw new Error(`[BookingCreator] Invalid or unresolved bookable departure read model.`)
@@ -49,7 +49,7 @@ export class BookingCreator {
 
     // Fast-path idempotency check
     if (params.idempotencyKey) {
-      const existing = await this.repository.getByIdempotencyKey(params.idempotencyKey, req)
+      const existing = await this.repository.getByIdempotencyKey(params.idempotencyKey, context)
       if (existing) {
         // Validate same checkout identity
         const isSameCustomer = existing.customerId === params.userId
@@ -73,10 +73,11 @@ export class BookingCreator {
     if (typeof this.experienceService?.getById === 'function') {
       experience = await this.experienceService.getById(experienceId)
     } else {
+      const payloadReq = context && context.transactionId ? { transactionID: context.transactionId } : undefined
       experience = await (this.repository as any).payload.findByID({
         collection: 'experiences',
         id: experienceId,
-        req,
+        req: payloadReq,
       })
     }
 
@@ -84,10 +85,11 @@ export class BookingCreator {
     if (typeof this.customerRepository?.findById === 'function') {
       customer = await this.customerRepository.findById(params.userId)
     } else {
+      const payloadReq = context && context.transactionId ? { transactionID: context.transactionId } : undefined
       customer = await (this.repository as any).payload.findByID({
         collection: 'customers',
         id: params.userId,
-        req,
+        req: payloadReq,
       })
     }
 
@@ -182,7 +184,7 @@ export class BookingCreator {
       idempotencyKey: params.idempotencyKey,
     }
 
-    const booking = await this.repository.create(bookingData, req)
+    const booking = await this.repository.create(bookingData, context)
     console.log(`[BookingCreator] Draft Booking #${booking.id} created successfully with BookingNumber ${bookingNumber}. pricingSnapshot:`, pricingSnapshot);
 
     // 8. Create Capacity Hold & Point Hold entities
@@ -194,7 +196,7 @@ export class BookingCreator {
         seatsCount,
         params.userId,
         booking.id,
-        req,
+        context,
       )
     }
 
@@ -221,6 +223,6 @@ export class BookingCreator {
     return this.repository.update(booking.id, {
       capacityHold,
       pointHold,
-    }, req)
+    }, context)
   }
 }

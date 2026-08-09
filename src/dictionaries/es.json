@@ -18,5 +18,16 @@
       "rights": "Todos los Derechos Reservados © 2026 L'Aube Voyage",
       "tagline": "Viajes Extraordinarios desde 1996."
     }
+  },
+  "loyalty": {
+    "tier": {
+      "explorer": "Explorador",
+      "voyager": "Viajero",
+      "elite": "Élite"
+    },
+    "progress": {
+      "remainingToTier": "Faltan {amount} para alcanzar el nivel {tier}",
+      "maxTier": "¡Nivel de membresía más alto alcanzado!"
+    }
   }
 }

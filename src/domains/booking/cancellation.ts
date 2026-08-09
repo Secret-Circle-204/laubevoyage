@@ -1,4 +1,4 @@
-import { BookingStatus } from '@/types'
+import { BookingStatus, RequestContext } from '@/types'
 import type { Actor, BookingAggregate } from './types'
 import { BookingRepository } from './repository'
 import { BookingPolicy } from './policy'
@@ -23,8 +23,8 @@ export class BookingCancellation {
     this.eventBus = EventBus.getInstance()
   }
 
-  async cancel(bookingId: number, actor: Actor, reason: string): Promise<BookingAggregate> {
-    const booking = await this.repository.findById(bookingId)
+  async cancel(bookingId: number, actor: Actor, reason: string, context?: RequestContext): Promise<BookingAggregate> {
+    const booking = await this.repository.findById(bookingId, context)
 
     // Validate cancellation policy
     const policyResult = BookingPolicy.canCancel(booking, actor)
@@ -41,9 +41,10 @@ export class BookingCancellation {
         const slot = await this.experienceService.getDepartureSlotByDate(
           booking.capacityHold.experienceId,
           booking.capacityHold.date,
+          context,
         )
         if (slot && slot.departureId) {
-          await this.experienceService.releaseCapacity(slot.departureId, booking.capacityHold.seats)
+          await this.experienceService.releaseCapacity(slot.departureId, booking.capacityHold.seats, context)
           console.log(`[BookingCancellation] Released slot capacity: Slot ID ${slot.departureId}, ${booking.capacityHold.seats} seats.`)
         }
       } catch (err: any) {
@@ -55,6 +56,25 @@ export class BookingCancellation {
     const releasedPointHold = booking.pointHold
       ? PointHoldService.releaseHold(booking.pointHold)
       : null
+
+    // Determine structured terminal reason
+    let reasonCode: 'CUSTOMER_REQUEST' | 'COMPANY_CANCELLATION' | 'SYSTEM_POLICY' | 'COMPANY_REJECTED' = 'SYSTEM_POLICY'
+    if (actor.type === 'customer') {
+      reasonCode = 'CUSTOMER_REQUEST'
+    } else if (actor.type === 'admin') {
+      const lowerReason = reason.toLowerCase()
+      if (lowerReason.includes('reject') || lowerReason.includes('refus')) {
+        reasonCode = 'COMPANY_REJECTED'
+      } else {
+        reasonCode = 'COMPANY_CANCELLATION'
+      }
+    }
+
+    const updatedMetadata = booking.metadata || {}
+    updatedMetadata.terminalReason = {
+      type: reasonCode === 'COMPANY_REJECTED' ? 'REJECTION' : 'CANCELLATION',
+      reason: reasonCode,
+    }
 
     // Append timeline and audit
     const updatedTimeline = BookingHistoryService.appendTimelineEntry(booking.timeline, {
@@ -78,7 +98,8 @@ export class BookingCancellation {
       notes: reason,
       timeline: updatedTimeline,
       auditTrail: updatedAudit,
-    })
+      metadata: updatedMetadata,
+    }, context)
 
     // Publish BookingCancelledEvent
     await this.eventBus.publish({

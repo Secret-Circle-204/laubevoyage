@@ -1,4 +1,4 @@
-import { BookingStatus } from '@/types'
+import { BookingStatus, RequestContext } from '@/types'
 import { BookingPolicy } from '../booking/policy'
 import type { CreateSessionParams, RefundParams, RefundResult, PaymentProviderType } from './types'
 import type { PaymentAggregate } from './aggregate'
@@ -243,6 +243,10 @@ export class PaymentService {
       const sessionId = tx.session?.sessionId
       if (!sessionId) continue
 
+      // Start database transaction at the infrastructure/repository level
+      const transactionID = await this.paymentRepository.beginTransaction()
+      const context: RequestContext = { transactionId: transactionID }
+
       try {
         const adapter = PaymentAdapterFactory.resolve('stripe')
         const stripeStatus = await adapter.retrievePaymentStatus({ providerSessionId: sessionId })
@@ -252,7 +256,7 @@ export class PaymentService {
           
           const { getDomainServices } = await import('../factory')
           const { booking } = await getDomainServices()
-          const bookingDoc = await booking.getById(tx.bookingId)
+          const bookingDoc = await booking.getById(tx.bookingId, context)
 
           const attemptRecord = {
             attemptId: `att_recon_${tx.transactionId}`,
@@ -262,37 +266,59 @@ export class PaymentService {
             currency: tx.attempts[0]?.currency || 'EGP',
             status: 'successful' as const,
             transactionReference: sessionId,
-            timestamp: new Date().toISOString(),
+            timestamp: stripeStatus.completedAt || new Date().toISOString(),
           }
 
-          // Evaluate booking policy to verify if confirmation is allowed
-          const canConfirmResult = BookingPolicy.canConfirm(bookingDoc)
-          if (canConfirmResult.allowed) {
-            await booking.markAsPaid(tx.bookingId, attemptRecord)
-            await booking.confirm(tx.bookingId)
-            await this.paymentRepository.updateStatus(tx.transactionId, 'successful')
-          } else {
-            console.warn(`[PaymentReconciliation] BookingPolicy canConfirm rejected for Booking #${tx.bookingId}: ${canConfirmResult.reason}`)
-            // Keep/set status to CANCELLED/EXPIRED, but record attempt and set metadata flags
-            await booking.markAsPaid(tx.bookingId, attemptRecord)
+          if (bookingDoc.status === BookingStatus.CANCELLED) {
+            console.warn(`[PaymentReconciliation] Warning: Received payment for already CANCELLED Booking #${tx.bookingId}. Recording payment attempt without reviving status.`)
             
+            const updatedAttempts = [...(bookingDoc.paymentAttempts || []), attemptRecord]
+            const metadata = bookingDoc.metadata || {}
+            metadata.latePaymentReceivedOnCancelled = true
+            metadata.manualRefundRequired = true
+            metadata.reconciliationNotes = 'payment_received_after_cancellation'
+
+            await booking.update(tx.bookingId, {
+              paymentAttempts: updatedAttempts,
+              metadata,
+            }, context)
+
+            await this.paymentRepository.updateStatus(tx.transactionId, 'successful', context)
+          } else if (bookingDoc.status === BookingStatus.EXPIRED || BookingPolicy.isPaymentLate(bookingDoc, stripeStatus.completedAt)) {
+            console.warn(`[PaymentReconciliation] Late Payment: Booking #${tx.bookingId} is EXPIRED or payment completedAt (${stripeStatus.completedAt}) was late.`)
+            
+            const updatedAttempts = [...(bookingDoc.paymentAttempts || []), attemptRecord]
             const metadata = bookingDoc.metadata || {}
             metadata.paymentReceivedAfterExpiry = true
             metadata.manualRefundRequired = true
-            metadata.reconciliationNotes = `payment_received_after_expiry: ${canConfirmResult.reason}`
-            
+            metadata.reconciliationNotes = `payment_received_after_expiry (completedAt: ${stripeStatus.completedAt})`
+
             await booking.update(tx.bookingId, {
               status: BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY,
+              paymentAttempts: updatedAttempts,
               metadata,
-            })
-            await this.paymentRepository.updateStatus(tx.transactionId, 'successful')
+            }, context)
+
+            await this.paymentRepository.updateStatus(tx.transactionId, 'successful', context)
+          } else {
+            console.log(`[PaymentReconciliation] On-time payment detected for Booking #${tx.bookingId}. Mark paid & confirm...`)
+            if (bookingDoc.status !== BookingStatus.PAID) {
+              await booking.markAsPaid(tx.bookingId, attemptRecord, context)
+            }
+            await booking.confirm(tx.bookingId, undefined, context)
+            await this.paymentRepository.updateStatus(tx.transactionId, 'successful', context)
           }
           reconciledCount++
         } else if (stripeStatus.status === 'failed') {
           console.log(`[PaymentReconciliation] Stripe session expired/failed for Transaction ${tx.transactionId}. Marking attempt as failed.`)
-          await this.paymentRepository.updateStatus(tx.transactionId, 'failed')
+          await this.paymentRepository.updateStatus(tx.transactionId, 'failed', context)
         }
+
+        // Commit transaction
+        await this.paymentRepository.commitTransaction(transactionID)
       } catch (err: any) {
+        // Rollback transaction
+        await this.paymentRepository.rollbackTransaction(transactionID)
         console.error(`[PaymentReconciliation] Failed reconciling Transaction ${tx.transactionId}:`, err)
       }
     }

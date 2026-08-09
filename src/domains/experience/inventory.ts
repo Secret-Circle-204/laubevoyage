@@ -2,6 +2,7 @@ import type { ExperienceRepository } from './repository'
 import type { DepartureSlotEntity } from './types'
 import { AvailabilityPolicy } from './availability-policy'
 import { CapacityHoldService } from '../booking/capacity-hold'
+import type { RequestContext } from '@/types'
 
 /**
  * Inventory Manager Sub-Service
@@ -22,9 +23,9 @@ export class InventoryManager {
     seats: number,
     customerId: number,
     bookingId: number,
-    req?: any,
+    context?: RequestContext,
   ): Promise<{ slot: DepartureSlotEntity; holdId: string }> {
-    const slot = await this.repository.getDepartureSlot(departureId, req)
+    const slot = await this.repository.getDepartureSlot(departureId, context)
     if (!slot) {
       throw new Error(`[InventoryManager] Departure slot ${departureId} not found`)
     }
@@ -50,15 +51,15 @@ export class InventoryManager {
       capacityReserved: slot.capacityReserved + seats,
     }
 
-    const savedSlot = await this.repository.saveDepartureSlot(updatedSlot, req)
+    const savedSlot = await this.repository.saveDepartureSlot(updatedSlot, context)
 
     const holdId = capacityHold.holdId || `hold_${Date.now()}`
     return { slot: savedSlot, holdId }
   }
 
 
-  async releaseCapacity(departureId: string, seats: number, req?: any): Promise<DepartureSlotEntity> {
-    const slot = await this.repository.getDepartureSlot(departureId, req)
+  async releaseCapacity(departureId: string, seats: number, context?: RequestContext): Promise<DepartureSlotEntity> {
+    const slot = await this.repository.getDepartureSlot(departureId, context)
     if (!slot) {
       throw new Error(`[InventoryManager] Departure slot ${departureId} not found`)
     }
@@ -68,6 +69,6 @@ export class InventoryManager {
       capacityReserved: Math.max(0, slot.capacityReserved - seats),
     }
 
-    return this.repository.saveDepartureSlot(updatedSlot, req)
+    return this.repository.saveDepartureSlot(updatedSlot, context)
   }
 }

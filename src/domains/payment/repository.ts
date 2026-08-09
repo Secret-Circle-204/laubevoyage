@@ -2,6 +2,7 @@ import type { Payload, PayloadRequest } from 'payload'
 import type { PaymentAggregate } from './aggregate'
 import type { PaymentStatusType, PaymentAttemptRecord, WebhookLedgerRecord } from './types'
 import { validatePaymentTransition } from './state-machine'
+import type { RequestContext } from '@/types'
 
 /**
  * Payment Repository
@@ -15,6 +16,40 @@ export class PaymentRepository {
     this.payload = payload
   }
 
+  /**
+   * Start a database transaction.
+   */
+  async beginTransaction(): Promise<string | number | null> {
+    return this.payload.db.beginTransaction()
+  }
+
+  /**
+   * Commit a database transaction.
+   */
+  async commitTransaction(transactionID: string | number | null): Promise<void> {
+    if (transactionID !== null && transactionID !== undefined) {
+      await this.payload.db.commitTransaction(transactionID)
+    }
+  }
+
+  /**
+   * Rollback a database transaction.
+   */
+  async rollbackTransaction(transactionID: string | number | null): Promise<void> {
+    if (transactionID !== null && transactionID !== undefined) {
+      await this.payload.db.rollbackTransaction(transactionID)
+    }
+  }
+
+  private mapContextToReq(context?: RequestContext): PayloadRequest | undefined {
+    if (!context || context.transactionId === null || context.transactionId === undefined) {
+      return undefined
+    }
+    return {
+      transactionID: context.transactionId,
+    } as unknown as PayloadRequest
+  }
+
   async findActiveGateways() {
     return [
       { id: 'stripe', name: 'Credit / Debit Card (Stripe)', icon: '💳', isAvailable: true },
@@ -25,7 +60,8 @@ export class PaymentRepository {
   /**
    * Create a new payment transaction aggregate document.
    */
-  async createTransaction(data: Record<string, unknown>, req?: PayloadRequest): Promise<PaymentAggregate> {
+  async createTransaction(data: Record<string, unknown>, context?: RequestContext): Promise<PaymentAggregate> {
+    const req = this.mapContextToReq(context)
     const doc = await this.payload.create({
       collection: 'payment-transactions',
       data: data as unknown as Record<string, any>,
@@ -38,7 +74,8 @@ export class PaymentRepository {
   /**
    * Find payment aggregate by unique transaction ID.
    */
-  async findByTransactionId(transactionId: string, req?: PayloadRequest): Promise<PaymentAggregate | null> {
+  async findByTransactionId(transactionId: string, context?: RequestContext): Promise<PaymentAggregate | null> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'payment-transactions',
       where: {
@@ -55,7 +92,8 @@ export class PaymentRepository {
   /**
    * Find payment aggregate by booking ID.
    */
-  async findByBookingId(bookingId: number, req?: PayloadRequest): Promise<PaymentAggregate | null> {
+  async findByBookingId(bookingId: number, context?: RequestContext): Promise<PaymentAggregate | null> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'payment-transactions',
       where: {
@@ -72,7 +110,8 @@ export class PaymentRepository {
   /**
    * Find payment aggregate by gateway reference (e.g. Stripe Session ID or PaymentIntent ID).
    */
-  async findByGatewayReference(gatewayReference: string, req?: PayloadRequest): Promise<PaymentAggregate | null> {
+  async findByGatewayReference(gatewayReference: string, context?: RequestContext): Promise<PaymentAggregate | null> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'payment-transactions',
       where: {
@@ -92,8 +131,9 @@ export class PaymentRepository {
   async updateStatus(
     transactionId: string,
     newStatus: PaymentStatusType,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<PaymentAggregate> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'payment-transactions',
       where: {
@@ -130,8 +170,9 @@ export class PaymentRepository {
   async appendAttempt(
     transactionId: string,
     attempt: PaymentAttemptRecord,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<PaymentAggregate> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'payment-transactions',
       where: {
@@ -169,8 +210,9 @@ export class PaymentRepository {
   async appendWebhook(
     transactionId: string,
     webhook: WebhookLedgerRecord,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<PaymentAggregate> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'payment-transactions',
       where: {
@@ -204,7 +246,8 @@ export class PaymentRepository {
   /**
    * Check if a webhook event ID was already processed in the database.
    */
-  async findWebhookByEventId(eventId: string, req?: PayloadRequest): Promise<WebhookLedgerRecord | null> {
+  async findWebhookByEventId(eventId: string, context?: RequestContext): Promise<WebhookLedgerRecord | null> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'payment-transactions',
       where: {
@@ -224,7 +267,8 @@ export class PaymentRepository {
   /**
    * Find all payment transactions in 'initiated' or 'pending' state.
    */
-  async findPendingTransactions(req?: PayloadRequest): Promise<PaymentAggregate[]> {
+  async findPendingTransactions(context?: RequestContext): Promise<PaymentAggregate[]> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'payment-transactions',
       where: {

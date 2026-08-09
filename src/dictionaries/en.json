@@ -47,5 +47,16 @@
     "viewItinerary": "View Itinerary",
     "packageLabel": "Tour Package",
     "dailyTourLabel": "Daily Tour"
+  },
+  "loyalty": {
+    "tier": {
+      "explorer": "Explorer",
+      "voyager": "Voyager",
+      "elite": "Elite"
+    },
+    "progress": {
+      "remainingToTier": "{amount} more to reach {tier} Tier",
+      "maxTier": "Highest Membership Tier Achieved!"
+    }
   }
 }

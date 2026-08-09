@@ -2,7 +2,7 @@ import type { LoyaltyRepository } from './repository'
 import { TierPolicy } from './tier-policy'
 import { LoyaltyTier } from '@/types'
 import type { PointLedgerRecord } from './types'
-import type { LoyaltyProgramConfig, LeanRulesSnapshot } from './tier-config'
+import { LoyaltyProgramConfig, LeanRulesSnapshot, LoyaltyProgramConfigurationException } from './tier-config'
 
 /**
  * Tier Evaluator Sub-Service
@@ -18,17 +18,15 @@ export class TierEvaluator {
 
   async evaluateAndUpgrade(
     customerId: number,
-    additionalSpentEGP: number = 0,
-    config?: LoyaltyProgramConfig,
+    additionalSpentEGP: number,
+    config: LoyaltyProgramConfig,
   ): Promise<{ upgraded: boolean; newTier: LoyaltyTier; bonusRecord?: PointLedgerRecord }> {
+    if (!config) {
+      throw new LoyaltyProgramConfigurationException('[TierEvaluator] Active loyalty program configuration is required.')
+    }
     const { aggregate } = await this.repository.getCustomerAggregate(customerId)
     const currentTier = aggregate.tier
     const newTotalSpent = aggregate.totalSpentEGP + additionalSpentEGP
-
-    if (!config) {
-      // If config not passed directly, default return current tier state
-      return { upgraded: false, newTier: currentTier }
-    }
 
     const upgradePolicy = TierPolicy.canUpgradeTier(currentTier, newTotalSpent, config)
 

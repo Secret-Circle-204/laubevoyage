@@ -233,3 +233,10 @@ export interface AuditLog {
   metadata?: Record<string, unknown>
   createdAt: Date
 }
+
+// ============================================================================
+// REQUEST & TRANSACTION CONTEXT (Clean Architecture Abstraction)
+// ============================================================================
+export interface RequestContext {
+  transactionId?: string | number | null
+}

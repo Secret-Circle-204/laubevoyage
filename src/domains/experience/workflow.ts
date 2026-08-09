@@ -5,6 +5,7 @@ import { ExperienceSearchService } from './search'
 import { ExperienceQueries } from './queries'
 import { PricingPipelineEngine, type PricingSnapshotData } from '../currency/pipeline'
 import type { PricingContext, DepartureSlotEntity } from './types'
+import type { RequestContext } from '@/types'
 import { EventBus } from '../events/event-bus'
 import { BasePriceResolver } from './base-price-resolver'
 import { BookableDepartureAssembler } from './bookable-departure-assembler'
@@ -80,7 +81,7 @@ export class ExperienceWorkflowEngine {
     seats: number,
     customerId: number,
     bookingId: number,
-    req?: any,
+    context?: RequestContext,
   ): Promise<{ slot: DepartureSlotEntity; holdId: string }> {
     const result = await this.inventoryManager.reserveCapacity(
       departureId,
@@ -88,7 +89,7 @@ export class ExperienceWorkflowEngine {
       seats,
       customerId,
       bookingId,
-      req,
+      context,
     )
 
     await this.eventBus.publish({
@@ -114,9 +115,9 @@ export class ExperienceWorkflowEngine {
   async executeReleaseInventoryWorkflow(
     departureId: string,
     seats: number,
-    req?: any,
+    context?: RequestContext,
   ): Promise<DepartureSlotEntity> {
-    const slot = await this.inventoryManager.releaseCapacity(departureId, seats, req)
+    const slot = await this.inventoryManager.releaseCapacity(departureId, seats, context)
 
     await this.eventBus.publish({
       eventId: `evt_inv_rel_${departureId}_${Date.now()}`,

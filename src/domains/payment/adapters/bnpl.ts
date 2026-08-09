@@ -26,10 +26,11 @@ export class BNPLPaymentAdapter implements IPaymentAdapter {
     return parsed as StripeWebhookPayload
   }
 
-  async retrievePaymentStatus(params: { providerSessionId?: string; providerTransactionId?: string }): Promise<{ status: 'paid' | 'failed' | 'open'; gatewayStatus: string }> {
+  async retrievePaymentStatus(params: { providerSessionId?: string; providerTransactionId?: string }): Promise<{ status: 'paid' | 'failed' | 'open'; gatewayStatus: string; completedAt?: string }> {
     return {
       status: 'paid',
       gatewayStatus: 'complete',
+      completedAt: undefined,
     }
   }
 

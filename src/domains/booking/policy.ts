@@ -74,7 +74,7 @@ export class BookingPolicy {
 
     // Capacity Hold Expiry Check (Sole Source of Truth)
     if (booking.capacityHold) {
-      if (booking.capacityHold.status === 'expired' || booking.capacityHold.status === 'released') {
+      if (booking.status !== BookingStatus.PAID && (booking.capacityHold.status === 'expired' || booking.capacityHold.status === 'released')) {
         return {
           allowed: false,
           code: 'CAPACITY_HOLD_EXPIRED',
@@ -82,7 +82,7 @@ export class BookingPolicy {
         }
       }
       
-      if (booking.capacityHold.expiresAt) {
+      if (booking.capacityHold.expiresAt && booking.status !== BookingStatus.PAID) {
         const expiresAt = new Date(booking.capacityHold.expiresAt)
         if (new Date() >= expiresAt) {
           return {
@@ -95,6 +95,26 @@ export class BookingPolicy {
     }
 
     return { allowed: true }
+  }
+
+  /**
+   * Determine if a payment is late chronologically.
+   * A payment is late if the payment completion time is strictly after the capacity hold expiration.
+   */
+  static isPaymentLate(booking: BookingAggregate, paymentCompletedAt?: string): boolean {
+    if (!paymentCompletedAt) {
+      return false
+    }
+
+    if (booking.capacityHold && booking.capacityHold.expiresAt) {
+      const expiresAt = new Date(booking.capacityHold.expiresAt)
+      const paymentTime = new Date(paymentCompletedAt)
+      if (paymentTime > expiresAt) {
+        return true
+      }
+    }
+
+    return false
   }
 
   /**

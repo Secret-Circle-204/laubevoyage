@@ -4,7 +4,7 @@ export interface BaseDomainEvent {
   correlationId: string
   causationId?: string
   eventVersion: number
-  occurredAt: string
+  occurredAt?: string
   aggregateType?: string
   aggregateId?: string
   [key: string]: unknown

@@ -7,7 +7,8 @@ import { PaymentAdapterFactory } from './adapters/factory'
 import { PaymentProviderFactory } from './factory/payment-provider-factory'
 import { EventBus } from '../events/event-bus'
 import type { IOutboxRepository } from '../events/contracts/outbox-repository.interface'
-import type { PayloadRequest } from 'payload'
+import type { RequestContext } from '@/types'
+import { fromSmallestUnit } from '@/domains/currency/rounding'
 
 /**
  * Webhook Processor Sub-Service
@@ -38,7 +39,9 @@ export class WebhookProcessor {
 
     const eventId = payload.id
     const eventType = payload.type
-    console.log(`[WebhookProcessor] 📡 Received Stripe webhook event ${eventId} (Type: ${eventType})`);
+    console.log(
+      `[WebhookProcessor] 📡 Received Stripe webhook event ${eventId} (Type: ${eventType})`,
+    )
 
     const isProcessed = await this.ledger.isProcessed(eventId)
     const policyResult = PaymentPolicy.canProcessWebhook(isProcessed)
@@ -54,27 +57,37 @@ export class WebhookProcessor {
       const sessionObj = payload.data.object
       const bookingIdRaw = sessionObj.metadata?.bookingId
       const transactionIdRaw = sessionObj.metadata?.transactionId
-      const customerEmail = sessionObj.customer_details?.email || sessionObj.customer_email
+      const customerEmail = sessionObj.customer_details?.email || sessionObj.customer_email || undefined
       const gatewayRef = sessionObj.payment_intent || sessionObj.id
 
       if (!bookingIdRaw) {
         throw new Error('[WebhookProcessor] Missing required bookingId in Stripe metadata.')
       }
 
-      if (!customerEmail) {
-        throw new Error(
-          '[WebhookProcessor] Missing required customerEmail in Stripe session details.',
-        )
+      if (!sessionObj.currency) {
+        throw new Error('[WebhookProcessor] Missing currency in Stripe session details.')
       }
+      const currency = sessionObj.currency.toUpperCase()
+
+      if (sessionObj.amount_total === null || sessionObj.amount_total === undefined) {
+        throw new Error('[WebhookProcessor] Missing amount_total in Stripe session details.')
+      }
+      const amount = await fromSmallestUnit(sessionObj.amount_total, currency)
 
       const bookingId = Number(bookingIdRaw)
-      console.log(`[WebhookProcessor] 💳 checkout.session.completed processing for Booking #${bookingId}, CustomerEmail: ${customerEmail}`);
+      console.log(
+        `[WebhookProcessor] 💳 checkout.session.completed processing for Booking #${bookingId}, CustomerEmail: ${customerEmail || 'undefined'}`,
+      )
+
+      const context: RequestContext = {
+        transactionId: options?.dbTransaction
+          ? (options.dbTransaction as any).transactionID
+          : undefined,
+      }
+
       const transaction = transactionIdRaw
-        ? await this.repository.findByTransactionId(
-            transactionIdRaw,
-            options?.dbTransaction as PayloadRequest,
-          )
-        : await this.repository.findByBookingId(bookingId, options?.dbTransaction as PayloadRequest)
+        ? await this.repository.findByTransactionId(transactionIdRaw, context)
+        : await this.repository.findByBookingId(bookingId, context)
 
       if (!transaction) {
         throw new Error(
@@ -97,38 +110,34 @@ export class WebhookProcessor {
         attemptId,
         attemptNumber,
         provider,
-        amount: sessionObj.amount_total ? sessionObj.amount_total / 100 : 0,
-        currency: (sessionObj.currency || 'EGP').toUpperCase(),
+        amount,
+        currency,
         status: 'successful' as const,
         transactionReference: gatewayRef || undefined,
         timestamp: new Date().toISOString(),
       }
 
-      console.log(`[WebhookProcessor] 📝 Appending payment attempt and recording processed webhook for Transaction: ${transaction.transactionId}`);
-      await this.repository.appendAttempt(
-        transaction.transactionId,
-        attemptRecord,
-        options?.dbTransaction as PayloadRequest,
+      console.log(
+        `[WebhookProcessor] 📝 Appending payment attempt and recording processed webhook for Transaction: ${transaction.transactionId}`,
       )
-      await this.ledger.recordProcessed(
-        transaction.transactionId,
-        webhookRecord,
-        options?.dbTransaction as PayloadRequest,
-      )
+      await this.repository.appendAttempt(transaction.transactionId, attemptRecord, context)
+      await this.ledger.recordProcessed(transaction.transactionId, webhookRecord, context)
       const updatedAggregate = await this.repository.updateStatus(
         transaction.transactionId,
         'successful',
-        options?.dbTransaction as PayloadRequest,
+        context,
       )
 
       const correlationId =
-        options?.correlationId || (sessionObj.metadata as any)?.correlationId || `corr_stripe_${Date.now()}`
+        options?.correlationId ||
+        (sessionObj.metadata as any)?.correlationId ||
+        `corr_stripe_${Date.now()}`
       const paymentCompletedEvent = {
-        type: 'PAYMENT_COMPLETED',
+        type: 'PAYMENT_COMPLETED' as const,
         eventId: `evt_stripe_${eventId}`,
         correlationId,
         eventVersion: 1,
-        occurredAt: new Date().toISOString(),
+        occurredAt: payload.created ? new Date(payload.created * 1000).toISOString() : undefined,
         aggregateType: 'Payment',
         aggregateId: updatedAggregate.transactionId,
         transactionId: updatedAggregate.transactionId,
@@ -136,18 +145,22 @@ export class WebhookProcessor {
         customerId: updatedAggregate.customerId,
         customerEmail,
         provider: 'stripe' as const,
-        amount: attemptRecord?.amount || (sessionObj.amount_total ? sessionObj.amount_total / 100 : 0),
-        currency: attemptRecord?.currency || sessionObj.currency?.toUpperCase() || 'EGP',
+        amount,
+        currency,
         gatewayReference: gatewayRef || undefined,
         attemptId,
         attemptNumber,
       }
 
       if (this.outboxRepository) {
-        console.log(`[WebhookProcessor] 📤 Queueing PAYMENT_COMPLETED event into Outbox (EventID: ${paymentCompletedEvent.eventId})`);
+        console.log(
+          `[WebhookProcessor] 📤 Queueing PAYMENT_COMPLETED event into Outbox (EventID: ${paymentCompletedEvent.eventId})`,
+        )
         await this.outboxRepository.add(paymentCompletedEvent, options?.dbTransaction)
       } else {
-        console.log(`[WebhookProcessor] 📢 Publishing PAYMENT_COMPLETED event directly to EventBus (EventID: ${paymentCompletedEvent.eventId})`);
+        console.log(
+          `[WebhookProcessor] 📢 Publishing PAYMENT_COMPLETED event directly to EventBus (EventID: ${paymentCompletedEvent.eventId})`,
+        )
         await this.eventBus.publish(paymentCompletedEvent)
       }
 
@@ -176,7 +189,13 @@ export class WebhookProcessor {
       throw new Error('[WebhookProcessor] Paymob webhook payload missing required bookingId.')
     }
 
-    const isProcessed = await this.ledger.isProcessed(eventId)
+    const context: RequestContext = {
+      transactionId: options?.dbTransaction
+        ? (options.dbTransaction as any).transactionID
+        : undefined,
+    }
+
+    const isProcessed = await this.ledger.isProcessed(eventId, context)
     const policyResult = PaymentPolicy.canProcessWebhook(isProcessed)
 
     if (!policyResult.allowed) {
@@ -186,10 +205,7 @@ export class WebhookProcessor {
       return { processed: false }
     }
 
-    let transaction = await this.repository.findByBookingId(
-      bookingId,
-      options?.dbTransaction as PayloadRequest,
-    )
+    let transaction = await this.repository.findByBookingId(bookingId, context)
     if (!transaction) {
       transaction = await this.repository.createTransaction(
         {
@@ -199,12 +215,12 @@ export class WebhookProcessor {
           status: 'pending',
           session: { sessionId: `paymob_${eventId}`, url: '' },
         },
-        options?.dbTransaction as PayloadRequest,
+        context,
       )
     }
 
     if (!transaction) {
-      throw new Error(`[WebhookProcessor] Paymob transaction not found and creation failed.`);
+      throw new Error(`[WebhookProcessor] Paymob transaction not found and creation failed.`)
     }
 
     const webhookRecord = {
@@ -229,20 +245,12 @@ export class WebhookProcessor {
       timestamp: new Date().toISOString(),
     }
 
-    await this.repository.appendAttempt(
-      transaction.transactionId,
-      attemptRecord,
-      options?.dbTransaction as PayloadRequest,
-    )
-    await this.ledger.recordProcessed(
-      transaction.transactionId,
-      webhookRecord,
-      options?.dbTransaction as PayloadRequest,
-    )
+    await this.repository.appendAttempt(transaction.transactionId, attemptRecord, context)
+    await this.ledger.recordProcessed(transaction.transactionId, webhookRecord, context)
     const updatedAggregate = await this.repository.updateStatus(
       transaction.transactionId,
       'successful',
-      options?.dbTransaction as PayloadRequest,
+      context,
     )
 
     const correlationId = options?.correlationId || `corr_paymob_${Date.now()}`

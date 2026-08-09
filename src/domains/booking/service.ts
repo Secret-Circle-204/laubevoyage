@@ -1,4 +1,4 @@
-import type { PayloadRequest } from 'payload'
+import type { RequestContext } from '@/types'
 import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
 import { BookingWorkflowEngine } from './workflow'
 import { BookingRepository } from './repository'
@@ -40,33 +40,33 @@ export class BookingService {
   /**
    * Create a new booking in draft state.
    */
-  async create(data: CreateBookingParams, req?: PayloadRequest): Promise<number> {
-    const booking = await this.workflowEngine.executeCheckoutWorkflow(data, undefined, req)
+  async create(data: CreateBookingParams, context?: RequestContext): Promise<number> {
+    const booking = await this.workflowEngine.executeCheckoutWorkflow(data, undefined, context)
     return booking.id
   }
 
   /**
    * Move booking to pending payment via Workflow Engine.
    */
-  async moveToPendingPayment(bookingId: number, req?: PayloadRequest): Promise<void> {
-    await this.workflowEngine.executePendingPaymentWorkflow(bookingId, req)
+  async moveToPendingPayment(bookingId: number, context?: RequestContext): Promise<void> {
+    await this.workflowEngine.executePendingPaymentWorkflow(bookingId, context)
   }
 
   /**
    * Mark as paid (called by PaymentService webhook adapter).
    */
-  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, req?: PayloadRequest): Promise<void> {
+  async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, context?: RequestContext): Promise<void> {
     if (!paymentAttempt) {
       throw new Error('[BookingService] markAsPaid requires a valid PaymentAttempt object.')
     }
-    await this.workflowEngine.executePaymentWorkflow(bookingId, paymentAttempt, req)
+    await this.workflowEngine.executePaymentWorkflow(bookingId, paymentAttempt, context)
   }
 
   /**
    * Confirm booking after successful payment.
    */
-  async confirm(bookingId: number, _paymentId?: string, req?: PayloadRequest): Promise<BookingAggregate> {
-    return this.workflowEngine.executeConfirmationWorkflow(bookingId, undefined, req)
+  async confirm(bookingId: number, _paymentId?: string, context?: RequestContext): Promise<BookingAggregate> {
+    return this.workflowEngine.executeConfirmationWorkflow(bookingId, undefined, context)
   }
 
   /**
@@ -122,8 +122,8 @@ export class BookingService {
   /**
    * Get booking by ID.
    */
-  async getById(bookingId: number): Promise<BookingAggregate> {
-    return this.workflowEngine.queries.getById(bookingId)
+  async getById(bookingId: number, context?: RequestContext): Promise<BookingAggregate> {
+    return this.workflowEngine.queries.getById(bookingId, context)
   }
 
   /**
@@ -150,14 +150,14 @@ export class BookingService {
   /**
    * Update booking details.
    */
-  async update(bookingId: number, data: Partial<BookingAggregate>, req?: PayloadRequest): Promise<BookingAggregate> {
-    return this.repository.update(bookingId, data, req)
+  async update(bookingId: number, data: Partial<BookingAggregate>, context?: RequestContext): Promise<BookingAggregate> {
+    return this.repository.update(bookingId, data, context)
   }
 
   /**
    * Get booking by idempotency key.
    */
-  async getByIdempotencyKey(idempotencyKey: string, req?: PayloadRequest): Promise<BookingAggregate | null> {
-    return this.repository.getByIdempotencyKey(idempotencyKey, req)
+  async getByIdempotencyKey(idempotencyKey: string, context?: RequestContext): Promise<BookingAggregate | null> {
+    return this.repository.getByIdempotencyKey(idempotencyKey, context)
   }
 }

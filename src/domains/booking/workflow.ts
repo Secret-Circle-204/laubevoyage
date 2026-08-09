@@ -1,5 +1,6 @@
-import type { Payload, PayloadRequest } from 'payload'
+import type { Payload } from 'payload'
 import { BookingStatus } from '@/types'
+import type { RequestContext } from '@/types'
 import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
 import { BookingRepository } from './repository'
 import { BookingCreator } from './creator'
@@ -61,25 +62,25 @@ export class BookingWorkflowEngine {
   async executeCheckoutWorkflow(
     params: CreateBookingParams,
     actor?: Actor,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<BookingAggregate> {
-    return this.creator.createDraft(params, req)
+    return this.creator.createDraft(params, context)
   }
 
-  async executePendingPaymentWorkflow(bookingId: number, req?: PayloadRequest): Promise<BookingAggregate> {
-    return this.repository.updateStatus(bookingId, BookingStatus.PENDING_PAYMENT, req)
+  async executePendingPaymentWorkflow(bookingId: number, context?: RequestContext): Promise<BookingAggregate> {
+    return this.repository.updateStatus(bookingId, BookingStatus.PENDING_PAYMENT, context)
   }
 
   async executePaymentWorkflow(
     bookingId: number,
     paymentAttempt: PaymentAttempt,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<BookingAggregate> {
-    return this.confirmation.markAsPaid(bookingId, paymentAttempt, undefined, req)
+    return this.confirmation.markAsPaid(bookingId, paymentAttempt, undefined, context)
   }
 
-  async executeConfirmationWorkflow(bookingId: number, actor?: Actor, req?: PayloadRequest): Promise<BookingAggregate> {
-    return this.confirmation.confirm(bookingId, actor, req)
+  async executeConfirmationWorkflow(bookingId: number, actor?: Actor, context?: RequestContext): Promise<BookingAggregate> {
+    return this.confirmation.confirm(bookingId, actor, context)
   }
 
   async publishBookingConfirmedEvent(booking: BookingAggregate, actor?: Actor): Promise<void> {

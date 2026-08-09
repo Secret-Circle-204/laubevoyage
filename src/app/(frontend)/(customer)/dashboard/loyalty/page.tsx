@@ -5,6 +5,7 @@ import { CustomerPortalLoader } from '@/application/dashboard/loaders'
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,33 +19,48 @@ export default async function Page() {
     redirect('/login')
   }
 
-  const { loyalty } = await getDomainServices()
+  const cookieStore = await cookies()
+  const locale = cookieStore.get('laube-locale')?.value
+  const currency = cookieStore.get('laube-currency')?.value
+
+  const { loyalty, localization } = await getDomainServices()
+  const ctx = await localization.buildContext({ cookieLocale: locale, cookieCurrency: currency })
+
   const [data, history] = await Promise.all([
-    CustomerPortalLoader.loadOverview(session.customerId),
+    CustomerPortalLoader.loadOverview(session.customerId, { locale, currency }),
     loyalty.getCustomerLedgerHistory(session.customerId, 50),
   ])
+
+  const translatedCurrentTier = localization.translateUiKey(`loyalty.tier.${data.currentTier}`, ctx)
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Loyalty Rewards</h1>
-        <Badge variant="accent" className="uppercase font-bold">{data.tier} Tier Member</Badge>
+        <Badge variant="accent" className="uppercase font-bold">{translatedCurrentTier} Tier Member</Badge>
       </div>
 
       <Card variant="elevated" padding="lg" className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Available Loyalty Balance</span>
-            <span className="text-4xl font-extrabold text-[#f58220]">{data.points.toLocaleString()} Points</span>
+            <span className="text-4xl font-extrabold text-[#f58220]">{data.formattedPoints} Points</span>
           </div>
-          <Badge variant="primary" size="md">100 Pts = 100 EGP</Badge>
+          <Badge variant="primary" size="md">
+            {data.redemptionRate.pointsUnit} Pts = {data.redemptionRate.displayValue}
+          </Badge>
         </div>
 
         <div className="flex flex-col gap-2">
           <div className="flex justify-between text-xs font-bold text-slate-500">
-            <span>Explorer (0 pts)</span>
-            <span>Voyager (1,000 pts)</span>
-            <span>Elite (5,000 pts)</span>
+            {data.tierThresholds.map((threshold) => {
+              const tierName = localization.translateUiKey(`loyalty.tier.${threshold.tier}`, ctx)
+              return (
+                <span key={threshold.tier}>
+                  {tierName} ({threshold.formattedMinSpent})
+                </span>
+              )
+            })}
           </div>
           <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <div
@@ -53,9 +69,12 @@ export default async function Page() {
             />
           </div>
           <span className="text-xs text-slate-400 text-right font-medium">
-            {data.pointsToNextTier > 0
-              ? `${data.pointsToNextTier.toLocaleString()} more points to reach ${data.nextTierName.toUpperCase()} Tier`
-              : 'Highest Membership Tier Achieved!'}
+            {data.remainingQualifyingSpendEGP !== null && data.remainingQualifyingSpendEGP > 0
+              ? localization
+                  .translateUiKey('loyalty.progress.remainingToTier', ctx)
+                  .replace('{amount}', data.formattedRemainingQualifyingSpend || '')
+                  .replace('{tier}', data.nextTierName)
+              : localization.translateUiKey('loyalty.progress.maxTier', ctx)}
           </span>
         </div>
       </Card>

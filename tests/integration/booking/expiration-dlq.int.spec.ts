@@ -14,6 +14,11 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
       findByID: vi.fn(),
       find: vi.fn(),
       update: vi.fn(),
+      db: {
+        beginTransaction: vi.fn().mockResolvedValue('mock_tx_id'),
+        commitTransaction: vi.fn().mockResolvedValue(undefined),
+        rollbackTransaction: vi.fn().mockResolvedValue(undefined),
+      },
     }
     repository = new BookingRepository(mockPayload)
     expirationService = new BookingExpiration(repository, {} as any)
@@ -44,9 +49,15 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
     expect(expiredCount).toBe(1)
     expect(mockPayload.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 101,
+        collection: 'bookings',
+        where: expect.objectContaining({
+          and: [
+            { id: { equals: 101 } },
+            { status: { in: [BookingStatus.DRAFT, BookingStatus.PENDING_PAYMENT] } },
+          ],
+        }),
         data: expect.objectContaining({
-          status: BookingStatus.CANCELLED,
+          status: BookingStatus.EXPIRED,
         }),
       }),
     )
@@ -103,7 +114,7 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
       updatedAt: '2026-07-22T10:00:00.000Z',
     }
 
-    // find returns the booking, but by the time findByID executes, it is paid/confirmed
+    // find returns the booking, but by the time findByID executes inside transaction, it is paid/confirmed
     mockPayload.find.mockResolvedValue({ docs: [mockExpiredDraft] })
     mockPayload.findByID.mockResolvedValue({ ...mockExpiredDraft, status: 'confirmed' })
 
@@ -111,5 +122,33 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
 
     expect(expiredCount).toBe(0)
     expect(mockPayload.update).not.toHaveBeenCalled()
+  })
+
+  it('should skip expiration and rollback if conditional database status update returns 0 affected rows (atomic concurrency guard)', async () => {
+    const mockExpiredDraft = {
+      id: 101,
+      bookingNumber: 'LBV-260723-00042',
+      status: 'draft',
+      user: 5,
+      experience: 12,
+      capacityHold: { holdId: 'c1', status: 'active' },
+      pointHold: { holdId: 'p1', status: 'held' },
+      timeline: [],
+      auditTrail: [],
+      travelers: [{ email: 'john@example.com' }],
+      createdAt: '2026-07-22T10:00:00.000Z',
+      updatedAt: '2026-07-22T10:00:00.000Z',
+    }
+
+    mockPayload.find.mockResolvedValue({ docs: [mockExpiredDraft] })
+    mockPayload.findByID.mockResolvedValue(mockExpiredDraft)
+    
+    // Simulate conditional update returning no matched rows (empty docs array)
+    mockPayload.update.mockResolvedValue({ docs: [] })
+
+    const expiredCount = await expirationService.processExpiredBookings(15)
+
+    expect(expiredCount).toBe(0)
+    expect(mockPayload.db.rollbackTransaction).toHaveBeenCalledWith('mock_tx_id')
   })
 })

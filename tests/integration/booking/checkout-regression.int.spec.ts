@@ -26,6 +26,9 @@ describe('Layer 12: Checkout & Expiration Lifecycle Regression Tests', () => {
       findByBookingId: vi.fn(),
       findPendingTransactions: vi.fn(),
       updateStatus: vi.fn(),
+      beginTransaction: vi.fn().mockResolvedValue('mock_tx_id'),
+      commitTransaction: vi.fn().mockResolvedValue(undefined),
+      rollbackTransaction: vi.fn().mockResolvedValue(undefined),
     }
     paymentService = new PaymentService(
       mockPaymentRepo,
@@ -66,7 +69,7 @@ describe('Layer 12: Checkout & Expiration Lifecycle Regression Tests', () => {
     const expiredBooking = {
       id: 101,
       bookingNumber: 'LBV-260723-00042',
-      status: 'cancelled',
+      status: 'expired',
       customerId: 5,
       experienceId: 12,
       pricingSnapshot: { basePriceEGP: 5000, displayCurrency: 'EGP', displayAmount: 5000 },
@@ -100,6 +103,7 @@ describe('Layer 12: Checkout & Expiration Lifecycle Regression Tests', () => {
       retrievePaymentStatus: vi.fn().mockResolvedValue({
         status: 'paid',
         gatewayStatus: 'session:complete_payment:paid',
+        completedAt: new Date(Date.now() - 30000).toISOString(),
       }),
     }
     const adapterFactorySpy = vi.spyOn(PaymentAdapterFactory, 'resolve').mockReturnValue(mockStripeAdapter as any)
@@ -117,14 +121,14 @@ describe('Layer 12: Checkout & Expiration Lifecycle Regression Tests', () => {
     const count = await paymentService.reconcilePendingPayments()
 
     expect(count).toBe(1)
-    expect(mockPaymentRepo.updateStatus).toHaveBeenCalledWith('tx_123', 'successful')
+    expect(mockPaymentRepo.updateStatus).toHaveBeenCalledWith('tx_123', 'successful', expect.any(Object))
     expect(mockUpdate).toHaveBeenCalledWith(101, expect.objectContaining({
       status: BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY,
       metadata: expect.objectContaining({
         paymentReceivedAfterExpiry: true,
         manualRefundRequired: true,
       })
-    }))
+    }), expect.any(Object))
     canConfirmSpy.mockRestore()
     adapterFactorySpy.mockRestore()
   })

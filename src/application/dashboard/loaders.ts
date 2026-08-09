@@ -73,42 +73,69 @@ export class CustomerPortalLoader {
       const pts = projection?.loyalty?.pointsBalance || 0
 
       const loyaltyConfig = await loyaltyService.getActiveConfig()
-      const voyagerThresholdEGP = loyaltyConfig.tiers[LoyaltyTier.VOYAGER]?.minSpentEGP || 10000
-      const eliteThresholdEGP = loyaltyConfig.tiers[LoyaltyTier.ELITE]?.minSpentEGP || 50000
+      const currentSpentEGP = projection?.loyalty?.totalSpentEGP || 0
+      
+      // Calculate dynamic progression in EGP Qualifying Spend (Domain Method)
+      const tierProgress = loyaltyService.calculateTierProgress(
+        currentSpentEGP,
+        currentTier as LoyaltyTier,
+        loyaltyConfig
+      )
+      
+      const tierThresholdsArray = loyaltyService.getTierThresholds(loyaltyConfig)
+      
+      const formattedRemaining = tierProgress.remainingQualifyingSpendEGP !== null
+        ? await localization.formatPrice(tierProgress.remainingQualifyingSpendEGP, ctx)
+        : null
+      const formattedRemainingQualifyingSpend = formattedRemaining ? formattedRemaining.formatted : null
 
-      const voyagerPoints = voyagerThresholdEGP * loyaltyConfig.baseEarnRate
-      const elitePoints = eliteThresholdEGP * loyaltyConfig.baseEarnRate
+      const nextTierName = tierProgress.nextTier ? tierProgress.nextTier : 'Elite (Max Tier)'
+      const nextTierTranslated = tierProgress.nextTier
+        ? await localization.translateText(tierProgress.nextTier, ctx)
+        : ''
 
-      let pointsToNextTier = 0
-      let nextTierName = ''
+      const formattedPoints = localization.formatNumber(pts, ctx)
 
-      if (currentTier === 'explorer') {
-        pointsToNextTier = Math.max(0, voyagerPoints - pts)
-        nextTierName = 'Voyager'
-      } else if (currentTier === 'voyager') {
-        pointsToNextTier = Math.max(0, elitePoints - pts)
-        nextTierName = 'Elite'
-      } else {
-        pointsToNextTier = 0
-        nextTierName = 'Elite (Max Tier)'
+      const tierThresholds = await Promise.all(
+        tierThresholdsArray.map(async (t) => {
+          const formatted = await localization.formatPrice(t.minSpentEGP, ctx)
+          return {
+            tier: t.tier,
+            minSpentEGP: t.minSpentEGP,
+            formattedMinSpent: formatted.formatted,
+          }
+        })
+      )
+
+      // Convert EGP redemption value using context display currency and format it
+      const formattedRedemption = await localization.formatPrice(loyaltyConfig.redemptionValueEGP, ctx)
+
+      const redemptionRate = {
+        pointsUnit: loyaltyConfig.redemptionPointsUnit,
+        baseValue: loyaltyConfig.redemptionValueEGP,
+        baseCurrency: 'EGP',
+        displayValue: formattedRedemption.formatted,
       }
-
-      const nextTierTranslated = nextTierName ? await localization.translateText(nextTierName, ctx) : ''
 
       return {
         customerId,
         fullName: rawTitle,
         email: projection?.customer?.email || '',
-        tier: (currentTier as 'explorer' | 'voyager' | 'elite'),
+        currentTier: (currentTier as 'explorer' | 'voyager' | 'elite'),
         points: pts,
+        formattedPoints,
         nextTierProgressPercent: projection?.loyalty?.tierProgressPercentage || 0,
-        pointsToNextTier,
+        currentQualifyingSpendEGP: currentSpentEGP,
+        remainingQualifyingSpendEGP: tierProgress.remainingQualifyingSpendEGP,
+        formattedRemainingQualifyingSpend,
         nextTierName: nextTierTranslated,
         activeBookingsCount: projection?.trips?.activeBookingsCount || 0,
         recentBookings,
         unreadNotificationsCount: notifications.filter((n) => n.unread).length,
         passportNumber: customerDoc?.passportNumber || undefined,
         nationality: customerDoc?.nationality || undefined,
+        tierThresholds,
+        redemptionRate,
       }
     } catch (err) {
       console.error(`[CustomerPortalLoader] Failed loading overview for customer #${customerId}:`, err)

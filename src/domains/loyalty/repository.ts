@@ -54,39 +54,39 @@ export class LoyaltyRepository {
         'Invalid LoyaltyProgram document: missing required programCode.',
       )
     }
-    if (typeof doc.baseEarnRate !== 'number') {
+    if (typeof doc.baseEarnRate !== 'number' || isNaN(doc.baseEarnRate) || doc.baseEarnRate <= 0) {
       throw new LoyaltyProgramConfigurationException(
-        'Invalid LoyaltyProgram document: missing required baseEarnRate.',
+        'Invalid LoyaltyProgram document: missing or invalid baseEarnRate (must be > 0).',
       )
     }
-    if (typeof doc.redemptionPointsUnit !== 'number') {
+    if (typeof doc.redemptionPointsUnit !== 'number' || isNaN(doc.redemptionPointsUnit) || doc.redemptionPointsUnit <= 0) {
       throw new LoyaltyProgramConfigurationException(
-        'Invalid LoyaltyProgram document: missing required redemptionPointsUnit.',
+        'Invalid LoyaltyProgram document: missing or invalid redemptionPointsUnit (must be > 0).',
       )
     }
-    if (typeof doc.redemptionValueEGP !== 'number') {
+    if (typeof doc.redemptionValueEGP !== 'number' || isNaN(doc.redemptionValueEGP) || doc.redemptionValueEGP <= 0) {
       throw new LoyaltyProgramConfigurationException(
-        'Invalid LoyaltyProgram document: missing required redemptionValueEGP.',
+        'Invalid LoyaltyProgram document: missing or invalid redemptionValueEGP (must be > 0).',
       )
     }
-    if (typeof doc.minRedemptionPoints !== 'number') {
+    if (typeof doc.minRedemptionPoints !== 'number' || isNaN(doc.minRedemptionPoints) || doc.minRedemptionPoints < 0) {
       throw new LoyaltyProgramConfigurationException(
-        'Invalid LoyaltyProgram document: missing required minRedemptionPoints.',
+        'Invalid LoyaltyProgram document: missing or invalid minRedemptionPoints (must be >= 0).',
       )
     }
-    if (typeof doc.maxRedemptionPercent !== 'number') {
+    if (typeof doc.maxRedemptionPercent !== 'number' || isNaN(doc.maxRedemptionPercent) || doc.maxRedemptionPercent <= 0 || doc.maxRedemptionPercent > 100) {
       throw new LoyaltyProgramConfigurationException(
-        'Invalid LoyaltyProgram document: missing required maxRedemptionPercent.',
+        'Invalid LoyaltyProgram document: missing or invalid maxRedemptionPercent (must be between 0 and 100).',
       )
     }
-    if (typeof doc.welcomeBonus !== 'number') {
+    if (typeof doc.welcomeBonus !== 'number' || isNaN(doc.welcomeBonus) || doc.welcomeBonus < 0) {
       throw new LoyaltyProgramConfigurationException(
-        'Invalid LoyaltyProgram document: missing required welcomeBonus.',
+        'Invalid LoyaltyProgram document: missing or invalid welcomeBonus (must be >= 0).',
       )
     }
-    if (typeof doc.expirationMonths !== 'number') {
+    if (typeof doc.expirationMonths !== 'number' || isNaN(doc.expirationMonths) || doc.expirationMonths <= 0) {
       throw new LoyaltyProgramConfigurationException(
-        'Invalid LoyaltyProgram document: missing required expirationMonths.',
+        'Invalid LoyaltyProgram document: missing or invalid expirationMonths (must be > 0).',
       )
     }
     if (!Array.isArray(doc.tiers) || doc.tiers.length === 0) {
@@ -98,16 +98,25 @@ export class LoyaltyRepository {
     const tiersMap = {} as Record<LoyaltyTier, TierDefinitionConfig>
 
     doc.tiers.forEach((t: any) => {
+      if (!t || typeof t !== 'object') {
+        throw new LoyaltyProgramConfigurationException('Invalid LoyaltyProgram document: tier object is invalid.')
+      }
       const tierKey = (t.tier as string).toUpperCase() as keyof typeof LoyaltyTier
       const enumValue = LoyaltyTier[tierKey]
       if (enumValue) {
         if (
           typeof t.minSpentEGP !== 'number' ||
+          isNaN(t.minSpentEGP) ||
+          t.minSpentEGP < 0 ||
           typeof t.earnMultiplier !== 'number' ||
-          typeof t.upgradeBonus !== 'number'
+          isNaN(t.earnMultiplier) ||
+          t.earnMultiplier < 0 ||
+          typeof t.upgradeBonus !== 'number' ||
+          isNaN(t.upgradeBonus) ||
+          t.upgradeBonus < 0
         ) {
           throw new LoyaltyProgramConfigurationException(
-            `Invalid LoyaltyProgram document: incomplete attributes for tier ${t.tier}.`,
+            `Invalid LoyaltyProgram document: incomplete or invalid attributes for tier ${t.tier}.`,
           )
         }
         tiersMap[enumValue] = {

@@ -14,7 +14,7 @@ export interface DomainOutboxRecord {
   nextRetryAt?: string
   errorMessage?: string
   publishedAt?: string
-  occurredAt: string
+  occurredAt?: string
   createdAt?: string
 }
 

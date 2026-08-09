@@ -1,6 +1,7 @@
 import type { ExperienceRepository } from './repository'
 import type { ExperienceAggregate } from './aggregate'
 import type { DepartureSlotEntity } from './types'
+import type { RequestContext } from '@/types'
 
 /**
  * Experience Queries Sub-Service
@@ -21,16 +22,16 @@ export class ExperienceQueries {
     return this.repository.findBySlug(slug)
   }
 
-  async getDepartureSlot(departureId: string): Promise<DepartureSlotEntity | null> {
-    return this.repository.getDepartureSlot(departureId)
+  async getDepartureSlot(departureId: string, context?: RequestContext): Promise<DepartureSlotEntity | null> {
+    return this.repository.getDepartureSlot(departureId, context)
   }
 
   async getDepartureSlotById(slotId: number, experienceId?: number): Promise<DepartureSlotEntity | null> {
     return this.repository.getDepartureSlotById(slotId, experienceId)
   }
 
-  async getDepartureSlotByDate(experienceId: number, date: string): Promise<DepartureSlotEntity | null> {
-    return this.repository.getDepartureSlotByDate(experienceId, date)
+  async getDepartureSlotByDate(experienceId: number, date: string, context?: RequestContext): Promise<DepartureSlotEntity | null> {
+    return this.repository.getDepartureSlotByDate(experienceId, date, context)
   }
 
   async findSlotsByExperienceId(experienceId: number): Promise<DepartureSlotEntity[]> {

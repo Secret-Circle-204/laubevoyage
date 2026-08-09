@@ -58,6 +58,7 @@ export interface PaymentAuditRecord {
 export interface StripeWebhookPayload {
   id: string
   type: string
+  created?: number
   data: {
     object: {
       id: string

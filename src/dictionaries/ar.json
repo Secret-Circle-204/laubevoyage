@@ -47,5 +47,16 @@
     "viewItinerary": "عرض برنامج الرحلة",
     "packageLabel": "برنامج سياحي",
     "dailyTourLabel": "جولة يومية"
+  },
+  "loyalty": {
+    "tier": {
+      "explorer": "المستكشف",
+      "voyager": "المسافر",
+      "elite": "النخبة"
+    },
+    "progress": {
+      "remainingToTier": "تبقّى {amount} للوصول إلى مستوى {tier}",
+      "maxTier": "تم الوصول إلى أعلى مستوى عضوية!"
+    }
   }
 }

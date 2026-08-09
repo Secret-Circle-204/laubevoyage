@@ -5,6 +5,7 @@ import type { PricingSnapshotData } from '../currency/pipeline'
 import type { ExperienceAggregate } from './aggregate'
 import { BookableDeparture } from './bookable-departure'
 import { PricingPolicyRegistry } from './pricing-policy-registry'
+import type { RequestContext } from '@/types'
 
 
 /**
@@ -40,7 +41,7 @@ export class ExperienceService {
     seats: number,
     customerId: number,
     bookingId: number,
-    req?: any,
+    context?: RequestContext,
   ): Promise<{ slot: DepartureSlotEntity; holdId: string }> {
     return this.workflowEngine.executeReserveInventoryWorkflow(
       departureId,
@@ -48,7 +49,7 @@ export class ExperienceService {
       seats,
       customerId,
       bookingId,
-      req,
+      context,
     )
   }
 
@@ -58,9 +59,9 @@ export class ExperienceService {
   async releaseCapacity(
     departureId: string,
     seats: number,
-    req?: any,
+    context?: RequestContext,
   ): Promise<DepartureSlotEntity> {
-    return this.workflowEngine.executeReleaseInventoryWorkflow(departureId, seats, req)
+    return this.workflowEngine.executeReleaseInventoryWorkflow(departureId, seats, context)
   }
 
   /**
@@ -153,8 +154,8 @@ export class ExperienceService {
   /**
    * Get departure slot by ID.
    */
-  async getDepartureSlot(departureId: string): Promise<DepartureSlotEntity | null> {
-    return this.workflowEngine.queries.getDepartureSlot(departureId)
+  async getDepartureSlot(departureId: string, context?: RequestContext): Promise<DepartureSlotEntity | null> {
+    return this.workflowEngine.queries.getDepartureSlot(departureId, context)
   }
 
   /**
@@ -167,8 +168,8 @@ export class ExperienceService {
   /**
    * Get departure slot by date and experience ID.
    */
-  async getDepartureSlotByDate(experienceId: number, date: string): Promise<DepartureSlotEntity | null> {
-    return this.workflowEngine.queries.getDepartureSlotByDate(experienceId, date)
+  async getDepartureSlotByDate(experienceId: number, date: string, context?: RequestContext): Promise<DepartureSlotEntity | null> {
+    return this.workflowEngine.queries.getDepartureSlotByDate(experienceId, date, context)
   }
 
   async findSlotsByExperienceId(experienceId: number): Promise<DepartureSlotEntity[]> {

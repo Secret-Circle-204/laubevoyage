@@ -9,5 +9,6 @@ export default defineConfig({
     environment: 'node',
     setupFiles: [path.resolve(__dirname, './vitest.setup.ts')],
     include: ['tests/**/*.spec.ts'],
+    exclude: ['tests/e2e/**/*', 'node_modules/**/*'],
   },
 })

@@ -7,6 +7,7 @@ import type {
   RefundResult,
   StripeWebhookPayload,
 } from '../types'
+import { toSmallestUnit } from '@/domains/currency/rounding'
 
 /**
  * Stripe Payment Adapter
@@ -14,7 +15,7 @@ import type {
  */
 export class StripePaymentAdapter implements IPaymentAdapter {
   async createCheckoutSession(params: CreateSessionParams): Promise<PaymentSessionResult> {
-    const unitAmountSubunits = Math.round(params.displayAmount * 100) // Convert to smallest currency unit (e.g. cents)
+    const unitAmountSubunits = await toSmallestUnit(params.displayAmount, params.displayCurrency)
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -66,12 +67,14 @@ export class StripePaymentAdapter implements IPaymentAdapter {
     return event as unknown as StripeWebhookPayload
   }
 
-  async retrievePaymentStatus(params: { providerSessionId?: string; providerTransactionId?: string }): Promise<{ status: 'paid' | 'failed' | 'open'; gatewayStatus: string }> {
+  async retrievePaymentStatus(params: { providerSessionId?: string; providerTransactionId?: string }): Promise<{ status: 'paid' | 'failed' | 'open'; gatewayStatus: string; completedAt?: string }> {
     const sessionId = params.providerSessionId
     if (!sessionId) {
       throw new Error('[StripePaymentAdapter] retrievePaymentStatus requires providerSessionId.')
     }
-    const session = await stripe.checkout.sessions.retrieve(sessionId)
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['payment_intent'],
+    })
     const gatewayStatus = session.status || 'unknown'
     const paymentStatus = (session.payment_status as string) || 'unpaid'
 
@@ -88,9 +91,21 @@ export class StripePaymentAdapter implements IPaymentAdapter {
       status = 'failed'
     }
 
+    let completedAt: string | undefined = undefined
+    if (status === 'paid') {
+      const paymentIntent = session.payment_intent as any
+      const chargeCreated = paymentIntent?.charges?.data?.[0]?.created
+      if (chargeCreated) {
+        completedAt = new Date(chargeCreated * 1000).toISOString()
+      } else if (session.created) {
+        completedAt = new Date(session.created * 1000).toISOString()
+      }
+    }
+
     return {
       status,
       gatewayStatus: `session:${gatewayStatus}_payment:${paymentStatus}`,
+      completedAt,
     }
   }
 
@@ -109,9 +124,10 @@ export class StripePaymentAdapter implements IPaymentAdapter {
 
   async refund(params: RefundParams): Promise<RefundResult> {
     try {
+      const amountSubunits = await toSmallestUnit(params.amount, params.currency)
       const refundObj = await stripe.refunds.create({
         payment_intent: params.gatewayReference,
-        amount: Math.round(params.amount * 100),
+        amount: amountSubunits,
         reason: 'requested_by_customer',
       })
 

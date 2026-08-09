@@ -14,6 +14,7 @@ export class DashboardProjection {
       customerName: string
       tier: 'Explorer' | 'Voyager' | 'Elite'
       points: number
+      totalSpentEGP: number
       activeBookingsCount: number
       recentBookings: Array<{
         id: number
@@ -26,7 +27,7 @@ export class DashboardProjection {
         status: 'confirmed' | 'pending' | 'completed' | 'cancelled'
       }>
     },
-    options?: { locale?: string; currency?: string }
+    options?: { locale?: string; currency?: string },
   ): Promise<CustomerPortalOverviewDTO> {
     const { loyalty: loyaltyService, localization } = await getDomainServices()
     const ctx = await localization.buildContext({
@@ -38,27 +39,38 @@ export class DashboardProjection {
     const pts = data.points
 
     const loyaltyConfig = await loyaltyService.getActiveConfig()
-    const voyagerThresholdEGP = loyaltyConfig.tiers[LoyaltyTier.VOYAGER]?.minSpentEGP || 10000
-    const eliteThresholdEGP = loyaltyConfig.tiers[LoyaltyTier.ELITE]?.minSpentEGP || 50000
+    
+    // Calculate dynamic progression in EGP Qualifying Spend (Domain Method)
+    const tierProgress = loyaltyService.calculateTierProgress(
+      data.totalSpentEGP,
+      currentTier as LoyaltyTier,
+      loyaltyConfig
+    )
 
-    const voyagerPoints = voyagerThresholdEGP * loyaltyConfig.baseEarnRate
-    const elitePoints = eliteThresholdEGP * loyaltyConfig.baseEarnRate
+    const tierThresholdsArray = loyaltyService.getTierThresholds(loyaltyConfig)
 
-    let pointsToNextTier = 0
-    let nextTierName = ''
+    const formattedRemaining = tierProgress.remainingQualifyingSpendEGP !== null
+      ? await localization.formatPrice(tierProgress.remainingQualifyingSpendEGP, ctx)
+      : null
+    const formattedRemainingQualifyingSpend = formattedRemaining ? formattedRemaining.formatted : null
 
-    if (currentTier === 'explorer') {
-      pointsToNextTier = Math.max(0, voyagerPoints - pts)
-      nextTierName = 'Voyager'
-    } else if (currentTier === 'voyager') {
-      pointsToNextTier = Math.max(0, elitePoints - pts)
-      nextTierName = 'Elite'
-    } else {
-      pointsToNextTier = 0
-      nextTierName = 'Elite (Max Tier)'
-    }
+    const nextTierName = tierProgress.nextTier ? tierProgress.nextTier : 'Elite (Max Tier)'
+    const nextTierTranslated = tierProgress.nextTier
+      ? await localization.translateText(tierProgress.nextTier, ctx)
+      : ''
 
-    const nextTierTranslated = nextTierName ? await localization.translateText(nextTierName, ctx) : ''
+    const formattedPoints = localization.formatNumber(pts, ctx)
+
+    const tierThresholds = await Promise.all(
+      tierThresholdsArray.map(async (t) => {
+        const formatted = await localization.formatPrice(t.minSpentEGP, ctx)
+        return {
+          tier: t.tier,
+          minSpentEGP: t.minSpentEGP,
+          formattedMinSpent: formatted.formatted,
+        }
+      })
+    )
 
     const recentBookings = await Promise.all(
       data.recentBookings.map(async (b) => {
@@ -73,21 +85,36 @@ export class DashboardProjection {
           totalCost: formattedCost,
           status: b.status,
         }
-      })
+      }),
     )
+
+    // Convert EGP redemption value using context display currency and format it
+    const formattedRedemption = await localization.formatPrice(loyaltyConfig.redemptionValueEGP, ctx)
+
+    const redemptionRate = {
+      pointsUnit: loyaltyConfig.redemptionPointsUnit,
+      baseValue: loyaltyConfig.redemptionValueEGP,
+      baseCurrency: 'EGP',
+      displayValue: formattedRedemption.formatted,
+    }
 
     return {
       customerId: data.customerId || 0,
       fullName: data.customerName,
       email: data.email || '',
-      tier: data.tier.toLowerCase() as 'explorer' | 'voyager' | 'elite',
+      currentTier: data.tier.toLowerCase() as 'explorer' | 'voyager' | 'elite',
       points: data.points,
+      formattedPoints,
       nextTierProgressPercent: 0,
-      pointsToNextTier,
+      currentQualifyingSpendEGP: data.totalSpentEGP,
+      remainingQualifyingSpendEGP: tierProgress.remainingQualifyingSpendEGP,
+      formattedRemainingQualifyingSpend,
       nextTierName: nextTierTranslated,
       activeBookingsCount: data.activeBookingsCount,
       unreadNotificationsCount: 0,
       recentBookings,
+      tierThresholds,
+      redemptionRate,
     }
   }
 }

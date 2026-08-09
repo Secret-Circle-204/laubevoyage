@@ -1,5 +1,6 @@
 import type { PaymentRepository } from './repository'
 import type { WebhookLedgerRecord } from './types'
+import type { RequestContext } from '@/types'
 
 /**
  * Payment Webhook Ledger (Database-First)
@@ -17,14 +18,14 @@ export class PaymentWebhookLedger {
   /**
    * Check if a gateway webhook event ID has already been processed.
    */
-  async isProcessed(eventId: string): Promise<boolean> {
+  async isProcessed(eventId: string, context?: RequestContext): Promise<boolean> {
     // 1. Check in-memory accelerator
     if (this.memoryCache.has(eventId)) {
       return true
     }
 
     // 2. Query primary database repository
-    const record = await this.repository.findWebhookByEventId(eventId)
+    const record = await this.repository.findWebhookByEventId(eventId, context)
     if (record) {
       this.memoryCache.add(eventId)
       return true
@@ -36,8 +37,8 @@ export class PaymentWebhookLedger {
   /**
    * Record a processed webhook event ID.
    */
-  async recordProcessed(transactionId: string, webhook: WebhookLedgerRecord, req?: any): Promise<void> {
+  async recordProcessed(transactionId: string, webhook: WebhookLedgerRecord, context?: RequestContext): Promise<void> {
     this.memoryCache.add(webhook.eventId)
-    await this.repository.appendWebhook(transactionId, webhook, req)
+    await this.repository.appendWebhook(transactionId, webhook, context)
   }
 }

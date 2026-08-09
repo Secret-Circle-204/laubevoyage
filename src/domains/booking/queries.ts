@@ -1,4 +1,4 @@
-import type { PaginatedResponse } from '@/types'
+import type { PaginatedResponse, RequestContext } from '@/types'
 import type { BookingAggregate } from './types'
 import { BookingRepository } from './repository'
 
@@ -13,8 +13,8 @@ export class BookingQueries {
     this.repository = repository
   }
 
-  async getById(bookingId: number): Promise<BookingAggregate> {
-    return this.repository.findById(bookingId)
+  async getById(bookingId: number, context?: RequestContext): Promise<BookingAggregate> {
+    return this.repository.findById(bookingId, context)
   }
 
   async getByBookingNumber(bookingNumber: string): Promise<BookingAggregate | null> {

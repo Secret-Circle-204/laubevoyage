@@ -9,9 +9,10 @@ import { TierEvaluator } from './tier-evaluator'
 import { ProjectionRebuilder } from './projection-rebuilder'
 import { LoyaltyQueries } from './queries'
 import { PointHoldService } from './point-hold'
-import type { AdminAdjustmentParams, PointLedgerRecord } from './types'
+import type { AdminAdjustmentParams, PointLedgerRecord, TierProgress } from './types'
 import type { LoyaltyTier } from '@/types'
-import type { LoyaltyProgramConfig } from './tier-config'
+import { TierPolicy } from './tier-policy'
+import { LoyaltyProgramConfig, LoyaltyProgramConfigurationException } from './tier-config'
 import { loyaltyProgramRegistry } from './program-registry'
 import { EventBus } from '../events/event-bus'
 
@@ -53,6 +54,33 @@ export class LoyaltyWorkflowEngine {
 
   async getActiveConfig(pinnedConfig?: LoyaltyProgramConfig): Promise<LoyaltyProgramConfig> {
     return loyaltyProgramRegistry.getProgram(this.repository, pinnedConfig)
+  }
+
+  calculateTierProgress(
+    totalSpentEGP: number,
+    currentTier: LoyaltyTier,
+    config: LoyaltyProgramConfig,
+  ): TierProgress {
+    return TierPolicy.getTierProgress(totalSpentEGP, currentTier, config)
+  }
+
+  getTierThresholds(config: LoyaltyProgramConfig): Array<{ tier: LoyaltyTier; minSpentEGP: number }> {
+    const orderedTiers: LoyaltyTier[] = [
+      'explorer' as LoyaltyTier,
+      'voyager' as LoyaltyTier,
+      'elite' as LoyaltyTier,
+    ]
+
+    return orderedTiers.map((tier) => {
+      const tierDef = config.tiers[tier]
+      if (!tierDef) {
+        throw new LoyaltyProgramConfigurationException(`[LoyaltyWorkflowEngine] Missing tier definition for ${tier}`)
+      }
+      return {
+        tier,
+        minSpentEGP: tierDef.minSpentEGP,
+      }
+    })
   }
 
   async grantWelcomeBonus(userId: number, config?: LoyaltyProgramConfig): Promise<PointLedgerRecord> {

@@ -1,4 +1,5 @@
 import type { Payload, PayloadRequest } from 'payload'
+import type { RequestContext } from '@/types'
 import type { ExperienceAggregate } from './aggregate'
 import type { DepartureSlotEntity, ExperienceAvailabilityStatus, ExperienceType, ExperienceSearchQueryParams } from './types'
 import { validateAvailabilityTransition } from './state-machine'
@@ -177,10 +178,20 @@ export class ExperienceRepository {
     }
   }
 
+  private mapContextToReq(context?: RequestContext): PayloadRequest | undefined {
+    if (!context || context.transactionId === null || context.transactionId === undefined) {
+      return undefined
+    }
+    return {
+      transactionID: context.transactionId,
+    } as unknown as PayloadRequest
+  }
+
   /**
    * Fetch departure slot entity by departure ID.
    */
-  async getDepartureSlot(departureId: string, req?: PayloadRequest): Promise<DepartureSlotEntity | null> {
+  async getDepartureSlot(departureId: string, context?: RequestContext): Promise<DepartureSlotEntity | null> {
+    const req = this.mapContextToReq(context)
     try {
       const result = await this.payload.find({
         collection: 'departure-slots',
@@ -221,7 +232,8 @@ export class ExperienceRepository {
   /**
    * Fetch departure slot entity by date and experience ID.
    */
-  async getDepartureSlotByDate(experienceId: number, date: string, req?: PayloadRequest): Promise<DepartureSlotEntity | null> {
+  async getDepartureSlotByDate(experienceId: number, date: string, context?: RequestContext): Promise<DepartureSlotEntity | null> {
+    const req = this.mapContextToReq(context)
     try {
       const result = await this.payload.find({
         collection: 'departure-slots',
@@ -261,7 +273,8 @@ export class ExperienceRepository {
   /**
    * Save / update departure slot entity with Optimistic Locking version check.
    */
-  async saveDepartureSlot(slot: DepartureSlotEntity, req?: PayloadRequest): Promise<DepartureSlotEntity> {
+  async saveDepartureSlot(slot: DepartureSlotEntity, context?: RequestContext): Promise<DepartureSlotEntity> {
+    const req = this.mapContextToReq(context)
     try {
       const result = await this.payload.find({
         collection: 'departure-slots',

@@ -1,6 +1,6 @@
 import { LoyaltyTier } from '@/types'
 import type { LoyaltyProgramConfig } from './tier-config'
-import type { LoyaltyPolicyResult } from './types'
+import type { LoyaltyPolicyResult, TierProgress } from './types'
 
 /**
  * Pure Tier Policy
@@ -58,6 +58,46 @@ export class TierPolicy {
       allowed: false,
       code: 'TIER_NOT_ELIGIBLE',
       reason: `Total spent EGP ${totalSpentEGP} is not sufficient for tier upgrade above ${currentTier}.`,
+    }
+  }
+
+  /**
+   * Calculate progression toward the next tier purely in EGP spend.
+   */
+  static getTierProgress(
+    totalSpentEGP: number,
+    currentTier: LoyaltyTier,
+    config: LoyaltyProgramConfig,
+  ): TierProgress {
+    const orderedTiers: LoyaltyTier[] = [
+      LoyaltyTier.EXPLORER,
+      LoyaltyTier.VOYAGER,
+      LoyaltyTier.ELITE,
+    ]
+
+    const currentIndex = orderedTiers.indexOf(currentTier)
+    const nextTier =
+      currentIndex !== -1 && currentIndex < orderedTiers.length - 1
+        ? orderedTiers[currentIndex + 1]
+        : null
+
+    let nextTierMinSpentEGP: number | null = null
+    let remainingQualifyingSpendEGP: number | null = null
+
+    if (nextTier) {
+      const nextTierConfig = config.tiers[nextTier]
+      if (nextTierConfig) {
+        nextTierMinSpentEGP = nextTierConfig.minSpentEGP
+        remainingQualifyingSpendEGP = Math.max(0, nextTierMinSpentEGP - totalSpentEGP)
+      }
+    }
+
+    return {
+      currentTier,
+      nextTier,
+      currentQualifyingSpendEGP: totalSpentEGP,
+      nextTierMinSpentEGP,
+      remainingQualifyingSpendEGP,
     }
   }
 }

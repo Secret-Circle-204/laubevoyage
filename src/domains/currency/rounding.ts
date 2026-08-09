@@ -27,9 +27,22 @@ export async function toSmallestUnit(amount: number, currency: string): Promise<
 }
 
 /**
+ * Convert a smallest currency unit (e.g. cents) back to the display amount.
+ * e.g. 499 (cents) USD -> 4.99
+ */
+export async function fromSmallestUnit(amount: number, currency: string): Promise<number> {
+  const decimals = await getCurrencyDecimals(currency)
+  const factor = Math.pow(10, decimals)
+  return amount / factor
+}
+
+/**
  * Get the number of decimal places for a currency from the Registry.
  */
 export async function getCurrencyDecimals(currency: string): Promise<number> {
   const currencyIdentity = await catalogRegistry.get(currency)
-  return currencyIdentity?.decimals ?? 2 // Default to 2 if not found
+  if (!currencyIdentity) {
+    throw new Error(`[CurrencyDomain] Currency "${currency}" is not registered or active in the CMS catalog.`)
+  }
+  return currencyIdentity.decimals
 }

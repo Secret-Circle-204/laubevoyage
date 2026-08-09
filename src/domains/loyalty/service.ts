@@ -2,7 +2,7 @@ import { LoyaltyTier } from '@/types'
 import { LoyaltyWorkflowEngine } from './workflow'
 import { LoyaltyRepository } from './repository'
 import { PointsCalculator } from './points-calculator'
-import type { AdminAdjustmentParams, PointLedgerRecord } from './types'
+import type { AdminAdjustmentParams, PointLedgerRecord, TierProgress } from './types'
 import type { LoyaltyProgramConfig } from './tier-config'
 
 /**
@@ -19,6 +19,18 @@ export class LoyaltyService {
 
   async getActiveConfig(config?: LoyaltyProgramConfig): Promise<LoyaltyProgramConfig> {
     return this.workflowEngine.getActiveConfig(config)
+  }
+
+  calculateTierProgress(
+    totalSpentEGP: number,
+    currentTier: LoyaltyTier,
+    config: LoyaltyProgramConfig,
+  ): TierProgress {
+    return this.workflowEngine.calculateTierProgress(totalSpentEGP, currentTier, config)
+  }
+
+  getTierThresholds(config: LoyaltyProgramConfig): Array<{ tier: LoyaltyTier; minSpentEGP: number }> {
+    return this.workflowEngine.getTierThresholds(config)
   }
 
   /**

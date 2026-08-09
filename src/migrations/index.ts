@@ -25,6 +25,7 @@ import * as migration_20260729_193424_add_notification_retry_telemetry from './2
 import * as migration_20260729_195718_update_exchange_rates_sources from './20260729_195718_update_exchange_rates_sources';
 import * as migration_20260731_180931 from './20260731_180931';
 import * as migration_20260808_204640_add_idempotency_key from './20260808_204640_add_idempotency_key';
+import * as migration_20260809_132233_add_payment_received_after_expiry_status from './20260809_132233_add_payment_received_after_expiry_status';
 
 export const migrations = [
   {
@@ -160,6 +161,11 @@ export const migrations = [
   {
     up: migration_20260808_204640_add_idempotency_key.up,
     down: migration_20260808_204640_add_idempotency_key.down,
-    name: '20260808_204640_add_idempotency_key'
+    name: '20260808_204640_add_idempotency_key',
+  },
+  {
+    up: migration_20260809_132233_add_payment_received_after_expiry_status.up,
+    down: migration_20260809_132233_add_payment_received_after_expiry_status.down,
+    name: '20260809_132233_add_payment_received_after_expiry_status'
   },
 ];

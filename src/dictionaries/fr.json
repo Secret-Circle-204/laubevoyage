@@ -18,5 +18,16 @@
       "rights": "Tous Droits Réservés © 2026 L'Aube Voyage",
       "tagline": "Voyages d'Exception depuis 1996."
     }
+  },
+  "loyalty": {
+    "tier": {
+      "explorer": "Explorateur",
+      "voyager": "Voyageur",
+      "elite": "Élite"
+    },
+    "progress": {
+      "remainingToTier": "Plus que {amount} pour atteindre le niveau {tier}",
+      "maxTier": "Niveau d'adhésion le plus élevé atteint!"
+    }
   }
 }

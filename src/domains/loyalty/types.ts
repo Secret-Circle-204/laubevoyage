@@ -85,3 +85,12 @@ export interface LoyaltyPolicyResult {
   code?: string
   reason?: string
 }
+
+export interface TierProgress {
+  currentTier: LoyaltyTier
+  nextTier: LoyaltyTier | null
+  currentQualifyingSpendEGP: number
+  nextTierMinSpentEGP: number | null
+  remainingQualifyingSpendEGP: number | null
+}
+

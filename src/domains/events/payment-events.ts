@@ -5,7 +5,7 @@ export interface PaymentCompletedEvent extends BaseDomainEvent {
   transactionId: string
   bookingId: number
   customerId: number
-  customerEmail: string
+  customerEmail?: string
   provider: 'stripe' | 'paymob' | 'bnpl'
   amount: number
   currency: string
