@@ -26,6 +26,7 @@ import * as migration_20260729_195718_update_exchange_rates_sources from './2026
 import * as migration_20260731_180931 from './20260731_180931';
 import * as migration_20260808_204640_add_idempotency_key from './20260808_204640_add_idempotency_key';
 import * as migration_20260809_132233_add_payment_received_after_expiry_status from './20260809_132233_add_payment_received_after_expiry_status';
+import * as migration_20260809_201143_add_point_ledger_uniqueness_index from './20260809_201143_add_point_ledger_uniqueness_index';
 
 export const migrations = [
   {
@@ -166,6 +167,11 @@ export const migrations = [
   {
     up: migration_20260809_132233_add_payment_received_after_expiry_status.up,
     down: migration_20260809_132233_add_payment_received_after_expiry_status.down,
-    name: '20260809_132233_add_payment_received_after_expiry_status'
+    name: '20260809_132233_add_payment_received_after_expiry_status',
+  },
+  {
+    up: migration_20260809_201143_add_point_ledger_uniqueness_index.up,
+    down: migration_20260809_201143_add_point_ledger_uniqueness_index.down,
+    name: '20260809_201143_add_point_ledger_uniqueness_index'
   },
 ];

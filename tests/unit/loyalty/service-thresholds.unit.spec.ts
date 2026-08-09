@@ -83,4 +83,104 @@ describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
       LoyaltyProgramConfigurationException
     )
   })
+
+  describe('Tier Boundary Logic', () => {
+    const repository = {} as any
+    const service = new LoyaltyService(repository)
+    const config = {
+      tiers: {
+        explorer: { minSpentEGP: 0 },
+        voyager: { minSpentEGP: 5000 },
+        elite: { minSpentEGP: 15000 }
+      }
+    } as any
+
+    it('should correctly qualify at boundary limits', () => {
+      // 4999.99 spent -> Explorer
+      const progress1 = service.calculateTierProgress(4999.99, LoyaltyTier.EXPLORER, config)
+      expect(progress1.currentTier).toBe(LoyaltyTier.EXPLORER)
+      expect(progress1.nextTier).toBe(LoyaltyTier.VOYAGER)
+      expect(progress1.remainingQualifyingSpendEGP).toBeCloseTo(0.01, 2)
+
+      // 5000.00 spent -> Voyager
+      const progress2 = service.calculateTierProgress(5000, LoyaltyTier.VOYAGER, config)
+      expect(progress2.currentTier).toBe(LoyaltyTier.VOYAGER)
+      expect(progress2.nextTier).toBe(LoyaltyTier.ELITE)
+      expect(progress2.remainingQualifyingSpendEGP).toBe(10000)
+
+      // 14999.99 spent -> Voyager
+      const progress3 = service.calculateTierProgress(14999.99, LoyaltyTier.VOYAGER, config)
+      expect(progress3.currentTier).toBe(LoyaltyTier.VOYAGER)
+      expect(progress3.nextTier).toBe(LoyaltyTier.ELITE)
+      expect(progress3.remainingQualifyingSpendEGP).toBeCloseTo(0.01, 2)
+
+      // 15000.00 spent -> Elite
+      const progress4 = service.calculateTierProgress(15000, LoyaltyTier.ELITE, config)
+      expect(progress4.currentTier).toBe(LoyaltyTier.ELITE)
+      expect(progress4.nextTier).toBeNull()
+      expect(progress4.remainingQualifyingSpendEGP).toBeNull()
+    })
+
+    it('should handle highest tier achieved state correctly', () => {
+      const progress = service.calculateTierProgress(25000, LoyaltyTier.ELITE, config)
+      expect(progress).toEqual({
+        currentTier: LoyaltyTier.ELITE,
+        nextTier: null,
+        currentQualifyingSpendEGP: 25000,
+        nextTierMinSpentEGP: null,
+        remainingQualifyingSpendEGP: null
+      })
+    })
+  })
+
+  describe('LoyaltySettings Global Tiers Array Validation', () => {
+    it('should validate tier definitions correctly', async () => {
+      const { LoyaltySettings } = await import('@/globals/LoyaltySettings')
+      const tiersField = LoyaltySettings.fields.find((f: any) => f.type === 'tabs')
+        ?.tabs?.find((t: any) => t.label === 'Tier Rules Matrix')
+        ?.fields?.find((f: any) => f.name === 'tiers') as any
+
+      expect(tiersField).toBeDefined()
+      const validate = tiersField.validate
+
+      // 1. Valid configuration
+      const validTiers = [
+        { tier: 'explorer', minSpentEGP: 0, earnMultiplier: 1.0, upgradeBonus: 0 },
+        { tier: 'voyager', minSpentEGP: 5000, earnMultiplier: 1.2, upgradeBonus: 500 },
+        { tier: 'elite', minSpentEGP: 15000, earnMultiplier: 1.5, upgradeBonus: 1000 }
+      ]
+      expect(validate(validTiers)).toBe(true)
+
+      // 2. Missing Explorer
+      const missingExplorer = [
+        { tier: 'voyager', minSpentEGP: 5000, earnMultiplier: 1.2, upgradeBonus: 500 },
+        { tier: 'elite', minSpentEGP: 15000, earnMultiplier: 1.5, upgradeBonus: 1000 }
+      ]
+      expect(validate(missingExplorer)).toBe('Explorer tier must be defined.')
+
+      // 3. Explorer spend is not 0
+      const invalidExplorerSpend = [
+        { tier: 'explorer', minSpentEGP: 10, earnMultiplier: 1.0, upgradeBonus: 0 },
+        { tier: 'voyager', minSpentEGP: 5000, earnMultiplier: 1.2, upgradeBonus: 500 }
+      ]
+      expect(validate(invalidExplorerSpend)).toBe('Explorer tier min spend must be exactly 0 EGP.')
+
+      // 4. Duplicate Tiers
+      const duplicateTiers = [
+        { tier: 'explorer', minSpentEGP: 0, earnMultiplier: 1.0, upgradeBonus: 0 },
+        { tier: 'voyager', minSpentEGP: 5000, earnMultiplier: 1.2, upgradeBonus: 500 },
+        { tier: 'voyager', minSpentEGP: 10000, earnMultiplier: 1.5, upgradeBonus: 1000 }
+      ]
+      expect(validate(duplicateTiers)).toBe('Duplicate tier definition: voyager is defined multiple times.')
+
+      // 5. Non-ascending thresholds
+      const nonAscendingTiers = [
+        { tier: 'explorer', minSpentEGP: 0, earnMultiplier: 1.0, upgradeBonus: 0 },
+        { tier: 'voyager', minSpentEGP: 15000, earnMultiplier: 1.2, upgradeBonus: 500 },
+        { tier: 'elite', minSpentEGP: 5000, earnMultiplier: 1.5, upgradeBonus: 1000 }
+      ]
+      expect(validate(nonAscendingTiers)).toContain('Tier thresholds must be strictly ascending')
+    })
+  })
 })
+

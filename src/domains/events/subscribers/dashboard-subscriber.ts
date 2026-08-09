@@ -1,6 +1,6 @@
 import type { Payload } from 'payload'
 import { EventBus } from '../event-bus'
-import type { BookingConfirmedEvent } from '../booking-events'
+import type { BookingConfirmedEvent, BookingCancelledEvent } from '../booking-events'
 import type { LoyaltyEarnedEvent } from '../loyalty-events'
 import { DashboardWorkflowEngine } from '../../dashboard/workflow'
 import { DashboardProjectionRepository } from '../../dashboard/repository'
@@ -85,6 +85,40 @@ export function registerDashboardProjectionSubscribers(payload: Payload): void {
       } catch (err: unknown) {
         console.error(
           `[DashboardSubscriber] Error updating CQRS projection:`,
+          err instanceof Error ? err.message : String(err),
+        )
+      }
+    },
+  )
+
+  eventBus.subscribe<BookingCancelledEvent>(
+    'BOOKING_CANCELLED',
+    'DashboardSubscriber.updateProjectionOnCancellation',
+    async (event) => {
+      const customerId = event.booking.customerId
+      try {
+        console.log(
+          `[DashboardSubscriber] BookingCancelledEvent received. Updating CQRS Projection for customer #${customerId}...`,
+        )
+        const projection = await workflowEngine.overviewAggregator.aggregatePortalOverview(
+          customerId,
+        )
+        await workflowEngine.repository.saveProjection(projection)
+        workflowEngine.repository.invalidate(customerId)
+
+        // Publish DASHBOARD_PROJECTION_REBUILT event for Presentation layers
+        const localBus = EventBus.getInstance()
+        await localBus.publish({
+          type: 'DASHBOARD_PROJECTION_REBUILT',
+          eventId: `evt_dash_rebuilt_cancel_${customerId}_${Date.now()}`,
+          correlationId: event.correlationId,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          customerId,
+        })
+      } catch (err: unknown) {
+        console.error(
+          `[DashboardSubscriber] Error updating CQRS projection on cancellation:`,
           err instanceof Error ? err.message : String(err),
         )
       }

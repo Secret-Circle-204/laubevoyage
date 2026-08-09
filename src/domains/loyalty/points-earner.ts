@@ -1,3 +1,4 @@
+import type { RequestContext } from '@/types'
 import type { LoyaltyRepository } from './repository'
 import type { PointLedgerRecord } from './types'
 import { LoyaltyPolicy } from './policy'
@@ -21,8 +22,9 @@ export class PointsEarnProcessor {
     bookingId: number,
     bookingNumber: string,
     config: LoyaltyProgramConfig,
+    context?: RequestContext,
   ): Promise<PointLedgerRecord> {
-    const { aggregate } = await this.repository.getCustomerAggregate(customerId)
+    const { aggregate } = await this.repository.getCustomerAggregate(customerId, context)
 
     const pointsToEarn = PointsCalculator.calculateEarnedPoints(amountSpentEGP, aggregate.tier, config)
 
@@ -65,12 +67,14 @@ export class PointsEarnProcessor {
         programVersion: config.version,
         rulesSnapshot: leanSnapshot,
       },
+      context,
     )
   }
 
   async grantWelcomeBonus(
     customerId: number,
     config: LoyaltyProgramConfig,
+    context?: RequestContext,
   ): Promise<PointLedgerRecord> {
     console.log(`[PointsEarner.grantWelcomeBonus] Triggered. PID: ${process.pid}, Uptime: ${process.uptime()}s`)
     console.log(`[PointsEarner.grantWelcomeBonus] Config received:`, {
@@ -83,11 +87,20 @@ export class PointsEarnProcessor {
       'system_welcome',
       String(customerId),
       'welcome_bonus',
+      context,
     )
-    const policyResult = LoyaltyPolicy.canClaimWelcomeBonus(!!existingBonus)
 
-    if (!policyResult.allowed) {
-      throw new Error(`[LoyaltyPolicy] Cannot grant welcome bonus: ${policyResult.reason}`)
+    if (existingBonus) {
+      if (
+        existingBonus.customerId !== customerId ||
+        existingBonus.type !== 'welcome_bonus' ||
+        existingBonus.referenceType !== 'system_welcome' ||
+        existingBonus.referenceId !== String(customerId)
+      ) {
+        throw new Error(`[LoyaltyPolicy] Legitimate welcome bonus validation failed: Ledger mismatched for customer #${customerId}`)
+      }
+      console.log(`[PointsEarner.grantWelcomeBonus] Legitimate welcome bonus already claimed by customer #${customerId}. Returning existing ledger record (Idempotent Success).`)
+      return existingBonus
     }
 
     const welcomePoints = config.welcomeBonus ?? 100
@@ -123,6 +136,7 @@ export class PointsEarnProcessor {
         programVersion: config.version,
         rulesSnapshot: leanSnapshot,
       },
+      context,
     )
   }
 }

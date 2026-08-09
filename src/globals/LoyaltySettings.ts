@@ -198,6 +198,42 @@ export const LoyaltySettings: GlobalConfig = {
               label: 'Tier Definitions',
               type: 'array',
               required: true,
+              validate: (val: any) => {
+                if (!Array.isArray(val)) {
+                  return 'Tiers definitions must be an array'
+                }
+                if (val.length === 0) {
+                  return 'At least one tier definition is required.'
+                }
+                const explorerTier = val.find((t: any) => t.tier === 'explorer')
+                if (!explorerTier) {
+                  return 'Explorer tier must be defined.'
+                }
+                if (Number(explorerTier.minSpentEGP) !== 0) {
+                  return 'Explorer tier min spend must be exactly 0 EGP.'
+                }
+
+                const tiersSeen = new Set<string>()
+                for (const item of val) {
+                  if (!item.tier) {
+                    return 'Tier Level is a required field.'
+                  }
+                  if (tiersSeen.has(item.tier)) {
+                    return `Duplicate tier definition: ${item.tier} is defined multiple times.`
+                  }
+                  tiersSeen.add(item.tier)
+                }
+
+                for (let i = 1; i < val.length; i++) {
+                  const current = val[i]
+                  const prev = val[i - 1]
+                  if (Number(current.minSpentEGP) <= Number(prev.minSpentEGP)) {
+                    return `Tier thresholds must be strictly ascending. ${current.tier} (${current.minSpentEGP} EGP) must be greater than ${prev.tier} (${prev.minSpentEGP} EGP).`
+                  }
+                }
+
+                return true
+              },
               fields: [
                 {
                   type: 'row',

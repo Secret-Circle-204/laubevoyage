@@ -2,6 +2,7 @@ import type { LoyaltyRepository } from './repository'
 import type { PointLedgerRecord } from './types'
 import { PointsCalculator } from './points-calculator'
 import type { LoyaltyProgramConfig, LeanRulesSnapshot } from './tier-config'
+import type { RequestContext } from '@/types'
 
 /**
  * Points Redeem Processor Sub-Service
@@ -22,9 +23,10 @@ export class PointsRedeemProcessor {
     bookingTotalEGP: number,
     config: LoyaltyProgramConfig,
     reason?: string,
+    context?: RequestContext,
   ): Promise<PointLedgerRecord> {
     // 1. Fetch current running balance from ledger
-    const currentBalance = await this.repository.getCurrentBalance(customerId)
+    const currentBalance = await this.repository.getCurrentBalance(customerId, context)
 
     // 2. Validate redemption against business policy and Wallet economics
     const policyResult = PointsCalculator.validateRedemptionAmount(
@@ -38,7 +40,7 @@ export class PointsRedeemProcessor {
     }
 
     // 3. FIFO Consumption Strategy: Fetch ledger history to trace oldest earned entries
-    const ledgerHistory = await this.repository.getLedgerHistory(customerId, 100)
+    const ledgerHistory = await this.repository.getLedgerHistory(customerId, 100, context)
     const earnedEntries = ledgerHistory
       .filter((e) => e.points > 0 && e.type !== 'expiration')
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -78,6 +80,7 @@ export class PointsRedeemProcessor {
         consumedLedgerIds,
         rulesSnapshot: leanSnapshot,
       },
+      context,
     )
   }
 }

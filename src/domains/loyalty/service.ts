@@ -1,3 +1,4 @@
+import type { RequestContext } from '@/types'
 import { LoyaltyTier } from '@/types'
 import { LoyaltyWorkflowEngine } from './workflow'
 import { LoyaltyRepository } from './repository'
@@ -36,8 +37,8 @@ export class LoyaltyService {
   /**
    * Grant welcome bonus to new customer email account.
    */
-  async grantWelcomeBonus(userId: number, config?: LoyaltyProgramConfig): Promise<PointLedgerRecord> {
-    return this.workflowEngine.grantWelcomeBonus(userId, config)
+  async grantWelcomeBonus(userId: number, config?: LoyaltyProgramConfig, context?: RequestContext): Promise<PointLedgerRecord> {
+    return this.workflowEngine.grantWelcomeBonus(userId, config, context)
   }
 
   /**
@@ -49,12 +50,13 @@ export class LoyaltyService {
     amountSpentEGP: number,
     bookingNumber?: string,
     config?: LoyaltyProgramConfig,
+    context?: RequestContext,
   ): Promise<PointLedgerRecord> {
-    return this.workflowEngine.earnPointsForBooking(userId, bookingId, amountSpentEGP, bookingNumber, config)
+    return this.workflowEngine.earnPointsForBooking(userId, bookingId, amountSpentEGP, bookingNumber, config, context)
   }
 
-  async getBalance(userId: number): Promise<number> {
-    return this.workflowEngine.getCustomerBalance(userId)
+  async getBalance(userId: number, context?: RequestContext): Promise<number> {
+    return this.workflowEngine.getCustomerBalance(userId, context)
   }
 
   async calculatePointValueInEGP(points: number, config?: LoyaltyProgramConfig): Promise<number> {
@@ -67,12 +69,12 @@ export class LoyaltyService {
     return PointsCalculator.calculateEarnedPoints(amountEGP, tier, activeConfig)
   }
 
-  async earn(params: { customerId: number; points: number; sourceEvent: string; referenceId: string }, config?: LoyaltyProgramConfig): Promise<PointLedgerRecord> {
-    return this.workflowEngine.earnPointsForBooking(params.customerId, Number(params.referenceId) || 1, params.points * 10, undefined, config)
+  async earn(params: { customerId: number; points: number; sourceEvent: string; referenceId: string }, config?: LoyaltyProgramConfig, context?: RequestContext): Promise<PointLedgerRecord> {
+    return this.workflowEngine.earnPointsForBooking(params.customerId, Number(params.referenceId) || 1, params.points * 10, undefined, config, context)
   }
 
-  async evaluateTier(customerId: number, config?: LoyaltyProgramConfig): Promise<LoyaltyTier> {
-    return this.workflowEngine.evaluateAndUpgradeTier(customerId, 0, config)
+  async evaluateTier(customerId: number, config?: LoyaltyProgramConfig, context?: RequestContext): Promise<LoyaltyTier> {
+    return this.workflowEngine.evaluateAndUpgradeTier(customerId, 0, config, context)
   }
 
   /**
@@ -85,8 +87,9 @@ export class LoyaltyService {
     bookingTotalEGP: number = 0,
     reason?: string,
     config?: LoyaltyProgramConfig,
+    context?: RequestContext,
   ): Promise<PointLedgerRecord> {
-    return this.workflowEngine.redeemPoints(userId, pointsToRedeem, bookingId, bookingTotalEGP, reason, config)
+    return this.workflowEngine.redeemPoints(userId, pointsToRedeem, bookingId, bookingTotalEGP, reason, config, context)
   }
 
   /**
@@ -96,49 +99,63 @@ export class LoyaltyService {
     userId: number,
     bookingId: number,
     originalEarnedPoints: number,
+    context?: RequestContext,
   ): Promise<PointLedgerRecord> {
-    return this.workflowEngine.refundPointsForCancellation(userId, bookingId, originalEarnedPoints)
+    return this.workflowEngine.refundPointsForCancellation(userId, bookingId, originalEarnedPoints, context)
+  }
+
+  /**
+   * Process booking cancellation: deduct qualifying spend, evaluate tier demotion, reverse earned points, refund redeemed points.
+   */
+  async processBookingCancellation(
+    customerId: number,
+    bookingId: number,
+    bookingTotalEGP: number,
+    config?: LoyaltyProgramConfig,
+    context?: RequestContext,
+  ): Promise<{ newTier: LoyaltyTier }> {
+    return this.workflowEngine.processBookingCancellation(customerId, bookingId, bookingTotalEGP, config, context)
   }
 
   /**
    * Expire unclaimed points past their 12-month rolling validity window.
    */
-  async processExpiredPoints(): Promise<number> {
-    return this.workflowEngine.processExpiredPoints()
+  async processExpiredPoints(context?: RequestContext): Promise<number> {
+    return this.workflowEngine.processExpiredPoints(context)
   }
 
   /**
    * Admin manual point adjustment with compulsory reason logging.
    */
-  async adminAdjustPoints(params: AdminAdjustmentParams): Promise<PointLedgerRecord> {
-    return this.workflowEngine.adminAdjustPoints(params)
+  async adminAdjustPoints(params: AdminAdjustmentParams, context?: RequestContext): Promise<PointLedgerRecord> {
+    return this.workflowEngine.adminAdjustPoints(params, context)
   }
 
   /**
    * Evaluate if customer qualifies for automatic tier upgrade based on total annual spending.
    */
-  async evaluateAndUpgradeTier(userId: number, additionalSpentEGP = 0, config?: LoyaltyProgramConfig): Promise<LoyaltyTier> {
-    return this.workflowEngine.evaluateAndUpgradeTier(userId, additionalSpentEGP, config)
+  async evaluateAndUpgradeTier(userId: number, additionalSpentEGP = 0, config?: LoyaltyProgramConfig, context?: RequestContext): Promise<LoyaltyTier> {
+    return this.workflowEngine.evaluateAndUpgradeTier(userId, additionalSpentEGP, config, context)
   }
 
   /**
    * Rebuild cached customer point projection from append-only ledger entries.
    */
-  async rebuildCustomerProjection(userId: number): Promise<number> {
-    return this.workflowEngine.rebuildCustomerProjection(userId)
+  async rebuildCustomerProjection(userId: number, context?: RequestContext): Promise<number> {
+    return this.workflowEngine.rebuildCustomerProjection(userId, context)
   }
 
   /**
    * Fetch live customer point balance.
    */
-  async getCustomerBalance(userId: number): Promise<number> {
-    return this.workflowEngine.getCustomerBalance(userId)
+  async getCustomerBalance(userId: number, context?: RequestContext): Promise<number> {
+    return this.workflowEngine.getCustomerBalance(userId, context)
   }
 
   /**
    * Fetch customer point ledger transaction history.
    */
-  async getCustomerLedgerHistory(userId: number, limit = 50): Promise<PointLedgerRecord[]> {
-    return this.workflowEngine.getCustomerLedgerHistory(userId, limit)
+  async getCustomerLedgerHistory(userId: number, limit = 50, context?: RequestContext): Promise<PointLedgerRecord[]> {
+    return this.workflowEngine.getCustomerLedgerHistory(userId, limit, context)
   }
 }

@@ -41,30 +41,18 @@ export class BookingCreator {
     this.snapshotAssembler = new BookingPricingSnapshotAssembler()
   }
 
-  async createDraft(params: CreateBookingParams, context?: RequestContext): Promise<BookingAggregate> {
+  async createDraft(
+    params: CreateBookingParams,
+    context?: RequestContext,
+  ): Promise<BookingAggregate> {
     const departure = params.departure
     if (!departure || departure.basePriceEGP === undefined) {
       throw new Error(`[BookingCreator] Invalid or unresolved bookable departure read model.`)
     }
 
-    // Fast-path idempotency check
-    if (params.idempotencyKey) {
-      const existing = await this.repository.getByIdempotencyKey(params.idempotencyKey, context)
-      if (existing) {
-        // Validate same checkout identity
-        const isSameCustomer = existing.customerId === params.userId
-        const isSameExperience = existing.experienceId === departure.experienceId
-
-        if (isSameCustomer && isSameExperience) {
-          console.log(`[BookingCreator] Fast Path: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`)
-          return existing
-        } else {
-          throw new Error(`[BookingCreator] Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but identity does not match.`)
-        }
-      }
-    }
-
-    console.log(`[BookingCreator] 🏁 Creating booking draft for User #${params.userId}, Experience #${departure.experienceId}, Date: ${departure.date}`);
+    console.log(
+      `[BookingCreator] 🏁 Creating booking draft for User #${params.userId}, Experience #${departure.experienceId}, Date: ${departure.date}`,
+    )
     const experienceId = departure.experienceId
     const startDate = departure.date
 
@@ -73,7 +61,8 @@ export class BookingCreator {
     if (typeof this.experienceService?.getById === 'function') {
       experience = await this.experienceService.getById(experienceId)
     } else {
-      const payloadReq = context && context.transactionId ? { transactionID: context.transactionId } : undefined
+      const payloadReq =
+        context && context.transactionId ? { transactionID: context.transactionId } : undefined
       experience = await (this.repository as any).payload.findByID({
         collection: 'experiences',
         id: experienceId,
@@ -85,7 +74,8 @@ export class BookingCreator {
     if (typeof this.customerRepository?.findById === 'function') {
       customer = await this.customerRepository.findById(params.userId)
     } else {
-      const payloadReq = context && context.transactionId ? { transactionID: context.transactionId } : undefined
+      const payloadReq =
+        context && context.transactionId ? { transactionID: context.transactionId } : undefined
       customer = await (this.repository as any).payload.findByID({
         collection: 'customers',
         id: params.userId,
@@ -185,7 +175,10 @@ export class BookingCreator {
     }
 
     const booking = await this.repository.create(bookingData, context)
-    console.log(`[BookingCreator] Draft Booking #${booking.id} created successfully with BookingNumber ${bookingNumber}. pricingSnapshot:`, pricingSnapshot);
+    console.log(
+      `[BookingCreator] Draft Booking #${booking.id} created successfully with BookingNumber ${bookingNumber}. pricingSnapshot:`,
+      pricingSnapshot,
+    )
 
     // 8. Create Capacity Hold & Point Hold entities
     const seatsCount = params.travelers.length
@@ -219,10 +212,16 @@ export class BookingCreator {
     }
 
     // 9. Update Aggregate with Hold Entities
-    console.log(`[BookingCreator] CapacityHold & PointHold generated. Finalizing draft for Booking #${booking.id}`);
-    return this.repository.update(booking.id, {
-      capacityHold,
-      pointHold,
-    }, context)
+    console.log(
+      `[BookingCreator] CapacityHold & PointHold generated. Finalizing draft for Booking #${booking.id}`,
+    )
+    return this.repository.update(
+      booking.id,
+      {
+        capacityHold,
+        pointHold,
+      },
+      context,
+    )
   }
 }

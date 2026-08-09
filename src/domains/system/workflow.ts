@@ -117,7 +117,7 @@ export class SystemIntegrationWorkflowEngine {
 
     registerDashboardProjectionSubscribers(this.payload)
     registerNotificationSubscribers(this.payload)
-    registerCustomerSubscribers(this.payload)
+    registerCustomerSubscribers(this.payload, options.customerService, options.loyaltyService)
     registerLoyaltySubscriber(this.payload, options.customerService, options.loyaltyService)
     registerBookingPaymentSubscriber(this.payload)
     registerLoyaltyNotificationSubscriber(options.customerService, options.notificationService)

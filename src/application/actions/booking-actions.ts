@@ -2,9 +2,10 @@
 
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
-import type { CurrencyCode } from '@/types'
+import type { CurrencyCode, RequestContext } from '@/types'
 import { Language } from '@/types/locale'
 import { cookies } from 'next/headers'
+import { BookingPolicy } from '@/domains/booking/policy'
 
 /**
  * Orchestrator Server Action to process the checkout submit flow.
@@ -66,12 +67,9 @@ export async function confirmCheckoutAction(params: {
       if (params.idempotencyKey) {
         const existing = await booking.getByIdempotencyKey(params.idempotencyKey)
         if (existing) {
-          // Validate same checkout identity
-          const isSameCustomer = existing.customerId === userId
-          const isSameExperience = existing.experienceId === params.experienceId
-          const isSameDate = existing.startDate === departure.date
-
-          if (isSameCustomer && isSameExperience && isSameDate) {
+          const policyRes = BookingPolicy.canReuseForCheckout(existing, userId, params.experienceId, departure.date)
+          
+          if (policyRes.allowed) {
             console.log(`[confirmCheckoutAction] Fast Path: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`)
             targetBookingId = existing.id
             bookingNumber = existing.bookingNumber
@@ -80,7 +78,10 @@ export async function confirmCheckoutAction(params: {
               await booking.moveToPendingPayment(existing.id)
             }
           } else {
-            return { success: false, error: `Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but identity does not match.` }
+            if (policyRes.code === 'BOOKING_EXPIRED' || policyRes.code === 'BOOKING_CANCELLED' || policyRes.code === 'BOOKING_RESOLVED') {
+              return { success: false, error: policyRes.reason, code: policyRes.code }
+            }
+            return { success: false, error: `Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but identity does not match. Details: ${policyRes.reason}`, code: 'IDEMPOTENCY_CONFLICT' }
           }
         }
       }
@@ -100,7 +101,7 @@ export async function confirmCheckoutAction(params: {
 
         // Start database transaction
         const transactionID = await payload.db.beginTransaction()
-        const req = { transactionID } as any
+        const context: RequestContext = { transactionId: transactionID }
 
         try {
           // 4. Create booking draft inside transaction
@@ -112,10 +113,10 @@ export async function confirmCheckoutAction(params: {
             currency: serverCurrency,
             source: 'website',
             idempotencyKey: params.idempotencyKey,
-          }, req)
+          }, context)
 
           // 5. Move draft booking to pending payment state inside transaction
-          await booking.moveToPendingPayment(targetBookingId, req)
+          await booking.moveToPendingPayment(targetBookingId, context)
 
           // Commit database transaction
           await payload.db.commitTransaction(transactionID)
@@ -132,12 +133,9 @@ export async function confirmCheckoutAction(params: {
             console.log(`[confirmCheckoutAction] Checking recovery for idempotency key: ${params.idempotencyKey}`)
             const existing = await booking.getByIdempotencyKey(params.idempotencyKey)
             if (existing) {
-              // Validate same checkout identity
-              const isSameCustomer = existing.customerId === userId
-              const isSameExperience = existing.experienceId === params.experienceId
-              const isSameDate = existing.startDate === departure.date
-
-              if (isSameCustomer && isSameExperience && isSameDate) {
+              const policyRes = BookingPolicy.canReuseForCheckout(existing, userId, params.experienceId, departure.date)
+              
+              if (policyRes.allowed) {
                 console.log(`[confirmCheckoutAction] Concurrency Recovered: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`)
                 targetBookingId = existing.id
                 bookingNumber = existing.bookingNumber
@@ -147,7 +145,10 @@ export async function confirmCheckoutAction(params: {
                   await booking.moveToPendingPayment(existing.id)
                 }
               } else {
-                throw new Error(`[confirmCheckoutAction] Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but identity does not match.`)
+                if (policyRes.code === 'BOOKING_EXPIRED' || policyRes.code === 'BOOKING_CANCELLED' || policyRes.code === 'BOOKING_RESOLVED') {
+                  return { success: false, error: policyRes.reason, code: policyRes.code }
+                }
+                throw new Error(`[confirmCheckoutAction] Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but identity does not match. Details: ${policyRes.reason}`)
               }
             } else {
               throw err

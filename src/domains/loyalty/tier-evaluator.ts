@@ -3,6 +3,7 @@ import { TierPolicy } from './tier-policy'
 import { LoyaltyTier } from '@/types'
 import type { PointLedgerRecord } from './types'
 import { LoyaltyProgramConfig, LeanRulesSnapshot, LoyaltyProgramConfigurationException } from './tier-config'
+import type { RequestContext } from '@/types'
 
 /**
  * Tier Evaluator Sub-Service
@@ -20,11 +21,12 @@ export class TierEvaluator {
     customerId: number,
     additionalSpentEGP: number,
     config: LoyaltyProgramConfig,
+    context?: RequestContext,
   ): Promise<{ upgraded: boolean; newTier: LoyaltyTier; bonusRecord?: PointLedgerRecord }> {
     if (!config) {
       throw new LoyaltyProgramConfigurationException('[TierEvaluator] Active loyalty program configuration is required.')
     }
-    const { aggregate } = await this.repository.getCustomerAggregate(customerId)
+    const { aggregate } = await this.repository.getCustomerAggregate(customerId, context)
     const currentTier = aggregate.tier
     const newTotalSpent = aggregate.totalSpentEGP + additionalSpentEGP
 
@@ -32,7 +34,7 @@ export class TierEvaluator {
 
     if (!upgradePolicy.allowed) {
       if (additionalSpentEGP > 0) {
-        await this.repository.updateCustomerTier(customerId, currentTier, additionalSpentEGP)
+        await this.repository.updateCustomerTier(customerId, currentTier, additionalSpentEGP, context)
       }
       return { upgraded: false, newTier: currentTier }
     }
@@ -40,7 +42,7 @@ export class TierEvaluator {
     const newTier = TierPolicy.evaluateEligibleTier(newTotalSpent, config)
 
     // Update customer tier in repository
-    await this.repository.updateCustomerTier(customerId, newTier, additionalSpentEGP)
+    await this.repository.updateCustomerTier(customerId, newTier, additionalSpentEGP, context)
 
     // Grant tier upgrade bonus if configured and not claimed
     const bonusAmount = config.tiers[newTier]?.upgradeBonus || 0
@@ -71,6 +73,7 @@ export class TierEvaluator {
           programVersion: config.version,
           rulesSnapshot: leanSnapshot,
         },
+        context,
       )
     }
 

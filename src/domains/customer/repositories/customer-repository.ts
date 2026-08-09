@@ -1,4 +1,5 @@
 import type { Payload, PayloadRequest } from 'payload'
+import type { RequestContext } from '@/types'
 import type { CustomerAggregate } from '../aggregate'
 import type { CustomerStatus } from '../types'
 import { validateCustomerStatusTransition } from '../state-machine'
@@ -12,6 +13,15 @@ export class CustomerRepository {
 
   constructor(payload: Payload) {
     this.payload = payload
+  }
+
+  private mapContextToReq(context?: RequestContext): PayloadRequest | undefined {
+    if (!context || context.transactionId === null || context.transactionId === undefined) {
+      return undefined
+    }
+    return {
+      transactionID: context.transactionId,
+    } as unknown as PayloadRequest
   }
 
   getPayload(): Payload {
@@ -212,7 +222,10 @@ export class CustomerRepository {
     return this.mapDocToAggregate(doc)
   }
 
-  async login(email: string, password?: string): Promise<{ user: CustomerAggregate; token: string } | null> {
+  async login(
+    email: string,
+    password?: string,
+  ): Promise<{ user: CustomerAggregate; token: string } | null> {
     try {
       const loginResult = await this.payload.login({
         collection: 'customers',
@@ -249,10 +262,20 @@ export class CustomerRepository {
 
   async updateLoyaltyProfile(
     customerId: number,
-    loyaltyData: { tier?: 'explorer' | 'voyager' | 'elite'; points?: number; totalSpent?: number; tierAchievedAt?: string },
-    req?: PayloadRequest,
+    loyaltyData: {
+      tier?: 'explorer' | 'voyager' | 'elite'
+      points?: number
+      totalSpent?: number
+      tierAchievedAt?: string
+    },
+    context?: RequestContext,
   ): Promise<void> {
-    const customerDoc = await this.payload.findByID({ collection: 'customers', id: customerId, req })
+    const req = this.mapContextToReq(context)
+    const customerDoc = await this.payload.findByID({
+      collection: 'customers',
+      id: customerId,
+      req,
+    })
     await this.payload.update({
       collection: 'customers',
       id: customerId,
@@ -295,6 +318,14 @@ export class CustomerRepository {
         : undefined,
       phoneVerifiedAt: doc.phoneVerifiedAt
         ? new Date(doc.phoneVerifiedAt).toISOString()
+        : undefined,
+      loyalty: doc.loyalty
+        ? {
+            tier: doc.loyalty.tier,
+            points: typeof doc.loyalty.points === 'number' ? doc.loyalty.points : 0,
+            totalSpentEGP: typeof doc.loyalty.totalSpent === 'number' ? doc.loyalty.totalSpent : 0,
+            totalSpent: typeof doc.loyalty.totalSpent === 'number' ? doc.loyalty.totalSpent : 0,
+          }
         : undefined,
       version: 1,
       createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),

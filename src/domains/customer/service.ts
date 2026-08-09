@@ -1,3 +1,4 @@
+import type { RequestContext } from '@/types'
 import { CustomerWorkflowEngine, type VerificationResult } from './workflow'
 import { CustomerRepository } from './repositories/customer-repository'
 import type { CustomerAggregate } from './aggregate'
@@ -146,8 +147,9 @@ export class CustomerService {
   async updateLoyaltyProfile(
     customerId: number,
     loyaltyData: { tier?: 'explorer' | 'voyager' | 'elite'; points?: number; totalSpent?: number; tierAchievedAt?: string },
+    context?: RequestContext,
   ): Promise<void> {
-    await this.repository.updateLoyaltyProfile(customerId, loyaltyData)
+    await this.repository.updateLoyaltyProfile(customerId, loyaltyData, context)
   }
 
   async ensureDeletionAllowed(customerId: number, req?: any): Promise<void> {

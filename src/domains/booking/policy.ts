@@ -195,4 +195,89 @@ export class BookingPolicy {
 
     return { allowed: true }
   }
+
+  /**
+   * Validate if an existing booking can be reused for checkout under the current parameters.
+   */
+  static canReuseForCheckout(
+    booking: BookingAggregate,
+    userId: number,
+    experienceId: number,
+    departureDate: string
+  ): PolicyResult {
+    // 1. Validate Customer Identity
+    if (booking.customerId !== userId) {
+      return {
+        allowed: false,
+        code: 'IDEMPOTENCY_IDENTITY_MISMATCH',
+        reason: 'Existing booking belongs to a different customer.',
+      }
+    }
+
+    // 2. Validate Experience Identity
+    if (booking.experienceId !== experienceId) {
+      return {
+        allowed: false,
+        code: 'IDEMPOTENCY_EXPERIENCE_MISMATCH',
+        reason: 'Existing booking belongs to a different experience.',
+      }
+    }
+
+    // 3. Validate Date Identity (both are now guaranteed YYYY-MM-DD)
+    if (booking.startDate !== departureDate) {
+      return {
+        allowed: false,
+        code: 'IDEMPOTENCY_DATE_MISMATCH',
+        reason: `Existing booking date (${booking.startDate}) does not match requested date (${departureDate}).`,
+      }
+    }
+
+    // 4. Enforce Operation State Reuse Rules (Prohibited Terminal/Resolved States)
+    if (booking.status === BookingStatus.EXPIRED) {
+      return {
+        allowed: false,
+        code: 'BOOKING_EXPIRED',
+        reason: 'The seat reservation hold for this checkout attempt has expired.',
+      }
+    }
+
+    if (booking.status === BookingStatus.CANCELLED || booking.status === BookingStatus.REFUNDED) {
+      return {
+        allowed: false,
+        code: 'BOOKING_CANCELLED',
+        reason: 'The booking for this checkout attempt has been cancelled.',
+      }
+    }
+
+    if ([BookingStatus.PAID, BookingStatus.CONFIRMED, BookingStatus.COMPLETED].includes(booking.status)) {
+      return {
+        allowed: false,
+        code: 'BOOKING_RESOLVED',
+        reason: 'The checkout attempt has already been successfully paid and completed.',
+      }
+    }
+
+    // 5. Validate Capacity Hold Existence and Status for Draft/Pending Bookings
+    if (!booking.capacityHold || (booking.capacityHold as any).status !== 'active') {
+      return {
+        allowed: false,
+        code: 'BOOKING_CORRUPTED',
+        reason: 'The seat reservation hold for this checkout attempt is missing or invalid.',
+      }
+    }
+
+    // 6. Enforce Hold Duration Timeout for Pending Payment
+    if (booking.status === BookingStatus.PENDING_PAYMENT) {
+      const expiresAt = new Date((booking.capacityHold as any).expiresAt)
+      if (new Date() >= expiresAt) {
+        return {
+          allowed: false,
+          code: 'BOOKING_EXPIRED',
+          reason: 'The seat reservation hold for this checkout attempt has expired.',
+        }
+      }
+    }
+
+    return { allowed: true }
+  }
 }

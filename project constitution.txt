@@ -969,4 +969,18 @@ Elite
 ---
 
 قاعدة استدامة قرار المستخدم (Decision Persistence Rule):
-يتم استخدام `preferredDisplayCurrency` للزيارة الأولى للمستخدم فقط (First-time visit fallback). بمجرد أن يقوم المستخدم بتغيير العملة بشكل صريح في الواجهة، تصبح قيمة الكوكيز (`Cookie Currency`) هي مصدر الحقيقة الأوحد والنهائي (SSOT)، ولا يجوز بأي حال من الأحوال إعادة فرض أو تغطيتها بالعملة المفضلة للغة مرة أخرى عند تحديث الصفحة أو التصفح.
+يتم استخدام `preferredDisplayCurrency` للزيارة الأولى للمستخدم فقط (First-time visit fallback). بمجرد أن يقوم المستخدم بتغيير العملة بشكل صريح في الواجهة، تصبح قيمة الكوكيز (`Cookie Currency`) هي مصدر الحقيقة الأوحد والنهائي (SSOT)، ولا يجوز بأي حال من الأحوال إعادة فرض أو تغطيتها بالعملة المفضلة للغة مرة أخرى عند تحديث الصفحة أو التصفح.
+
+
+قبل أي تعديل أو إنشاء أو حذف أو نقل لأي سطر كود:
+
+أجرِ Reconnaissance كامل للبنية الحالية.
+حدد الـDomain والـApplication والـInfrastructure والـPresentation ownership للقاعدة محل التحقيق.
+ابحث عن جميع implementations الحالية لنفس الـbusiness rule.
+تحقق من الـDTOs والـrepositories والـservices والـpolicies والـworkflows والـevents والـtests والـloaders المرتبطة.
+تحقق من عدم وجود implementation قائم يمكن إعادة استخدامه.
+لا تنشئ helper/service/policy جديدة إذا كان هناك مالك معماري قائم للقاعدة.
+لا تنقل business rule إلى Layer أخرى لمجرد أن ذلك أسهل.
+لا تلمس الكود قبل عرض Findings + Root Cause + Proposed Change + Exact Files + Ownership + سبب وضع التعديل في ذلك المكان والحصول على إذن صريح.
+أثناء التحقيق: Read/Inspect/Search only. No Code Changes.
+نجاح الاختبارات وحده لا يُعتبر إثباتًا لصحة السلوك؛ يجب التحقق من السلوك الفعلي عبر Domain → DB → Admin → Customer.

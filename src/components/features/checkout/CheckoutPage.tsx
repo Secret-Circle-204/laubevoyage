@@ -10,6 +10,7 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
   const { addToast } = useToast()
   const [selectedGateway, setSelectedGateway] = useState<string>('stripe')
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const [keyRotationCounter, setKeyRotationCounter] = useState<number>(0)
 
   // Traveler Details Form State
   const [firstName, setFirstName] = useState(data.leadTraveler?.firstName || '')
@@ -19,15 +20,15 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
 
   const idempotencyKey = React.useMemo(() => {
     if (typeof window === 'undefined') return ''
-    const storageKey = `laube_chk_key_${data.experienceId}_${data.slotId || 'noslot'}`
+    const storageKey = `laube_chk_key_${data.experienceId}_${data.slotId || 'noslot'}_${data.departureDate}`
     let key = sessionStorage.getItem(storageKey)
     if (!key) {
       const attemptUUID = Math.random().toString(36).substring(2, 9) + Date.now().toString(36)
-      key = `checkout:${data.experienceId}:${data.slotId || 'noslot'}:${attemptUUID}`
+      key = `checkout:${data.experienceId}:${data.slotId || 'noslot'}:${data.departureDate}:${attemptUUID}`
       sessionStorage.setItem(storageKey, key)
     }
     return key
-  }, [data.experienceId, data.slotId])
+  }, [data.experienceId, data.slotId, data.departureDate, keyRotationCounter])
 
   const handleConfirmPayment = async () => {
     if (!firstName || !email) {
@@ -91,6 +92,11 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
       } else {
         const errorMsg = 'error' in res && typeof res.error === 'string' ? res.error : 'Payment gateway failed'
         addToast({ type: 'error', title: 'Payment Failed', description: errorMsg })
+        if ('code' in res && (res.code === 'BOOKING_EXPIRED' || res.code === 'BOOKING_CANCELLED')) {
+          const storageKey = `laube_chk_key_${data.experienceId}_${data.slotId || 'noslot'}_${data.departureDate}`
+          sessionStorage.removeItem(storageKey)
+          setKeyRotationCounter((prev) => prev + 1)
+        }
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Payment processing failed'

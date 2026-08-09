@@ -94,19 +94,23 @@ export class BookingExpiration {
         return latestBooking
       }
 
-      if (!latestBooking.capacityHold || latestBooking.capacityHold.status !== 'active') {
-        console.log(`[BookingExpiration] Booking #${booking.bookingNumber} capacityHold status is no longer active. Skipping expiration.`)
-        await this.repository.rollbackTransaction(transactionID)
-        return latestBooking
+      let expiredCapacity = null
+      let expiredPointHold = null
+
+      if (!latestBooking.capacityHold) {
+        console.log(`[BookingExpiration] Booking #${booking.bookingNumber} has no capacityHold (orphaned). Transitioning directly to EXPIRED.`)
+      } else {
+        if (latestBooking.capacityHold.status !== 'active') {
+          console.log(`[BookingExpiration] Booking #${booking.bookingNumber} capacityHold status is no longer active (${latestBooking.capacityHold.status}). Skipping expiration.`)
+          await this.repository.rollbackTransaction(transactionID)
+          return latestBooking
+        }
+        // Step 2 & 3: Release holds if active
+        expiredCapacity = CapacityHoldService.expireHold(latestBooking.capacityHold)
+        expiredPointHold = latestBooking.pointHold
+          ? PointHoldService.expireHold(latestBooking.pointHold)
+          : null
       }
-
-      // Step 2 & 3: Release holds if active
-      let expiredCapacity = latestBooking.capacityHold
-      expiredCapacity = CapacityHoldService.expireHold(latestBooking.capacityHold)
-
-      const expiredPointHold = latestBooking.pointHold
-        ? PointHoldService.expireHold(latestBooking.pointHold)
-        : null
 
       // Step 4: Append Customer Timeline
       const updatedTimeline = BookingHistoryService.appendTimelineEntry(latestBooking.timeline, {
@@ -153,9 +157,9 @@ export class BookingExpiration {
         return latestBooking
       }
 
-      // Release slot capacity (if experience service is injected)
+      // Release slot capacity (if experience service is injected and capacityHold is present)
       try {
-        if (typeof this.experienceService?.getDepartureSlotByDate === 'function' && typeof this.experienceService?.releaseCapacity === 'function') {
+        if (latestBooking.capacityHold && typeof this.experienceService?.getDepartureSlotByDate === 'function' && typeof this.experienceService?.releaseCapacity === 'function') {
           const slot = await this.experienceService.getDepartureSlotByDate(
             latestBooking.capacityHold.experienceId,
             latestBooking.capacityHold.date,

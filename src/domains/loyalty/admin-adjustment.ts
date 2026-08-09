@@ -1,5 +1,6 @@
 import type { LoyaltyRepository } from './repository'
 import type { AdminAdjustmentParams, PointLedgerRecord } from './types'
+import type { RequestContext } from '@/types'
 
 /**
  * Admin Adjustment Service
@@ -13,7 +14,7 @@ export class AdminAdjustmentService {
     this.repository = repository
   }
 
-  async executeAdjustment(params: AdminAdjustmentParams): Promise<PointLedgerRecord> {
+  async executeAdjustment(params: AdminAdjustmentParams, context?: RequestContext): Promise<PointLedgerRecord> {
     if (!params.reason || !params.ticket) {
       throw new Error('[AdminAdjustmentService] Manual adjustment requires valid reason and support ticket number.')
     }
@@ -37,6 +38,7 @@ export class AdminAdjustmentService {
         notes: params.notes,
         adjustmentType: params.adjustmentType,
       },
+      context,
     )
   }
 }

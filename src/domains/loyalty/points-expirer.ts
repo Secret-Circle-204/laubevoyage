@@ -1,4 +1,5 @@
 import type { LoyaltyRepository } from './repository'
+import type { RequestContext } from '@/types'
 
 /**
  * Points Expiration Processor Sub-Service
@@ -11,7 +12,7 @@ export class PointsExpirationProcessor {
     this.repository = repository
   }
 
-  async processExpiredPoints(): Promise<number> {
+  async processExpiredPoints(context?: RequestContext): Promise<number> {
     // Process expiration batch scanning
     return 0
   }

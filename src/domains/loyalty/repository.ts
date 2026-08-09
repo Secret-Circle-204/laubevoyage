@@ -1,6 +1,6 @@
 import type { Payload, PayloadRequest } from 'payload'
 import type { Customer, PointLedger } from '@/payload-types'
-import { LoyaltyTier } from '@/types'
+import { LoyaltyTier, RequestContext } from '@/types'
 import type { LoyaltyAggregate } from './aggregate'
 import type { LoyaltyProjection } from './projection'
 import type { PointLedgerRecord, LedgerEntryType, LedgerReferenceType } from './types'
@@ -22,14 +22,24 @@ export class LoyaltyRepository {
     this.payload = payload
   }
 
+  private mapContextToReq(context?: RequestContext): PayloadRequest | undefined {
+    if (!context || context.transactionId === null || context.transactionId === undefined) {
+      return undefined
+    }
+    return {
+      transactionID: context.transactionId,
+    } as unknown as PayloadRequest
+  }
+
   /**
    * Fetch active published LoyaltyProgramConfig directly from Payload CMS database.
    * STRICT FAIL FAST: Throws LoyaltyProgramConfigurationException if configuration is missing or invalid.
    */
   async getActiveProgramConfig(
     _programCode?: string,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<LoyaltyProgramConfig> {
+    const req = this.mapContextToReq(context)
     const doc = await this.payload.findGlobal({
       slug: 'loyalty-settings',
       req,
@@ -177,11 +187,12 @@ export class LoyaltyRepository {
     bookingId?: number,
     expiresAt?: string,
     metadata?: Record<string, unknown>,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<PointLedgerRecord> {
+    const req = this.mapContextToReq(context)
     // 1. Financial Ledger Idempotency Guard
     if (referenceType && referenceId) {
-      const existing = await this.findLedgerByReference(referenceType, referenceId, type, req)
+      const existing = await this.findLedgerByReference(referenceType, referenceId, type, context)
       if (existing) {
         throw new Error(
           `[LoyaltyRepository] Financial Idempotency Guard: Entry already recorded for ref (${referenceType}:${referenceId}:${type}).`,
@@ -190,7 +201,7 @@ export class LoyaltyRepository {
     }
 
     // 2. Fetch current running balance
-    const currentBalance = await this.getCurrentBalance(customerId, req)
+    const currentBalance = await this.getCurrentBalance(customerId, context)
 
     // 3. Pre-commit Financial Invariant Validation
     LedgerValidator.validateLedgerEntry(type, points, currentBalance)
@@ -218,9 +229,6 @@ export class LoyaltyRepository {
 
     const record = this.mapDocToLedgerRecord(doc)
 
-    // 5. Update cached projection on customer document
-    await this.updateCustomerProjection(customerId, resultingBalance, String(doc.id), req)
-
     return record
   }
 
@@ -231,8 +239,9 @@ export class LoyaltyRepository {
     referenceType: LedgerReferenceType,
     referenceId: string,
     type: LedgerEntryType,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<PointLedgerRecord | null> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'point-ledger',
       where: {
@@ -250,7 +259,8 @@ export class LoyaltyRepository {
   /**
    * Get current running balance for customer from latest PointLedger entry.
    */
-  async getCurrentBalance(customerId: number, req?: PayloadRequest): Promise<number> {
+  async getCurrentBalance(customerId: number, context?: RequestContext): Promise<number> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'point-ledger',
       where: {
@@ -267,8 +277,9 @@ export class LoyaltyRepository {
   async getLedgerHistory(
     customerId: number,
     limit = 20,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<PointLedgerRecord[]> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'point-ledger',
       where: {
@@ -283,12 +294,33 @@ export class LoyaltyRepository {
   }
 
   /**
+   * Retrieve point ledger transactions linked to a specific booking.
+   */
+  async getBookingLedgerEntries(
+    bookingId: number,
+    context?: RequestContext,
+  ): Promise<PointLedgerRecord[]> {
+    const req = this.mapContextToReq(context)
+    const result = await this.payload.find({
+      collection: 'point-ledger',
+      where: {
+        booking: { equals: bookingId },
+      },
+      limit: 100,
+      req,
+    })
+
+    return result.docs.map((doc) => this.mapDocToLedgerRecord(doc))
+  }
+
+  /**
    * Fetch Customer Loyalty Aggregate & Projection.
    */
   async getCustomerAggregate(
     customerId: number,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<{ aggregate: LoyaltyAggregate; projection: LoyaltyProjection }> {
+    const req = this.mapContextToReq(context)
     const customer = await this.payload.findByID({
       collection: 'customers',
       id: customerId,
@@ -297,10 +329,16 @@ export class LoyaltyRepository {
 
     const loyaltyData = customer.loyalty || {}
     const tier = (loyaltyData.tier || LoyaltyTier.EXPLORER) as LoyaltyTier
+    
+    // totalSpentEGP represents the customer's net qualifying spend in EGP.
+    // It is calculated from confirmed bookings. Upon booking confirmation, totalSpentEGP increases.
+    // Upon booking cancellation and refund, the refunded booking total is deducted from totalSpentEGP.
+    // Welcome registration points, manual admin point adjustments, and point redemptions
+    // have exactly zero impact on totalSpentEGP.
     const totalSpentEGP = loyaltyData.totalSpent || 0
     const pointsCache = loyaltyData.points || 0
 
-    const latestBalance = await this.getCurrentBalance(customerId, req)
+    const latestBalance = await this.getCurrentBalance(customerId, context)
 
     const aggregate: LoyaltyAggregate = {
       customerId,
@@ -340,9 +378,10 @@ export class LoyaltyRepository {
     customerId: number,
     newTier: LoyaltyTier,
     additionalSpentEGP: number = 0,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<Customer> {
-    const { aggregate } = await this.getCustomerAggregate(customerId, req)
+    const req = this.mapContextToReq(context)
+    const { aggregate } = await this.getCustomerAggregate(customerId, context)
     const newTotalSpent = aggregate.totalSpentEGP + additionalSpentEGP
 
     const doc = await this.payload.update({
@@ -364,12 +403,13 @@ export class LoyaltyRepository {
   /**
    * Update cached balance in customer document projection.
    */
-  private async updateCustomerProjection(
+  async updateCustomerProjection(
     customerId: number,
     balance: number,
     lastLedgerId: string,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<void> {
+    const req = this.mapContextToReq(context)
     const customer = await this.payload.findByID({
       collection: 'customers',
       id: customerId,

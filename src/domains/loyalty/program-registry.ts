@@ -1,5 +1,6 @@
 import type { LoyaltyProgramConfig } from './tier-config'
 import type { LoyaltyRepository } from './repository'
+import type { RequestContext } from '@/types'
 
 /**
  * Loyalty Program Registry (Runtime Memory Cache Manager)
@@ -33,6 +34,7 @@ export class LoyaltyProgramRegistry {
   public async getProgram(
     repository: LoyaltyRepository,
     pinnedConfig?: LoyaltyProgramConfig,
+    context?: RequestContext,
   ): Promise<LoyaltyProgramConfig> {
     console.log(
       `[LoyaltyProgramRegistry.getProgram] Instance ID: ${this.id}, PinnedConfig passed: ${!!pinnedConfig}, PID: ${process.pid}`,
@@ -51,7 +53,7 @@ export class LoyaltyProgramRegistry {
       return this.cache
     }
 
-    const config = await repository.getActiveProgramConfig()
+    const config = await repository.getActiveProgramConfig(undefined, context)
     console.log(
       `[LoyaltyProgramRegistry.getProgram] Cache MISS. Fetched fresh from DB. Storing in instance: ${this.id}. Data:`,
       {
