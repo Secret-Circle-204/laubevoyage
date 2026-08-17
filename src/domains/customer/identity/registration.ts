@@ -1,3 +1,4 @@
+import type { RequestContext } from '@/types'
 import { CustomerRepository } from '../repositories/customer-repository'
 import type { CustomerAggregate } from '../aggregate'
 import type { CustomerPreferencesInput } from '../types'
@@ -20,8 +21,9 @@ export class RegistrationService {
     password?: string,
     preferences?: CustomerPreferencesInput,
     options?: { eventSource?: 'domain' | 'external' },
+    context?: RequestContext,
   ): Promise<CustomerAggregate> {
-    const existing = await this.repository.findByEmail(email)
+    const existing = await this.repository.findByEmail(email, context)
     if (existing) {
       throw new Error(`[RegistrationService] Customer with email ${email} already exists.`)
     }
@@ -42,6 +44,6 @@ export class RegistrationService {
       }
     }
 
-    return this.repository.create(data, options)
+    return this.repository.create(data, options, context)
   }
 }

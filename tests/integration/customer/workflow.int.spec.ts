@@ -7,6 +7,11 @@ describe('Customer Domain: CustomerWorkflowEngine Integration Tests', () => {
 
   beforeEach(() => {
     mockPayload = {
+      db: {
+        beginTransaction: vi.fn().mockResolvedValue('test-transaction-id'),
+        commitTransaction: vi.fn().mockResolvedValue(undefined),
+        rollbackTransaction: vi.fn().mockResolvedValue(undefined),
+      },
       create: vi.fn().mockImplementation(({ collection, data }) =>
         Promise.resolve({ id: 1, email: data.email, firstName: data.firstName, lastName: data.lastName, status: 'pending_verification' }),
       ),

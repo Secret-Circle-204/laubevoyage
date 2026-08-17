@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import type { RequestContext } from '@/types'
 import { CustomerRepository } from './repositories/customer-repository'
 import { TravelerRepository } from './repositories/traveler-repository'
 import { AddressRepository } from './repositories/address-repository'
@@ -67,27 +68,48 @@ export class CustomerWorkflowEngine {
     password?: string,
     preferences?: CustomerPreferencesInput,
     options?: { eventSource?: 'domain' | 'external' },
+    context?: RequestContext,
   ): Promise<CustomerAggregate> {
-    const customer = await this.identity.registerCustomer(
-      email,
-      firstName,
-      lastName,
-      password,
-      preferences,
-      options,
-    )
+    const transactionID = context?.transactionId || await this.repository.getPayload().db.beginTransaction()
+    const activeContext: RequestContext = context || { transactionId: transactionID }
+    console.log(`[CustomerWorkflowEngine.executeRegisterWorkflow] Beginning customer registration flow for ${email}. Nested Transaction:`, !!context, `| TransactionID:`, transactionID)
 
-    await this.eventOutbox.recordAndPublish({
-      type: 'CUSTOMER_REGISTERED',
-      eventVersion: 1,
-      customerId: customer.customerId,
-      email: customer.email,
-      fullName: customer.fullName,
-      status: customer.status,
-      timestamp: new Date().toISOString(),
-    })
+    try {
+      const customer = await this.identity.registerCustomer(
+        email,
+        firstName,
+        lastName,
+        password,
+        preferences,
+        options,
+        activeContext,
+      )
 
-    return customer
+      await this.eventOutbox.recordAndPublish({
+        type: 'CUSTOMER_REGISTERED',
+        eventVersion: 1,
+        customerId: customer.customerId,
+        email: customer.email,
+        fullName: customer.fullName,
+        status: customer.status,
+        timestamp: new Date().toISOString(),
+      }, activeContext)
+
+      if (!context && transactionID) {
+        console.log(`[CustomerWorkflowEngine.executeRegisterWorkflow] Committing database transaction: ${transactionID}`)
+        await this.repository.getPayload().db.commitTransaction(transactionID)
+      }
+
+      console.log(`[CustomerWorkflowEngine.executeRegisterWorkflow] Customer registered successfully. ID: ${customer.customerId}, Email: ${customer.email}`)
+      return customer
+    } catch (err) {
+      console.error('[CustomerWorkflowEngine.executeRegisterWorkflow] Registration failed. Rolling back transaction. Error:', err)
+      if (!context && transactionID) {
+        console.log(`[CustomerWorkflowEngine.executeRegisterWorkflow] Triggered ROLLBACK for transaction: ${transactionID}`)
+        await this.repository.getPayload().db.rollbackTransaction(transactionID)
+      }
+      throw err
+    }
   }
 
   /**

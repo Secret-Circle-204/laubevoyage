@@ -5,7 +5,7 @@ import { CustomerPortalLoader } from '@/application/dashboard/loaders'
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
+import { getLocaleContext } from '@/lib/get-locale-context'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,17 +19,20 @@ export default async function Page() {
     redirect('/login')
   }
 
-  const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value
-  const currency = cookieStore.get('laube-currency')?.value
-
   const { loyalty, localization } = await getDomainServices()
-  const ctx = await localization.buildContext({ cookieLocale: locale, cookieCurrency: currency })
+  const localeCtx = await getLocaleContext()
+  const ctx = localeCtx
 
-  const [data, history] = await Promise.all([
-    CustomerPortalLoader.loadOverview(session.customerId, { locale, currency }),
+  const [data, history, authoritativeBalance] = await Promise.all([
+    CustomerPortalLoader.loadOverview(session.customerId, {
+      locale: localeCtx.language,
+      currency: localeCtx.currency,
+    }),
     loyalty.getCustomerLedgerHistory(session.customerId, 50),
+    loyalty.getCustomerBalance(session.customerId),
   ])
+
+  const formattedBalance = await localization.formatNumber(authoritativeBalance, ctx)
 
   const translatedCurrentTier = localization.translateUiKey(`loyalty.tier.${data.currentTier}`, ctx)
 
@@ -44,7 +47,7 @@ export default async function Page() {
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Available Loyalty Balance</span>
-            <span className="text-4xl font-extrabold text-[#f58220]">{data.formattedPoints} Points</span>
+            <span className="text-4xl font-extrabold text-[#f58220]">{formattedBalance} Points</span>
           </div>
           <Badge variant="primary" size="md">
             {data.redemptionRate.pointsUnit} Pts = {data.redemptionRate.displayValue}

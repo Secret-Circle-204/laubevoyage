@@ -2,6 +2,7 @@ import type { RequestContext } from '@/types'
 import { CustomerWorkflowEngine, type VerificationResult } from './workflow'
 import { CustomerRepository } from './repositories/customer-repository'
 import type { CustomerAggregate } from './aggregate'
+import type { Customer } from '@/payload-types'
 import {
   type CompanionTravelerEntity,
   type CustomerAddressEntity,
@@ -32,6 +33,10 @@ export class CustomerService {
     this.workflowEngine = new CustomerWorkflowEngine(repository)
   }
 
+  mapPayloadUser(user: Customer): CustomerAggregate {
+    return this.repository.mapPayloadUser(user)
+  }
+
   async authenticateRequest(headers: Headers): Promise<{ id: number; email?: string } | null> {
     return this.repository.authenticateRequest(headers)
   }
@@ -43,6 +48,7 @@ export class CustomerService {
     password?: string,
     preferences?: CustomerPreferencesInput,
     options?: { eventSource?: 'domain' | 'external' },
+    context?: RequestContext,
   ): Promise<CustomerAggregate> {
     return this.workflowEngine.executeRegisterWorkflow(
       email,
@@ -51,11 +57,12 @@ export class CustomerService {
       password,
       preferences,
       options,
+      context,
     )
   }
 
-  async onCustomerCreated(customerId: number): Promise<void> {
-    const customer = await this.getById(customerId)
+  async onCustomerCreated(customerId: number, context?: RequestContext): Promise<void> {
+    const customer = await this.getById(customerId, context)
     const outbox = EventOutboxService.getInstance()
     await outbox.recordAndPublish({
       type: 'CUSTOMER_REGISTERED',
@@ -65,7 +72,7 @@ export class CustomerService {
       fullName: customer.fullName,
       status: customer.status,
       timestamp: new Date().toISOString(),
-    })
+    }, context)
   }
 
   async findByEmail(email: string): Promise<CustomerAggregate | null> {
@@ -91,12 +98,12 @@ export class CustomerService {
     return this.workflowEngine.identity.onCustomerAuthenticated(customerId)
   }
 
-  async getById(customerId: number): Promise<CustomerAggregate> {
-    return this.workflowEngine.queries.getById(customerId)
+  async getById(customerId: number, context?: RequestContext): Promise<CustomerAggregate> {
+    return this.workflowEngine.queries.getById(customerId, context)
   }
 
-  async getProfile(customerId: number): Promise<CustomerAggregate> {
-    return this.getById(customerId)
+  async getProfile(customerId: number, context?: RequestContext): Promise<CustomerAggregate> {
+    return this.getById(customerId, context)
   }
 
   async saveProfile(customer: CustomerAggregate): Promise<CustomerAggregate> {

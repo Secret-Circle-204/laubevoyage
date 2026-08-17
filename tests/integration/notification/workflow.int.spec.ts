@@ -20,6 +20,10 @@ describe('Notification Domain: Workflow & Idempotency Integration Tests', () => 
       update: vi.fn(),
     }
     workflowEngine = new NotificationWorkflowEngine(mockPayload)
+    vi.spyOn(workflowEngine.dispatcher, 'dispatch').mockResolvedValue({
+      success: true,
+      providerMessageId: 'mock-msg-id',
+    })
   })
 
   it('should enqueue notification, process via worker, and reject duplicate compound key idempotently', async () => {

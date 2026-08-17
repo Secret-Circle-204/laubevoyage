@@ -3,6 +3,7 @@ import type { RequestContext } from '@/types'
 import type { CustomerAggregate } from '../aggregate'
 import type { CustomerStatus } from '../types'
 import { validateCustomerStatusTransition } from '../state-machine'
+import type { Customer } from '@/payload-types'
 
 /**
  * Customer Repository
@@ -42,23 +43,31 @@ export class CustomerRepository {
   async create(
     data: Record<string, unknown>,
     options?: { eventSource?: 'domain' | 'external' },
+    context?: RequestContext,
   ): Promise<CustomerAggregate> {
-    const req = options?.eventSource
-      ? ({
-          context: { eventSource: options.eventSource },
-        } as any)
-      : undefined
+    const req = this.mapContextToReq(context) || (options?.eventSource ? ({} as any) : undefined)
+    if (options?.eventSource && req) {
+      if (!req.context) req.context = {}
+      req.context.eventSource = options.eventSource
+    }
 
-    const doc = await this.payload.create({
-      collection: 'customers',
-      data: data as any,
-      req,
-    })
-
-    return this.mapDocToAggregate(doc)
+    console.log(`[CustomerRepository.create] Creating customer document. Email: ${data.email}. Transactional Context:`, !!req?.transactionID)
+    try {
+      const doc = await this.payload.create({
+        collection: 'customers',
+        data: data as any,
+        req,
+      })
+      console.log(`[CustomerRepository.create] Customer document created successfully. ID: ${doc.id}`)
+      return this.mapDocToAggregate(doc)
+    } catch (err) {
+      console.error(`[CustomerRepository.create] Failed to create customer document. Error:`, err)
+      throw err
+    }
   }
 
-  async findById(customerId: number, req?: PayloadRequest): Promise<CustomerAggregate> {
+  async findById(customerId: number, context?: RequestContext): Promise<CustomerAggregate> {
+    const req = this.mapContextToReq(context)
     const doc = await this.payload.findByID({
       collection: 'customers',
       id: customerId,
@@ -68,7 +77,8 @@ export class CustomerRepository {
     return this.mapDocToAggregate(doc)
   }
 
-  async findByEmail(email: string, req?: PayloadRequest): Promise<CustomerAggregate | null> {
+  async findByEmail(email: string, context?: RequestContext): Promise<CustomerAggregate | null> {
+    const req = this.mapContextToReq(context)
     const result = await this.payload.find({
       collection: 'customers',
       where: {
@@ -84,11 +94,12 @@ export class CustomerRepository {
   async updateStatus(
     customerId: number,
     newStatus: CustomerStatus,
-    req?: PayloadRequest,
+    context?: RequestContext,
   ): Promise<CustomerAggregate> {
-    const current = await this.findById(customerId, req)
+    const current = await this.findById(customerId, context)
     validateCustomerStatusTransition(current.status, newStatus)
 
+    const req = this.mapContextToReq(context)
     const doc = await this.payload.update({
       collection: 'customers',
       id: customerId,
@@ -193,7 +204,8 @@ export class CustomerRepository {
     return nextAttempts
   }
 
-  async save(customer: CustomerAggregate, req?: PayloadRequest): Promise<CustomerAggregate> {
+  async save(customer: CustomerAggregate, context?: RequestContext): Promise<CustomerAggregate> {
+    const req = this.mapContextToReq(context)
     const doc = await this.payload.update({
       collection: 'customers',
       id: customer.customerId,
@@ -290,7 +302,11 @@ export class CustomerRepository {
     })
   }
 
-  private mapDocToAggregate(doc: Record<string, any>): CustomerAggregate {
+  mapPayloadUser(customer: Customer): CustomerAggregate {
+    return this.mapDocToAggregate(customer)
+  }
+
+  private mapDocToAggregate(doc: Customer): CustomerAggregate {
     const firstName = doc.firstName || ''
     const lastName = doc.lastName || ''
 
@@ -308,7 +324,11 @@ export class CustomerRepository {
       status: (doc.status as CustomerStatus) || 'pending_verification',
       preferredCurrency: doc.preferences?.preferredCurrency || 'EGP',
       preferredLanguage: doc.preferences?.preferredLanguage || 'en',
-      notifications: doc.preferences?.notifications || { email: true, sms: false, push: true },
+      notifications: {
+        email: doc.preferences?.notifications?.email ?? true,
+        sms: doc.preferences?.notifications?.sms ?? false,
+        push: doc.preferences?.notifications?.push ?? true,
+      },
       lastLoginAt: doc.lastLoginAt ? new Date(doc.lastLoginAt).toISOString() : undefined,
       failedLoginAttempts: doc.failedLoginAttempts || 0,
       lockedUntil: doc.lockedUntil ? new Date(doc.lockedUntil).toISOString() : undefined,

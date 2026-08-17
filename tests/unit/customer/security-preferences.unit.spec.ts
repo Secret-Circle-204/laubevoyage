@@ -29,6 +29,7 @@ describe('Customer Domain: Security & Preferences Unit Tests', () => {
           preferredLocale: 'ar-EG',
         },
       }),
+      undefined,
       undefined
     )
   })

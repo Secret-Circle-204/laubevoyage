@@ -1,3 +1,4 @@
+import type { RequestContext } from '@/types'
 import { CustomerRepository } from './repositories/customer-repository'
 import type { CustomerAggregate } from './aggregate'
 
@@ -12,11 +13,11 @@ export class CustomerQueries {
     this.repository = repository
   }
 
-  async getById(customerId: number): Promise<CustomerAggregate> {
-    return this.repository.findById(customerId)
+  async getById(customerId: number, context?: RequestContext): Promise<CustomerAggregate> {
+    return this.repository.findById(customerId, context)
   }
 
-  async getByEmail(email: string): Promise<CustomerAggregate | null> {
-    return this.repository.findByEmail(email)
+  async getByEmail(email: string, context?: RequestContext): Promise<CustomerAggregate | null> {
+    return this.repository.findByEmail(email, context)
   }
 }

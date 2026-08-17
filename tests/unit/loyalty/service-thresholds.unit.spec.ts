@@ -2,10 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { LoyaltyService } from '@/domains/loyalty/service'
 import { LoyaltyTier } from '@/types'
 import { LoyaltyProgramConfigurationException } from '@/domains/loyalty/tier-config'
+import type { LoyaltyRepository } from '@/domains/loyalty/repository'
+import type { LoyaltyProgramConfig } from '@/domains/loyalty/tier-config'
+import type { TabsField, ArrayField } from 'payload'
 
 describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
   it('should return correct tier thresholds in EGP spent', () => {
-    const repository = {} as any
+    const repository = {} as unknown as LoyaltyRepository
     const service = new LoyaltyService(repository)
 
     const config = {
@@ -14,7 +17,7 @@ describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
         voyager: { minSpentEGP: 10000 },
         elite: { minSpentEGP: 50000 }
       }
-    } as any
+    } as unknown as LoyaltyProgramConfig
 
     const thresholds = service.getTierThresholds(config)
     expect(thresholds).toEqual([
@@ -25,7 +28,7 @@ describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
   })
 
   it('should calculate correct tier progress towards the next level', () => {
-    const repository = {} as any
+    const repository = {} as unknown as LoyaltyRepository
     const service = new LoyaltyService(repository)
 
     const config = {
@@ -34,7 +37,7 @@ describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
         voyager: { minSpentEGP: 10000 },
         elite: { minSpentEGP: 50000 }
       }
-    } as any
+    } as unknown as LoyaltyProgramConfig
 
     // 1. Explorer with 2,000 EGP spent -> voyager is next
     const progressExplorer = service.calculateTierProgress(2000, LoyaltyTier.EXPLORER, config)
@@ -68,7 +71,7 @@ describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
   })
 
   it('should throw LoyaltyProgramConfigurationException when a tier is missing from config', () => {
-    const repository = {} as any
+    const repository = {} as unknown as LoyaltyRepository
     const service = new LoyaltyService(repository)
 
     const invalidConfig = {
@@ -77,7 +80,7 @@ describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
         // voyager is missing
         elite: { minSpentEGP: 50000 }
       }
-    } as any
+    } as unknown as LoyaltyProgramConfig
 
     expect(() => service.getTierThresholds(invalidConfig)).toThrow(
       LoyaltyProgramConfigurationException
@@ -85,7 +88,7 @@ describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
   })
 
   describe('Tier Boundary Logic', () => {
-    const repository = {} as any
+    const repository = {} as unknown as LoyaltyRepository
     const service = new LoyaltyService(repository)
     const config = {
       tiers: {
@@ -93,7 +96,7 @@ describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
         voyager: { minSpentEGP: 5000 },
         elite: { minSpentEGP: 15000 }
       }
-    } as any
+    } as unknown as LoyaltyProgramConfig
 
     it('should correctly qualify at boundary limits', () => {
       // 4999.99 spent -> Explorer
@@ -136,12 +139,18 @@ describe('Loyalty Service: Tier Thresholds & Configuration Unit Tests', () => {
   describe('LoyaltySettings Global Tiers Array Validation', () => {
     it('should validate tier definitions correctly', async () => {
       const { LoyaltySettings } = await import('@/globals/LoyaltySettings')
-      const tiersField = LoyaltySettings.fields.find((f: any) => f.type === 'tabs')
-        ?.tabs?.find((t: any) => t.label === 'Tier Rules Matrix')
-        ?.fields?.find((f: any) => f.name === 'tiers') as any
+      const tabsField = LoyaltySettings.fields.find((f): f is TabsField => f.type === 'tabs')
+      const tab = tabsField?.tabs?.find((t) => 'label' in t && t.label === 'Tier Rules Matrix')
+      const tiersField = tab && 'fields' in tab
+        ? tab.fields.find((f): f is ArrayField => 'name' in f && f.name === 'tiers')
+        : undefined
 
       expect(tiersField).toBeDefined()
-      const validate = tiersField.validate
+      const validateRaw = tiersField?.validate
+      if (typeof validateRaw !== 'function') {
+        throw new Error('validate is not a function on tiersField')
+      }
+      const validate = validateRaw as (val: unknown) => string | boolean | Promise<string | boolean>
 
       // 1. Valid configuration
       const validTiers = [

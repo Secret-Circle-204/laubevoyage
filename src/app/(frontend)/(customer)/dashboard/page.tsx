@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 import { redirect } from 'next/navigation'
 import { SessionResolver } from '@/application/auth/session-resolver'
-import { cookies } from 'next/headers'
+import { getLocaleContext } from '@/lib/get-locale-context'
 
 export default async function Page() {
   const session = await SessionResolver.resolve()
@@ -22,10 +22,10 @@ export default async function Page() {
     redirect('/login')
   }
 
-  const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value
-  const currency = cookieStore.get('laube-currency')?.value
-
-  const data = await CustomerPortalLoader.loadOverview(session.customerId, { locale, currency })
+  const localeCtx = await getLocaleContext()
+  const data = await CustomerPortalLoader.loadOverview(session.customerId, {
+    locale: localeCtx.language,
+    currency: localeCtx.currency,
+  })
   return <DashboardOverviewPage data={data} />
 }

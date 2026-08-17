@@ -149,7 +149,10 @@ export class LoyaltyService {
    * Fetch live customer point balance.
    */
   async getCustomerBalance(userId: number, context?: RequestContext): Promise<number> {
-    return this.workflowEngine.getCustomerBalance(userId, context)
+    console.log(`[LoyaltyService] getCustomerBalance START (userId: ${userId})`)
+    const balance = await this.workflowEngine.getCustomerBalance(userId, context)
+    console.log(`[LoyaltyService] getCustomerBalance END (balance: ${balance})`)
+    return balance
   }
 
   /**

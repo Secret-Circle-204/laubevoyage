@@ -1,4 +1,5 @@
 import type { Payload, PayloadRequest } from 'payload'
+import type { RequestContext } from '@/types'
 import type { BaseDomainEvent } from '../event-bus'
 import type { IOutboxRepository, DomainOutboxRecord } from '../contracts/outbox-repository.interface'
 
@@ -6,27 +7,43 @@ export class PayloadOutboxRepository implements IOutboxRepository {
   constructor(private payload: Payload) {}
 
   async add(event: BaseDomainEvent, dbTransaction?: unknown): Promise<DomainOutboxRecord> {
-    const req = dbTransaction as PayloadRequest | undefined
+    let req: PayloadRequest | undefined
+    if (dbTransaction && typeof dbTransaction === 'object' && 'transactionId' in dbTransaction) {
+      const context = dbTransaction as RequestContext
+      req = context.transactionId
+        ? ({
+            transactionID: context.transactionId,
+          } as unknown as PayloadRequest)
+        : undefined
+    } else {
+      req = dbTransaction as PayloadRequest | undefined
+    }
 
-    const doc = await this.payload.create({
-      collection: 'event-outbox',
-      data: {
-        eventId: event.eventId,
-        correlationId: event.correlationId,
-        causationId: event.causationId || null,
-        eventType: event.type,
-        eventVersion: event.eventVersion || 1,
-        aggregateType: event.aggregateType || 'System',
-        aggregateId: event.aggregateId || event.eventId,
-        payload: event as Record<string, unknown>,
-        status: 'pending',
-        retryCount: 0,
-        occurredAt: event.occurredAt || new Date().toISOString(),
-      },
-      req,
-    })
-
-    return this.mapDocToRecord(doc)
+    console.log(`[PayloadOutboxRepository.add] Inserting outbox event [${event.type}] (ID: ${event.eventId}). Transactional Context:`, !!req?.transactionID)
+    try {
+      const doc = await this.payload.create({
+        collection: 'event-outbox',
+        data: {
+          eventId: event.eventId,
+          correlationId: event.correlationId,
+          causationId: event.causationId || null,
+          eventType: event.type,
+          eventVersion: event.eventVersion || 1,
+          aggregateType: event.aggregateType || 'System',
+          aggregateId: event.aggregateId || event.eventId,
+          payload: event as Record<string, unknown>,
+          status: 'pending',
+          retryCount: 0,
+          occurredAt: event.occurredAt || new Date().toISOString(),
+        },
+        req,
+      })
+      console.log(`[PayloadOutboxRepository.add] Outbox event [${event.type}] (ID: ${event.eventId}) saved successfully. Document ID: ${doc.id}`)
+      return this.mapDocToRecord(doc)
+    } catch (err) {
+      console.error(`[PayloadOutboxRepository.add] Failed to save outbox event [${event.type}] (ID: ${event.eventId}). Error:`, err)
+      throw err
+    }
   }
 
   async findPending(limit: number = 20): Promise<DomainOutboxRecord[]> {

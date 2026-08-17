@@ -15,7 +15,7 @@ export class CheckoutPageLoader {
     },
   ): Promise<CheckoutPageDTO | null> {
     try {
-      const { booking, experience, payment, localization, pricingFacade, bookingPricingUseCase } = await getApplicationServices()
+      const { booking, experience, payment, localization, pricingFacade, bookingPricingUseCase, loyalty } = await getApplicationServices()
 
       const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
@@ -25,7 +25,7 @@ export class CheckoutPageLoader {
       const gateways: PaymentGatewayDTO[] = await payment.getAvailableGateways()
       const session = await SessionResolver.resolve()
       if (!session.customerId) return null
-      const availableLoyaltyPoints = session.points ?? 0
+      const availableLoyaltyPoints = await loyalty.getCustomerBalance(session.customerId)
 
       if (bookingId !== 'new') {
         const bookingDoc = await booking.getByBookingNumber(bookingId)

@@ -31,7 +31,7 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
         <div className={`p-6 rounded-2xl border flex flex-col gap-2 ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Member Tier</span>
           <span className="text-3xl font-serif font-light capitalize text-emerald-500">
-            {data.tier} Member
+            {data.currentTier} Member
           </span>
         </div>
       </div>

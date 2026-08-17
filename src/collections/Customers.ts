@@ -108,9 +108,9 @@ export const Customers: CollectionConfig = {
     {
       name: 'loyalty',
       type: 'group',
-      // access: {
-      //   update: () => false,
-      // },
+      access: {
+        update: () => false,
+      },
       fields: [
         {
           name: 'tier',

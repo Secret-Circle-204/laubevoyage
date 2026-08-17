@@ -1,5 +1,6 @@
 import type { CollectionAfterChangeHook } from 'payload'
 import { getDomainServices } from '@/domains'
+import type { RequestContext } from '@/types'
 
 /**
  * Hook: Dumb bridge that forwards customer creations to the Customer Domain.
@@ -13,12 +14,22 @@ export const afterUserCreate: CollectionAfterChangeHook = async ({ doc, req, ope
     }
 
     // Otherwise, this is an external/exceptional creation (e.g. Admin Panel, Seed, CLI).
-    // Delegate to the domain service asynchronously in the background.
+    // Delegate to the domain service inside the same transaction boundary.
     const services = await getDomainServices()
-    void services.customer.onCustomerCreated(Number(doc.id))
-      .catch((err) => {
-        console.error('[afterUserCreate Fallback Hook] Error publishing customer registration event:', err)
-      })
+    const transactionId = req?.transactionID ? await req.transactionID : undefined
+    const context: RequestContext | undefined = transactionId
+      ? { transactionId }
+      : undefined
+
+    console.log(`[afterUserCreate Hook] Traced external customer creation for ID #${doc.id}. Transactional Context:`, !!transactionId)
+
+    try {
+      await services.customer.onCustomerCreated(Number(doc.id), context)
+      console.log(`[afterUserCreate Hook] Successfully triggered and completed onCustomerCreated for customer #${doc.id}`)
+    } catch (err) {
+      console.error(`[afterUserCreate Hook] Fatal error processing onCustomerCreated for customer #${doc.id}. Rethrowing to trigger transaction rollback. Error details:`, err)
+      throw err
+    }
   }
 
   return doc

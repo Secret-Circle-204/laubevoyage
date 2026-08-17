@@ -1,3 +1,4 @@
+import type { RequestContext } from '@/types'
 import { CustomerRepository } from '../repositories/customer-repository'
 import { RegistrationService } from './registration'
 import { AuthenticationService } from './authentication'
@@ -29,8 +30,9 @@ export class IdentityCoordinatorFacade {
     password?: string,
     preferences?: CustomerPreferencesInput,
     options?: { eventSource?: 'domain' | 'external' },
+    context?: RequestContext,
   ): Promise<CustomerAggregate> {
-    return this.registration.registerCustomer(email, firstName, lastName, password, preferences, options)
+    return this.registration.registerCustomer(email, firstName, lastName, password, preferences, options, context)
   }
 
   async verifyEmail(rawToken: string): Promise<number> {

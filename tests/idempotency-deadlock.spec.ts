@@ -4,6 +4,7 @@ import { BookingStatus } from '@/types'
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { BookingPolicy } from '@/domains/booking/policy'
+import type { BookingAggregate } from '@/domains/booking/types'
 
 // Mock next/headers for cookies
 vi.mock('next/headers', () => ({
@@ -36,7 +37,7 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
   beforeEach(async () => {
     // Reset departure slot capacity
     const { booking: bookingService } = await getDomainServices()
-    const payloadInstance = (bookingService as any).repository.payload
+    const payloadInstance = bookingService['repository']['payload']
     await payloadInstance.update({
       collection: 'departure-slots',
       id: slotId,
@@ -64,13 +65,14 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
     }
 
     const { booking: bookingService } = await getDomainServices()
-    const payloadInstance = (bookingService as any).repository.payload
+    const payloadInstance = bookingService['repository']['payload']
 
     // Submit concurrent double-click requests
-    const [res1, res2] = await Promise.all([
+    type CheckoutResult = { success: boolean; error?: string; bookingNumber?: string; checkoutUrl?: string }
+    const [res1, res2] = (await Promise.all([
       confirmCheckoutAction(checkoutParams),
       confirmCheckoutAction(checkoutParams)
-    ])
+    ])) as [CheckoutResult, CheckoutResult]
     expect(res1.success).toBe(true)
     expect(res2.success).toBe(true)
     expect(res1.bookingNumber).toBe(res2.bookingNumber)
@@ -84,7 +86,12 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
     expect(bookings.docs.length).toBe(1)
     const booking1 = bookings.docs[0]
     expect(booking1.status).toBe(BookingStatus.PENDING_PAYMENT)
-    expect(booking1.capacityHold?.status).toBe('active')
+    const capacityHold = booking1.capacityHold
+    if (capacityHold && typeof capacityHold === 'object' && !Array.isArray(capacityHold)) {
+      expect((capacityHold as { status?: string }).status).toBe('active')
+    } else {
+      throw new Error('capacityHold is not an object')
+    }
 
     // Cleanup
     await payloadInstance.delete({
@@ -110,10 +117,10 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
     }
 
     const { booking: bookingService } = await getDomainServices()
-    const payloadInstance = (bookingService as any).repository.payload
+    const payloadInstance = bookingService['repository']['payload']
 
     // Spy on reserveCapacity and force it to reject (simulating capacity full or database locking failure)
-    const reserveCapacitySpy = vi.spyOn((bookingService as any).experienceService, 'reserveCapacity')
+    const reserveCapacitySpy = vi.spyOn(bookingService['experienceService'], 'reserveCapacity')
       .mockRejectedValueOnce(new Error('MOCK_CAPACITY_RESERVATION_FAILURE'))
 
     // Trigger the checkout action - should fail because of reservation error
@@ -133,7 +140,7 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
 
   it('Test C: should clean up orphaned bookings with missing holds to EXPIRED (Legacy Orphan Cleanup)', async () => {
     const { booking: bookingService } = await getDomainServices()
-    const payloadInstance = (bookingService as any).repository.payload
+    const payloadInstance = bookingService['repository']['payload']
 
     const attemptUUID = Math.random().toString(36).substring(2, 9)
     const idempotencyKey = `checkout:${experienceId}:${slotId}:2026-09-15:${attemptUUID}`
@@ -157,7 +164,7 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
     })
 
     // Execute the Expiration Workflow (we set the reaper window to 0 so all pending bookings are eligible)
-    const expiredCount = await bookingService.workflowEngine.executeExpirationWorkflow(0)
+    const expiredCount = await bookingService.processExpiredBookings(0)
     expect(expiredCount).toBeGreaterThanOrEqual(1)
 
     // Verify the booking is now EXPIRED in the database (no longer pending_payment)
@@ -178,21 +185,21 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
     const { booking: bookingService } = await getDomainServices()
 
     // 1. Mock expired/corrupted booking aggregate (capacityHold null)
-    const corruptedBooking: any = {
+    const corruptedBooking = {
       id: 999,
       customerId,
       experienceId,
       startDate: '2026-09-15',
       status: BookingStatus.PENDING_PAYMENT,
       capacityHold: null
-    }
+    } as unknown as BookingAggregate
 
     const resCorrupted = BookingPolicy.canReuseForCheckout(corruptedBooking, customerId, experienceId, '2026-09-15')
     expect(resCorrupted.allowed).toBe(false)
     expect(resCorrupted.code).toBe('BOOKING_CORRUPTED')
 
     // 2. Mock expired booking aggregate (capacityHold status expired)
-    const expiredBooking: any = {
+    const expiredBooking = {
       id: 998,
       customerId,
       experienceId,
@@ -202,7 +209,7 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
         status: 'expired',
         expiresAt: new Date(Date.now() - 1000).toISOString()
       }
-    }
+    } as unknown as BookingAggregate
 
     const resExpired = BookingPolicy.canReuseForCheckout(expiredBooking, customerId, experienceId, '2026-09-15')
     expect(resExpired.allowed).toBe(false)

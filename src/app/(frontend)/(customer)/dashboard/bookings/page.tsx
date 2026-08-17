@@ -2,7 +2,7 @@ import React from 'react'
 import type { Metadata } from 'next'
 import { Card, Badge, CurrencyDisplay, Button } from '@/components/ui'
 import { CustomerPortalLoader } from '@/application/dashboard/loaders'
-import { cookies } from 'next/headers'
+import { getLocaleContext } from '@/lib/get-locale-context'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,10 +19,11 @@ export default async function Page() {
     redirect('/login')
   }
 
-  const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value
-  const currency = cookieStore.get('laube-currency')?.value
-  const data = await CustomerPortalLoader.loadBookingsHistory(session.customerId, { locale, currency })
+  const localeCtx = await getLocaleContext()
+  const data = await CustomerPortalLoader.loadBookingsHistory(session.customerId, {
+    locale: localeCtx.language,
+    currency: localeCtx.currency,
+  })
 
   return (
     <div className="flex flex-col gap-6">

@@ -7,14 +7,23 @@ import { LayoutLoader } from '@/application/layout/layout-loader'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
 
+import { getLocaleContext } from '@/lib/get-locale-context'
+
 export default async function CustomerLayout({ children }: { children: React.ReactNode }) {
   const session = await SessionResolver.resolve()
   if (!session.isAuthenticated || !session.customerId) {
     redirect('/login')
   }
 
-  const layoutData = await LayoutLoader.load({ locale: 'en', currency: 'EGP' })
-  const customerOverview = await CustomerPortalLoader.loadOverview(session.customerId)
+  const localeCtx = await getLocaleContext()
+  const layoutData = await LayoutLoader.load({
+    locale: localeCtx.language,
+    currency: localeCtx.currency,
+  })
+  const customerOverview = await CustomerPortalLoader.loadOverview(session.customerId, {
+    locale: localeCtx.language,
+    currency: localeCtx.currency,
+  })
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">

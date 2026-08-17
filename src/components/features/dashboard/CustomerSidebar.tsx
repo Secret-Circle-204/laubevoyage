@@ -29,7 +29,7 @@ export function CustomerSidebar({ data }: { data: CustomerPortalOverviewDTO }) {
         <div className="flex flex-col">
           <span className="font-bold text-sm text-slate-900 dark:text-white">{data.fullName}</span>
           <Badge variant="accent" size="sm" className="w-fit mt-1 uppercase text-[10px]">
-            {data.tier} Tier
+            {data.currentTier} Tier
           </Badge>
         </div>
       </div>

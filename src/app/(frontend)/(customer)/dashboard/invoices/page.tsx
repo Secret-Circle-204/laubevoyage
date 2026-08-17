@@ -4,7 +4,7 @@ import { Card, Badge, CurrencyDisplay, Button } from '@/components/ui'
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
+import { getLocaleContext } from '@/lib/get-locale-context'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,9 +20,8 @@ export default async function Page() {
 
   const { booking, payment, experience, localization } = await getDomainServices()
 
-  const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value
-  const currency = cookieStore.get('laube-currency')?.value
+  const localeCtx = await getLocaleContext()
+  const ctx = localeCtx
 
   // 1. Get user bookings
   const bookingsResult = await booking.getUserBookings(session.customerId, 1, 100)
@@ -41,12 +40,6 @@ export default async function Page() {
       const attempt = tx.attempts?.[0]
       const txCurrency = attempt?.currency || 'EGP'
       const displayAmount = attempt?.amount || 0
-
-      // Build localization context
-      const ctx = await localization.buildContext({
-        cookieLocale: locale,
-        cookieCurrency: currency || txCurrency,
-      })
 
       const basePriceEGP = b.pricingSnapshot?.totalAmountEGP || b.pricingSnapshot?.subtotalEGP || 0
       const exchangeRate = b.pricingSnapshot?.exchangeRate || 1

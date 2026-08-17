@@ -1,7 +1,7 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { cookies } from 'next/headers'
+import { getLocaleContext } from '@/lib/get-locale-context'
 import { notFound } from 'next/navigation'
 import { Card, Badge, Button, CurrencyDisplay } from '@/components/ui'
 import { BookingDetailsLoader } from '@/application/dashboard/loaders'
@@ -15,11 +15,12 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
   const params = await props.params
   const bookingId = params.id
 
-  const cookieStore = await cookies()
-  const locale = cookieStore.get('laube-locale')?.value
-  const currency = cookieStore.get('laube-currency')?.value
+  const localeCtx = await getLocaleContext()
 
-  const data = await BookingDetailsLoader.loadByNumber(bookingId, { locale, currency })
+  const data = await BookingDetailsLoader.loadByNumber(bookingId, {
+    locale: localeCtx.language,
+    currency: localeCtx.currency,
+  })
   if (!data) {
     notFound()
   }
