@@ -19,11 +19,11 @@ const mockConfig: LoyaltyProgramConfig = {
   welcomeBonus: 0,
   expirationMonths: 12,
   bonusNeverExpires: true,
-  tiers: {
-    explorer: { tier: LoyaltyTier.EXPLORER, minSpentEGP: 0, earnMultiplier: 1.0, upgradeBonus: 0 },
-    voyager: { tier: LoyaltyTier.VOYAGER, minSpentEGP: 5000, earnMultiplier: 1.2, upgradeBonus: 0 },
-    elite: { tier: LoyaltyTier.ELITE, minSpentEGP: 15000, earnMultiplier: 1.5, upgradeBonus: 0 },
-  }
+  tiers: [
+    { tier: 'explorer', label: 'Explorer', minSpentEGP: 0, earnMultiplier: 1.0, upgradeBonus: 0 },
+    { tier: 'voyager', label: 'Voyager', minSpentEGP: 5000, earnMultiplier: 1.2, upgradeBonus: 0 },
+    { tier: 'elite', label: 'Elite', minSpentEGP: 15000, earnMultiplier: 1.5, upgradeBonus: 0 },
+  ]
 }
 
 describe('Loyalty Domain: Policy Unit Tests', () => {
@@ -55,10 +55,10 @@ describe('Loyalty Domain: Policy Unit Tests', () => {
 
   describe('TierPolicy', () => {
     it('should evaluate correct tier based on cumulative spent EGP', () => {
-      expect(TierPolicy.evaluateEligibleTier(0, mockConfig)).toBe(LoyaltyTier.EXPLORER)
-      expect(TierPolicy.evaluateEligibleTier(4999, mockConfig)).toBe(LoyaltyTier.EXPLORER)
-      expect(TierPolicy.evaluateEligibleTier(5000, mockConfig)).toBe(LoyaltyTier.VOYAGER)
-      expect(TierPolicy.evaluateEligibleTier(15000, mockConfig)).toBe(LoyaltyTier.ELITE)
+      expect(TierPolicy.evaluateEligibleTier(0, mockConfig)).toBe('explorer')
+      expect(TierPolicy.evaluateEligibleTier(4999, mockConfig)).toBe('explorer')
+      expect(TierPolicy.evaluateEligibleTier(5000, mockConfig)).toBe('voyager')
+      expect(TierPolicy.evaluateEligibleTier(15000, mockConfig)).toBe('elite')
     })
   })
 })

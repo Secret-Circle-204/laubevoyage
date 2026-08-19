@@ -1,4 +1,4 @@
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import { NotificationRepository } from './repository'
 import { NotificationDispatcher } from './dispatcher'
 import { NotificationQueue } from './queue'
@@ -49,11 +49,11 @@ export class NotificationWorkflowEngine {
     priority?: NotificationPriority
     templateId: string
     translationKey: string
-    templateData: Record<string, any>
+    templateData: Record<string, unknown>
     attachments?: NotificationAttachment[]
     sendAt?: string
     customerId?: number
-  }, req?: any): Promise<{ queued: boolean; jobId: string; reason?: string }> {
+  }, req?: PayloadRequest): Promise<{ queued: boolean; jobId: string; reason?: string }> {
     // 1. Check Rate Limiting for OTPs
     if (
       params.category === 'marketing' &&

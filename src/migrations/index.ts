@@ -27,6 +27,9 @@ import * as migration_20260731_180931 from './20260731_180931';
 import * as migration_20260808_204640_add_idempotency_key from './20260808_204640_add_idempotency_key';
 import * as migration_20260809_132233_add_payment_received_after_expiry_status from './20260809_132233_add_payment_received_after_expiry_status';
 import * as migration_20260809_201143_add_point_ledger_uniqueness_index from './20260809_201143_add_point_ledger_uniqueness_index';
+import * as migration_20260817_192308_add_verificationExpiresAt from './20260817_192308_add_verificationExpiresAt';
+import * as migration_20260818_125256_change_loyalty_setings from './20260818_125256_change_loyalty_setings';
+import * as migration_20260818_152800_change_loyalty_seting from './20260818_152800_change_loyalty_seting';
 
 export const migrations = [
   {
@@ -172,6 +175,21 @@ export const migrations = [
   {
     up: migration_20260809_201143_add_point_ledger_uniqueness_index.up,
     down: migration_20260809_201143_add_point_ledger_uniqueness_index.down,
-    name: '20260809_201143_add_point_ledger_uniqueness_index'
+    name: '20260809_201143_add_point_ledger_uniqueness_index',
+  },
+  {
+    up: migration_20260817_192308_add_verificationExpiresAt.up,
+    down: migration_20260817_192308_add_verificationExpiresAt.down,
+    name: '20260817_192308_add_verificationExpiresAt',
+  },
+  {
+    up: migration_20260818_125256_change_loyalty_setings.up,
+    down: migration_20260818_125256_change_loyalty_setings.down,
+    name: '20260818_125256_change_loyalty_setings',
+  },
+  {
+    up: migration_20260818_152800_change_loyalty_seting.up,
+    down: migration_20260818_152800_change_loyalty_seting.down,
+    name: '20260818_152800_change_loyalty_seting'
   },
 ];

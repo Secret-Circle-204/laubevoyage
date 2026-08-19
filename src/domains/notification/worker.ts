@@ -2,6 +2,7 @@ import type { NotificationQueue } from './queue'
 import type { NotificationDispatcher } from './dispatcher'
 import type { NotificationRepository } from './repository'
 import { NotificationPolicy, NotificationRetryScheduler } from './policy'
+import { MaintenanceLeaseService } from '../maintenance/lease-service'
 
 /**
  * Background Notification Worker Engine
@@ -12,6 +13,7 @@ export class NotificationWorker {
   private dispatcher: NotificationDispatcher
   private repository: NotificationRepository
   private isRecovering = false
+  private workerId = `worker_${process.pid || 'main'}_${Math.random().toString(36).substring(2, 7)}`
 
   constructor(queue: NotificationQueue, dispatcher: NotificationDispatcher, repository: NotificationRepository) {
     this.queue = queue
@@ -45,62 +47,94 @@ export class NotificationWorker {
     }
     if (!job) return false
 
-    console.log(`[NotificationWorker] ✉️ Processing job ${job.jobId} (Template: ${job.templateId}, Recipient: ${job.recipient}, Attempt: ${job.attempts + 1}/${job.maxAttempts})`);
-
-    // Check policy
-    const policyResult = NotificationPolicy.canDispatch(job)
-    if (!policyResult.allowed) {
-      console.warn(`[NotificationWorker] ⚠️ Job ${job.jobId} dispatch rejected by policy: ${policyResult.reason}`);
-      job.status = 'failed'
-      job.lastError = policyResult.reason
-      await this.repository.saveJob(job)
+    const payload = this.repository.payloadInstance
+    if (!payload) {
+      console.warn('[NotificationWorker] Cannot process job without initialized Payload instance.')
       return false
     }
 
-    job.status = 'processing'
-    job.attempts += 1
-    job.lastAttemptAt = new Date().toISOString()
-    await this.repository.saveJob(job)
-
-    try {
-      const result = await this.dispatcher.dispatch(job)
-
-      if (result.success) {
-        console.log(`[NotificationWorker] ✅ Job ${job.jobId} successfully delivered to ${job.recipient}.`);
-        job.status = 'delivered'
-        job.sentAt = new Date().toISOString()
-        await this.repository.saveJob(job)
-        return true
-      }
-
-      console.error(`[NotificationWorker] ❌ Job ${job.jobId} dispatch failed: ${result.error || 'Unknown error'}`);
-
-      const delaySeconds = NotificationRetryScheduler.calculateNextAttemptDelay(job.channel, job.attempts)
-
-      if (delaySeconds === null) {
-        console.error(`[NotificationWorker] 🚨 Job ${job.jobId} exceeded max attempts. Routing to DLQ.`);
-        job.status = 'dlq'
-        job.lastError = result.error || 'Max retries reached'
-      } else {
-        job.status = 'failed'
-        job.lastError = result.error
-        job.nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
-      }
-    } catch (err: any) {
-      console.error(`[NotificationWorker] ❌ Exception during job ${job.jobId} execution: ${err.message}`);
-      const delaySeconds = NotificationRetryScheduler.calculateNextAttemptDelay(job.channel, job.attempts)
-
-      if (delaySeconds === null) {
-        job.status = 'dlq'
-        job.lastError = err.message || 'Max retries reached'
-      } else {
-        job.status = 'failed'
-        job.lastError = err.message
-        job.nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
-      }
+    // 1. Acquire distributed process-independent lease for this specific job ID
+    const acquired = await MaintenanceLeaseService.acquireLease(payload, `notification_job_${job.jobId}`, this.workerId, 60000) // 1 minute lease
+    if (!acquired) {
+      console.log(`[NotificationWorker] Lease acquisition skipped for job ${job.jobId} (already processing by another replica).`)
+      return false
     }
 
-    await this.repository.saveJob(job)
-    return false
+    try {
+      // 2. Atomic state claim: Transition status to processing and increment attempts atomically
+      const claimed = await this.repository.claimJob(job.jobId, this.workerId)
+      if (!claimed) {
+        console.log(`[NotificationWorker] Atomic Claim failed for job ${job.jobId} (already claimed or terminal state).`)
+        return false
+      }
+
+      // 3. Current-state verification: Fetch authoritative state to confirm eligibility
+      const freshJob = await this.repository.getJobById(job.jobId)
+      if (!freshJob) {
+        return false
+      }
+
+      if (freshJob.status === 'sent' || freshJob.status === 'delivered' || freshJob.status === 'dlq') {
+        console.log(`[NotificationWorker] Verification Guard: Job ${job.jobId} is already in terminal state: ${freshJob.status}. Skipping dispatch.`)
+        return false
+      }
+
+      console.log(`[NotificationWorker] ✉️ Processing job ${freshJob.jobId} (Template: ${freshJob.templateId}, Recipient: ${freshJob.recipient}, Attempt: ${freshJob.attempts}/${freshJob.maxAttempts})`);
+
+      // 4. Validate policy on fresh job state
+      const policyResult = NotificationPolicy.canDispatch(freshJob)
+      if (!policyResult.allowed) {
+        console.warn(`[NotificationWorker] ⚠️ Job ${freshJob.jobId} dispatch rejected by policy: ${policyResult.reason}`);
+        freshJob.status = 'failed'
+        freshJob.lastError = policyResult.reason
+        await this.repository.saveJob(freshJob)
+        return false
+      }
+
+      try {
+        const result = await this.dispatcher.dispatch(freshJob)
+
+        if (result.success) {
+          console.log(`[NotificationWorker] ✅ Job ${freshJob.jobId} successfully delivered to ${freshJob.recipient}.`);
+          freshJob.status = 'delivered'
+          freshJob.sentAt = new Date().toISOString()
+        } else {
+          console.error(`[NotificationWorker] ❌ Job ${freshJob.jobId} dispatch failed: ${result.error || 'Unknown error'}`);
+          const delaySeconds = NotificationRetryScheduler.calculateNextAttemptDelay(freshJob.channel, freshJob.attempts)
+          if (delaySeconds === null) {
+            console.error(`[NotificationWorker] 🚨 Job ${freshJob.jobId} exceeded max attempts. Routing to DLQ.`);
+            freshJob.status = 'dlq'
+            freshJob.lastError = result.error || 'Max retries reached'
+          } else {
+            freshJob.status = 'failed'
+            freshJob.lastError = result.error
+            freshJob.nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
+          }
+        }
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        console.error(`[NotificationWorker] ❌ Exception during job ${freshJob.jobId} execution: ${errMsg}`);
+        const delaySeconds = NotificationRetryScheduler.calculateNextAttemptDelay(freshJob.channel, freshJob.attempts)
+
+        if (delaySeconds === null) {
+          freshJob.status = 'dlq'
+          freshJob.lastError = errMsg
+        } else {
+          freshJob.status = 'failed'
+          freshJob.lastError = errMsg
+          freshJob.nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
+        }
+      }
+
+      await this.repository.saveJob(freshJob)
+      return freshJob.status === 'delivered'
+    } finally {
+      // 5. Release distributed lease for this job
+      try {
+        await MaintenanceLeaseService.releaseLease(payload, `notification_job_${job.jobId}`, this.workerId)
+      } catch (releaseErr) {
+        console.error(`[NotificationWorker] Failed to release lease for job ${job.jobId}:`, releaseErr)
+      }
+    }
   }
 }

@@ -1,4 +1,4 @@
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import { NotificationWorkflowEngine } from './workflow'
 import { NotificationRepository } from './repository'
 import type {
@@ -6,6 +6,7 @@ import type {
   NotificationCategory,
   NotificationPriority,
   NotificationAttachment,
+  NotificationJobEntity,
 } from './types'
 
 /**
@@ -28,16 +29,25 @@ export class NotificationService {
     priority?: NotificationPriority
     templateId: string
     translationKey: string
-    templateData: Record<string, any>
+    templateData: Record<string, unknown>
     attachments?: NotificationAttachment[]
     sendAt?: string
     customerId?: number
-  }, req?: any): Promise<{ queued: boolean; jobId: string; reason?: string }> {
+  }, req?: PayloadRequest): Promise<{ queued: boolean; jobId: string; reason?: string }> {
     return this.workflowEngine.executeEnqueueWorkflow(params, req)
   }
 
   async processNextJob(): Promise<boolean> {
     return this.workflowEngine.worker.processNextJob()
+  }
+
+  async getNotificationsByRecipient(
+    recipient: string,
+    page: number = 1,
+    limit: number = 20,
+    filters?: { category?: NotificationCategory },
+  ): Promise<import('@/types').PaginatedResponse<NotificationJobEntity>> {
+    return this.workflowEngine.repository.findByRecipient(recipient, page, limit, filters)
   }
 
   public startWorker(): void {

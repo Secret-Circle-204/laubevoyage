@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { LocalizationService } from '@/domains/localization/service'
 import { CurrencyService } from '@/domains/currency/service'
-import { Language } from '@/types/locale'
 
 describe('Localization Domain: LocalizationService & Resolution Policies Unit Tests', () => {
   const mockTranslationService: any = {}
@@ -20,31 +19,24 @@ describe('Localization Domain: LocalizationService & Resolution Policies Unit Te
       if (langCode === 'de') return 'EUR'
       if (langCode === 'ja') return 'JPY'
       if (langCode === 'en') return 'USD'
-      return undefined // e.g. 'nl' returns undefined
+      return undefined
     }),
   }
   const mockPricingFacade: any = {
     resolveDisplayCurrency: vi.fn().mockImplementation(async (params) => {
-      const raw = typeof params === 'string' ? { cookieCurrency: params } : params || {}
-      const activeCodes = new Set(['EGP', 'USD', 'JPY', 'EUR'])
-      
-      if (raw.cookieCurrency && activeCodes.has(raw.cookieCurrency.toUpperCase())) {
-        return raw.cookieCurrency.toUpperCase()
-      }
-      if (raw.sessionCurrency && activeCodes.has(raw.sessionCurrency.toUpperCase())) {
-        return raw.sessionCurrency.toUpperCase()
-      }
-      if (raw.languagePreferredCurrencyCode && activeCodes.has(raw.languagePreferredCurrencyCode.toUpperCase())) {
-        return raw.languagePreferredCurrencyCode.toUpperCase()
-      }
-      if (raw.geoCurrencyCode && activeCodes.has(raw.geoCurrencyCode.toUpperCase())) {
-        return raw.geoCurrencyCode.toUpperCase()
-      }
-      if (raw.geoCountry === 'US') return 'USD'
-      if (raw.geoCountry === 'DE') return 'EUR'
-      if (raw.geoCountry === 'JP') return 'JPY'
-      return 'EGP'
+      if (params?.cookieCurrency) return params.cookieCurrency
+      if (params?.languagePreferredCurrencyCode) return params.languagePreferredCurrencyCode
+      if (params?.geoCurrencyCode) return params.geoCurrencyCode
+      return 'USD'
     }),
+    convertPrice: vi.fn().mockImplementation(async (amt, from, to) => ({
+      amount: amt,
+      currency: to,
+      exchangeRate: 1,
+      sourceAmount: amt,
+      sourceCurrency: from,
+      formatted: `${amt} ${to}`,
+    })),
   }
 
   const localizationService = new LocalizationService(
@@ -61,7 +53,7 @@ describe('Localization Domain: LocalizationService & Resolution Policies Unit Te
       geoCountry: 'US',
     })
 
-    expect(ctx.language).toBe(Language.AR)
+    expect(ctx.language).toBe('ar')
   })
 
   it('should resolve currency from language-preferred currency when cookie and session are missing', async () => {
@@ -70,7 +62,7 @@ describe('Localization Domain: LocalizationService & Resolution Policies Unit Te
       geoCountry: 'EG', // French visitor in Egypt (Ghardaga)
     })
 
-    expect(ctx.language).toBe(Language.FR)
+    expect(ctx.language).toBe('fr')
     expect(ctx.currency).toBe('EUR') // Language-preferred currency EUR takes precedence over geo currency EGP
     expect(ctx.country).toBe('EG')
   })
@@ -82,7 +74,7 @@ describe('Localization Domain: LocalizationService & Resolution Policies Unit Te
       geoCountry: 'EG',
     })
 
-    expect(ctx.language).toBe(Language.FR)
+    expect(ctx.language).toBe('fr')
     expect(ctx.currency).toBe('USD') // Cookie overrides language preference
   })
 
@@ -92,7 +84,7 @@ describe('Localization Domain: LocalizationService & Resolution Policies Unit Te
       geoCountry: 'US', // Geo country US preferred currency is 'USD'
     })
 
-    expect(ctx.language).toBe('nl' as Language)
+    expect(ctx.language).toBe('nl')
     expect(ctx.currency).toBe('USD') // Falls back to Geo Currency USD
     expect(ctx.country).toBe('US')
   })
@@ -121,7 +113,7 @@ describe('Localization Domain: LocalizationService & Resolution Policies Unit Te
     // Restore original mock
     mockPricingFacade.resolveDisplayCurrency = originalResolve
 
-    expect(ctx.language).toBe('de' as Language)
+    expect(ctx.language).toBe('de')
     expect(ctx.currency).toBe('USD') // EUR inactive, falls back to Geo Currency USD
     expect(ctx.country).toBe('US')
   })
@@ -149,7 +141,7 @@ describe('Localization Domain: LocalizationService & Resolution Policies Unit Te
   it('should fallback to DEFAULT_LOCALE_CONTEXT when all inputs are empty', async () => {
     const ctx = await localizationService.buildContext({})
 
-    expect(ctx.language).toBe(Language.EN)
+    expect(ctx.language).toBe('en')
     expect(ctx.currency).toBe('USD') // English default language matches USD currency
     expect(ctx.country).toBe('EG')
     expect(ctx.timezone).toBe('Africa/Cairo')

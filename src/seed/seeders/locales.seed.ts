@@ -47,19 +47,8 @@ export async function seedLocales(payload: Payload): Promise<void> {
           data: lang,
         })
         seededCount++
-      } else {
-        const doc = existing.docs[0] as any
-        if (doc.isActive !== lang.isActive) {
-          await payload.update({
-            collection: 'languages',
-            id: doc.id,
-            data: {
-              isActive: lang.isActive,
-            },
-          })
-          seededCount++
-        }
       }
+      // If language already exists, preserve all admin-owned runtime state (isActive, isDefault, displayOrder)
     }
 
     if (seededCount > 0) {

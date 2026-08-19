@@ -51,20 +51,20 @@ export class CheckoutPageLoader {
         const snapshot = bookingDoc.pricingSnapshot
         if (!snapshot) return null
 
-        const subtotalConverted = snapshot.subtotalEGP * (snapshot.exchangeRate || 1)
+        const subtotalConverted = snapshot.subtotalEGP * snapshot.exchangeRate
         const subtotalFormatted = await localization.formatAlreadyConvertedPrice(
           subtotalConverted,
           snapshot.subtotalEGP,
-          snapshot.displayCurrency || 'EGP',
-          snapshot.exchangeRate || 1,
+          snapshot.displayCurrency,
+          snapshot.exchangeRate,
           ctx
         )
 
         const totalFormatted = await localization.formatAlreadyConvertedPrice(
           snapshot.displayAmount,
           snapshot.totalAmountEGP,
-          snapshot.displayCurrency || 'EGP',
-          snapshot.exchangeRate || 1,
+          snapshot.displayCurrency,
+          snapshot.exchangeRate,
           ctx
         )
 
@@ -119,7 +119,7 @@ export class CheckoutPageLoader {
 
       const { getDomainServices } = await import('@/domains/factory')
       const { customer } = await getDomainServices()
-      const customerDoc = await customer.getById(session.customerId).catch(() => null)
+      const customerDoc = await customer.getById(session.customerId)
       const leadTraveler = customerDoc
         ? {
             firstName: customerDoc.firstName || '',

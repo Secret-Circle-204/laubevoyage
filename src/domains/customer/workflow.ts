@@ -54,7 +54,7 @@ export class CustomerWorkflowEngine {
     this.preferencesManager = new PreferencesManager()
     this.gdprManager = new GDPRConsentManager(this.repository)
     this.sessionManager = new DeviceSessionManager(this.sessionRepository)
-    this.queries = new CustomerQueries(this.repository)
+    this.queries = new CustomerQueries(this.repository, this.sessionRepository)
     this.eventOutbox = EventOutboxService.getInstance()
   }
 

@@ -2,6 +2,7 @@ import type { DashboardQueryBus } from './query-bus'
 import type { CustomerPortalProjection } from './types'
 import { DashboardMetrics } from './metrics'
 import { LoyaltyTier } from '@/types'
+import { TierPolicy } from '../loyalty/tier-policy'
 
 /**
  * High-Speed Parallel Overview Aggregator
@@ -18,12 +19,15 @@ export class DashboardOverviewAggregator {
     const startTime = performance.now()
 
     // Parallel non-blocking read aggregation (Strict Fail-Fast: let any query error bubble up)
-    const [customer, loyaltyProjection, activeBookings, activeConfig] = await Promise.all([
-      this.queryBus.customerQueries.getById(customerId),
-      this.queryBus.loyaltyQueries.getProjection(customerId),
-      this.queryBus.bookingQueries.getByCustomerId(customerId),
-      this.queryBus.loyaltyQueries.getActiveProgramConfig(),
-    ])
+    const [customer, loyaltyProjection, tripSummary, activeConfig, actualBalance, activeSessions] =
+      await Promise.all([
+        this.queryBus.customerQueries.getById(customerId),
+        this.queryBus.loyaltyQueries.getProjection(customerId),
+        this.queryBus.bookingQueries.getCustomerTripSummary(customerId),
+        this.queryBus.loyaltyQueries.getActiveProgramConfig(),
+        this.queryBus.loyaltyQueries.getBalance(customerId),
+        this.queryBus.customerQueries.getActiveSessions(customerId),
+      ])
 
     if (!customer) {
       throw new Error(`[CustomerNotFoundException] Customer with ID ${customerId} not found in database.`)
@@ -35,30 +39,11 @@ export class DashboardOverviewAggregator {
       throw new Error('[LoyaltyProgramConfigurationException] Active loyalty program configuration is missing.')
     }
 
-    const voyagerThresholdEGP = activeConfig.tiers?.voyager?.minSpentEGP
-    const eliteThresholdEGP = activeConfig.tiers?.elite?.minSpentEGP
-
-    if (typeof voyagerThresholdEGP !== 'number' || typeof eliteThresholdEGP !== 'number') {
-      throw new Error(
-        `[LoyaltyProgramConfigurationException] Loyalty program configuration is invalid: missing required voyager/elite minSpentEGP thresholds.`,
-      )
-    }
-
     const durationMs = performance.now() - startTime
 
     const totalSpent = loyaltyProjection.totalSpentEGP
-    let tierProgressPercentage = 0
-
-    const currentTier = loyaltyProjection.tier.toLowerCase()
-    if (currentTier === 'explorer') {
-      tierProgressPercentage = Math.min(100, Math.max(0, Math.round((totalSpent / voyagerThresholdEGP) * 100)))
-    } else if (currentTier === 'voyager') {
-      const spentInCurrentTier = totalSpent - voyagerThresholdEGP
-      const tierRange = eliteThresholdEGP - voyagerThresholdEGP
-      tierProgressPercentage = Math.min(100, Math.max(0, Math.round((spentInCurrentTier / tierRange) * 100)))
-    } else {
-      tierProgressPercentage = 100
-    }
+    const ordered = TierPolicy.getOrderedTiers(activeConfig)
+    const defaultTier = ordered[0].tier
 
     return {
       projectionId: `proj_${customerId}_${Date.now()}`,
@@ -72,21 +57,20 @@ export class DashboardOverviewAggregator {
         preferredCurrency: customer.preferredCurrency || 'EGP',
       },
       loyalty: {
-        tier: loyaltyProjection.tier || 'explorer',
-        pointsBalance: loyaltyProjection.balance || 0,
+        tier: loyaltyProjection.tier || defaultTier,
+        pointsBalance: actualBalance || 0,
         activeHoldsCount: 0,
         totalSpentEGP: totalSpent,
-        tierProgressPercentage,
       },
       trips: {
-        upcomingCount: activeBookings.filter((b) => b.status === 'confirmed').length,
-        activeBookingsCount: activeBookings.length,
-        latestBookingNumber: activeBookings[0]?.bookingNumber,
-        nextDepartureDate: activeBookings[0]?.createdAt,
+        upcomingCount: tripSummary.upcomingCount,
+        activeBookingsCount: tripSummary.activeBookingsCount,
+        latestBookingNumber: tripSummary.latestBookingNumber,
+        nextDepartureDate: tripSummary.nextDepartureDate,
       },
 
       security: {
-        activeDeviceCount: 1, // Read session telemetry is stubbed pending identity framework extension
+        activeDeviceCount: activeSessions.length,
         lastLoginAt: customer.lastLoginAt,
       },
       metrics: DashboardMetrics.createMetrics(false, durationMs),

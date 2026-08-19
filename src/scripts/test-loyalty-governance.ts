@@ -29,26 +29,29 @@ async function runGovernanceAuditTests() {
     welcomeBonus: 100,
     expirationMonths: 12,
     bonusNeverExpires: true,
-    tiers: {
-      [LoyaltyTier.EXPLORER]: {
-        tier: LoyaltyTier.EXPLORER,
+    tiers: [
+      {
+        tier: 'explorer',
+        label: 'Explorer',
         minSpentEGP: 0,
         earnMultiplier: 1.0,
         upgradeBonus: 0,
       },
-      [LoyaltyTier.VOYAGER]: {
-        tier: LoyaltyTier.VOYAGER,
+      {
+        tier: 'voyager',
+        label: 'Voyager',
         minSpentEGP: 5000,
         earnMultiplier: 1.2,
         upgradeBonus: 500,
       },
-      [LoyaltyTier.ELITE]: {
-        tier: LoyaltyTier.ELITE,
+      {
+        tier: 'elite',
+        label: 'Elite',
         minSpentEGP: 15000,
         earnMultiplier: 1.5,
         upgradeBonus: 1000,
       },
-    },
+    ],
   }
 
   // 2. Mock Config Snapshot v4 (Published Mid-Checkout by Admin)

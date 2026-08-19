@@ -4,7 +4,7 @@ import { PointHoldService } from '@/domains/loyalty/point-hold'
 
 describe('Layer 4: Capacity & Point Hold Unit Tests', () => {
   describe('CapacityHoldService', () => {
-    it('should create an active capacity hold expiring in 15 minutes by default', () => {
+    it('should create an active capacity hold expiring in default duration (5 minutes)', () => {
       const now = Date.now()
       const hold = CapacityHoldService.createHold({
         bookingId: 101,
@@ -19,9 +19,9 @@ describe('Layer 4: Capacity & Point Hold Unit Tests', () => {
 
       const expiresAtMs = new Date(hold.expiresAt).getTime()
       const duration = expiresAtMs - now
-      // Should be approximately 15 minutes (900,000 ms)
-      expect(duration).toBeGreaterThanOrEqual(899000)
-      expect(duration).toBeLessThanOrEqual(901000)
+      // Should be approximately DEFAULT_HOLD_DURATION_MS (300,000 ms)
+      expect(duration).toBeGreaterThanOrEqual(CapacityHoldService.DEFAULT_HOLD_DURATION_MS - 1000)
+      expect(duration).toBeLessThanOrEqual(CapacityHoldService.DEFAULT_HOLD_DURATION_MS + 1000)
     })
 
     it('should transition capacity hold through commit, release, and expire states', () => {

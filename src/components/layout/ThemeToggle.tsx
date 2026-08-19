@@ -1,15 +1,21 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useSyncExternalStore } from 'react'
 import { useTheme } from '@/providers/theme-provider'
+
+const emptySubscribe = () => () => {}
+
+function useIsMounted() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  )
+}
 
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useIsMounted()
 
   if (!mounted) {
     return <div className={`w-9 h-9 rounded-full ${className}`} aria-hidden="true" />

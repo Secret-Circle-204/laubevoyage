@@ -50,7 +50,7 @@ export class LayoutLoader {
           fullName: customerDoc.fullName || customerDoc.email,
           email: customerDoc.email,
           points: customerDoc.loyalty?.points || 0,
-          tier: (customerDoc.loyalty?.tier || 'explorer') as string,
+          tier: (customerDoc.loyalty?.tier || '') as string,
         }
 
         const { notification } = await getDomainServices()

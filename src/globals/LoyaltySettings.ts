@@ -1,6 +1,14 @@
 import type { GlobalConfig } from 'payload'
 import { afterLoyaltySettingsChange } from './hooks/afterLoyaltySettingsChange'
 
+interface RawTierInput {
+  tier?: string | null
+  label?: string | null
+  minSpentEGP?: number | null
+  earnMultiplier?: number | null
+  upgradeBonus?: number | null
+}
+
 export const LoyaltySettings: GlobalConfig = {
   slug: 'loyalty-settings',
   admin: {
@@ -198,37 +206,47 @@ export const LoyaltySettings: GlobalConfig = {
               label: 'Tier Definitions',
               type: 'array',
               required: true,
-              validate: (val: any) => {
+              validate: (val: unknown) => {
                 if (!Array.isArray(val)) {
                   return 'Tiers definitions must be an array'
                 }
                 if (val.length === 0) {
                   return 'At least one tier definition is required.'
                 }
-                const explorerTier = val.find((t: any) => t.tier === 'explorer')
-                if (!explorerTier) {
-                  return 'Explorer tier must be defined.'
-                }
-                if (Number(explorerTier.minSpentEGP) !== 0) {
-                  return 'Explorer tier min spend must be exactly 0 EGP.'
-                }
 
+                const list = val as RawTierInput[]
+
+                // Check required fields for all tiers
                 const tiersSeen = new Set<string>()
-                for (const item of val) {
-                  if (!item.tier) {
-                    return 'Tier Level is a required field.'
+                for (const item of list) {
+                  if (!item.tier || typeof item.tier !== 'string' || item.tier.trim() === '') {
+                    return 'Tier identifier is a required field.'
                   }
-                  if (tiersSeen.has(item.tier)) {
+                  const normalizedTier = item.tier.trim().toLowerCase()
+                  if (tiersSeen.has(normalizedTier)) {
                     return `Duplicate tier definition: ${item.tier} is defined multiple times.`
                   }
-                  tiersSeen.add(item.tier)
+                  tiersSeen.add(normalizedTier)
+
+                  if (!item.label || typeof item.label !== 'string' || item.label.trim() === '') {
+                    return `Label is required for tier [${item.tier}].`
+                  }
+                  if (typeof item.minSpentEGP !== 'number' || isNaN(item.minSpentEGP) || item.minSpentEGP < 0) {
+                    return `Min Spend (EGP) for tier [${item.tier}] must be a valid number >= 0.`
+                  }
                 }
 
-                for (let i = 1; i < val.length; i++) {
-                  const current = val[i]
-                  const prev = val[i - 1]
+                // Enforce that the first (lowest) tier starts at exactly 0
+                if (Number(list[0].minSpentEGP) !== 0) {
+                  return `The lowest tier [${list[0].tier}] must have minSpentEGP = 0 (found ${list[0].minSpentEGP}).`
+                }
+
+                // Enforce strictly ascending thresholds in input order
+                for (let i = 1; i < list.length; i++) {
+                  const current = list[i]
+                  const prev = list[i - 1]
                   if (Number(current.minSpentEGP) <= Number(prev.minSpentEGP)) {
-                    return `Tier thresholds must be strictly ascending. ${current.tier} (${current.minSpentEGP} EGP) must be greater than ${prev.tier} (${prev.minSpentEGP} EGP).`
+                    return `Tier thresholds must be strictly ascending. [${current.tier}] (${current.minSpentEGP} EGP) must be greater than [${prev.tier}] (${prev.minSpentEGP} EGP).`
                   }
                 }
 
@@ -240,14 +258,15 @@ export const LoyaltySettings: GlobalConfig = {
                   fields: [
                     {
                       name: 'tier',
-                      label: 'Tier Level',
-                      type: 'select',
+                      label: 'Tier Identifier',
+                      type: 'text',
                       required: true,
-                      options: [
-                        { label: 'Explorer', value: 'explorer' },
-                        { label: 'Voyager', value: 'voyager' },
-                        { label: 'Elite', value: 'elite' },
-                      ],
+                    },
+                    {
+                      name: 'label',
+                      label: 'Label',
+                      type: 'text',
+                      required: true,
                     },
                     {
                       name: 'minSpentEGP',

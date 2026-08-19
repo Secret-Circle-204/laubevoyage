@@ -6,13 +6,13 @@
 export class NotificationTemplateEngine {
   static renderTemplate(
     templateId: string,
-    templateData: Record<string, any>,
+    templateData: Record<string, unknown>,
     locale = 'en',
   ): { subject: string; body: string } {
     const isArabic = locale.startsWith('ar')
 
     if (templateId === 'welcome_email') {
-      const name = templateData.name || templateData.customerName || 'Valued Guest'
+      const name = String(templateData['name'] || templateData['customerName'] || 'Valued Guest')
       const subject = isArabic ? 'مرحباً بك في L\'Aube Voyage' : 'Welcome to L\'Aube Voyage'
       const body = isArabic
         ? `أهلاً بك ${name}! يسعدنا انضمامك إلى منصة L'Aube Voyage.`
@@ -21,15 +21,15 @@ export class NotificationTemplateEngine {
     }
 
     if (templateId === 'booking_confirmation') {
-      if (!templateData.bookingNumber) {
+      if (!templateData['bookingNumber']) {
         throw new Error(`[NotificationTemplateEngine] Template 'booking_confirmation' missing required field: bookingNumber`)
       }
-      if (!templateData.customerName) {
+      if (!templateData['customerName']) {
         throw new Error(`[NotificationTemplateEngine] Template 'booking_confirmation' missing required field: customerName`)
       }
 
-      const bookingNumber = templateData.bookingNumber
-      const customerName = templateData.customerName
+      const bookingNumber = String(templateData['bookingNumber'])
+      const customerName = String(templateData['customerName'])
       const subject = isArabic ? `تأكيد الحجز ${bookingNumber}` : `Booking Confirmation ${bookingNumber}`
       const body = isArabic
         ? `مرحباً ${customerName}، تم تأكيد حجزك رقم ${bookingNumber} بنجاح.`
@@ -38,15 +38,15 @@ export class NotificationTemplateEngine {
     }
 
     if (templateId === 'payment_receipt') {
-      if (templateData.amount === undefined || templateData.amount === null) {
+      if (templateData['amount'] === undefined || templateData['amount'] === null) {
         throw new Error(`[NotificationTemplateEngine] Template 'payment_receipt' missing required field: amount`)
       }
-      if (!templateData.currency) {
+      if (!templateData['currency']) {
         throw new Error(`[NotificationTemplateEngine] Template 'payment_receipt' missing required field: currency`)
       }
 
-      const amount = templateData.amount
-      const currency = templateData.currency
+      const amount = Number(templateData['amount'] ?? 0)
+      const currency = String(templateData['currency'])
       const subject = isArabic ? 'إيصال استلام الدفع' : 'Payment Receipt'
       const body = isArabic
         ? `تم استلام مبلغ ${amount} ${currency} بنجاح.`
@@ -55,8 +55,8 @@ export class NotificationTemplateEngine {
     }
 
     if (templateId === 'tier_upgraded') {
-      const newTier = (templateData.newTier || 'Elite').toUpperCase()
-      const bonus = templateData.bonusGranted ? ` (${templateData.bonusGranted} bonus points granted!)` : ''
+      const newTier = String(templateData['newTier'] || '').toUpperCase()
+      const bonus = templateData['bonusGranted'] ? ` (${templateData['bonusGranted']} bonus points granted!)` : ''
       const subject = isArabic ? `ترقية مستوى العضوية إلى ${newTier}` : `Loyalty Tier Upgraded to ${newTier}`
       const body = isArabic
         ? `تهانينا! تم ترقية حسابك إلى المستوى ${newTier}.${bonus}`

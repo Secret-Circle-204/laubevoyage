@@ -2,7 +2,8 @@ import type { RequestContext } from '@/types'
 import { LoyaltyTier } from '@/types'
 import { LoyaltyWorkflowEngine } from './workflow'
 import { LoyaltyRepository } from './repository'
-import { PointsCalculator } from './points-calculator'
+import { PointCalculationPolicy } from './points-calculation-policy'
+import { TierPolicy } from './tier-policy'
 import type { AdminAdjustmentParams, PointLedgerRecord, TierProgress } from './types'
 import type { LoyaltyProgramConfig } from './tier-config'
 
@@ -61,12 +62,13 @@ export class LoyaltyService {
 
   async calculatePointValueInEGP(points: number, config?: LoyaltyProgramConfig): Promise<number> {
     const activeConfig = await this.workflowEngine.getActiveConfig(config)
-    return PointsCalculator.calculatePointsMonetaryValueEGP(points, activeConfig)
+    return PointCalculationPolicy.calculatePointsValueEGP(points, activeConfig)
   }
 
-  async calculateEarnedPoints(amountEGP: number, tier: LoyaltyTier = LoyaltyTier.EXPLORER, config?: LoyaltyProgramConfig): Promise<number> {
+  async calculateEarnedPoints(amountEGP: number, tier?: LoyaltyTier, config?: LoyaltyProgramConfig): Promise<number> {
     const activeConfig = await this.workflowEngine.getActiveConfig(config)
-    return PointsCalculator.calculateEarnedPoints(amountEGP, tier, activeConfig)
+    const effectiveTier = tier || TierPolicy.getOrderedTiers(activeConfig)[0].tier
+    return PointCalculationPolicy.calculateEarnedPoints(amountEGP, effectiveTier, activeConfig)
   }
 
   async earn(params: { customerId: number; points: number; sourceEvent: string; referenceId: string }, config?: LoyaltyProgramConfig, context?: RequestContext): Promise<PointLedgerRecord> {
@@ -161,4 +163,12 @@ export class LoyaltyService {
   async getCustomerLedgerHistory(userId: number, limit = 50, context?: RequestContext): Promise<PointLedgerRecord[]> {
     return this.workflowEngine.getCustomerLedgerHistory(userId, limit, context)
   }
+
+  /**
+   * Fetch point ledger transaction records linked to a specific booking.
+   */
+  async getBookingLedgerEntries(bookingId: number, context?: RequestContext): Promise<PointLedgerRecord[]> {
+    return this.workflowEngine.repository.getBookingLedgerEntries(bookingId, context)
+  }
 }
+

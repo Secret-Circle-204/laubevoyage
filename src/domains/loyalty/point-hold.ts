@@ -35,7 +35,7 @@ export class PointHoldService {
    * Reserve points for an active checkout session.
    */
   reservePoints(params: CreateReservationParams): PointReservationEntity {
-    const holdMinutes = params.holdMinutes || 15
+    const holdMinutes = params.holdMinutes || 5
     const reservationId = `p_res_${params.bookingId}_${Date.now()}`
     const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000).toISOString()
 
@@ -107,9 +107,7 @@ export class PointHoldService {
     const now = new Date().getTime()
     return Array.from(this.activeReservations.values()).find(
       (r) =>
-        r.bookingId === bookingId &&
-        r.status === 'held' &&
-        new Date(r.expiresAt).getTime() > now,
+        r.bookingId === bookingId && r.status === 'held' && new Date(r.expiresAt).getTime() > now,
     )
   }
 
@@ -121,7 +119,7 @@ export class PointHoldService {
     valueEGP: number
     holdDurationMs?: number
   }): PointHoldEntity {
-    const duration = params.holdDurationMs || 15 * 60 * 1000 // 15 mins
+    const duration = params.holdDurationMs || 5 * 60 * 1000 // 5 mins
     const now = new Date()
     const expiresAt = new Date(now.getTime() + duration)
 

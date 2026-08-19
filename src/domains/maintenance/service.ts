@@ -16,7 +16,20 @@ export class MaintenanceService {
     this.workflowEngine = new MaintenanceWorkflowEngine(repository, bookingService)
   }
 
-  async triggerJob(jobName: MaintenanceJobName, startedBy: 'scheduler' | 'manual_admin' | 'api' = 'manual_admin') {
-    return this.workflowEngine.executeJobWorkflow(jobName, startedBy)
+  async triggerJob(
+    jobName: MaintenanceJobName,
+    startedBy: 'scheduler' | 'manual_admin' | 'api',
+    workerId: string,
+  ) {
+    if (!jobName) {
+      throw new Error('[MaintenanceService] triggerJob: jobName is required.')
+    }
+    if (!startedBy) {
+      throw new Error('[MaintenanceService] triggerJob: startedBy is required.')
+    }
+    if (!workerId) {
+      throw new Error('[MaintenanceService] triggerJob: workerId is required.')
+    }
+    return this.workflowEngine.executeJobWorkflow(jobName, startedBy, workerId)
   }
 }

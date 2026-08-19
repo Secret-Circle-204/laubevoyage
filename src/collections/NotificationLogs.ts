@@ -37,6 +37,7 @@ export const NotificationLogs: CollectionConfig = {
       name: 'recipient',
       type: 'text',
       required: true,
+      index: true,
     },
     {
       name: 'channel',

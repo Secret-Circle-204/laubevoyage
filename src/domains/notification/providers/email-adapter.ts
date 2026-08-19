@@ -40,12 +40,12 @@ export class EmailNotificationAdapter implements INotificationProvider {
     const rendered = NotificationTemplateEngine.renderTemplate(
       job.templateId,
       job.templateData || {},
-      job.templateData?.locale || 'en',
+      (job.templateData?.['locale'] as string) || 'en',
     )
 
-    const subject = (job.templateData?.subject as string) || rendered.subject
-    const htmlBody = (job.templateData?.html as string) || `<p>${rendered.body}</p>`
-    const textBody = (job.templateData?.text as string) || rendered.body
+    const subject = (job.templateData?.['subject'] as string) || rendered.subject
+    const htmlBody = (job.templateData?.['html'] as string) || `<p>${rendered.body}</p>`
+    const textBody = (job.templateData?.['text'] as string) || rendered.body
 
     if (!subject) {
       throw new Error(`[EmailNotificationAdapter] Invalid Email: Subject is missing for template '${job.templateId}'`)
@@ -53,15 +53,19 @@ export class EmailNotificationAdapter implements INotificationProvider {
     if (!htmlBody && !textBody) {
       throw new Error(`[EmailNotificationAdapter] Invalid Email: Body is missing for template '${job.templateId}'`)
     }
-
     try {
       console.log(`[EmailNotificationAdapter] 📧 Sending real SMTP email to ${job.recipient} (Subject: ${subject})...`)
+
+      // Note on duplicate delivery: Stable Message Identity (messageId) is used to assist downstream
+      // mail systems (like Gmail/Outlook) in deduplicating or threading duplicate messages, but it does
+      // NOT provide transactional or exactly-once delivery semantics over SMTP.
       const info = await this.getTransporter().sendMail({
         from: fromHeader,
         to: job.recipient,
         subject,
         text: textBody,
         html: htmlBody,
+        messageId: `<${job.jobId}@laubevoyage.com>`,
       })
 
       console.log(`[EmailNotificationAdapter] ✅ Real email sent successfully! MessageId: ${info.messageId}`)
@@ -69,11 +73,12 @@ export class EmailNotificationAdapter implements INotificationProvider {
         success: true,
         providerMessageId: info.messageId,
       }
-    } catch (err: any) {
-      console.error(`[EmailNotificationAdapter] ❌ Real SMTP dispatch failed for ${job.recipient}:`, err.message)
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error(`[EmailNotificationAdapter] ❌ Real SMTP dispatch failed for ${job.recipient}:`, errMsg)
       return {
         success: false,
-        error: `SMTP Error: ${err.message}`,
+        error: `SMTP Error: ${errMsg}`,
       }
     }
   }

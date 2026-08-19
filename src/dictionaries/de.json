@@ -16,8 +16,37 @@
     },
     "footer": {
       "rights": "Alle Rechte Vorbehalten © 2026 L'Aube Voyage",
-      "tagline": "Außergewöhnliche Reisen Seit 1996."
+      "tagline": "Außergewöhnliche Reisen Seit 1996.",
+      "explore": "Entdecken",
+      "allExperiences": "Alle Erlebnisse",
+      "destinations": "Reiseziele",
+      "tourPackages": "Reisepakete",
+      "dailyTours": "Tagestouren",
+      "company": "Unternehmen",
+      "aboutUs": "Über uns",
+      "travelBlog": "Reiseblog",
+      "faqs": "Häufige Fragen",
+      "contactUs": "Kontakt",
+      "legal": "Rechtliches",
+      "privacyPolicy": "Datenschutzerklärung",
+      "termsOfService": "Nutzungsbedingungen",
+      "customerPortal": "Kundenportal"
     }
+  },
+  "catalog": {
+    "meta": {
+      "title": "Luxus-Erlebnisse & Reisepakete Katalog | L'Aube Voyage",
+      "description": "Entdecken Sie exklusive Reisepakete, Nilkreuzfahrten und private Tagestouren in ganz Ägypten."
+    },
+    "badge": "Exklusive Kollektion",
+    "title": "Erlebnisse-Katalog",
+    "description": "Entdecken Sie luxuriöse Reisepakete und private Tagestouren, sorgfältig zusammengestellt für anspruchsvolle Reisende.",
+    "filterAll": "Alle Erlebnisse ({count})",
+    "filterPackages": "Reisepakete",
+    "filterDailyTours": "Private Tagestouren",
+    "viewItinerary": "Reiseplan ansehen",
+    "packageLabel": "Reisepaket",
+    "dailyTourLabel": "Tagestour"
   },
   "loyalty": {
     "tier": {
@@ -28,6 +57,10 @@
     "progress": {
       "remainingToTier": "Noch {amount} bis zur Stufe {tier}",
       "maxTier": "Höchste Mitgliedsstufe erreicht!"
+    },
+    "guide": {
+      "title": "Punkte-Wert-Leitfaden",
+      "description": "Nutzen Sie Ihre Punkte direkt beim Checkout — keine Gutscheincodes, kein Aufwand. Wählen Sie einfach Ihre Stufe und sparen Sie sofort."
     }
   }
 }

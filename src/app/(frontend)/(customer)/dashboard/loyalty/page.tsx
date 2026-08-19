@@ -1,11 +1,9 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import { Card, Badge } from '@/components/ui'
-import { CustomerPortalLoader } from '@/application/dashboard/loaders'
-import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
-import { getLocaleContext } from '@/lib/get-locale-context'
+import { CustomerLoyaltyLoader } from '@/application/loyalty/loaders'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,48 +17,45 @@ export default async function Page() {
     redirect('/login')
   }
 
-  const { loyalty, localization } = await getDomainServices()
-  const localeCtx = await getLocaleContext()
-  const ctx = localeCtx
-
-  const [data, history, authoritativeBalance] = await Promise.all([
-    CustomerPortalLoader.loadOverview(session.customerId, {
-      locale: localeCtx.language,
-      currency: localeCtx.currency,
-    }),
-    loyalty.getCustomerLedgerHistory(session.customerId, 50),
-    loyalty.getCustomerBalance(session.customerId),
-  ])
-
-  const formattedBalance = await localization.formatNumber(authoritativeBalance, ctx)
-
-  const translatedCurrentTier = localization.translateUiKey(`loyalty.tier.${data.currentTier}`, ctx)
+  const data = await CustomerLoyaltyLoader.load(session.customerId)
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Loyalty Rewards</h1>
-        <Badge variant="accent" className="uppercase font-bold">{translatedCurrentTier} Tier Member</Badge>
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Loyalty Rewards & Tier</h1>
+          <p className="text-sm text-slate-500 mt-1">Unlock exclusive benefits, instant checkout discounts, and luxury upgrades.</p>
+        </div>
+        <Badge variant="accent" className="uppercase font-bold text-xs">{data.translatedCurrentTier} Tier Member</Badge>
       </div>
 
+      {/* Main Loyalty Balance Card */}
       <Card variant="elevated" padding="lg" className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Available Loyalty Balance</span>
-            <span className="text-4xl font-extrabold text-[#f58220]">{formattedBalance} Points</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-[#f58220]">{data.formattedPointsBalance}</span>
+              <span className="text-lg font-bold text-[#f58220]">Points</span>
+            </div>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold block mt-1">
+              ≈ {data.pointsMonetaryValue.formatted} Cash Value
+            </span>
           </div>
-          <Badge variant="primary" size="md">
-            {data.redemptionRate.pointsUnit} Pts = {data.redemptionRate.displayValue}
-          </Badge>
+
+          <div className="text-left sm:text-right">
+            <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Total Qualifying Spend</span>
+            <span className="text-xl font-bold text-slate-900 dark:text-white">{data.formattedTotalSpentEGP}</span>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        {/* Tier Progress Bar */}
+        <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="flex justify-between text-xs font-bold text-slate-500">
             {data.tierThresholds.map((threshold) => {
-              const tierName = localization.translateUiKey(`loyalty.tier.${threshold.tier}`, ctx)
               return (
                 <span key={threshold.tier}>
-                  {tierName} ({threshold.formattedMinSpent})
+                  {threshold.translatedTierName} ({threshold.formattedMinSpent})
                 </span>
               )
             })}
@@ -72,20 +67,48 @@ export default async function Page() {
             />
           </div>
           <span className="text-xs text-slate-400 text-right font-medium">
-            {data.remainingQualifyingSpendEGP !== null && data.remainingQualifyingSpendEGP > 0
-              ? localization
-                  .translateUiKey('loyalty.progress.remainingToTier', ctx)
-                  .replace('{amount}', data.formattedRemainingQualifyingSpend || '')
-                  .replace('{tier}', data.nextTierName)
-              : localization.translateUiKey('loyalty.progress.maxTier', ctx)}
+            {data.progressText}
           </span>
         </div>
       </Card>
 
+      {/* Points Value Guide Card */}
+      <Card variant="flat" padding="lg" className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-gradient-to-br from-white via-slate-50 to-slate-100/50 dark:from-[#1a1718] dark:via-[#1f1a1c] dark:to-[#161415] border border-slate-200 dark:border-white/10">
+        <div className="flex flex-col gap-2 max-w-2xl">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">💎</span>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              {data.pointsValueGuide.title}
+            </h2>
+            <Badge variant="accent" size="sm">Instant Checkout Discount</Badge>
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            {data.pointsValueGuide.description}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 self-stretch md:self-auto justify-between md:justify-end">
+          <Badge variant="accent" size="md" className="py-2.5 px-4 rounded-xl flex flex-col items-center justify-center text-center">
+            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">Official Rate</span>
+            <span className="text-sm font-bold">
+              {data.pointsValueGuide.unitText}
+            </span>
+          </Badge>
+
+          <Badge variant="success" size="md" className="py-2.5 px-4 rounded-xl flex flex-col items-center justify-center text-center">
+            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">Your Points Value</span>
+            <span className="text-sm font-extrabold">
+              {data.pointsMonetaryValue.formatted}
+            </span>
+          </Badge>
+        </div>
+      </Card>
+
+      {/* Points History Section */}
       <div className="flex flex-col gap-4">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">Points Transaction History</h2>
         
-        {history.length === 0 ? (
+        {data.history.length === 0 ? (
           <Card variant="flat" padding="lg" className="text-center text-slate-500 py-12">
             No loyalty transactions found yet. Earn points by booking experiences!
           </Card>
@@ -103,13 +126,12 @@ export default async function Page() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {history.map((record) => {
+                  {data.history.map((record) => {
                     const formattedDate = new Date(record.createdAt).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
                     })
-                    const isPositive = record.points > 0
                     
                     return (
                       <tr key={record.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
@@ -134,11 +156,11 @@ export default async function Page() {
                           {record.reason}
                         </td>
                         <td className={`px-6 py-4 text-right font-bold whitespace-nowrap ${
-                          isPositive
+                          record.isPositive
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : 'text-rose-600 dark:text-rose-400'
                         }`}>
-                          {isPositive ? `+${record.points}` : record.points} Pts
+                          {record.isPositive ? `+${record.points}` : record.points} Pts
                         </td>
                       </tr>
                     )
@@ -152,3 +174,4 @@ export default async function Page() {
     </div>
   )
 }
+

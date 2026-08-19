@@ -1,5 +1,5 @@
-import type { RequestContext } from '@/types'
-import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
+import type { RequestContext, BookingStatus } from '@/types'
+import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt, CustomerTripSummary } from './types'
 import { BookingWorkflowEngine } from './workflow'
 import { BookingRepository } from './repository'
 import type { CustomerRepository } from '../customer/repository'
@@ -127,17 +127,43 @@ export class BookingService {
   }
 
   /**
-   * Get booking by booking number.
+   * Get booking by booking number, with optional customerId boundary enforcement.
    */
-  async getByBookingNumber(bookingNumber: string): Promise<BookingAggregate | null> {
-    return this.workflowEngine.queries.getByBookingNumber(bookingNumber)
+  async getByBookingNumber(
+    bookingNumber: string,
+    customerId?: number,
+    context?: RequestContext,
+  ): Promise<BookingAggregate | null> {
+    return this.workflowEngine.queries.getByBookingNumber(bookingNumber, customerId, context)
   }
 
   /**
    * Get user bookings with pagination.
    */
-  async getUserBookings(userId: number, page: number = 1, limit: number = 10) {
-    return this.workflowEngine.queries.getUserBookings(userId, page, limit)
+  async getUserBookings(
+    userId: number,
+    page: number = 1,
+    limit: number = 10,
+    filters?: { status?: BookingStatus },
+  ) {
+    return this.workflowEngine.queries.getUserBookings(userId, page, limit, filters)
+  }
+
+  /**
+   * Query multiple booking aggregates matching a list of IDs.
+   */
+  async getManyByIds(bookingIds: number[]): Promise<BookingAggregate[]> {
+    return this.workflowEngine.queries.getManyByIds(bookingIds)
+  }
+
+  /**
+   * Retrieve aggregated trip summary metrics for customer overview ($O(1) memory).
+   */
+  async getCustomerTripSummary(
+    customerId: number,
+    context?: RequestContext,
+  ): Promise<CustomerTripSummary> {
+    return this.workflowEngine.queries.getCustomerTripSummary(customerId, context)
   }
 
   /**

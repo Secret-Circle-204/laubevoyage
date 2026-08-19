@@ -20,7 +20,21 @@ export class PaymentQueries {
     return this.repository.findByBookingId(bookingId)
   }
 
+  async getManyByBookingIds(bookingIds: number[]): Promise<PaymentAggregate[]> {
+    return this.repository.findManyByBookingIds(bookingIds)
+  }
+
+  async getCustomerPayments(
+    customerId: number,
+    page: number = 1,
+    limit: number = 10,
+    filters?: { status?: import('./types').PaymentStatusType },
+  ): Promise<import('@/types').PaginatedResponse<PaymentAggregate>> {
+    return this.repository.findByCustomerId(customerId, page, limit, filters)
+  }
+
   async getByGatewayReference(gatewayReference: string): Promise<PaymentAggregate | null> {
     return this.repository.findByGatewayReference(gatewayReference)
   }
 }
+

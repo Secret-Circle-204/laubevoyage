@@ -11,11 +11,12 @@ import { registerInventorySubscriber } from '../events/subscribers/inventory-sub
 import {
   registerSystemCacheSubscriber,
   registerCurrencyCacheSubscriber,
+  registerLanguageCacheSubscriber,
   registerDestinationCacheSubscriber,
   registerContentCacheSubscriber,
 } from '../events/subscribers/cache-subscribers'
 import { registerPresentationSubscriber } from '../events/subscribers/presentation-subscriber'
-import { EventBus } from '../events/event-bus'
+import type { PostgresAdapter } from '@payloadcms/db-postgres'
 import type { SystemHealthReportDTO, ProductionReadinessDTO } from './types'
 import type { EventOutboxService } from '../events/outbox'
 import type { NotificationService } from '../notification/service'
@@ -54,7 +55,8 @@ export class SystemIntegrationWorkflowEngine {
   }
 
   private async runBootstrapRecovery(): Promise<void> {
-    const pool = (this.payload?.db as any)?.pool
+    const dbAdapter = this.payload.db ? (this.payload.db as unknown as PostgresAdapter) : undefined
+    const pool = dbAdapter ? dbAdapter.pool : undefined
     if (!pool || typeof pool.query !== 'function') return
 
     try {
@@ -68,24 +70,9 @@ export class SystemIntegrationWorkflowEngine {
         WHERE status = 'processing' AND lock_expires_at <= NOW();
       `
       const outboxRes = await pool.query(outboxResetQuery)
-      if (outboxRes.rowCount > 0 && process.env.ARCH_TRACE === 'true') {
-        console.log(`[SystemBootstrap] Recovered ${outboxRes.rowCount} orphaned/expired outbox processing locks.`)
-      }
-
-      // 2. Delete any expired maintenance leases
-      const leaseCleanupQuery = `
-        CREATE TABLE IF NOT EXISTS maintenance_leases (
-          id SERIAL PRIMARY KEY,
-          lease_key VARCHAR(255) UNIQUE NOT NULL,
-          lease_expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-        DELETE FROM maintenance_leases
-        WHERE lease_expires_at <= NOW();
-      `
-      const leaseRes = await pool.query(leaseCleanupQuery)
-      if (leaseRes.rowCount > 0 && process.env.ARCH_TRACE === 'true') {
-        console.log(`[SystemBootstrap] Cleaned up ${leaseRes.rowCount} expired maintenance leases.`)
+      const rowCount = outboxRes.rowCount
+      if (typeof rowCount === 'number' && rowCount > 0 && process.env.ARCH_TRACE === 'true') {
+        console.log(`[SystemBootstrap] Recovered ${rowCount} orphaned/expired outbox processing locks.`)
       }
     } catch (error) {
       console.error('[SystemBootstrap] Error running bootstrap recovery routines:', error)
@@ -94,12 +81,14 @@ export class SystemIntegrationWorkflowEngine {
 
   async bootstrapSystem(options?: SystemBootstrapOptions): Promise<{ success: boolean; eventSubscribersCount: number }> {
     // 1. Immutable Composition Root Guard: Ensure bootstrap happens exactly once per process
-    if ((global as any)[BOOTSTRAP_SYMBOL] || this.isBootstrapped) {
-      return { success: true, eventSubscribersCount: 7 }
+    const globalContext = global as unknown as Record<typeof BOOTSTRAP_SYMBOL, boolean>
+    if (globalContext[BOOTSTRAP_SYMBOL] || this.isBootstrapped) {
+      const result = { success: true, eventSubscribersCount: 7 }
+      return result
     }
 
     // Mark as bootstrapped immediately to prevent recursive re-entry
-    ;(global as any)[BOOTSTRAP_SYMBOL] = true
+    globalContext[BOOTSTRAP_SYMBOL] = true
     this.isBootstrapped = true
 
     // 2. Wire Master Event Bus Subscribers (Clean Drizzle and Payload listeners)
@@ -126,6 +115,7 @@ export class SystemIntegrationWorkflowEngine {
     // Event-driven RAM registry cache invalidators (Safe for all node runtimes/workers)
     registerSystemCacheSubscriber()
     registerCurrencyCacheSubscriber()
+    registerLanguageCacheSubscriber()
     registerDestinationCacheSubscriber()
     registerContentCacheSubscriber()
 
@@ -141,8 +131,9 @@ export class SystemIntegrationWorkflowEngine {
 
   async startBackgroundWorkers(options?: SystemBootstrapOptions): Promise<void> {
     const symbol = Symbol.for('laube.system.workers.started')
-    if ((global as any)[symbol]) return
-    ;(global as any)[symbol] = true
+    const globalContext = global as unknown as Record<symbol, boolean>
+    if (globalContext[symbol]) return
+    globalContext[symbol] = true
 
     // Run database-level bootstrap recovery routines
     await this.runBootstrapRecovery()

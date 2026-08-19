@@ -20,9 +20,19 @@ export interface CustomerStatusUpdatedEvent extends BaseDomainEvent {
   customerId: number
   oldStatus: string
   newStatus: string
+  reason?: string
+}
+
+export interface CustomerUpdatedEvent extends BaseDomainEvent {
+  type: 'CUSTOMER_UPDATED'
+  customerId: number
+  email?: string
+  fullName?: string
+  status?: string
 }
 
 export type CustomerDomainEvent =
   | CustomerRegisteredEvent
   | CustomerEmailVerifiedEvent
   | CustomerStatusUpdatedEvent
+  | CustomerUpdatedEvent

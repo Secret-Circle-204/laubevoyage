@@ -18,6 +18,11 @@ export class ExperienceQueries {
     return this.repository.findById(experienceId)
   }
 
+  async getManyByIds(experienceIds: number[]): Promise<ExperienceAggregate[]> {
+    return this.repository.findManyByIds(experienceIds)
+  }
+
+
   async getBySlug(slug: string): Promise<ExperienceAggregate | null> {
     return this.repository.findBySlug(slug)
   }

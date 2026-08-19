@@ -1,5 +1,5 @@
 import { LoyaltyTier } from '@/types'
-import type { LoyaltyProgramConfig } from './tier-config'
+import { LoyaltyProgramConfig, TierDefinitionConfig, LoyaltyProgramConfigurationException } from './tier-config'
 import type { LoyaltyPolicyResult, TierProgress } from './types'
 
 /**
@@ -9,29 +9,61 @@ import type { LoyaltyPolicyResult, TierProgress } from './types'
  */
 export class TierPolicy {
   /**
+   * Validates configuration and sorts tiers ascending by minSpentEGP.
+   * STRICT FAIL-FAST: Throws if configuration is missing, thresholds are not ascending,
+   * or lowest tier does not start at 0 EGP.
+   */
+  static getOrderedTiers(config: LoyaltyProgramConfig): TierDefinitionConfig[] {
+    if (!config.tiers || config.tiers.length === 0) {
+      throw new LoyaltyProgramConfigurationException(
+        '[TierPolicy] Critical configuration error: No tiers defined in loyalty settings.',
+      )
+    }
+
+    const sorted = [...config.tiers].sort((a, b) => a.minSpentEGP - b.minSpentEGP)
+
+    // 1. Enforce lowest tier starts at exactly 0 EGP
+    if (sorted[0].minSpentEGP !== 0) {
+      throw new LoyaltyProgramConfigurationException(
+        `[TierPolicy] Config error: The lowest tier [${sorted[0].tier}] must have minSpentEGP = 0 (found ${sorted[0].minSpentEGP}).`,
+      )
+    }
+
+    // 2. Enforce strictly ascending unique thresholds
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].minSpentEGP <= sorted[i - 1].minSpentEGP) {
+        throw new LoyaltyProgramConfigurationException(
+          `[TierPolicy] Config error: Tier thresholds must be strictly ascending. [${sorted[i].tier}] (${sorted[i].minSpentEGP} EGP) is <= [${sorted[i - 1].tier}] (${sorted[i - 1].minSpentEGP} EGP).`,
+        )
+      }
+    }
+
+    return sorted
+  }
+
+  /**
    * Determine the highest eligible tier for a given cumulative spent total in EGP.
+   * STRICT FAIL-FAST: Throws if spent amount is negative.
    */
   static evaluateEligibleTier(totalSpentEGP: number, config: LoyaltyProgramConfig): LoyaltyTier {
-    const eliteConfig = config.tiers[LoyaltyTier.ELITE]
-    const voyagerConfig = config.tiers[LoyaltyTier.VOYAGER]
-
-    if (!eliteConfig) {
-      throw new Error('[TierPolicy] Critical configuration error: Elite tier definition is missing from loyalty program.')
-    }
-    if (!voyagerConfig) {
-      throw new Error('[TierPolicy] Critical configuration error: Voyager tier definition is missing from loyalty program.')
+    if (totalSpentEGP < 0) {
+      throw new Error(
+        `[TierPolicy] Invalid evaluation request: spent amount cannot be negative (found ${totalSpentEGP}).`,
+      )
     }
 
-    const eliteThreshold = eliteConfig.minSpentEGP
-    const voyagerThreshold = voyagerConfig.minSpentEGP
+    const ordered = this.getOrderedTiers(config)
 
-    if (totalSpentEGP >= eliteThreshold) {
-      return LoyaltyTier.ELITE
+    // Find the highest tier where spend is >= threshold
+    for (let i = ordered.length - 1; i >= 0; i--) {
+      if (totalSpentEGP >= ordered[i].minSpentEGP) {
+        return ordered[i].tier
+      }
     }
-    if (totalSpentEGP >= voyagerThreshold) {
-      return LoyaltyTier.VOYAGER
-    }
-    return LoyaltyTier.EXPLORER
+
+    throw new LoyaltyProgramConfigurationException(
+      '[TierPolicy] Config error: totalSpentEGP did not qualify for any configured tier.',
+    )
   }
 
   /**
@@ -44,13 +76,22 @@ export class TierPolicy {
   ): LoyaltyPolicyResult {
     const eligibleTier = this.evaluateEligibleTier(totalSpentEGP, config)
 
-    const tierRanks: Record<LoyaltyTier, number> = {
-      [LoyaltyTier.EXPLORER]: 1,
-      [LoyaltyTier.VOYAGER]: 2,
-      [LoyaltyTier.ELITE]: 3,
+    const ordered = this.getOrderedTiers(config)
+    const currentIndex = ordered.findIndex((t) => t.tier.toLowerCase() === currentTier.toLowerCase())
+    const eligibleIndex = ordered.findIndex((t) => t.tier.toLowerCase() === eligibleTier.toLowerCase())
+
+    if (currentIndex === -1) {
+      throw new LoyaltyProgramConfigurationException(
+        `[TierPolicy] Current customer tier [${currentTier}] is missing from active configuration.`,
+      )
+    }
+    if (eligibleIndex === -1) {
+      throw new LoyaltyProgramConfigurationException(
+        `[TierPolicy] Eligible target tier [${eligibleTier}] is missing from active configuration.`,
+      )
     }
 
-    if (tierRanks[eligibleTier] > tierRanks[currentTier]) {
+    if (eligibleIndex > currentIndex) {
       return { allowed: true }
     }
 
@@ -69,35 +110,41 @@ export class TierPolicy {
     currentTier: LoyaltyTier,
     config: LoyaltyProgramConfig,
   ): TierProgress {
-    const orderedTiers: LoyaltyTier[] = [
-      LoyaltyTier.EXPLORER,
-      LoyaltyTier.VOYAGER,
-      LoyaltyTier.ELITE,
-    ]
+    const ordered = this.getOrderedTiers(config)
+    const currentIndex = ordered.findIndex((t) => t.tier.toLowerCase() === currentTier.toLowerCase())
 
-    const currentIndex = orderedTiers.indexOf(currentTier)
-    const nextTier =
-      currentIndex !== -1 && currentIndex < orderedTiers.length - 1
-        ? orderedTiers[currentIndex + 1]
-        : null
+    if (currentIndex === -1) {
+      throw new LoyaltyProgramConfigurationException(
+        `[TierPolicy] Cannot compute progress: Customer tier [${currentTier}] is missing from active configuration.`,
+      )
+    }
 
-    let nextTierMinSpentEGP: number | null = null
-    let remainingQualifyingSpendEGP: number | null = null
+    const nextTierDef = currentIndex < ordered.length - 1 ? ordered[currentIndex + 1] : null
 
-    if (nextTier) {
-      const nextTierConfig = config.tiers[nextTier]
-      if (nextTierConfig) {
-        nextTierMinSpentEGP = nextTierConfig.minSpentEGP
-        remainingQualifyingSpendEGP = Math.max(0, nextTierMinSpentEGP - totalSpentEGP)
+    if (!nextTierDef) {
+      return {
+        currentTier,
+        nextTier: null,
+        currentQualifyingSpendEGP: totalSpentEGP,
+        nextTierMinSpentEGP: null,
+        remainingQualifyingSpendEGP: null,
+        percent: 100,
       }
     }
 
+    const currentMin = ordered[currentIndex].minSpentEGP
+    const nextMin = nextTierDef.minSpentEGP
+    const range = nextMin - currentMin
+    const progress = totalSpentEGP - currentMin
+    const percent = range > 0 ? Math.min(100, Math.max(0, Math.round((progress / range) * 100))) : 0
+
     return {
       currentTier,
-      nextTier,
+      nextTier: nextTierDef.tier,
       currentQualifyingSpendEGP: totalSpentEGP,
-      nextTierMinSpentEGP,
-      remainingQualifyingSpendEGP,
+      nextTierMinSpentEGP: nextMin,
+      remainingQualifyingSpendEGP: Math.max(0, nextMin - totalSpentEGP),
+      percent,
     }
   }
 }

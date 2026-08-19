@@ -8,7 +8,7 @@ describe('Dashboard Domain: Widget Provider Unit Tests', () => {
       projectionId: 'proj_1',
       customerId: 1,
       customer: { customerId: 1, email: 'a@b.com', fullName: 'A', isEmailVerified: true, status: 'active', preferredCurrency: 'EGP' },
-      loyalty: { tier: 'elite', pointsBalance: 2000, activeHoldsCount: 0, totalSpentEGP: 100000, tierProgressPercentage: 100 },
+      loyalty: { tier: 'elite', pointsBalance: 2000, activeHoldsCount: 0, totalSpentEGP: 100000 },
       trips: { upcomingCount: 2, activeBookingsCount: 2, latestBookingNumber: '#LBV-999' },
       security: { activeDeviceCount: 1 },
       metrics: { cacheHit: true, aggregationDurationMs: 1, projectionVersion: 'v1', lastRefreshAt: '2026-07-22' },

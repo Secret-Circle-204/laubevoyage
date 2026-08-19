@@ -1,9 +1,9 @@
 import React from 'react'
 import type { Metadata } from 'next'
-import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
 import { SettingsFormClient } from './SettingsFormClient'
+import { CustomerSettingsLoader } from '@/application/customer/loaders'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,14 +17,7 @@ export default async function Page() {
     redirect('/login')
   }
 
-  const { customer } = await getDomainServices()
-  const customerDoc = await customer.getById(session.customerId)
-
-  const initialData = customerDoc.notifications || {
-    email: true,
-    sms: false,
-    push: true,
-  }
+  const initialData = await CustomerSettingsLoader.load(session.customerId)
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,3 +26,4 @@ export default async function Page() {
     </div>
   )
 }
+

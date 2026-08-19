@@ -5,7 +5,7 @@ import type { CapacityHoldEntity } from './types'
  * Responsible for creating, committing, releasing, and expiring seat capacity locks.
  */
 export class CapacityHoldService {
-  private static DEFAULT_HOLD_DURATION_MS = 15 * 60 * 1000 // 15 minutes
+  public static readonly DEFAULT_HOLD_DURATION_MS = 5 * 60 * 1000 // 5 minutes
 
   /**
    * Create an active capacity hold for a booking.

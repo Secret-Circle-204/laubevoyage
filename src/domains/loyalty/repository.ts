@@ -7,6 +7,49 @@ import type { PointLedgerRecord, LedgerEntryType, LedgerReferenceType } from './
 import type { LoyaltyProgramConfig, TierDefinitionConfig } from './tier-config'
 import { LoyaltyProgramConfigurationException } from './tier-config'
 import { LedgerValidator } from './ledger-validator'
+import { TierPolicy } from './tier-policy'
+
+interface RawProgramConfigDoc {
+  id?: string | number
+  programCode?: string | null
+  name?: string | null
+  version?: number | null
+  status?: 'draft' | 'review' | 'published' | 'archived' | null
+  baseEarnRate?: number | null
+  redemptionPointsUnit?: number | null
+  redemptionValueEGP?: number | null
+  minRedemptionPoints?: number | null
+  maxRedemptionPercent?: number | null
+  maxRedemptionFixedEGP?: number | null
+  allowPartialRedemption?: boolean | null
+  redemptionStepUnit?: number | null
+  welcomeBonus?: number | null
+  expirationMonths?: number | null
+  bonusNeverExpires?: boolean | null
+  tiers?: Array<{
+    tier?: string | null
+    label?: string | null
+    minSpentEGP?: number | null
+    earnMultiplier?: number | null
+    upgradeBonus?: number | null
+  }> | null
+}
+
+interface RawLedgerRecordDoc {
+  id?: string | number
+  user?: number | { id: number | string } | null
+  ledgerVersion?: number | null
+  type?: string | null
+  amount?: number | null
+  balance?: number | null
+  referenceType?: string | null
+  referenceId?: string | number | null
+  reason?: string | null
+  booking?: number | { id: number | string } | null
+  expiresAt?: string | Date | null
+  metadata?: unknown
+  createdAt?: string | Date | null
+}
 
 /**
  * Loyalty Repository
@@ -58,7 +101,7 @@ export class LoyaltyRepository {
    * Map Payload document to strongly-typed LoyaltyProgramConfig.
    * STRICT FAIL FAST: Throws explicit exception if any business configuration field is missing.
    */
-  private mapDocToProgramConfig(doc: Record<string, any>): LoyaltyProgramConfig {
+  private mapDocToProgramConfig(doc: RawProgramConfigDoc): LoyaltyProgramConfig {
     if (!doc.programCode) {
       throw new LoyaltyProgramConfigurationException(
         'Invalid LoyaltyProgram document: missing required programCode.',
@@ -105,51 +148,48 @@ export class LoyaltyRepository {
       )
     }
 
-    const tiersMap = {} as Record<LoyaltyTier, TierDefinitionConfig>
+    const mappedTiers: TierDefinitionConfig[] = []
 
-    doc.tiers.forEach((t: any) => {
+    doc.tiers.forEach((t) => {
       if (!t || typeof t !== 'object') {
         throw new LoyaltyProgramConfigurationException('Invalid LoyaltyProgram document: tier object is invalid.')
       }
-      const tierKey = (t.tier as string).toUpperCase() as keyof typeof LoyaltyTier
-      const enumValue = LoyaltyTier[tierKey]
-      if (enumValue) {
-        if (
-          typeof t.minSpentEGP !== 'number' ||
-          isNaN(t.minSpentEGP) ||
-          t.minSpentEGP < 0 ||
-          typeof t.earnMultiplier !== 'number' ||
-          isNaN(t.earnMultiplier) ||
-          t.earnMultiplier < 0 ||
-          typeof t.upgradeBonus !== 'number' ||
-          isNaN(t.upgradeBonus) ||
-          t.upgradeBonus < 0
-        ) {
-          throw new LoyaltyProgramConfigurationException(
-            `Invalid LoyaltyProgram document: incomplete or invalid attributes for tier ${t.tier}.`,
-          )
-        }
-        tiersMap[enumValue] = {
-          tier: enumValue,
-          minSpentEGP: t.minSpentEGP,
-          earnMultiplier: t.earnMultiplier,
-          upgradeBonus: t.upgradeBonus,
-        }
+
+      const tierId = (t.tier as string || '').trim().toLowerCase()
+      if (!tierId) {
+        throw new LoyaltyProgramConfigurationException('Invalid LoyaltyProgram document: missing tier identifier.')
       }
+
+      if (!t.label || typeof t.label !== 'string' || t.label.trim() === '') {
+        throw new LoyaltyProgramConfigurationException(`Invalid LoyaltyProgram document: missing label for tier [${tierId}].`)
+      }
+
+      if (
+        typeof t.minSpentEGP !== 'number' ||
+        isNaN(t.minSpentEGP) ||
+        t.minSpentEGP < 0 ||
+        typeof t.earnMultiplier !== 'number' ||
+        isNaN(t.earnMultiplier) ||
+        t.earnMultiplier < 0 ||
+        typeof t.upgradeBonus !== 'number' ||
+        isNaN(t.upgradeBonus) ||
+        t.upgradeBonus < 0
+      ) {
+        throw new LoyaltyProgramConfigurationException(
+          `Invalid LoyaltyProgram document: incomplete or invalid attributes for tier ${t.tier}.`,
+        )
+      }
+
+      mappedTiers.push({
+        tier: tierId,
+        label: t.label.trim(),
+        minSpentEGP: t.minSpentEGP,
+        earnMultiplier: t.earnMultiplier,
+        upgradeBonus: t.upgradeBonus,
+      })
     })
 
-    // Verify all tiers exist in configured matrix
-    if (
-      !tiersMap[LoyaltyTier.EXPLORER] ||
-      !tiersMap[LoyaltyTier.VOYAGER] ||
-      !tiersMap[LoyaltyTier.ELITE]
-    ) {
-      throw new LoyaltyProgramConfigurationException(
-        'Invalid LoyaltyProgram document: tier rules matrix must contain explorer, voyager, and elite definitions.',
-      )
-    }
-
-    return {
+    const config: LoyaltyProgramConfig = {
       id: String(doc.id),
       programCode: doc.programCode,
       name: doc.name || doc.programCode,
@@ -169,8 +209,14 @@ export class LoyaltyRepository {
       welcomeBonus: doc.welcomeBonus,
       expirationMonths: doc.expirationMonths,
       bonusNeverExpires: typeof doc.bonusNeverExpires === 'boolean' ? doc.bonusNeverExpires : true,
-      tiers: tiersMap,
+      tiers: mappedTiers,
     }
+
+    // Run structural checks to validate settings at mapped boundaries (starts at 0 EGP, strictly increasing)
+    // This satisfies: "Validate عند تحميل الـ active Loyalty configuration + cache it."
+    TierPolicy.getOrderedTiers(config)
+
+    return config
   }
 
   /**
@@ -328,7 +374,22 @@ export class LoyaltyRepository {
     })
 
     const loyaltyData = customer.loyalty || {}
-    const tier = (loyaltyData.tier || LoyaltyTier.EXPLORER) as LoyaltyTier
+
+    // Load active settings configuration
+    const config = await this.getActiveProgramConfig(undefined, context)
+    const ordered = TierPolicy.getOrderedTiers(config)
+    const defaultTier = ordered[0].tier
+
+    const tier = (loyaltyData.tier || defaultTier) as LoyaltyTier
+
+    // Domain validation: verify that customer's tier exists in the active configuration
+    const tierExists = config.tiers.some((t) => t.tier.toLowerCase() === tier.toLowerCase())
+    if (!tierExists) {
+      console.error(
+        `[LoyaltyRepository DATA INTEGRITY ERROR] Customer #${customerId} has unknown tier [${tier}] which is missing from active settings. Fail-fast enforced.`,
+      )
+      throw new Error(`[LoyaltyRepository] Data integrity violation: Customer has unknown tier [${tier}]`)
+    }
     
     // totalSpentEGP represents the customer's net qualifying spend in EGP.
     // It is calculated from confirmed bookings. Upon booking confirmation, totalSpentEGP increases.
@@ -384,12 +445,19 @@ export class LoyaltyRepository {
     const { aggregate } = await this.getCustomerAggregate(customerId, context)
     const newTotalSpent = aggregate.totalSpentEGP + additionalSpentEGP
 
+    const customer = await this.payload.findByID({
+      collection: 'customers',
+      id: customerId,
+      req,
+    })
+
     const doc = await this.payload.update({
       collection: 'customers',
       id: customerId,
       data: {
         loyalty: {
-          tier: newTier as 'explorer' | 'voyager' | 'elite',
+          ...customer.loyalty,
+          tier: newTier,
           totalSpent: newTotalSpent,
           tierAchievedAt: new Date().toISOString(),
         },
@@ -432,21 +500,21 @@ export class LoyaltyRepository {
   /**
    * Map Payload document to strongly-typed PointLedgerRecord.
    */
-  private mapDocToLedgerRecord(doc: Record<string, any>): PointLedgerRecord {
+  private mapDocToLedgerRecord(doc: RawLedgerRecordDoc): PointLedgerRecord {
     return {
       id: String(doc.id),
-      customerId: typeof doc.user === 'object' ? Number(doc.user.id) : Number(doc.user),
+      customerId: doc.user && typeof doc.user === 'object' ? Number(doc.user.id) : Number(doc.user),
       ledgerVersion: doc.ledgerVersion || 1,
       type: doc.type as LedgerEntryType,
-      points: doc.amount,
-      resultingBalance: doc.balance,
+      points: doc.amount ?? 0,
+      resultingBalance: doc.balance ?? 0,
       referenceType: doc.referenceType as LedgerReferenceType,
       referenceId: doc.referenceId ? String(doc.referenceId) : undefined,
-      reason: doc.reason,
+      reason: doc.reason || '',
       bookingId: doc.booking
-        ? typeof doc.booking === 'object'
+        ? (doc.booking && typeof doc.booking === 'object'
           ? Number(doc.booking.id)
-          : Number(doc.booking)
+          : Number(doc.booking))
         : undefined,
       expiresAt: doc.expiresAt
         ? typeof doc.expiresAt === 'string'

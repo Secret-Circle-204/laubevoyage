@@ -2,7 +2,7 @@ import type { RequestContext } from '@/types'
 import type { LoyaltyRepository } from './repository'
 import type { PointLedgerRecord } from './types'
 import { LoyaltyPolicy } from './policy'
-import { PointsCalculator } from './points-calculator'
+import { PointCalculationPolicy } from './points-calculation-policy'
 import type { LoyaltyProgramConfig, LeanRulesSnapshot } from './tier-config'
 
 /**
@@ -26,7 +26,7 @@ export class PointsEarnProcessor {
   ): Promise<PointLedgerRecord> {
     const { aggregate } = await this.repository.getCustomerAggregate(customerId, context)
 
-    const pointsToEarn = PointsCalculator.calculateEarnedPoints(amountSpentEGP, aggregate.tier, config)
+    const pointsToEarn = PointCalculationPolicy.calculateEarnedPoints(amountSpentEGP, aggregate.tier, config)
 
     const policyResult = LoyaltyPolicy.canEarn(pointsToEarn)
     if (!policyResult.allowed) {
@@ -40,7 +40,10 @@ export class PointsEarnProcessor {
       return d.toISOString()
     }
 
-    const tierConfig = config.tiers[aggregate.tier] || config.tiers.explorer
+    const tierConfig = config.tiers.find((t) => t.tier.toLowerCase() === aggregate.tier.toLowerCase())
+    if (!tierConfig) {
+      throw new Error(`[PointsEarnProcessor] Customer has unknown tier [${aggregate.tier}] which is missing from active config.`)
+    }
 
     const leanSnapshot: LeanRulesSnapshot = {
       baseEarnRate: config.baseEarnRate,

@@ -70,10 +70,15 @@ export enum PaymentStatus {
 // LOYALTY DOMAIN
 // ============================================================================
 
-export enum LoyaltyTier {
-  EXPLORER = 'explorer',
-  VOYAGER = 'voyager',
-  ELITE = 'elite',
+export type LoyaltyTier = string
+export type LoyaltyTierId = string
+
+export interface LoyaltyTierDefinition {
+  tier: LoyaltyTierId
+  label: string
+  minSpentEGP: number
+  earnMultiplier: number
+  upgradeBonus: number
 }
 
 export enum PointTransactionType {
@@ -100,26 +105,6 @@ export interface PointLedgerEntry {
   metadata?: Record<string, unknown>
 }
 
-// Tier Configuration
-export const TIER_CONFIG = {
-  [LoyaltyTier.EXPLORER]: {
-    minSpent: 0,
-    bonus: 0,
-    earnRate: 1, // 1 point per EGP
-  },
-  [LoyaltyTier.VOYAGER]: {
-    minSpent: 5000,
-    bonus: 500,
-    earnRate: 1.2,
-  },
-  [LoyaltyTier.ELITE]: {
-    minSpent: 15000,
-    bonus: 1000,
-    earnRate: 1.5,
-  },
-} as const
-
-export const WELCOME_BONUS = 100
 
 // ============================================================================
 // CURRENCY DOMAIN

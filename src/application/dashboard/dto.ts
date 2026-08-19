@@ -25,15 +25,25 @@ export interface LoyaltyTierThresholdDTO {
   formattedMinSpent: string // e.g. "5,000 EGP" or localized currency
 }
 
+export interface PointsValueGuideDTO {
+  title: string
+  description: string
+  unitText: string
+}
+
 export interface CustomerPortalOverviewDTO {
   customerId: number
   fullName: string
   email: string
-  currentTier: 'explorer' | 'voyager' | 'elite'
+  currentTier: LoyaltyTier
   points: number
   formattedPoints: string // Canonical localized points balance
+  pointsMonetaryValue: ConvertedPrice
+  pointsValuesAllCurrencies: ConvertedPrice[]
+  pointsValueGuide: PointsValueGuideDTO
   nextTierProgressPercent: number
-  currentQualifyingSpendEGP: number
+  totalSpentEGP: number
+  formattedTotalSpentEGP: string
   remainingQualifyingSpendEGP: number | null
   formattedRemainingQualifyingSpend: string | null
   nextTierName: string
@@ -46,12 +56,40 @@ export interface CustomerPortalOverviewDTO {
   redemptionRate: LoyaltyRedemptionRateDTO
 }
 
+export interface CustomerSidebarDTO {
+  customerId: number
+  fullName: string
+  currentTier: LoyaltyTier
+}
+
 export interface CustomerNotificationItemDTO {
   id: string
   title: string
   text: string
   time: string
+  category: string
   unread: boolean
   templateId: string
 }
+
+export interface CustomerNotificationsPortalDTO {
+  notifications: CustomerNotificationItemDTO[]
+  total: number
+  page: number
+  totalPages: number
+  limit: number
+  currentCategory?: string
+}
+
+export interface CustomerBookingsHistoryDTO {
+  bookings: CustomerBookingCardDTO[]
+  total: number
+  page: number
+  totalPages: number
+  limit: number
+  currentStatus?: string
+}
+
+
+
 

@@ -1,5 +1,5 @@
 import type { Payload, PayloadRequest } from 'payload'
-import type { RequestContext } from '@/types'
+import type { RequestContext, LoyaltyTier } from '@/types'
 import type { CustomerAggregate } from '../aggregate'
 import type { CustomerStatus } from '../types'
 import { validateCustomerStatusTransition } from '../state-machine'
@@ -275,7 +275,7 @@ export class CustomerRepository {
   async updateLoyaltyProfile(
     customerId: number,
     loyaltyData: {
-      tier?: 'explorer' | 'voyager' | 'elite'
+      tier?: LoyaltyTier
       points?: number
       totalSpent?: number
       tierAchievedAt?: string
@@ -341,7 +341,7 @@ export class CustomerRepository {
         : undefined,
       loyalty: doc.loyalty
         ? {
-            tier: doc.loyalty.tier,
+            tier: doc.loyalty.tier || '',
             points: typeof doc.loyalty.points === 'number' ? doc.loyalty.points : 0,
             totalSpentEGP: typeof doc.loyalty.totalSpent === 'number' ? doc.loyalty.totalSpent : 0,
             totalSpent: typeof doc.loyalty.totalSpent === 'number' ? doc.loyalty.totalSpent : 0,

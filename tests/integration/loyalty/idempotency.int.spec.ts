@@ -24,18 +24,21 @@ describe('Loyalty Domain: Financial Ledger Idempotency Integration Tests', () =>
         tiers: [
           {
             tier: 'explorer',
+            label: 'Explorer',
             minSpentEGP: 0,
             earnMultiplier: 1,
             upgradeBonus: 0,
           },
           {
             tier: 'voyager',
+            label: 'Voyager',
             minSpentEGP: 50000,
             earnMultiplier: 1.5,
             upgradeBonus: 1000,
           },
           {
             tier: 'elite',
+            label: 'Elite',
             minSpentEGP: 150000,
             earnMultiplier: 2.0,
             upgradeBonus: 5000,

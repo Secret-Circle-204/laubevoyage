@@ -4,6 +4,7 @@ import { BookingQueries } from '../booking/queries'
 import type { CustomerRepository } from '../customer/repositories/customer-repository'
 import type { LoyaltyRepository } from '../loyalty/repository'
 import type { BookingRepository } from '../booking/repository'
+import type { DeviceSessionRepository } from '../customer/repositories/session-repository'
 
 /**
  * Dashboard Query Bus
@@ -18,8 +19,9 @@ export class DashboardQueryBus {
     customerRepo: CustomerRepository,
     loyaltyRepo: LoyaltyRepository,
     bookingRepo: BookingRepository,
+    sessionRepo: DeviceSessionRepository,
   ) {
-    this.customerQueries = new CustomerQueries(customerRepo)
+    this.customerQueries = new CustomerQueries(customerRepo, sessionRepo)
     this.loyaltyQueries = new LoyaltyQueries(loyaltyRepo)
     this.bookingQueries = new BookingQueries(bookingRepo)
   }

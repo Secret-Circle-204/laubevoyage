@@ -98,6 +98,13 @@ export const Customers: CollectionConfig = {
       type: 'date',
     },
     {
+      name: 'verificationExpiresAt',
+      type: 'date',
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'phoneVerifiedAt',
       type: 'date',
     },
@@ -114,17 +121,10 @@ export const Customers: CollectionConfig = {
       fields: [
         {
           name: 'tier',
-          type: 'select',
-          required: true,
-          defaultValue: 'explorer',
-          options: [
-            { label: 'Explorer', value: 'explorer' },
-            { label: 'Voyager', value: 'voyager' },
-            { label: 'Elite', value: 'elite' },
-          ],
+          type: 'text',
           admin: {
             readOnly: true,
-            description: 'Tier is managed by LoyaltyService',
+            description: 'Tier is managed dynamically by LoyaltyService',
           },
         },
         {

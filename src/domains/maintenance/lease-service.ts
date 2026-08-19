@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import type { PostgresAdapter } from '@payloadcms/db-postgres'
 import type { MaintenanceLeaseEntity } from './types'
 
 /**
@@ -10,7 +11,20 @@ export class MaintenanceLeaseService {
   private static leases: Map<string, MaintenanceLeaseEntity> = new Map()
 
   static async acquireLease(
-    payloadOrJob: any,
+    jobName: string,
+    workerId: string,
+    ttlMs?: number
+  ): Promise<boolean>;
+
+  static async acquireLease(
+    payload: Payload,
+    jobName: string,
+    workerId: string,
+    ttlMs?: number
+  ): Promise<boolean>;
+
+  static async acquireLease(
+    payloadOrJob: Payload | string,
     jobOrWorker?: string,
     workerOrTtl?: string | number,
     ttlMs = 60000
@@ -31,7 +45,7 @@ export class MaintenanceLeaseService {
       ttl = typeof ttlMs === 'number' ? ttlMs : 60000
     }
 
-    if (!payload) {
+    if (!payload || !payload.db) {
       // Fallback for unit tests (in-memory lock)
       const now = new Date()
       const existing = this.leases.get(jobName)
@@ -45,7 +59,10 @@ export class MaintenanceLeaseService {
       return true
     }
 
-    const pool = (payload.db as any)?.pool
+    // Cast abstract DatabaseAdapter to concrete PostgresAdapter
+    // Class D: Bounded infrastructure cast to access postgres pgPool query capability
+    const dbAdapter = payload.db as unknown as PostgresAdapter
+    const pool = dbAdapter.pool
     if (!pool || typeof pool.query !== 'function') {
       return true
     }
@@ -68,21 +85,58 @@ export class MaintenanceLeaseService {
       return res.rows.length > 0
     } catch (error: unknown) {
       console.error(`[MaintenanceLeaseService] acquireLease failed for job ${jobName}:`, error)
-      return false
+      throw error // Fail loud on infrastructure/SQL errors
     }
   }
 
   static async renewLease(
-    payloadOrJob: any,
+    jobName: string,
+    workerId: string,
+    ttlMs?: number
+  ): Promise<boolean>;
+
+  static async renewLease(
+    payload: Payload,
+    jobName: string,
+    workerId: string,
+    ttlMs?: number
+  ): Promise<boolean>;
+
+  static async renewLease(
+    payloadOrJob: Payload | string,
     jobOrWorker?: string,
     workerOrTtl?: string | number,
     ttlMs = 60000
   ): Promise<boolean> {
-    return this.acquireLease(payloadOrJob, jobOrWorker, workerOrTtl, ttlMs)
+    if (typeof payloadOrJob === 'string') {
+      return this.acquireLease(
+        payloadOrJob,
+        jobOrWorker as string,
+        typeof workerOrTtl === 'number' ? workerOrTtl : ttlMs
+      )
+    } else {
+      return this.acquireLease(
+        payloadOrJob,
+        jobOrWorker as string,
+        workerOrTtl as string,
+        typeof ttlMs === 'number' ? ttlMs : 60000
+      )
+    }
   }
 
   static async releaseLease(
-    payloadOrJob: any,
+    jobName: string,
+    workerId: string
+  ): Promise<void>;
+
+  static async releaseLease(
+    payload: Payload,
+    jobName: string,
+    workerId: string
+  ): Promise<void>;
+
+  static async releaseLease(
+    payloadOrJob: Payload | string,
     jobOrWorker?: string,
     workerIdArg?: string
   ): Promise<void> {
@@ -99,7 +153,7 @@ export class MaintenanceLeaseService {
       workerId = workerIdArg as string
     }
 
-    if (!payload) {
+    if (!payload || !payload.db) {
       const existing = this.leases.get(jobName)
       if (existing && existing.workerId === workerId) {
         this.leases.delete(jobName)
@@ -107,7 +161,10 @@ export class MaintenanceLeaseService {
       return
     }
 
-    const pool = (payload.db as any)?.pool
+    // Cast abstract DatabaseAdapter to concrete PostgresAdapter
+    // Class D: Bounded infrastructure cast to access postgres pgPool query capability
+    const dbAdapter = payload.db as unknown as PostgresAdapter
+    const pool = dbAdapter.pool
     if (!pool || typeof pool.query !== 'function') {
       return
     }
@@ -120,11 +177,21 @@ export class MaintenanceLeaseService {
       await pool.query(query, [jobName, workerId])
     } catch (error: unknown) {
       console.error(`[MaintenanceLeaseService] releaseLease failed for job ${jobName}:`, error)
+      throw error // Fail loud on infrastructure/SQL errors
     }
   }
 
   static async getActiveLease(
-    payloadOrJob: any,
+    jobName: string
+  ): Promise<MaintenanceLeaseEntity | undefined>;
+
+  static async getActiveLease(
+    payload: Payload,
+    jobName: string
+  ): Promise<MaintenanceLeaseEntity | undefined>;
+
+  static async getActiveLease(
+    payloadOrJob: Payload | string,
     jobNameArg?: string
   ): Promise<MaintenanceLeaseEntity | undefined> {
     let payload: Payload | undefined
@@ -137,7 +204,7 @@ export class MaintenanceLeaseService {
       jobName = jobNameArg as string
     }
 
-    if (!payload) {
+    if (!payload || !payload.db) {
       const now = new Date()
       const existing = this.leases.get(jobName)
       if (existing && new Date(existing.leaseExpiresAt) > now) {
@@ -146,7 +213,10 @@ export class MaintenanceLeaseService {
       return undefined
     }
 
-    const pool = (payload.db as any)?.pool
+    // Cast abstract DatabaseAdapter to concrete PostgresAdapter
+    // Class D: Bounded infrastructure cast to access postgres pgPool query capability
+    const dbAdapter = payload.db as unknown as PostgresAdapter
+    const pool = dbAdapter.pool
     if (!pool || typeof pool.query !== 'function') {
       return undefined
     }
@@ -170,7 +240,7 @@ export class MaintenanceLeaseService {
       }
     } catch (error: unknown) {
       console.error(`[MaintenanceLeaseService] getActiveLease failed for job ${jobName}:`, error)
-      return undefined
+      throw error // Fail loud on infrastructure/SQL errors
     }
   }
 }

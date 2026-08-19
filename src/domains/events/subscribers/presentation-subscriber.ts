@@ -5,6 +5,7 @@ import type {
   SystemSettingsUpdatedEvent,
   LoyaltySettingsUpdatedEvent,
   CurrencyCatalogUpdatedEvent,
+  LanguageCatalogUpdatedEvent,
   CurrencyRatesUpdatedEvent,
   CountryMutatedEvent,
   CityMutatedEvent,
@@ -48,6 +49,15 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeLayoutOnCurrencyCatalog',
     async (event) => {
       console.log('[PresentationSubscriber] CURRENCY_CATALOG_UPDATED Event received. Purging Next.js layout cache.')
+      await RevalidationService.purgeLayout()
+    }
+  )
+
+  eventBus.subscribe<LanguageCatalogUpdatedEvent>(
+    'LANGUAGE_CATALOG_UPDATED',
+    'PresentationSubscriber.purgeLayoutOnLanguageCatalog',
+    async (event) => {
+      console.log('[PresentationSubscriber] LANGUAGE_CATALOG_UPDATED Event received. Purging Next.js layout cache.')
       await RevalidationService.purgeLayout()
     }
   )

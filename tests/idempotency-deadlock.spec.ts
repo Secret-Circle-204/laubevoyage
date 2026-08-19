@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest'
 import { confirmCheckoutAction } from '@/application/actions/booking-actions'
 import { BookingStatus } from '@/types'
 import { getDomainServices } from '@/domains/factory'
@@ -18,11 +18,43 @@ vi.mock('next/headers', () => ({
 }))
 
 describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
-  const customerId = 52 // test-1@mail.com
+  let customerId: number
   const experienceId = 10
   const slotId = 1
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    const { booking: bookingService } = await getDomainServices()
+    const payloadInstance = bookingService['repository']['payload']
+    
+    // Seed customer or resolve existing
+    try {
+      const existing = await payloadInstance.find({
+        collection: 'customers',
+        where: { email: { equals: 'test-1@mail.com' } },
+        limit: 1,
+      })
+
+      if (existing.docs.length > 0) {
+        customerId = Number(existing.docs[0].id)
+      } else {
+        const doc = await payloadInstance.create({
+          collection: 'customers',
+          data: {
+            email: 'test-1@mail.com',
+            firstName: 'test-1',
+            lastName: 'test',
+            status: 'active',
+            password: 'MockPassword123!',
+          }
+        } as any)
+        customerId = Number(doc.id)
+        console.log(`[idempotency-deadlock.spec] Seeded customer #${customerId}`)
+      }
+    } catch (err) {
+      console.error(`[idempotency-deadlock.spec] Failed to seed customer:`, err)
+      customerId = 52 // fallback
+    }
+
     vi.spyOn(SessionResolver, 'resolve').mockResolvedValue({
       isAuthenticated: true,
       customerId,
@@ -32,6 +64,17 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
       preferredCurrency: 'EGP',
       preferredLanguage: 'en'
     })
+  })
+
+  afterAll(async () => {
+    const { booking: bookingService } = await getDomainServices()
+    const payloadInstance = bookingService['repository']['payload']
+    try {
+      await payloadInstance.delete({
+        collection: 'customers',
+        id: customerId
+      }).catch(() => null)
+    } catch {}
   })
 
   beforeEach(async () => {

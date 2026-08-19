@@ -2,6 +2,9 @@ import { AdminWorkflowEngine } from './workflow'
 import { AdminRepository } from './repository'
 import type { AdminUserEntity } from './types'
 import type { MaintenanceJobName } from '../maintenance/types'
+import type { CustomerService } from '../customer/service'
+import type { LoyaltyService } from '../loyalty/service'
+import type { BookingService } from '../booking/service'
 
 /**
  * Admin Domain Service (Enterprise Thin Facade)
@@ -10,8 +13,18 @@ import type { MaintenanceJobName } from '../maintenance/types'
 export class AdminService {
   private workflowEngine: AdminWorkflowEngine
 
-  constructor(repository: AdminRepository) {
-    this.workflowEngine = new AdminWorkflowEngine(repository)
+  constructor(
+    repository: AdminRepository,
+    customerService?: CustomerService,
+    loyaltyService?: LoyaltyService,
+    bookingService?: BookingService,
+  ) {
+    this.workflowEngine = new AdminWorkflowEngine(
+      repository,
+      customerService,
+      loyaltyService,
+      bookingService,
+    )
   }
 
   async cancelBookingByStaff(adminUser: AdminUserEntity, bookingId: number, reason: string): Promise<boolean> {
@@ -23,6 +36,24 @@ export class AdminService {
       String(bookingId),
       reason,
       () => this.workflowEngine.bookingOperations.cancelBookingByStaff(bookingId, reason),
+    )
+  }
+
+  async toggleCustomerStatusByStaff(
+    adminUser: AdminUserEntity,
+    customerId: number,
+    status: 'active' | 'suspended',
+    reason: string,
+  ): Promise<boolean> {
+    return this.workflowEngine.executeStaffAction(
+      adminUser,
+      'manage_customers',
+      'toggle_customer_status_staff',
+      'customer',
+      String(customerId),
+      reason,
+      () => this.workflowEngine.customerOperations.toggleCustomerStatusByStaff(customerId, status, reason),
+      { status },
     )
   }
 

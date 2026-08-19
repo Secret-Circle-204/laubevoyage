@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useSyncExternalStore } from 'react'
 
 type Theme = 'light' | 'dark'
 
@@ -12,23 +12,56 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light')
+const listeners = new Set<() => void>()
 
-  useEffect(() => {
-    const savedTheme = (localStorage.getItem('laube-theme') as Theme) || 'light'
-    setThemeState(savedTheme)
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark')
-  }, [])
+function getThemeSnapshot(): Theme {
+  if (typeof window !== 'undefined') {
+    return (localStorage.getItem('laube-theme') as Theme) || 'light'
+  }
+  return 'light'
+}
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme)
+function getThemeServerSnapshot(): Theme {
+  return 'light'
+}
+
+function subscribeTheme(onStoreChange: () => void) {
+  listeners.add(onStoreChange)
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === 'laube-theme') {
+      const newTheme = (event.newValue as Theme) || 'light'
+      document.documentElement.classList.toggle('dark', newTheme === 'dark')
+      onStoreChange()
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', handleStorage)
+  }
+  return () => {
+    listeners.delete(onStoreChange)
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('storage', handleStorage)
+    }
+  }
+}
+
+function updateTheme(newTheme: Theme) {
+  if (typeof window !== 'undefined') {
     localStorage.setItem('laube-theme', newTheme)
     document.documentElement.classList.toggle('dark', newTheme === 'dark')
   }
+  listeners.forEach((listener) => listener())
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const theme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getThemeServerSnapshot)
+
+  const setTheme = (newTheme: Theme) => {
+    updateTheme(newTheme)
+  }
 
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
+    updateTheme(theme === 'light' ? 'dark' : 'light')
   }
 
   return (

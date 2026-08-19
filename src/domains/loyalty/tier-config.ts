@@ -2,10 +2,13 @@ import { LoyaltyTier } from '@/types'
 
 export interface TierDefinitionConfig {
   tier: LoyaltyTier
+  label: string
   minSpentEGP: number
   earnMultiplier: number
   upgradeBonus: number
 }
+
+export type LoyaltyTierDefinition = TierDefinitionConfig
 
 export interface LoyaltyProgramConfig {
   id: string
@@ -24,7 +27,7 @@ export interface LoyaltyProgramConfig {
   welcomeBonus: number
   expirationMonths: number
   bonusNeverExpires: boolean
-  tiers: Record<LoyaltyTier, TierDefinitionConfig>
+  tiers: TierDefinitionConfig[]
 }
 
 export interface LeanRulesSnapshot {

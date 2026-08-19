@@ -1,3 +1,5 @@
+import { LoyaltyTier } from '@/types'
+
 export interface CustomerOverviewDTO {
   customerId: number
   email: string
@@ -8,11 +10,10 @@ export interface CustomerOverviewDTO {
 }
 
 export interface LoyaltyWalletDTO {
-  tier: 'explorer' | 'voyager' | 'elite'
+  tier: LoyaltyTier
   pointsBalance: number
   activeHoldsCount: number
   totalSpentEGP: number
-  tierProgressPercentage: number
 }
 
 export interface ActiveTripsSummaryDTO {

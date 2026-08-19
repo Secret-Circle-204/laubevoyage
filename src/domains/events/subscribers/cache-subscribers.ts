@@ -5,11 +5,13 @@ import { rateRegistry } from '@/domains/currency/rate-registry'
 import { catalogRegistry } from '@/domains/currency/catalog-registry'
 import { countryCatalogRegistry } from '@/domains/destination/country-registry'
 import { ContentCacheManager } from '@/domains/content/cache-manager'
+import { LanguageRepository } from '@/domains/languages/repository'
 
 import type {
   SystemSettingsUpdatedEvent,
   LoyaltySettingsUpdatedEvent,
   CurrencyCatalogUpdatedEvent,
+  LanguageCatalogUpdatedEvent,
   CurrencyRatesUpdatedEvent,
   CountryMutatedEvent,
   CityMutatedEvent,
@@ -65,6 +67,19 @@ export function registerCurrencyCacheSubscriber(): void {
     (event) => {
       console.log('[CurrencyCacheSubscriber] CURRENCY_RATES_UPDATED Event received. Invalidating rateRegistry cache.')
       rateRegistry.invalidate()
+    }
+  )
+}
+
+export function registerLanguageCacheSubscriber(): void {
+  const eventBus = EventBus.getInstance()
+
+  eventBus.subscribe<LanguageCatalogUpdatedEvent>(
+    'LANGUAGE_CATALOG_UPDATED',
+    'LanguageCacheSubscriber.invalidateLanguages',
+    (event) => {
+      console.log('[LanguageCacheSubscriber] LANGUAGE_CATALOG_UPDATED Event received. Invalidating LanguageRepository cache.')
+      LanguageRepository.invalidateAll()
     }
   )
 }

@@ -24,7 +24,6 @@ export class DashboardWidgetProvider {
         data: {
           tier: projection.loyalty.tier,
           pointsBalance: projection.loyalty.pointsBalance,
-          tierProgressPercentage: projection.loyalty.tierProgressPercentage,
         },
       },
       {

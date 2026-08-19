@@ -18,9 +18,20 @@ export function registerCustomerSubscribers(
   const eventBus = EventBus.getInstance()
   const inboxRepo = new PayloadInboxRepository(payload)
 
-  // 1. Customer Registered -> Grant welcome bonus points ledger entry (Decoupled)
+  // 1. Customer Registered -> Log only
   eventBus.subscribe<CustomerRegisteredEvent>(
     'CUSTOMER_REGISTERED',
+    'CustomerSubscriber.logRegistration',
+    async (event) => {
+      console.log(
+        `[CustomerSubscriber] Customer #${event.customerId} registered with status "${event.status}". Verification pending.`,
+      )
+    },
+  )
+
+  // 2. Customer Email Verified -> Grant welcome bonus points ledger entry (Decoupled)
+  eventBus.subscribe<CustomerEmailVerifiedEvent>(
+    'CUSTOMER_EMAIL_VERIFIED',
     'CustomerSubscriber.grantWelcomeBonus',
     async (event) => {
       const subscriberName = 'CustomerSubscriber.grantWelcomeBonus'
@@ -30,7 +41,7 @@ export function registerCustomerSubscribers(
 
       try {
         console.log(
-          `[CustomerSubscriber] Customer #${event.customerId} registered. Acquiring inbox lock...`,
+          `[CustomerSubscriber] Customer #${event.customerId} email verified. Acquiring inbox lock...`,
         )
         const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName, req)
         if (!acquired) {
@@ -66,17 +77,6 @@ export function registerCustomerSubscribers(
         )
         throw error
       }
-    },
-  )
-
-  // 2. Customer Email Verified -> Logging only (Points are already granted at registration)
-  eventBus.subscribe<CustomerEmailVerifiedEvent>(
-    'CUSTOMER_EMAIL_VERIFIED',
-    'CustomerSubscriber.logEmailVerified',
-    async (event) => {
-      console.log(
-        `[CustomerSubscriber] Customer #${event.customerId} email verified. No duplicate bonus points granted.`,
-      )
     },
   )
 }

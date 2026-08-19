@@ -1,4 +1,4 @@
-import type { RequestContext } from '@/types'
+import type { RequestContext, LoyaltyTier } from '@/types'
 import { CustomerWorkflowEngine, type VerificationResult } from './workflow'
 import { CustomerRepository } from './repositories/customer-repository'
 import type { CustomerAggregate } from './aggregate'
@@ -123,6 +123,52 @@ export class CustomerService {
     return updated
   }
 
+  async updateStatus(
+    customerId: number,
+    status: 'active' | 'suspended',
+    reason?: string,
+    context?: RequestContext,
+  ): Promise<CustomerAggregate> {
+    const customer = await this.getById(customerId, context)
+    const oldStatus = customer.status
+    const updated = await this.repository.save(
+      {
+        ...customer,
+        status,
+      },
+      context,
+    )
+
+    const outbox = EventOutboxService.getInstance()
+    await outbox.recordAndPublish(
+      {
+        type: 'CUSTOMER_STATUS_UPDATED',
+        eventVersion: 1,
+        customerId: updated.customerId,
+        oldStatus,
+        newStatus: status,
+        reason,
+        timestamp: new Date().toISOString(),
+      },
+      context,
+    )
+
+    await outbox.recordAndPublish(
+      {
+        type: 'CUSTOMER_UPDATED',
+        eventVersion: 1,
+        customerId: updated.customerId,
+        email: updated.email,
+        fullName: updated.fullName,
+        status: updated.status,
+        timestamp: new Date().toISOString(),
+      },
+      context,
+    )
+
+    return updated
+  }
+
   async getTravelers(customerId: number): Promise<CompanionTravelerEntity[]> {
     return this.workflowEngine.profileManager.getTravelers(customerId)
   }
@@ -153,7 +199,7 @@ export class CustomerService {
 
   async updateLoyaltyProfile(
     customerId: number,
-    loyaltyData: { tier?: 'explorer' | 'voyager' | 'elite'; points?: number; totalSpent?: number; tierAchievedAt?: string },
+    loyaltyData: { tier?: LoyaltyTier; points?: number; totalSpent?: number; tierAchievedAt?: string },
     context?: RequestContext,
   ): Promise<void> {
     await this.repository.updateLoyaltyProfile(customerId, loyaltyData, context)

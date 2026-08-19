@@ -16,9 +16,10 @@ export class PointsCalculator {
     tier: LoyaltyTier,
     config: LoyaltyProgramConfig,
   ): number {
-    if (amountSpentEGP <= 0) return 0
-
-    const tierConfig = config.tiers[tier]
+    const tierConfig = config.tiers.find((t) => t.tier.toLowerCase() === tier.toLowerCase())
+    if (!tierConfig) {
+      throw new Error(`[PointsCalculator] Customer tier [${tier}] not found in active config.`)
+    }
     const baseEarnRate = config.baseEarnRate
     const tierMultiplier = tierConfig.earnMultiplier
 

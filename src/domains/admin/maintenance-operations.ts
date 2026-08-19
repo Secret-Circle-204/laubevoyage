@@ -14,7 +14,7 @@ export class AdminMaintenanceOperations {
 
   async triggerMaintenanceJobByStaff(jobName: MaintenanceJobName): Promise<{ success: boolean; itemsProcessed: number }> {
     if (this.maintenanceService) {
-      return this.maintenanceService.triggerJob(jobName, 'manual_admin')
+      return this.maintenanceService.triggerJob(jobName, 'manual_admin', 'admin_staff_manual_worker')
     }
     return { success: true, itemsProcessed: 0 }
   }

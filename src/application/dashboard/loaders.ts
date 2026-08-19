@@ -1,33 +1,90 @@
 import { getDomainServices } from '@/domains/factory'
 import { getBusinessDateString } from '@/lib/date'
 import type { BookingAggregate } from '@/domains/booking/types'
-import type { CustomerPortalOverviewDTO, CustomerNotificationItemDTO } from './dto'
+import type {
+  CustomerPortalOverviewDTO,
+  CustomerNotificationsPortalDTO,
+  CustomerSidebarDTO,
+  CustomerBookingsHistoryDTO,
+} from './dto'
 import { LoyaltyTier } from '@/types'
+import { TierPolicy } from '@/domains/loyalty/tier-policy'
+import { LoyaltyProgressDTOFactory } from '@/application/loyalty/progress-factory'
 
 export class CustomerPortalLoader {
+  static async loadSidebar(customerId: number): Promise<CustomerSidebarDTO> {
+    try {
+      const { customer, dashboard } = await getDomainServices()
+      const [customerDoc, projection] = await Promise.all([
+        customer.getById(customerId),
+        dashboard.getPortalOverview(customerId),
+      ])
+
+      const fullName = customerDoc?.fullName || projection?.customer?.fullName || 'Traveler'
+      const currentTier = (
+        projection?.loyalty?.tier ||
+        customerDoc?.loyalty?.tier ||
+        ''
+      ).toLowerCase() as LoyaltyTier
+
+      return {
+        customerId,
+        fullName,
+        currentTier,
+      }
+    } catch (err) {
+      console.error(
+        `[CustomerPortalLoader] Failed loading sidebar for customer #${customerId}:`,
+        err,
+      )
+      throw err
+    }
+  }
+
   static async loadOverview(
     customerId: number,
     options?: { locale?: string; currency?: string },
   ): Promise<CustomerPortalOverviewDTO> {
     try {
-      const { dashboard, localization, customer: customerService, booking, experience, loyalty: loyaltyService } = await getDomainServices()
+      const {
+        dashboard,
+        localization,
+        customer: customerService,
+        booking,
+        experience,
+        loyalty: loyaltyService,
+        currency: currencyService,
+        pricingFacade,
+      } = await getDomainServices()
       const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })
 
-      const [projection, customerDoc, notifications] = await Promise.all([
+      const [projection, customerDoc] = await Promise.all([
         dashboard.getPortalOverview(customerId),
-        customerService.getById(customerId).catch(() => null),
-        CustomerPortalLoader.loadNotifications(customerId),
+        customerService.getById(customerId),
       ])
+      const notifsPortal = await CustomerPortalLoader.loadNotifications(customerId, {
+        customerEmail: customerDoc?.email,
+        page: 1,
+        limit: 5,
+      })
+      const notifications = notifsPortal.notifications
       const rawTitle = customerDoc?.fullName || projection?.customer?.fullName || ''
 
       // Fetch user's actual bookings
       const bookingsResult = await booking.getUserBookings(customerId, 1, 5)
-      
+      const userBookings = bookingsResult.data || []
+
+      // Batch resolution of experiences (Single Query - Eliminates N+1)
+      const uniqueExperienceIds = Array.from(new Set(userBookings.map((b) => b.experienceId)))
+      const experiences =
+        uniqueExperienceIds.length > 0 ? await experience.getManyByIds(uniqueExperienceIds) : []
+      const experiencesMap = new Map(experiences.map((e) => [e.id, e]))
+
       const recentBookings = await Promise.all(
-        (bookingsResult.data || []).map(async (b: BookingAggregate) => {
+        userBookings.map(async (b: BookingAggregate) => {
           const snap = b.pricingSnapshot
           let formattedCost: any
           if (snap && snap.displayAmount !== undefined && snap.displayCurrency) {
@@ -36,25 +93,17 @@ export class CustomerPortalLoader {
               snap.totalAmountEGP || snap.basePriceEGP,
               snap.displayCurrency,
               snap.exchangeRate || 1,
-              ctx
+              ctx,
             )
           } else {
             const totalCostEGP = snap?.totalAmountEGP || snap?.basePriceEGP || 0
             formattedCost = await localization.formatPrice(totalCostEGP, ctx)
           }
 
-          let experienceTitle = `Trip #${b.bookingNumber}`
-          let experienceImage = '/images/hero-bg.jpg'
-
-          try {
-            const exp = await experience.getById(b.experienceId)
-            if (exp) {
-              experienceTitle = exp.title || experienceTitle
-              experienceImage = (exp as any).heroUrl || (exp as any).featuredImage?.url || experienceImage
-            }
-          } catch (e) {
-            console.error('Failed fetching experience title for dashboard', e)
-          }
+          const exp = experiencesMap.get(b.experienceId)
+          const experienceTitle = exp?.title || `Trip #${b.bookingNumber}`
+          const experienceImage =
+            (exp as any)?.heroUrl || (exp as any)?.featuredImage?.url || '/images/hero-bg.jpg'
 
           return {
             id: b.id,
@@ -66,36 +115,41 @@ export class CustomerPortalLoader {
             passengersCount: b.travelers.length || 1,
             totalCost: formattedCost,
           }
-        })
+        }),
       )
-
-      const currentTier = (projection?.loyalty?.tier || 'explorer').toLowerCase()
-      const pts = projection?.loyalty?.pointsBalance || 0
 
       const loyaltyConfig = await loyaltyService.getActiveConfig()
-      const currentSpentEGP = projection?.loyalty?.totalSpentEGP || 0
-      
-      // Calculate dynamic progression in EGP Qualifying Spend (Domain Method)
-      const tierProgress = loyaltyService.calculateTierProgress(
-        currentSpentEGP,
-        currentTier as LoyaltyTier,
-        loyaltyConfig
-      )
-      
-      const tierThresholdsArray = loyaltyService.getTierThresholds(loyaltyConfig)
-      
-      const formattedRemaining = tierProgress.remainingQualifyingSpendEGP !== null
-        ? await localization.formatPrice(tierProgress.remainingQualifyingSpendEGP, ctx)
-        : null
-      const formattedRemainingQualifyingSpend = formattedRemaining ? formattedRemaining.formatted : null
+      const orderedTiers = TierPolicy.getOrderedTiers(loyaltyConfig)
+      const defaultTier = orderedTiers[0].tier
 
-      const nextTierName = tierProgress.nextTier ? tierProgress.nextTier : 'Elite (Max Tier)'
-      const nextTierTranslated = tierProgress.nextTier
-        ? await localization.translateText(tierProgress.nextTier, ctx)
-        : ''
+      const currentTier = (projection?.loyalty?.tier || defaultTier).toLowerCase()
+      const pts = projection?.loyalty?.pointsBalance || 0
+      const totalSpentEGP = projection?.loyalty?.totalSpentEGP ?? 0
+
+      // Delegate all tier progress calculation and formatting to the unified factory
+      const progressPresentation = await LoyaltyProgressDTOFactory.build(
+        totalSpentEGP,
+        currentTier as LoyaltyTier,
+        loyaltyConfig,
+        localization,
+        ctx,
+      )
+
+      // Delegate points monetary valuation & multi-currency calculation to the unified factory
+      const valuationPresentation = await LoyaltyProgressDTOFactory.buildValuation(
+        pts,
+        loyaltyService,
+        loyaltyConfig,
+        currencyService,
+        pricingFacade,
+        localization,
+        ctx,
+      )
 
       const formattedPoints = localization.formatNumber(pts, ctx)
+      const formattedTotalSpentPrice = await localization.formatPrice(totalSpentEGP, ctx)
 
+      const tierThresholdsArray = loyaltyService.getTierThresholds(loyaltyConfig)
       const tierThresholds = await Promise.all(
         tierThresholdsArray.map(async (t) => {
           const formatted = await localization.formatPrice(t.minSpentEGP, ctx)
@@ -104,11 +158,14 @@ export class CustomerPortalLoader {
             minSpentEGP: t.minSpentEGP,
             formattedMinSpent: formatted.formatted,
           }
-        })
+        }),
       )
 
       // Convert EGP redemption value using context display currency and format it
-      const formattedRedemption = await localization.formatPrice(loyaltyConfig.redemptionValueEGP, ctx)
+      const formattedRedemption = await localization.formatPrice(
+        loyaltyConfig.redemptionValueEGP,
+        ctx,
+      )
 
       const redemptionRate = {
         pointsUnit: loyaltyConfig.redemptionPointsUnit,
@@ -121,14 +178,18 @@ export class CustomerPortalLoader {
         customerId,
         fullName: rawTitle,
         email: projection?.customer?.email || '',
-        currentTier: (currentTier as 'explorer' | 'voyager' | 'elite'),
+        currentTier: currentTier as LoyaltyTier,
         points: pts,
         formattedPoints,
-        nextTierProgressPercent: projection?.loyalty?.tierProgressPercentage || 0,
-        currentQualifyingSpendEGP: currentSpentEGP,
-        remainingQualifyingSpendEGP: tierProgress.remainingQualifyingSpendEGP,
-        formattedRemainingQualifyingSpend,
-        nextTierName: nextTierTranslated,
+        pointsMonetaryValue: valuationPresentation.pointsMonetaryValue,
+        pointsValuesAllCurrencies: valuationPresentation.pointsValuesAllCurrencies,
+        pointsValueGuide: valuationPresentation.pointsValueGuide,
+        nextTierProgressPercent: progressPresentation.nextTierProgressPercent,
+        totalSpentEGP,
+        formattedTotalSpentEGP: formattedTotalSpentPrice.formatted,
+        remainingQualifyingSpendEGP: progressPresentation.remainingQualifyingSpendEGP,
+        formattedRemainingQualifyingSpend: progressPresentation.formattedRemainingQualifyingSpend,
+        nextTierName: progressPresentation.nextTierName,
         activeBookingsCount: projection?.trips?.activeBookingsCount || 0,
         recentBookings,
         unreadNotificationsCount: notifications.filter((n) => n.unread).length,
@@ -138,15 +199,24 @@ export class CustomerPortalLoader {
         redemptionRate,
       }
     } catch (err) {
-      console.error(`[CustomerPortalLoader] Failed loading overview for customer #${customerId}:`, err)
+      console.error(
+        `[CustomerPortalLoader] Failed loading overview for customer #${customerId}:`,
+        err,
+      )
       throw err
     }
   }
 
   static async loadBookingsHistory(
     customerId: number,
-    options?: { locale?: string; currency?: string; page?: number; limit?: number },
-  ) {
+    options?: {
+      locale?: string
+      currency?: string
+      page?: number
+      limit?: number
+      status?: string
+    },
+  ): Promise<CustomerBookingsHistoryDTO> {
     try {
       const { booking, experience, localization } = await getDomainServices()
       const ctx = await localization.buildContext({
@@ -154,13 +224,27 @@ export class CustomerPortalLoader {
         cookieCurrency: options?.currency,
       })
 
-      const page = options?.page || 1
-      const limit = options?.limit || 100
+      // Strict Bounded Limits: Page >= 1, Limit clamped between 1 and 20 (default 10)
+      const page = Math.max(1, Number(options?.page) || 1)
+      const limit = Math.min(20, Math.max(1, Number(options?.limit) || 10))
+      const statusFilter = options?.status ? (options.status.toLowerCase() as any) : undefined
 
-      const bookingsResult = await booking.getUserBookings(customerId, page, limit)
-      
+      const bookingsResult = await booking.getUserBookings(
+        customerId,
+        page,
+        limit,
+        statusFilter ? { status: statusFilter } : undefined,
+      )
+      const userBookings = bookingsResult.data || []
+
+      // Batch resolution of experiences (Single Query - Eliminates N+1)
+      const uniqueExperienceIds = Array.from(new Set(userBookings.map((b) => b.experienceId)))
+      const experiences =
+        uniqueExperienceIds.length > 0 ? await experience.getManyByIds(uniqueExperienceIds) : []
+      const experiencesMap = new Map(experiences.map((e) => [e.id, e]))
+
       const bookings = await Promise.all(
-        (bookingsResult.data || []).map(async (b: BookingAggregate) => {
+        userBookings.map(async (b: BookingAggregate) => {
           const snapshot = b.pricingSnapshot
           let formattedCost
           if (snapshot && snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
@@ -169,25 +253,18 @@ export class CustomerPortalLoader {
               snapshot.totalAmountEGP,
               snapshot.displayCurrency,
               snapshot.exchangeRate || 1,
-              ctx
+              ctx,
             )
           } else {
-            const totalCostEGP = snapshot?.totalAmountEGP || snapshot?.subtotalEGP || snapshot?.basePriceEGP || 0
+            const totalCostEGP =
+              snapshot?.totalAmountEGP || snapshot?.subtotalEGP || snapshot?.basePriceEGP || 0
             formattedCost = await localization.formatPrice(totalCostEGP, ctx)
           }
 
-          let experienceTitle = `Trip #${b.bookingNumber}`
-          let experienceImage = '/images/hero-bg.jpg'
-
-          try {
-            const exp = await experience.getById(b.experienceId)
-            if (exp) {
-              experienceTitle = exp.title || experienceTitle
-              experienceImage = (exp as any).heroUrl || (exp as any).featuredImage?.url || experienceImage
-            }
-          } catch (e) {
-            console.error('Failed fetching experience title for history', e)
-          }
+          const exp = experiencesMap.get(b.experienceId)
+          const experienceTitle = exp?.title || `Trip #${b.bookingNumber}`
+          const experienceImage =
+            (exp as any)?.heroUrl || (exp as any)?.featuredImage?.url || '/images/hero-bg.jpg'
 
           return {
             id: b.id,
@@ -199,30 +276,72 @@ export class CustomerPortalLoader {
             passengersCount: b.travelers.length || 1,
             totalCost: formattedCost,
           }
-        })
+        }),
       )
+
+      const total = bookingsResult.total || bookings.length
+      const totalPages = bookingsResult.totalPages || Math.ceil(total / limit) || 1
 
       return {
         bookings,
-        total: bookingsResult.total || bookings.length,
+        total,
+        page: bookingsResult.page || page,
+        totalPages,
+        limit,
+        currentStatus: options?.status,
       }
     } catch (err) {
-      console.error(`[CustomerPortalLoader] Failed loading bookings history for customer #${customerId}:`, err)
+      console.error(
+        `[CustomerPortalLoader] Failed loading bookings history for customer #${customerId}:`,
+        err,
+      )
       throw err
     }
   }
 
-  static async loadNotifications(customerId: number): Promise<CustomerNotificationItemDTO[]> {
+  static async loadNotifications(
+    customerId: number,
+    options?: { customerEmail?: string; page?: number; limit?: number; category?: string },
+  ): Promise<CustomerNotificationsPortalDTO> {
     try {
       const { notification, customer } = await getDomainServices()
-      const cust = await customer.getById(customerId).catch(() => null)
-      if (!cust || !cust.email) return []
+      let email = options?.customerEmail
+      if (!email) {
+        const cust = await customer.getById(customerId)
+        email = cust?.email
+      }
+      if (!email) {
+        return {
+          notifications: [],
+          total: 0,
+          page: 1,
+          totalPages: 1,
+          limit: 20,
+        }
+      }
 
-      const repo = (notification as any).workflowEngine?.repository
-      if (!repo || typeof repo.findByRecipient !== 'function') return []
+      // Strict Bounded Limits: Page >= 1, Limit clamped between 1 and 50 (default 20)
+      const page = Math.max(1, Number(options?.page) || 1)
+      const limit = Math.min(50, Math.max(1, Number(options?.limit) || 20))
 
-      const logs = await repo.findByRecipient(cust.email, 20)
-      return logs.map((log: any) => {
+      // Strict Application Boundary Validation for category filter
+      const allowedCategories: string[] = ['marketing', 'booking', 'payment', 'loyalty']
+      let validCategory: any = undefined
+      if (options?.category) {
+        const cat = options.category.toLowerCase().trim()
+        if (allowedCategories.includes(cat)) {
+          validCategory = cat
+        }
+      }
+
+      const result = await notification.getNotificationsByRecipient(
+        email,
+        page,
+        limit,
+        validCategory ? { category: validCategory } : undefined,
+      )
+
+      const notifications = result.data.map((log: any) => {
         let title = 'System Notification'
         let text = `Notification regarding ${log.referenceType} #${log.referenceId}`
 
@@ -233,11 +352,14 @@ export class CustomerPortalLoader {
           title = 'Payment Receipt'
           text = `Payment of ${log.templateData?.amount || ''} ${log.templateData?.currency || ''} received.`
         } else if (log.templateId === 'welcome_email') {
-          title = 'Welcome to L\'Aube Voyage'
+          title = "Welcome to L'Aube Voyage"
           text = `Welcome ${log.templateData?.name || ''}! We are glad to have you.`
         } else if (log.templateId === 'tier_upgraded') {
           title = 'Membership Tier Upgraded'
-          text = `Congratulations! You have been upgraded to ${log.templateData?.newTier || 'Elite'}.`
+          text = `Congratulations! You have been upgraded to ${log.templateData?.newTier || 'new tier'}.`
+        } else if (log.templateId === 'loyalty_earned') {
+          title = 'Loyalty Points Earned'
+          text = `You earned ${log.templateData?.points || 0} loyalty points! Your current balance is ${log.templateData?.balance || 0} points.`
         }
 
         return {
@@ -249,35 +371,60 @@ export class CustomerPortalLoader {
             day: 'numeric',
             year: 'numeric',
           }),
+          category: log.category,
           unread: log.status === 'queued' || log.status === 'processing',
           templateId: log.templateId,
         }
       })
+
+      return {
+        notifications,
+        total: result.total,
+        page: result.page,
+        totalPages: result.totalPages,
+        limit,
+        currentCategory: validCategory,
+      }
     } catch (err) {
-      console.error(`[CustomerPortalLoader] Failed loading notifications for customer #${customerId}:`, err)
+      console.error(
+        `[CustomerPortalLoader] Failed loading notifications for customer #${customerId}:`,
+        err,
+      )
       throw err
     }
   }
 }
 
 export class BookingDetailsLoader {
-  static async loadByNumber(bookingNumber: string, options?: { locale?: string; currency?: string }) {
+  static async loadByNumber(
+    bookingNumber: string,
+    customerIdOrOptions?: number | { locale?: string; currency?: string },
+    options?: { locale?: string; currency?: string },
+  ) {
     try {
+      const customerId = typeof customerIdOrOptions === 'number' ? customerIdOrOptions : undefined
+      const resolvedOptions =
+        typeof customerIdOrOptions === 'object' ? customerIdOrOptions : options
+
       const { booking, experience, localization, loyalty } = await getDomainServices()
       const ctx = await localization.buildContext({
-        cookieLocale: options?.locale,
-        cookieCurrency: options?.currency,
+        cookieLocale: resolvedOptions?.locale,
+        cookieCurrency: resolvedOptions?.currency,
       })
 
-      const bookingDoc = await booking.getByBookingNumber(bookingNumber)
+      const bookingDoc = await booking.getByBookingNumber(bookingNumber, customerId)
       if (!bookingDoc) {
-        console.warn(`[BookingDetailsLoader] Booking #${bookingNumber} not found.`)
+        console.warn(
+          `[BookingDetailsLoader] Booking #${bookingNumber} not found or tenant unauthorized.`,
+        )
         return null
       }
 
       const snapshot = bookingDoc.pricingSnapshot
       if (!snapshot) {
-        throw new Error(`[BookingDetailsLoader] Booking #${bookingNumber} is missing pricingSnapshot.`)
+        throw new Error(
+          `[BookingDetailsLoader] Booking #${bookingNumber} is missing pricingSnapshot.`,
+        )
       }
 
       let formattedTotal: any
@@ -287,35 +434,28 @@ export class BookingDetailsLoader {
           snapshot.totalAmountEGP || snapshot.basePriceEGP,
           snapshot.displayCurrency,
           snapshot.exchangeRate || 1,
-          ctx
+          ctx,
         )
       } else {
-        const totalEGP = snapshot.totalAmountEGP || snapshot.subtotalEGP || snapshot.basePriceEGP || 0
+        const totalEGP =
+          snapshot.totalAmountEGP || snapshot.subtotalEGP || snapshot.basePriceEGP || 0
         formattedTotal = await localization.formatPrice(totalEGP, ctx)
       }
 
       let experienceTitle = `Experience #${bookingDoc.experienceId}`
-      try {
-        const exp = await experience.getById(bookingDoc.experienceId)
-        if (exp && exp.title) {
-          experienceTitle = exp.title
-        }
-      } catch (expErr) {
-        console.error(`[BookingDetailsLoader] Failed to load experience #${bookingDoc.experienceId}:`, expErr)
+      const exp = await experience.getById(bookingDoc.experienceId)
+      if (exp && exp.title) {
+        experienceTitle = exp.title
       }
 
       const rate = snapshot.exchangeRate || 1
       const rateText = `1 EGP = ${rate} ${snapshot.displayCurrency || 'EGP'}`
 
-      // Single Source of Truth: Retrieve earned points directly from immutable point-ledger
+      // Single Source of Truth: Retrieve earned points directly from immutable point-ledger for this specific booking
       let pointsEarned = 0
-      try {
-        const ledgerEntries = await loyalty.getCustomerLedgerHistory(bookingDoc.customerId, 50)
-        const earnEntry = ledgerEntries.find((e) => e.bookingId === bookingDoc.id && e.type === 'earn')
-        if (earnEntry) pointsEarned = earnEntry.points
-      } catch (ledgerErr) {
-        console.error(`[BookingDetailsLoader] Failed to load point ledger for customer #${bookingDoc.customerId}:`, ledgerErr)
-      }
+      const bookingLedgerEntries = await loyalty.getBookingLedgerEntries(bookingDoc.id)
+      const earnEntry = bookingLedgerEntries.find((e) => e.type === 'earn')
+      if (earnEntry) pointsEarned = earnEntry.points
 
       return {
         bookingNumber: bookingDoc.bookingNumber,

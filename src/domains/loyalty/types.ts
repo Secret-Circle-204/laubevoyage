@@ -92,5 +92,6 @@ export interface TierProgress {
   currentQualifyingSpendEGP: number
   nextTierMinSpentEGP: number | null
   remainingQualifyingSpendEGP: number | null
+  percent: number
 }
 

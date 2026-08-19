@@ -12,7 +12,7 @@ export class PointsExpirationProcessor {
     this.repository = repository
   }
 
-  async processExpiredPoints(context?: RequestContext): Promise<number> {
+  async processExpiredPoints(_context?: RequestContext): Promise<number> {
     // Process expiration batch scanning
     return 0
   }

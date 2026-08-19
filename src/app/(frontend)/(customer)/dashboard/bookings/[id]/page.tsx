@@ -2,9 +2,10 @@ import React from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getLocaleContext } from '@/lib/get-locale-context'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { Card, Badge, Button, CurrencyDisplay } from '@/components/ui'
 import { BookingDetailsLoader } from '@/application/dashboard/loaders'
+import { SessionResolver } from '@/application/auth/session-resolver'
 
 export const metadata: Metadata = {
   title: "Reservation Detail & Voucher | L'Aube Voyage Customer Portal",
@@ -12,12 +13,17 @@ export const metadata: Metadata = {
 }
 
 export default async function BookingDetailPage(props: { params: Promise<{ id: string }> }) {
+  const session = await SessionResolver.resolve()
+  if (!session.isAuthenticated || !session.customerId) {
+    redirect('/login')
+  }
+
   const params = await props.params
   const bookingId = params.id
 
   const localeCtx = await getLocaleContext()
 
-  const data = await BookingDetailsLoader.loadByNumber(bookingId, {
+  const data = await BookingDetailsLoader.loadByNumber(bookingId, session.customerId, {
     locale: localeCtx.language,
     currency: localeCtx.currency,
   })
@@ -33,7 +39,7 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
             ← Back to All Reservations
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">
-            Reservation #LV-{bookingId.padStart(5, '0')}
+            Reservation #{data.bookingNumber}
           </h1>
         </div>
 

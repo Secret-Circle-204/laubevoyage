@@ -16,8 +16,37 @@
     },
     "footer": {
       "rights": "Tutti i Diritti Riservati © 2026 L'Aube Voyage",
-      "tagline": "Viaggi Straordinari dal 1996."
+      "tagline": "Viaggi Straordinari dal 1996.",
+      "explore": "Esplora",
+      "allExperiences": "Tutte le Esperienze",
+      "destinations": "Destinazioni",
+      "tourPackages": "Pacchetti Viaggio",
+      "dailyTours": "Tour Giornalieri",
+      "company": "Azienda",
+      "aboutUs": "Chi Siamo",
+      "travelBlog": "Blog di Viaggio",
+      "faqs": "FAQ",
+      "contactUs": "Contattaci",
+      "legal": "Note Legali",
+      "privacyPolicy": "Informativa sulla Privacy",
+      "termsOfService": "Termini di Servizio",
+      "customerPortal": "Portale Clienti"
     }
+  },
+  "catalog": {
+    "meta": {
+      "title": "Catalogo Esperienze di Lusso e Pacchetti Viaggio | L'Aube Voyage",
+      "description": "Scopri pacchetti viaggio esclusivi, crociere sul Nilo e tour privati giornalieri in Egitto."
+    },
+    "badge": "Collezione Esclusiva",
+    "title": "Catalogo Esperienze",
+    "description": "Scopri pacchetti di viaggio di lusso e tour privati giornalieri creati su misura per viaggiatori esigenti.",
+    "filterAll": "Tutte le Esperienze ({count})",
+    "filterPackages": "Pacchetti Viaggio",
+    "filterDailyTours": "Tour Privati Giornalieri",
+    "viewItinerary": "Visualizza Itinerario",
+    "packageLabel": "Pacchetto Viaggio",
+    "dailyTourLabel": "Tour Giornaliero"
   },
   "loyalty": {
     "tier": {
@@ -28,6 +57,10 @@
     "progress": {
       "remainingToTier": "Mancano {amount} per raggiungere il livello {tier}",
       "maxTier": "Livello massimo di iscrizione raggiunto!"
+    },
+    "guide": {
+      "title": "Guida al Valore dei Punti",
+      "description": "Usa i tuoi punti direttamente al checkout — senza codici, senza pensieri. Seleziona il tuo livello e risparmia all'istante."
     }
   }
 }

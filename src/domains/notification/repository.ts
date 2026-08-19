@@ -1,5 +1,7 @@
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 import type { NotificationJobEntity } from './types'
+import type { NotificationLog } from '@/payload-types'
+import type { PostgresAdapter } from '@payloadcms/db-postgres'
 
 /**
  * Notification Repository
@@ -13,6 +15,10 @@ export class NotificationRepository {
     this.payload = payload
   }
 
+  get payloadInstance(): Payload {
+    return this.payload
+  }
+
   /**
    * Check if notification already exists using compound key: (referenceType, referenceId, channel, templateId).
    */
@@ -21,205 +27,285 @@ export class NotificationRepository {
     referenceId: string,
     channel: string,
     templateId: string,
-    req?: any,
+    req?: PayloadRequest,
   ): Promise<NotificationJobEntity | null> {
-    try {
-      const res = await this.payload.find({
-        collection: 'notification-logs',
-        where: {
-          and: [
-            { referenceType: { equals: referenceType } },
-            { referenceId: { equals: referenceId } },
-            { channel: { equals: channel } },
-            { templateId: { equals: templateId } },
-          ],
-        },
-        limit: 1,
-        req,
-      })
+    const res = await this.payload.find({
+      collection: 'notification-logs',
+      where: {
+        and: [
+          { referenceType: { equals: referenceType } },
+          { referenceId: { equals: referenceId } },
+          { channel: { equals: channel } },
+          { templateId: { equals: templateId } },
+        ],
+      },
+      limit: 1,
+      req,
+    })
 
-      if (!res.docs.length) return null
+    if (!res.docs.length) return null
 
-      const doc: Record<string, any> = res.docs[0]
-      return {
-        jobId: doc.notificationId || String(doc.id),
-        recipient: doc.recipient || '',
-        channel: doc.channel,
-        category: doc.category,
-        priority: doc.priority,
-        templateId: doc.templateId || '',
-        translationKey: doc.translationKey || '',
-        templateData: doc.templateData || {},
-        referenceType: doc.referenceType || '',
-        referenceId: doc.referenceId || '',
-        status: doc.status,
-        attempts: doc.attempts || 1,
-        maxAttempts: doc.maxAttempts || 3,
-        nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
-        lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
-        createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
-      }
-    } catch {
-      return null
+    const doc: NotificationLog = res.docs[0]
+    return {
+      jobId: doc.notificationId || String(doc.id),
+      recipient: doc.recipient || '',
+      channel: doc.channel,
+      category: doc.category,
+      priority: doc.priority || 'normal',
+      templateId: doc.templateId || '',
+      translationKey: '',
+      templateData: (doc.templateData || {}) as Record<string, unknown>,
+      referenceType: doc.referenceType || '',
+      referenceId: doc.referenceId || '',
+      status: doc.status,
+      attempts: doc.attempts || 0,
+      maxAttempts: 3,
+      nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
+      lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
+      createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
+    }
+  }
+
+  async getJobById(jobId: string, req?: PayloadRequest): Promise<NotificationJobEntity | null> {
+    const res = await this.payload.find({
+      collection: 'notification-logs',
+      where: {
+        notificationId: { equals: jobId },
+      },
+      limit: 1,
+      req,
+    })
+
+    if (!res.docs.length) return null
+
+    const doc: NotificationLog = res.docs[0]
+    return {
+      jobId: doc.notificationId || String(doc.id),
+      recipient: doc.recipient || '',
+      channel: doc.channel,
+      category: doc.category,
+      priority: doc.priority || 'normal',
+      templateId: doc.templateId || '',
+      translationKey: '',
+      templateData: (doc.templateData || {}) as Record<string, unknown>,
+      referenceType: doc.referenceType || '',
+      referenceId: doc.referenceId || '',
+      status: doc.status,
+      attempts: doc.attempts || 0,
+      maxAttempts: 3,
+      nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
+      lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
+      createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
     }
   }
 
   /**
-   * Find notification logs for a specific recipient email.
+   * Find notification logs for a specific recipient email with server-side pagination and DB filtering.
    */
-  async findByRecipient(recipientEmail: string, limit = 20, req?: any): Promise<NotificationJobEntity[]> {
-    try {
-      const res = await this.payload.find({
-        collection: 'notification-logs',
-        where: {
-          recipient: { equals: recipientEmail },
-        },
-        limit,
-        sort: '-createdAt',
-        req,
-      })
+  async findByRecipient(
+    recipientEmail: string,
+    page = 1,
+    limit = 20,
+    filters?: { category?: import('./types').NotificationCategory },
+    req?: PayloadRequest,
+  ): Promise<import('@/types').PaginatedResponse<NotificationJobEntity>> {
+    const where: any = {
+      recipient: { equals: recipientEmail },
+    }
+    if (filters?.category) {
+      where.category = { equals: filters.category }
+    }
 
-      return res.docs.map((doc: any) => ({
+    const res = await this.payload.find({
+      collection: 'notification-logs',
+      where,
+      page,
+      limit,
+      sort: '-createdAt',
+      req,
+    })
+
+    return {
+      data: res.docs.map((doc: NotificationLog) => ({
         jobId: doc.notificationId || String(doc.id),
         recipient: doc.recipient || '',
         channel: doc.channel,
         category: doc.category,
         priority: doc.priority || 'normal',
         templateId: doc.templateId || '',
-        translationKey: doc.translationKey || '',
-        templateData: doc.templateData || {},
+        translationKey: '',
+        templateData: (doc.templateData || {}) as Record<string, unknown>,
         referenceType: doc.referenceType || '',
         referenceId: doc.referenceId || '',
         status: doc.status,
         attempts: doc.attempts || 0,
-        maxAttempts: doc.maxAttempts || 3,
+        maxAttempts: 3,
         nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
         lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
         createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
-      }))
-    } catch {
-      return []
+      })),
+      total: res.totalDocs,
+      page: res.page || 1,
+      limit: res.limit || 20,
+      totalPages: res.totalPages || 1,
     }
   }
 
   /**
    * Find unfulfilled notification jobs for crash recovery (queued, failed under limit, or orphaned processing jobs).
    */
-  async findRecoverableJobs(limit = 50, req?: any): Promise<NotificationJobEntity[]> {
-    try {
-      const nowIso = new Date().toISOString()
-      const res = await this.payload.find({
-        collection: 'notification-logs',
-        where: {
-          or: [
-            { status: { equals: 'queued' } },
-            { status: { equals: 'processing' } },
-            {
-              and: [
-                { status: { equals: 'failed' } },
-                { attempts: { less_than: 3 } },
-                {
-                  or: [
-                    { nextAttemptAt: { less_than_equal: nowIso } },
-                    { nextAttemptAt: { equals: null } },
-                    { nextAttemptAt: { exists: false } },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        limit,
-        sort: 'createdAt',
-        req,
-      })
+  async findRecoverableJobs(limit = 50, req?: PayloadRequest): Promise<NotificationJobEntity[]> {
+    const nowIso = new Date().toISOString()
+    const res = await this.payload.find({
+      collection: 'notification-logs',
+      where: {
+        or: [
+          { status: { equals: 'queued' } },
+          { status: { equals: 'processing' } },
+          {
+            and: [
+              { status: { equals: 'failed' } },
+              { attempts: { less_than: 3 } },
+              {
+                or: [
+                  { nextAttemptAt: { less_than_equal: nowIso } },
+                  { nextAttemptAt: { equals: null } },
+                  { nextAttemptAt: { exists: false } },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      limit,
+      sort: 'createdAt',
+      req,
+    })
 
-      return res.docs.map((doc: any) => ({
-        jobId: doc.notificationId || String(doc.id),
-        recipient: doc.recipient || '',
-        channel: doc.channel,
-        category: doc.category,
-        priority: doc.priority || 'normal',
-        templateId: doc.templateId || '',
-        translationKey: doc.translationKey || '',
-        templateData: doc.templateData || {},
-        referenceType: doc.referenceType || '',
-        referenceId: doc.referenceId || '',
-        status: doc.status,
-        attempts: doc.attempts || 0,
-        maxAttempts: doc.maxAttempts || 3,
-        nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
-        lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
-        createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
-      }))
-    } catch (error) {
-      console.error('[NotificationRepository] Failed to find recoverable jobs:', error)
-      return []
-    }
+    return res.docs.map((doc: NotificationLog) => ({
+      jobId: doc.notificationId || String(doc.id),
+      recipient: doc.recipient || '',
+      channel: doc.channel,
+      category: doc.category,
+      priority: doc.priority || 'normal',
+      templateId: doc.templateId || '',
+      translationKey: '',
+      templateData: (doc.templateData || {}) as Record<string, unknown>,
+      referenceType: doc.referenceType || '',
+      referenceId: doc.referenceId || '',
+      status: doc.status,
+      attempts: doc.attempts || 0,
+      maxAttempts: 3,
+      nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
+      lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
+      createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
+    }))
   }
 
-  async saveJob(job: NotificationJobEntity, req?: any): Promise<NotificationJobEntity> {
-    try {
-      const existingDocs = await this.payload.find({
+  /**
+   * Atomic claim query to transition notification log status to 'processing' and increment attempts count.
+   * Concurrency is handled at database layer via Postgres atomic conditional update.
+   */
+  async claimJob(jobId: string, workerId: string, req?: PayloadRequest): Promise<boolean> {
+    const dbAdapter = this.payload.db as unknown as PostgresAdapter
+    const pool = dbAdapter?.pool
+    if (!pool || typeof pool.query !== 'function') {
+      // Test environment fallback: use Payload document operations
+      const existing = await this.payload.find({
         collection: 'notification-logs',
         where: {
-          notificationId: { equals: job.jobId },
+          notificationId: { equals: jobId },
         },
         limit: 1,
         req,
       })
-
-      if (existingDocs.docs.length > 0) {
-        const doc = await this.payload.update({
+      const doc = existing.docs[0]
+      if (doc && (doc.status === 'queued' || doc.status === 'failed')) {
+        await this.payload.update({
           collection: 'notification-logs',
-          id: existingDocs.docs[0].id,
+          id: doc.id,
           data: {
-            status: job.status as any,
-            attempts: job.attempts,
-            lastError: job.lastError || null,
-            sentAt: job.sentAt || null,
-            nextAttemptAt: job.nextAttemptAt || null,
-            lastAttemptAt: job.lastAttemptAt || null,
+            status: 'processing',
+            attempts: (doc.attempts || 0) + 1,
+            lastAttemptAt: new Date().toISOString(),
           },
           req,
         })
-
-        return {
-          ...job,
-          jobId: doc?.notificationId || (doc?.id ? String(doc.id) : job.jobId),
-        }
-      } else {
-        const doc = await this.payload.create({
-          collection: 'notification-logs',
-          data: {
-            notificationId: job.jobId,
-            recipient: job.recipient,
-            channel: job.channel,
-            category: job.category,
-            priority: job.priority,
-            templateId: job.templateId,
-            translationKey: job.translationKey,
-            templateData: job.templateData || {},
-            referenceType: job.referenceType,
-            referenceId: job.referenceId,
-            status: job.status as any,
-            attempts: job.attempts,
-            lastError: job.lastError || null,
-            sentAt: job.sentAt || null,
-            nextAttemptAt: job.nextAttemptAt || null,
-            lastAttemptAt: job.lastAttemptAt || null,
-          } as any,
-          req,
-        })
-
-        return {
-          ...job,
-          jobId: doc?.notificationId || (doc?.id ? String(doc.id) : job.jobId),
-        }
+        return true
       }
-    } catch (error: unknown) {
-      console.error(`[NotificationRepository] Failed to save job ${job.jobId}:`, error)
-      throw error // Fail loudly
+      return false
+    }
+
+    console.log(`[NotificationRepository] Worker ${workerId} is claiming job ${jobId}`)
+
+    const query = `
+      UPDATE "notification_logs"
+      SET "status" = 'processing',
+          "attempts" = "attempts" + 1,
+          "last_attempt_at" = NOW()
+      WHERE "notification_id" = $1
+        AND ("status" = 'queued' OR "status" = 'failed')
+      RETURNING *;
+    `
+    const res = await pool.query(query, [jobId])
+    return res.rows.length > 0
+  }
+
+  async saveJob(job: NotificationJobEntity, req?: PayloadRequest): Promise<NotificationJobEntity> {
+    const existingDocs = await this.payload.find({
+      collection: 'notification-logs',
+      where: {
+        notificationId: { equals: job.jobId },
+      },
+      limit: 1,
+      req,
+    })
+
+    if (existingDocs.docs.length > 0) {
+      const doc = await this.payload.update({
+        collection: 'notification-logs',
+        id: existingDocs.docs[0].id,
+        data: {
+          status: job.status,
+          attempts: job.attempts,
+          lastError: job.lastError || null,
+          sentAt: job.sentAt || null,
+          nextAttemptAt: job.nextAttemptAt || null,
+          lastAttemptAt: job.lastAttemptAt || null,
+        },
+        req,
+      })
+
+      return {
+        ...job,
+        jobId: doc.notificationId || (doc.id ? String(doc.id) : job.jobId),
+      }
+    } else {
+      const doc = await this.payload.create({
+        collection: 'notification-logs',
+        data: {
+          notificationId: job.jobId,
+          recipient: job.recipient,
+          channel: job.channel,
+          category: job.category,
+          priority: job.priority,
+          templateId: job.templateId,
+          templateData: job.templateData || {},
+          referenceType: job.referenceType,
+          referenceId: job.referenceId,
+          status: job.status,
+          attempts: job.attempts,
+          lastError: job.lastError || null,
+          sentAt: job.sentAt || null,
+          nextAttemptAt: job.nextAttemptAt || null,
+          lastAttemptAt: job.lastAttemptAt || null,
+        },
+      })
+
+      return {
+        ...job,
+        jobId: doc.notificationId || (doc.id ? String(doc.id) : job.jobId),
+      }
     }
   }
 }

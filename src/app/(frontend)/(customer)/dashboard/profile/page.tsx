@@ -1,9 +1,9 @@
 import React from 'react'
 import type { Metadata } from 'next'
-import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
 import { ProfileFormClient } from './ProfileFormClient'
+import { CustomerProfileLoader } from '@/application/customer/loaders'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,17 +17,7 @@ export default async function Page() {
     redirect('/login')
   }
 
-  const { customer } = await getDomainServices()
-  const customerDoc = await customer.getById(session.customerId)
-
-  const initialData = {
-    firstName: customerDoc.firstName || '',
-    lastName: customerDoc.lastName || '',
-    email: customerDoc.email || '',
-    phone: customerDoc.phone,
-    passportNumber: customerDoc.passportNumber,
-    nationality: customerDoc.nationality,
-  }
+  const initialData = await CustomerProfileLoader.load(session.customerId)
 
   return (
     <div className="flex flex-col gap-8">
@@ -37,3 +27,4 @@ export default async function Page() {
     </div>
   )
 }
+

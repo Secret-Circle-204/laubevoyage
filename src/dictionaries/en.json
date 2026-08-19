@@ -57,6 +57,10 @@
     "progress": {
       "remainingToTier": "{amount} more to reach {tier} Tier",
       "maxTier": "Highest Membership Tier Achieved!"
+    },
+    "guide": {
+      "title": "Points Value Guide",
+      "description": "Use your points directly at checkout — no codes, no hassle. Just select your tier and save instantly."
     }
   }
 }

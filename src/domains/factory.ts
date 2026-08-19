@@ -16,6 +16,7 @@ import { BookingService } from './booking/service'
 
 import { CustomerRepository } from './customer/repository'
 import { CustomerService } from './customer/service'
+import { DeviceSessionRepository } from './customer/repositories/session-repository'
 
 import { DashboardProjectionRepository } from './dashboard/repository'
 import { DashboardQueryBus } from './dashboard/query-bus'
@@ -185,10 +186,12 @@ async function buildDomainServices() {
     outboxRepository,
   )
   const searchService = new SearchService(searchRepository)
+  const deviceSessionRepository = new DeviceSessionRepository(payload)
   const dashboardQueryBus = new DashboardQueryBus(
     customerRepository,
     loyaltyRepository,
     bookingRepository,
+    deviceSessionRepository,
   )
   const dashboardService = new DashboardService(dashboardRepository, dashboardQueryBus)
   const destinationService = new DestinationService(destinationRepository)

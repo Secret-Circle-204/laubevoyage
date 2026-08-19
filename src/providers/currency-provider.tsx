@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext } from 'react'
 import { useRouter } from 'next/navigation'
 import { setCurrencyAction } from '@/application/actions/customer-actions'
 
@@ -21,11 +21,6 @@ export function CurrencyProvider({
   initialCurrency?: CurrencyCode
 }) {
   const router = useRouter()
-  const [currency, setCurrencyState] = useState<CurrencyCode>(initialCurrency)
-
-  useEffect(() => {
-    setCurrencyState(initialCurrency)
-  }, [initialCurrency])
 
   const setCurrency = async (newCurrency: CurrencyCode) => {
     localStorage.setItem('laube-currency', newCurrency)
@@ -34,7 +29,7 @@ export function CurrencyProvider({
   }
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency }}>
+    <CurrencyContext.Provider value={{ currency: initialCurrency, setCurrency }}>
       {children}
     </CurrencyContext.Provider>
   )

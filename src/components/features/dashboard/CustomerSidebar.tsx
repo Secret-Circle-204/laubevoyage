@@ -4,9 +4,9 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Badge } from '@/components/ui'
-import type { CustomerPortalOverviewDTO } from '@/application/dashboard/dto'
+import type { CustomerSidebarDTO } from '@/application/dashboard/dto'
 
-export function CustomerSidebar({ data }: { data: CustomerPortalOverviewDTO }) {
+export function CustomerSidebar({ data }: { data: CustomerSidebarDTO }) {
   const pathname = usePathname()
 
   const links = [

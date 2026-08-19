@@ -246,13 +246,14 @@ export interface Customer {
   lockedUntil?: string | null;
   lastLoginAt?: string | null;
   emailVerifiedAt?: string | null;
+  verificationExpiresAt?: string | null;
   phoneVerifiedAt?: string | null;
   deletedAt?: string | null;
-  loyalty: {
+  loyalty?: {
     /**
-     * Tier is managed by LoyaltyService
+     * Tier is managed dynamically by LoyaltyService
      */
-    tier: 'explorer' | 'voyager' | 'elite';
+    tier?: string | null;
     /**
      * Cached value - source of truth is PointLedger
      */
@@ -1555,6 +1556,7 @@ export interface CustomersSelect<T extends boolean = true> {
   lockedUntil?: T;
   lastLoginAt?: T;
   emailVerifiedAt?: T;
+  verificationExpiresAt?: T;
   phoneVerifiedAt?: T;
   deletedAt?: T;
   loyalty?:
@@ -2343,7 +2345,8 @@ export interface LoyaltySetting {
    */
   bonusNeverExpires?: boolean | null;
   tiers: {
-    tier: 'explorer' | 'voyager' | 'elite';
+    tier: string;
+    label: string;
     minSpentEGP: number;
     earnMultiplier: number;
     upgradeBonus: number;
@@ -2392,6 +2395,7 @@ export interface LoyaltySettingsSelect<T extends boolean = true> {
     | T
     | {
         tier?: T;
+        label?: T;
         minSpentEGP?: T;
         earnMultiplier?: T;
         upgradeBonus?: T;

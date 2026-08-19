@@ -1,6 +1,6 @@
 import { BookingStatus, RequestContext } from '@/types'
 import { BookingPolicy } from '../booking/policy'
-import type { CreateSessionParams, RefundParams, RefundResult, PaymentProviderType } from './types'
+import type { CreateSessionParams, RefundParams, RefundResult, PaymentProviderType, PaymentStatusType } from './types'
 import type { PaymentAggregate } from './aggregate'
 import { PaymentWorkflowEngine } from './workflow'
 import type { BookingRepository } from '../booking/repository'
@@ -229,6 +229,26 @@ export class PaymentService {
   async getByBookingId(bookingId: number): Promise<PaymentAggregate | null> {
     return this.workflowEngine.queries.getByBookingId(bookingId)
   }
+
+  /**
+   * Query multiple transaction aggregates matching a list of booking IDs.
+   */
+  async getManyByBookingIds(bookingIds: number[]): Promise<PaymentAggregate[]> {
+    return this.workflowEngine.queries.getManyByBookingIds(bookingIds)
+  }
+
+  /**
+   * Query paginated transaction aggregates for a specific customer with optional status filtering.
+   */
+  async getCustomerPayments(
+    customerId: number,
+    page: number = 1,
+    limit: number = 10,
+    filters?: { status?: PaymentStatusType },
+  ): Promise<import('@/types').PaginatedResponse<PaymentAggregate>> {
+    return this.workflowEngine.queries.getCustomerPayments(customerId, page, limit, filters)
+  }
+
 
   /**
    * Reconcile any pending payment transactions (called by CronDispatcher / background processes)

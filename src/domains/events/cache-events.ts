@@ -12,6 +12,11 @@ export interface CurrencyCatalogUpdatedEvent extends BaseDomainEvent {
   type: 'CURRENCY_CATALOG_UPDATED'
 }
 
+export interface LanguageCatalogUpdatedEvent extends BaseDomainEvent {
+  type: 'LANGUAGE_CATALOG_UPDATED'
+  languageCode?: string
+}
+
 export interface CurrencyRatesUpdatedEvent extends BaseDomainEvent {
   type: 'CURRENCY_RATES_UPDATED'
 }

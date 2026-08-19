@@ -28,12 +28,13 @@ export class RegistrationService {
       throw new Error(`[RegistrationService] Customer with email ${email} already exists.`)
     }
 
-    const data: Record<string, any> = {
+    const data: Record<string, unknown> = {
       email: email.toLowerCase(),
       firstName,
       lastName,
       password,
       status: 'pending_verification',
+      verificationExpiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
     }
 
     if (preferences?.preferredLanguage || preferences?.preferredCurrency) {

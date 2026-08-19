@@ -9,6 +9,9 @@ import { AdminCustomerOperations } from './customer-operations'
 import { AdminMaintenanceOperations } from './maintenance-operations'
 import { AdminPolicy } from './policy'
 import type { AdminUserEntity, AdminPermission } from './types'
+import type { CustomerService } from '../customer/service'
+import type { LoyaltyService } from '../loyalty/service'
+import type { BookingService } from '../booking/service'
 
 /**
  * Admin Workflow Engine
@@ -24,18 +27,23 @@ export class AdminWorkflowEngine {
   public customerOperations: AdminCustomerOperations
   public maintenanceOperations: AdminMaintenanceOperations
 
-  constructor(repository?: AdminRepository | Payload) {
+  constructor(
+    repository?: AdminRepository | Payload,
+    customerService?: CustomerService,
+    loyaltyService?: LoyaltyService,
+    bookingService?: BookingService,
+  ) {
     if (repository && 'saveAuditLog' in repository) {
       this.repository = repository as AdminRepository
     } else {
       this.repository = new AdminRepository(repository as Payload)
     }
     this.auditLogService = new AdminAuditLogService(this.repository)
-    this.bookingOperations = new AdminBookingOperations()
+    this.bookingOperations = new AdminBookingOperations(bookingService)
     this.paymentOperations = new AdminPaymentOperations()
-    this.loyaltyOperations = new AdminLoyaltyOperations()
+    this.loyaltyOperations = new AdminLoyaltyOperations(loyaltyService)
     this.experienceOperations = new AdminExperienceOperations()
-    this.customerOperations = new AdminCustomerOperations()
+    this.customerOperations = new AdminCustomerOperations(customerService)
     this.maintenanceOperations = new AdminMaintenanceOperations()
   }
 

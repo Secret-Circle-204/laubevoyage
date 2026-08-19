@@ -20,18 +20,18 @@ export class AdminLoyaltyOperations {
       throw new Error('[AdminLoyaltyOperations] Mandatory audit reason required for staff points adjustment.')
     }
 
-    if (this.loyaltyService) {
-      const updatedLedger = await this.loyaltyService.adminAdjustPoints({
-        customerId,
-        points: Math.abs(pointsDelta),
-        adjustmentType: pointsDelta >= 0 ? 'grant' : 'deduct',
-        reason,
-        ticket: `TICK-${Date.now()}`,
-        adminId: 'staff_admin',
-      })
-      return { success: true, newBalance: updatedLedger.resultingBalance }
+    if (!this.loyaltyService) {
+      throw new Error('[AdminLoyaltyOperations] LoyaltyService dependency is required. Cannot adjust customer points.')
     }
 
-    return { success: true, newBalance: 0 }
+    const updatedLedger = await this.loyaltyService.adminAdjustPoints({
+      customerId,
+      points: Math.abs(pointsDelta),
+      adjustmentType: pointsDelta >= 0 ? 'grant' : 'deduct',
+      reason,
+      ticket: `TICK-${Date.now()}`,
+      adminId: 'staff_admin',
+    })
+    return { success: true, newBalance: updatedLedger.resultingBalance }
   }
 }

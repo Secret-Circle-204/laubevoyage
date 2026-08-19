@@ -19,7 +19,10 @@ export class MaintenanceEngine {
   /**
    * Complete Finished Bookings: status == 'confirmed' AND endDate < now() in chunks of 20
    */
-  async completeFinishedBookings(batchSize = 20): Promise<{ processedCount: number }> {
+  async completeFinishedBookings(batchSize: number): Promise<{ processedCount: number }> {
+    if (batchSize === undefined || batchSize === null) {
+      throw new Error('[MaintenanceEngine] completeFinishedBookings: batchSize is required.')
+    }
     let totalProcessed = 0
     let hasMore = true
 
@@ -45,13 +48,23 @@ export class MaintenanceEngine {
       }
     }
 
-    return { processedCount: totalProcessed }
+    const result = { processedCount: totalProcessed }
+    return result
   }
 
   /**
    * Expire Stale Draft Holds: status == 'draft' AND holdUntil < now() in chunks of 20
    */
-  async expireStaleDraftHolds(batchSize = 20): Promise<{ processedCount: number }> {
+  async expireStaleDraftHolds(batchSize: number): Promise<{ processedCount: number }> {
+    if (batchSize === undefined || batchSize === null) {
+      throw new Error('[MaintenanceEngine] expireStaleDraftHolds: batchSize is required.')
+    }
+    if (this.bookingService) {
+      const processedCount = await this.bookingService.processExpiredBookings()
+      const result = { processedCount }
+      return result
+    }
+
     let totalProcessed = 0
     let hasMore = true
 
@@ -64,11 +77,7 @@ export class MaintenanceEngine {
       }
 
       for (const doc of docs) {
-        if (this.bookingService) {
-          await this.bookingService.processExpiredBookings()
-        } else {
-          await this.repository.updateBookingStatus(doc.id, 'expired')
-        }
+        await this.repository.updateBookingStatus(doc.id, 'expired')
         totalProcessed++
       }
 
@@ -77,6 +86,7 @@ export class MaintenanceEngine {
       }
     }
 
-    return { processedCount: totalProcessed }
+    const result = { processedCount: totalProcessed }
+    return result
   }
 }

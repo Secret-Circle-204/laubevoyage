@@ -17,7 +17,16 @@ describe('Notification Domain: Workflow & Idempotency Integration Tests', () => 
       find: vi.fn().mockImplementation(() => {
         return Promise.resolve({ docs: [...db] })
       }),
-      update: vi.fn(),
+      update: vi.fn().mockImplementation((params: any) => {
+        const foundIndex = db.findIndex((d) => d.id === params.id)
+        if (foundIndex !== -1) {
+          db[foundIndex] = { ...db[foundIndex], ...params.data }
+          return Promise.resolve(db[foundIndex])
+        }
+        const doc = { id: params.id, ...params.data }
+        db.push(doc)
+        return Promise.resolve(doc)
+      }),
     }
     workflowEngine = new NotificationWorkflowEngine(mockPayload)
     vi.spyOn(workflowEngine.dispatcher, 'dispatch').mockResolvedValue({

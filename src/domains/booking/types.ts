@@ -150,3 +150,11 @@ export interface PolicyResult {
   code?: string
   reason?: string
 }
+
+export interface CustomerTripSummary {
+  activeBookingsCount: number
+  upcomingCount: number
+  latestBookingNumber?: string
+  nextDepartureDate?: string
+}
+

@@ -1,7 +1,7 @@
 // app/providers/locale-provider.tsx
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { setLocaleAction } from '@/application/actions/customer-actions'
 
@@ -24,19 +24,14 @@ export function LocaleProvider({
   initialLocale?: Locale
 }) {
   const router = useRouter()
-  const [locale, setLocaleState] = useState<Locale>(initialLocale)
-  const [direction, setDirection] = useState<Direction>(initialLocale === 'ar' ? 'rtl' : 'ltr')
+
+  const direction: Direction = initialLocale === 'ar' ? 'rtl' : 'ltr'
 
   useEffect(() => {
-    setLocaleState(initialLocale)
-  }, [initialLocale])
-
-  useEffect(() => {
-    const dir = locale === 'ar' ? 'rtl' : 'ltr'
-    setDirection(dir)
-    document.documentElement.setAttribute('lang', locale)
+    const dir = initialLocale === 'ar' ? 'rtl' : 'ltr'
+    document.documentElement.setAttribute('lang', initialLocale)
     document.documentElement.setAttribute('dir', dir)
-  }, [locale])
+  }, [initialLocale])
 
   const setLocale = async (newLocale: Locale) => {
     localStorage.setItem('laube-locale', newLocale)
@@ -45,7 +40,7 @@ export function LocaleProvider({
   }
 
   return (
-    <LocaleContext.Provider value={{ locale, direction, setLocale }}>
+    <LocaleContext.Provider value={{ locale: initialLocale, direction, setLocale }}>
       {children}
     </LocaleContext.Provider>
   )

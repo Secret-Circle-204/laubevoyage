@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { EventBus } from '@/domains/events/event-bus'
 
 export const Languages: CollectionConfig = {
   slug: 'languages',
@@ -9,6 +10,87 @@ export const Languages: CollectionConfig = {
   },
   access: {
     read: () => true, // Publicly readable
+  },
+  hooks: {
+    beforeChange: [
+      async ({ data, originalDoc, req }) => {
+        // 1. Guard against deactivating the active default language
+        const isCurrentlyDefault = originalDoc?.isDefault ?? false
+        const willBeDefault = data.isDefault !== undefined ? data.isDefault : isCurrentlyDefault
+        const willBeActive = data.isActive !== undefined ? data.isActive : (originalDoc?.isActive ?? true)
+
+        if (willBeDefault && !willBeActive) {
+          throw new Error('Cannot deactivate the default language. Please assign another active language as default first.')
+        }
+
+        // 2. Single Default Guarantee: If setting this language as default, unset all others
+        if (data.isDefault === true) {
+          const currentDefaults = await req.payload.find({
+            collection: 'languages',
+            where: {
+              isDefault: { equals: true },
+            },
+            limit: 100,
+            req,
+          })
+
+          for (const doc of currentDefaults.docs) {
+            if (String(doc.id) !== String(originalDoc?.id)) {
+              await req.payload.update({
+                collection: 'languages',
+                id: doc.id,
+                data: {
+                  isDefault: false,
+                },
+                req,
+              })
+            }
+          }
+        }
+
+        return data
+      },
+    ],
+    beforeDelete: [
+      async ({ id, req }) => {
+        const doc = await req.payload.findByID({
+          collection: 'languages',
+          id,
+          req,
+        })
+        if (doc?.isDefault) {
+          throw new Error('Cannot delete the default language. Please assign another active language as default first.')
+        }
+      },
+    ],
+    afterChange: [
+      async ({ doc }) => {
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'LANGUAGE_CATALOG_UPDATED',
+          eventId: `evt_lang_${doc.id}_${Date.now()}`,
+          correlationId: `corr_lang_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          languageCode: doc.code,
+        })
+        return doc
+      },
+    ],
+    afterDelete: [
+      async ({ doc }) => {
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'LANGUAGE_CATALOG_UPDATED',
+          eventId: `evt_lang_del_${doc.id}_${Date.now()}`,
+          correlationId: `corr_lang_del_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          languageCode: doc.code,
+        })
+        return doc
+      },
+    ],
   },
   fields: [
     {

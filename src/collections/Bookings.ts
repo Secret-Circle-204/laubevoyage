@@ -54,6 +54,7 @@ export const Bookings: CollectionConfig = {
       name: 'status',
       type: 'select',
       required: true,
+      index: true,
       defaultValue: 'draft',
       options: [
         { label: 'Draft', value: 'draft' },

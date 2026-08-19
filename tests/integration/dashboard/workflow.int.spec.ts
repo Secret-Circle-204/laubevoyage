@@ -15,18 +15,30 @@ describe('Dashboard Domain: Workflow Integration Tests', () => {
       update: vi.fn(),
     }
     const mockQueryBus: any = {
-      customerQueries: { getById: vi.fn().mockResolvedValue({ email: 'ahmed@laube.com', fullName: 'Ahmed', status: 'active' }) },
+      customerQueries: {
+        getById: vi.fn().mockResolvedValue({ email: 'ahmed@laube.com', fullName: 'Ahmed', status: 'active' }),
+        getActiveSessions: vi.fn().mockResolvedValue([]),
+      },
       loyaltyQueries: {
         getProjection: vi.fn().mockResolvedValue({ tier: 'voyager', balance: 500, totalSpentEGP: 25000 }),
+        getBalance: vi.fn().mockResolvedValue(500),
         getActiveProgramConfig: vi.fn().mockResolvedValue({
           baseEarnRate: 0.1,
-          tiers: {
-            voyager: { minSpentEGP: 50000 },
-            elite: { minSpentEGP: 150000 },
-          }
+          tiers: [
+            { tier: 'explorer', label: 'Explorer', minSpentEGP: 0 },
+            { tier: 'voyager', label: 'Voyager', minSpentEGP: 50000 },
+            { tier: 'elite', label: 'Elite', minSpentEGP: 150000 },
+          ]
         })
       },
-      bookingQueries: { getByCustomerId: vi.fn().mockResolvedValue([{ bookingNumber: '#LBV-101', status: 'confirmed' }]) },
+      bookingQueries: {
+        getCustomerTripSummary: vi.fn().mockResolvedValue({
+          activeBookingsCount: 1,
+          upcomingCount: 1,
+          latestBookingNumber: '#LBV-101',
+          nextDepartureDate: '2026-09-15',
+        }),
+      },
     }
     workflowEngine = new DashboardWorkflowEngine(mockPayload, mockQueryBus)
   })

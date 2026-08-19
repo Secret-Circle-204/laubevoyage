@@ -45,13 +45,14 @@ export class TierEvaluator {
     await this.repository.updateCustomerTier(customerId, newTier, additionalSpentEGP, context)
 
     // Grant tier upgrade bonus if configured and not claimed
-    const bonusAmount = config.tiers[newTier]?.upgradeBonus || 0
+    const targetTierConfig = config.tiers.find((t) => t.tier.toLowerCase() === newTier.toLowerCase())
+    const bonusAmount = targetTierConfig?.upgradeBonus || 0
     let bonusRecord: PointLedgerRecord | undefined
 
     if (bonusAmount > 0) {
       const leanSnapshot: LeanRulesSnapshot = {
         baseEarnRate: config.baseEarnRate,
-        tierMultiplier: config.tiers[newTier]?.earnMultiplier || 1.0,
+        tierMultiplier: targetTierConfig?.earnMultiplier || 1.0,
         redemptionPointsUnit: config.redemptionPointsUnit,
         redemptionValueEGP: config.redemptionValueEGP,
         welcomeBonus: config.welcomeBonus,

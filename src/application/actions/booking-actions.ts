@@ -3,7 +3,6 @@
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import type { CurrencyCode, RequestContext } from '@/types'
-import { Language } from '@/types/locale'
 import { cookies } from 'next/headers'
 import { BookingPolicy } from '@/domains/booking/policy'
 
@@ -32,7 +31,7 @@ export async function confirmCheckoutAction(params: {
     }
     const userId = session.customerId
 
-    const { booking, experience, payment, localization } = await getDomainServices()
+    const { booking, experience, payment, localization, payload } = await getDomainServices()
 
     const cookieStore = await cookies()
     const cookieLocale = cookieStore.get('laube-locale')?.value
@@ -51,11 +50,7 @@ export async function confirmCheckoutAction(params: {
     let targetBookingId: number = 0
     let bookingNumber: string = ''
 
-    // Resolve Payload instance to run transactions
-    const payload = (booking as any).repository?.payload
-    if (!payload) {
-      throw new Error('[confirmCheckoutAction] Missing Payload CMS instance in booking repository.')
-    }
+
 
     if (params.bookingId === 'new') {
       // 1. Resolve slot dates & details first
@@ -100,7 +95,11 @@ export async function confirmCheckoutAction(params: {
         const endDateStr = end.toISOString().split('T')[0]
 
         // Start database transaction
-        const transactionID = await payload.db.beginTransaction()
+        const activeTx = await payload.db.beginTransaction()
+        if (activeTx === null) {
+          throw new Error('[confirmCheckoutAction] Failed to start database transaction.')
+        }
+        const transactionID: string | number = activeTx
         const context: RequestContext = { transactionId: transactionID }
 
         try {
@@ -123,7 +122,7 @@ export async function confirmCheckoutAction(params: {
 
           const bookingDoc = await booking.getById(targetBookingId)
           bookingNumber = bookingDoc.bookingNumber
-        } catch (err: any) {
+        } catch (err: unknown) {
           if (transactionID) {
             await payload.db.rollbackTransaction(transactionID)
           }
@@ -159,10 +158,10 @@ export async function confirmCheckoutAction(params: {
         }
       }
     } else {
-      // Resolve existing booking number to ID
-      const bookingDoc = await booking.getByBookingNumber(params.bookingId)
-      if (!bookingDoc) {
-        return { success: false, error: 'Booking not found' }
+      // Strict Tenant Isolation: Resolve existing booking number scoped to current authenticated user
+      const bookingDoc = await booking.getByBookingNumber(params.bookingId, userId)
+      if (!bookingDoc || bookingDoc.customerId !== userId) {
+        return { success: false, error: 'Booking not found or unauthorized' }
       }
       targetBookingId = bookingDoc.id
       bookingNumber = bookingDoc.bookingNumber
@@ -219,7 +218,7 @@ export async function checkBookingStatusAction(params: { transactionId?: string;
         if (bookingDoc && bookingDoc.customerId === session.customerId) {
           const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
           const earnEntry = ledgerEntries.find((e) => e.bookingId === bookingDoc.id && e.type === 'earn')
-          const earnedPoints = earnEntry ? earnEntry.points : 0
+          const earnedPoints = earnEntry ? earnEntry.points : undefined
 
           const snap = bookingDoc.pricingSnapshot
           let formattedTotalPrice = ''
@@ -260,7 +259,7 @@ export async function checkBookingStatusAction(params: { transactionId?: string;
       if (bookingDoc && bookingDoc.customerId === session.customerId) {
         const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
         const earnEntry = ledgerEntries.find((e) => e.bookingId === bookingDoc.id && e.type === 'earn')
-        const earnedPoints = earnEntry ? earnEntry.points : 0
+        const earnedPoints = earnEntry ? earnEntry.points : undefined
 
         const snap = bookingDoc.pricingSnapshot
         let formattedTotalPrice = ''

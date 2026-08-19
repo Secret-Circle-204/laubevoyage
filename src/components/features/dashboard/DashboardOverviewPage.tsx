@@ -13,26 +13,84 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
   return (
     <div className="flex flex-col gap-8 flex-grow">
       {/* Overview Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className={`p-6 rounded-2xl border flex flex-col gap-2 ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className={`p-6 rounded-2xl border flex flex-col gap-2 transition-all ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Bookings</span>
           <span className="text-4xl font-serif font-light text-[#00aeef]">
             {data.activeBookingsCount}
           </span>
+          <span className="text-xs text-slate-500 mt-auto">Upcoming & active trips</span>
         </div>
 
-        <div className={`p-6 rounded-2xl border flex flex-col gap-2 ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className={`p-6 rounded-2xl border flex flex-col gap-2 transition-all ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loyalty Points</span>
-          <span className="text-4xl font-serif font-light text-[#f58220]">
-            {data.points.toLocaleString()} pts
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-serif font-light text-[#f58220]">
+              {data.formattedPoints}
+            </span>
+            <span className="text-sm font-semibold text-[#f58220]">Pts</span>
+          </div>
+          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-auto">
+            ≈ {data.pointsMonetaryValue.formatted} Cash Value
           </span>
         </div>
 
-        <div className={`p-6 rounded-2xl border flex flex-col gap-2 ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className={`p-6 rounded-2xl border flex flex-col gap-2 transition-all ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Member Tier</span>
           <span className="text-3xl font-serif font-light capitalize text-emerald-500">
             {data.currentTier} Member
           </span>
+          <span className="text-xs text-slate-500 mt-auto">
+            {data.nextTierProgressPercent}% to {data.nextTierName}
+          </span>
+        </div>
+
+        <div className={`p-6 rounded-2xl border flex flex-col gap-2 transition-all ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Qualifying Spend</span>
+          <span className="text-3xl font-serif font-light text-slate-900 dark:text-white">
+            {data.formattedTotalSpentEGP}
+          </span>
+          <span className="text-xs text-slate-500 mt-auto">Base currency spend tracker</span>
+        </div>
+      </div>
+
+      {/* Points Value Guide Card */}
+      <div className={`p-6 sm:p-8 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-6 ${
+        isDark ? 'bg-gradient-to-br from-[#1a1718] via-[#1f1a1c] to-[#161415] border-white/10 shadow-lg' : 'bg-gradient-to-br from-white via-slate-50 to-slate-100/60 border-slate-200 shadow-sm'
+      }`}>
+        <div className="flex flex-col gap-2 max-w-2xl">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">💎</span>
+            <h2 className={`text-xl font-serif font-semibold ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
+              {data.pointsValueGuide.title}
+            </h2>
+            <Badge variant="accent" size="sm">Instant Savings</Badge>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            {data.pointsValueGuide.description}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 self-stretch md:self-auto justify-between md:justify-end">
+          <Badge variant="accent" size="md" className="py-2.5 px-4 rounded-xl flex flex-col items-center justify-center text-center">
+            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">Redemption Rate</span>
+            <span className="text-sm font-bold">
+              {data.pointsValueGuide.unitText}
+            </span>
+          </Badge>
+
+          <Badge variant="success" size="md" className="py-2.5 px-4 rounded-xl flex flex-col items-center justify-center text-center">
+            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">Your Points Value</span>
+            <span className="text-sm font-extrabold">
+              {data.pointsMonetaryValue.formatted}
+            </span>
+          </Badge>
+
+          <Link href="/dashboard/loyalty">
+            <button className="px-5 py-3.5 text-xs uppercase tracking-wider font-semibold bg-[#f58220] hover:bg-[#d97013] text-white rounded-xl transition-all shadow-sm whitespace-nowrap">
+              Loyalty Hub →
+            </button>
+          </Link>
         </div>
       </div>
 

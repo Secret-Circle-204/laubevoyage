@@ -29,15 +29,14 @@ interface PendingSlot {
   capacityTotal: string
 }
 
-// ─── Component ──────────────────────────────────────────────────────
+// ─── Component Inner ────────────────────────────────────────────────
 
-export const DepartureSlotsEditor: UIFieldClientComponent = () => {
-  const { id } = useDocumentInfo()
+const DepartureSlotsEditorInner = ({ id }: { id?: string | number }) => {
   const { setValue } = useField<object>({ path: '_slotsPayload' })
 
   // State: existing slots loaded from API (edit mode only)
   const [existingSlots, setExistingSlots] = useState<ExistingSlot[]>([])
-  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [loadingSlots, setLoadingSlots] = useState(!!id)
 
   // State: new slots pending creation (in-memory only)
   const [pendingSlots, setPendingSlots] = useState<PendingSlot[]>([])
@@ -59,16 +58,43 @@ export const DepartureSlotsEditor: UIFieldClientComponent = () => {
   useEffect(() => {
     if (!id) return
 
-    setLoadingSlots(true)
-    fetch(`/api/departure-slots?where[experience][equals]=${id}&limit=100&sort=date`)
-      .then((res) => res.json())
+    const controller = new AbortController()
+
+    console.log(`[DepartureSlotsEditorInner] Starting fetch for experience ID: ${id}`)
+
+    fetch(`/api/departure-slots?where[experience][equals]=${id}&limit=100&sort=date`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        console.log(`[DepartureSlotsEditorInner] Fetch resolved for experience ID: ${id}`)
+        return res.json()
+      })
       .then((data) => {
-        if (data?.docs) {
-          setExistingSlots(data.docs)
+        if (!controller.signal.aborted) {
+          console.log(`[DepartureSlotsEditorInner] Loaded ${data?.docs?.length || 0} slots for experience ID: ${id}`)
+          if (data?.docs) {
+            setExistingSlots(data.docs)
+          }
         }
       })
-      .catch((err) => console.error('Failed to load departure slots:', err))
-      .finally(() => setLoadingSlots(false))
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          console.log(`[DepartureSlotsEditorInner] Fetch aborted for experience ID: ${id}`)
+          return
+        }
+        console.error(`[DepartureSlotsEditorInner] Failed to load departure slots for experience ID: ${id}`, err)
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          console.log(`[DepartureSlotsEditorInner] Fetch completed (finally) for experience ID: ${id}`)
+          setLoadingSlots(false)
+        }
+      })
+
+    return () => {
+      console.log(`[DepartureSlotsEditorInner] Cleanup: Aborting fetch for experience ID: ${id}`)
+      controller.abort()
+    }
   }, [id])
 
   // ─── Sync to virtual field on every state change ────────────────
@@ -382,5 +408,15 @@ export const DepartureSlotsEditor: UIFieldClientComponent = () => {
         </button>
       )}
     </div>
+  )
+}
+
+// ─── Export Wrapper ─────────────────────────────────────────────────
+
+export const DepartureSlotsEditor: UIFieldClientComponent = () => {
+  const { id } = useDocumentInfo()
+
+  return (
+    <DepartureSlotsEditorInner key={id || 'new'} id={id} />
   )
 }

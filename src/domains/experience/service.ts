@@ -96,6 +96,14 @@ export class ExperienceService {
   }
 
   /**
+   * Get multiple experience aggregates matching a list of experience IDs.
+   */
+  async getManyByIds(experienceIds: number[]): Promise<ExperienceAggregate[]> {
+    return this.workflowEngine.queries.getManyByIds(experienceIds)
+  }
+
+
+  /**
    * Get experience aggregate by unique slug.
    */
   async getBySlug(slug: string): Promise<ExperienceAggregate | null> {

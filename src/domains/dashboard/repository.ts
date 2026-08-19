@@ -7,75 +7,36 @@ import type { CustomerPortalProjection } from './types'
  */
 export class DashboardProjectionRepository {
   private payload: Payload
-  private static projectionMap: Map<number, CustomerPortalProjection> = new Map()
 
   constructor(payload: Payload) {
     this.payload = payload
   }
 
-  public invalidate(customerId: number): void {
-    DashboardProjectionRepository.projectionMap.delete(customerId)
-  }
-
   async findByCustomerId(customerId: number, req?: PayloadRequest): Promise<CustomerPortalProjection | null> {
-    const cached = DashboardProjectionRepository.projectionMap.get(customerId)
-    if (cached) return cached
-
     try {
       const res = await this.payload.find({
-        collection: 'customers',
-        where: { id: { equals: customerId } },
+        collection: 'dashboard-projections',
+        where: { customer: { equals: customerId } },
         limit: 1,
         req,
       })
 
       if (!res.docs.length) return null
 
-      const customer: Record<string, any> = res.docs[0]
-      const projection: CustomerPortalProjection = {
-        projectionId: `proj_${customerId}`,
-        customerId: Number(customer.id),
-        customer: {
-          customerId: Number(customer.id),
-          email: customer.email || '',
-          fullName: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.email || '',
-          isEmailVerified: !!customer.emailVerifiedAt,
-          status: customer.status || 'active',
-          preferredCurrency: customer.preferences?.preferredCurrency || 'EGP',
-        },
-        loyalty: {
-          tier: customer.loyalty?.tier || 'explorer',
-          pointsBalance: customer.loyalty?.points || 0,
-          activeHoldsCount: 0,
-          totalSpentEGP: customer.loyalty?.totalSpent || 0,
-          tierProgressPercentage: 0,
-        },
-        trips: {
-          upcomingCount: 0,
-          activeBookingsCount: 0,
-        },
-        security: {
-          activeDeviceCount: 1,
-        },
-        metrics: {
-          cacheHit: true,
-          aggregationDurationMs: 0,
-          projectionVersion: '1.0',
-          lastRefreshAt: new Date().toISOString(),
-        },
-        version: 1,
-        updatedAt: new Date().toISOString(),
-      }
-
-      DashboardProjectionRepository.projectionMap.set(customerId, projection)
+      const doc = res.docs[0]
+      const projection = doc.projectionJson as unknown as CustomerPortalProjection
+      
       return projection
-    } catch {
+    } catch (err: unknown) {
+      console.warn(
+        `[DashboardProjectionRepository] Projection read failed for customer #${customerId}, falling back to live aggregation:`,
+        err instanceof Error ? err.message : String(err),
+      )
       return null
     }
   }
 
   async saveProjection(projection: CustomerPortalProjection, req?: PayloadRequest): Promise<CustomerPortalProjection> {
-    DashboardProjectionRepository.projectionMap.set(projection.customerId, projection)
     try {
       const existing = await this.payload.find({
         collection: 'dashboard-projections',

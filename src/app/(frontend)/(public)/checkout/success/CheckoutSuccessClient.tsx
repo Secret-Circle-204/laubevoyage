@@ -70,9 +70,6 @@ export function CheckoutSuccessClient({
             if (res.bookingNumber) {
               setConfirmedBookingNumber(res.bookingNumber)
             }
-            if (typeof res.earnedPoints === 'number') {
-              setEarnedPoints(res.earnedPoints)
-            }
             if (res.formattedTotalPrice) {
               setTotalAmountDisplay(res.formattedTotalPrice)
             } else if (res.pricingSnapshot) {
@@ -81,8 +78,13 @@ export function CheckoutSuccessClient({
                 : `${res.pricingSnapshot.totalAmountEGP} EGP`
               setTotalAmountDisplay(amountStr)
             }
-            isPollingRef.current = false
-            return
+
+            if (typeof res.earnedPoints === 'number') {
+              setEarnedPoints(res.earnedPoints)
+              isPollingRef.current = false
+              return
+            }
+            // If earnedPoints is still undefined, polling continues to allow the Outbox Worker to credit the ledger
           } else if (currentStatus === 'cancelled' || currentStatus === 'failed') {
             setStatus('failed')
             isPollingRef.current = false
@@ -94,7 +96,7 @@ export function CheckoutSuccessClient({
       }
 
       if (attempts >= maxAttempts) {
-        setStatus('timeout')
+        setStatus((prev) => (prev === 'confirmed' ? 'confirmed' : 'timeout'))
         isPollingRef.current = false
         return
       }
@@ -185,12 +187,19 @@ export function CheckoutSuccessClient({
                     <span className="font-bold text-slate-900 dark:text-white">{totalAmountDisplay}</span>
                   </div>
                 )}
-                {typeof earnedPoints === 'number' && (
-                  <div className="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2">
-                    <span className="text-slate-500">Loyalty Points Earned:</span>
-                    <span className="font-bold text-amber-500">+{earnedPoints.toLocaleString()} Points</span>
-                  </div>
-                )}
+                <div className="flex justify-between border-t border-slate-200 dark:border-slate-800 pt-2 items-center">
+                  <span className="text-slate-500">Loyalty Points Earned:</span>
+                  {typeof earnedPoints === 'number' ? (
+                    <span className="font-bold text-amber-500 animate-in fade-in duration-300">
+                      +{earnedPoints.toLocaleString()} Points
+                    </span>
+                  ) : (
+                    <span className="text-xs font-semibold text-[#00aeef] flex items-center gap-1.5 animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#00aeef] animate-ping" />
+                      Processing in background...
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">

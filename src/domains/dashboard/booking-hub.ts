@@ -11,7 +11,8 @@ export class DashboardBookingHub {
     this.queryBus = queryBus
   }
 
-  async getCustomerBookingsStatement(customerId: number) {
-    return this.queryBus.bookingQueries.getByCustomerId(customerId)
+  async getCustomerBookingsStatement(customerId: number, page = 1, limit = 20) {
+    return this.queryBus.bookingQueries.getUserBookings(customerId, page, limit)
   }
 }
+

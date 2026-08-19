@@ -108,6 +108,61 @@ export class PaymentRepository {
   }
 
   /**
+   * Find multiple payment aggregates matching a set of booking IDs in a single query.
+   */
+  async findManyByBookingIds(bookingIds: number[], context?: RequestContext): Promise<PaymentAggregate[]> {
+    const req = this.mapContextToReq(context)
+    if (bookingIds.length === 0) return []
+    const result = await this.payload.find({
+      collection: 'payment-transactions',
+      where: {
+        bookingId: { in: bookingIds },
+      },
+      limit: bookingIds.length,
+      req,
+    })
+
+    return result.docs.map((doc) => this.mapDocToAggregate(doc))
+  }
+
+  /**
+   * Find paginated payment transactions for a customer with optional DB status filtering.
+   */
+  async findByCustomerId(
+    customerId: number,
+    page: number = 1,
+    limit: number = 10,
+    filters?: { status?: PaymentStatusType },
+    context?: RequestContext,
+  ): Promise<import('@/types').PaginatedResponse<PaymentAggregate>> {
+    const req = this.mapContextToReq(context)
+    const where: any = {
+      customerId: { equals: customerId },
+    }
+    if (filters?.status) {
+      where.status = { equals: filters.status }
+    }
+
+    const result = await this.payload.find({
+      collection: 'payment-transactions',
+      where,
+      page,
+      limit,
+      sort: '-createdAt',
+      req,
+    })
+
+    return {
+      data: result.docs.map((doc) => this.mapDocToAggregate(doc)),
+      total: result.totalDocs,
+      page: result.page || page,
+      totalPages: result.totalPages || 1,
+      limit: result.limit || limit,
+    }
+  }
+
+
+  /**
    * Find payment aggregate by gateway reference (e.g. Stripe Session ID or PaymentIntent ID).
    */
   async findByGatewayReference(gatewayReference: string, context?: RequestContext): Promise<PaymentAggregate | null> {

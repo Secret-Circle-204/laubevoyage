@@ -20,7 +20,7 @@ export interface NotificationJobEntity {
   priority: NotificationPriority
   templateId: string
   translationKey: string
-  templateData: Record<string, any>
+  templateData: Record<string, unknown>
   attachments?: NotificationAttachment[]
   sendAt?: string
   status: NotificationStatus

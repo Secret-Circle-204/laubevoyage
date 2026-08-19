@@ -30,14 +30,23 @@ export class MaintenanceWorkflowEngine {
     this.engine = new MaintenanceEngine(this.repository, bookingService)
     this.reconciliationService = new FinancialReconciliationService()
     this.dlqRecoveryService = new DLQRecoveryService()
-    this.retentionService = new DataRetentionService()
+    this.retentionService = new DataRetentionService(this.repository.payloadInstance)
   }
 
   async executeJobWorkflow(
     jobName: MaintenanceJobName,
-    startedBy: 'scheduler' | 'manual_admin' | 'api' = 'scheduler',
-    workerId = 'worker_node_1',
+    startedBy: 'scheduler' | 'manual_admin' | 'api',
+    workerId: string,
   ): Promise<{ success: boolean; itemsProcessed: number }> {
+    if (!jobName) {
+      throw new Error('[MaintenanceWorkflowEngine] executeJobWorkflow: jobName is required.')
+    }
+    if (!startedBy) {
+      throw new Error('[MaintenanceWorkflowEngine] executeJobWorkflow: startedBy is required.')
+    }
+    if (!workerId) {
+      throw new Error('[MaintenanceWorkflowEngine] executeJobWorkflow: workerId is required.')
+    }
     const startTime = performance.now()
     const payload = this.repository.payloadInstance
     if (!payload) {
@@ -66,10 +75,10 @@ export class MaintenanceWorkflowEngine {
 
     try {
       if (jobName === 'complete_finished_bookings') {
-        const res = await this.engine.completeFinishedBookings()
+        const res = await this.engine.completeFinishedBookings(20)
         itemsProcessed = res.processedCount
       } else if (jobName === 'expire_stale_holds') {
-        const res = await this.engine.expireStaleDraftHolds()
+        const res = await this.engine.expireStaleDraftHolds(20)
         itemsProcessed = res.processedCount
       } else if (jobName === 'financial_reconciliation') {
         const res = await this.reconciliationService.reconcileTransactions()

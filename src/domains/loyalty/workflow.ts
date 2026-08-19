@@ -12,9 +12,10 @@ import { PointHoldService } from './point-hold'
 import type { AdminAdjustmentParams, PointLedgerRecord, TierProgress } from './types'
 import type { LoyaltyTier, RequestContext } from '@/types'
 import { TierPolicy } from './tier-policy'
-import { LoyaltyProgramConfig, LoyaltyProgramConfigurationException } from './tier-config'
+import { LoyaltyProgramConfig } from './tier-config'
 import { loyaltyProgramRegistry } from './program-registry'
 import { EventBus } from '../events/event-bus'
+import { EventOutboxService } from '../events/outbox'
 
 /**
  * Loyalty Workflow Engine
@@ -64,22 +65,11 @@ export class LoyaltyWorkflowEngine {
   }
 
   getTierThresholds(config: LoyaltyProgramConfig): Array<{ tier: LoyaltyTier; minSpentEGP: number }> {
-    const orderedTiers: LoyaltyTier[] = [
-      'explorer' as LoyaltyTier,
-      'voyager' as LoyaltyTier,
-      'elite' as LoyaltyTier,
-    ]
-
-    return orderedTiers.map((tier) => {
-      const tierDef = config.tiers[tier]
-      if (!tierDef) {
-        throw new LoyaltyProgramConfigurationException(`[LoyaltyWorkflowEngine] Missing tier definition for ${tier}`)
-      }
-      return {
-        tier,
-        minSpentEGP: tierDef.minSpentEGP,
-      }
-    })
+    const ordered = TierPolicy.getOrderedTiers(config)
+    return ordered.map((t) => ({
+      tier: t.tier,
+      minSpentEGP: t.minSpentEGP,
+    }))
   }
 
   async grantWelcomeBonus(userId: number, config?: LoyaltyProgramConfig, context?: RequestContext): Promise<PointLedgerRecord> {
@@ -90,7 +80,23 @@ export class LoyaltyWorkflowEngine {
       redemptionPointsUnit: activeConfig.redemptionPointsUnit,
       redemptionValueEGP: activeConfig.redemptionValueEGP,
     })
-    return this.pointsEarner.grantWelcomeBonus(userId, activeConfig, context)
+    const record = await this.pointsEarner.grantWelcomeBonus(userId, activeConfig, context)
+    await this.repository.updateCustomerProjection(userId, record.resultingBalance, record.id, context)
+
+    // Outbox Event Logging (Transaction-Bound Post-Commit event)
+    const outbox = EventOutboxService.getInstance()
+    await outbox.record({
+      type: 'LOYALTY_EARNED',
+      eventId: `evt_wel_${userId}_${Date.now()}`,
+      correlationId: `corr_loy_${userId}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
+      customerId: userId,
+      points: record.points,
+      balance: record.resultingBalance,
+    }, context)
+
+    return record
   }
 
   async earnPointsForBooking(
@@ -102,7 +108,24 @@ export class LoyaltyWorkflowEngine {
     context?: RequestContext,
   ): Promise<PointLedgerRecord> {
     const activeConfig = await this.getActiveConfig(config, context)
-    return this.pointsEarner.earnForBooking(userId, amountSpentEGP, bookingId, bookingNumber, activeConfig, context)
+    const record = await this.pointsEarner.earnForBooking(userId, amountSpentEGP, bookingId, bookingNumber, activeConfig, context)
+    await this.repository.updateCustomerProjection(userId, record.resultingBalance, record.id, context)
+
+    // Outbox Event Logging (Transaction-Bound Post-Commit event)
+    const outbox = EventOutboxService.getInstance()
+    await outbox.record({
+      type: 'LOYALTY_EARNED',
+      eventId: `evt_earn_${userId}_${bookingId}_${Date.now()}`,
+      correlationId: `corr_loy_${userId}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
+      customerId: userId,
+      points: record.points,
+      balance: record.resultingBalance,
+      bookingId,
+    }, context)
+
+    return record
   }
 
   async redeemPoints(
@@ -115,7 +138,7 @@ export class LoyaltyWorkflowEngine {
     context?: RequestContext,
   ): Promise<PointLedgerRecord> {
     const activeConfig = await this.getActiveConfig(config, context)
-    return this.pointsRedeemer.redeemForBooking(
+    const record = await this.pointsRedeemer.redeemForBooking(
       userId,
       pointsToRedeem,
       bookingId,
@@ -124,6 +147,23 @@ export class LoyaltyWorkflowEngine {
       reason,
       context,
     )
+    await this.repository.updateCustomerProjection(userId, record.resultingBalance, record.id, context)
+
+    // Outbox Event Logging (Transaction-Bound Post-Commit event)
+    const outbox = EventOutboxService.getInstance()
+    await outbox.record({
+      type: 'POINTS_REDEEMED',
+      eventId: `evt_red_${userId}_${bookingId}_${Date.now()}`,
+      correlationId: `corr_loy_${userId}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
+      customerId: userId,
+      points: Math.abs(record.points),
+      balance: record.resultingBalance,
+      bookingId,
+    }, context)
+
+    return record
   }
 
   async refundPointsForCancellation(
@@ -132,7 +172,24 @@ export class LoyaltyWorkflowEngine {
     originalEarnedPoints: number,
     context?: RequestContext,
   ): Promise<PointLedgerRecord> {
-    return this.pointsRefunder.reverseEarnedPoints(userId, originalEarnedPoints, bookingId, context)
+    const record = await this.pointsRefunder.reverseEarnedPoints(userId, originalEarnedPoints, bookingId, context)
+    await this.repository.updateCustomerProjection(userId, record.resultingBalance, record.id, context)
+
+    // Outbox Event Logging (Transaction-Bound Post-Commit event)
+    const outbox = EventOutboxService.getInstance()
+    await outbox.record({
+      type: 'POINTS_REFUNDED',
+      eventId: `evt_ref_${userId}_${bookingId}_${Date.now()}`,
+      correlationId: `corr_loy_${userId}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
+      customerId: userId,
+      points: Math.abs(record.points),
+      balance: record.resultingBalance,
+      bookingId,
+    }, context)
+
+    return record
   }
 
   async processExpiredPoints(context?: RequestContext): Promise<number> {
@@ -140,7 +197,25 @@ export class LoyaltyWorkflowEngine {
   }
 
   async adminAdjustPoints(params: AdminAdjustmentParams, context?: RequestContext): Promise<PointLedgerRecord> {
-    return this.adminAdjustment.executeAdjustment(params, context)
+    const record = await this.adminAdjustment.executeAdjustment(params, context)
+    await this.repository.updateCustomerProjection(params.customerId, record.resultingBalance, record.id, context)
+
+    // Outbox Event Logging (Transaction-Bound Post-Commit event)
+    const outbox = EventOutboxService.getInstance()
+    await outbox.record({
+      type: 'MANUAL_ADJUSTMENT',
+      eventId: `evt_adj_${params.customerId}_${Date.now()}`,
+      correlationId: `corr_loy_${params.customerId}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
+      customerId: params.customerId,
+      points: record.points,
+      balance: record.resultingBalance,
+      ticket: params.ticket,
+      adminId: params.adminId,
+    }, context)
+
+    return record
   }
 
   async evaluateAndUpgradeTier(
@@ -151,6 +226,26 @@ export class LoyaltyWorkflowEngine {
   ): Promise<LoyaltyTier> {
     const activeConfig = await this.getActiveConfig(config, context)
     const res = await this.tierEvaluator.evaluateAndUpgrade(userId, additionalSpentEGP, activeConfig, context)
+
+    if (res.upgraded) {
+      // Outbox Event Logging (Transaction-Bound Post-Commit event)
+      const outbox = EventOutboxService.getInstance()
+      await outbox.record({
+        type: 'TIER_UPGRADED',
+        eventId: `evt_tier_${userId}_${Date.now()}`,
+        correlationId: `corr_loy_${userId}`,
+        eventVersion: 1,
+        occurredAt: new Date().toISOString(),
+        customerId: userId,
+        newTier: res.newTier,
+        bonusGranted: res.bonusRecord ? res.bonusRecord.points : 0,
+      }, context)
+
+      if (res.bonusRecord) {
+        await this.repository.updateCustomerProjection(userId, res.bonusRecord.resultingBalance, res.bonusRecord.id, context)
+      }
+    }
+
     return res.newTier
   }
 
@@ -202,12 +297,13 @@ export class LoyaltyWorkflowEngine {
     await this.repository.updateCustomerTier(customerId, newTier, -bookingTotalEGP, context)
 
     // Reclaim/reverse tier upgrade bonuses for all levels the customer has been demoted from
-    const orderedTiers = ['explorer', 'voyager', 'elite']
-    const oldTierIndex = orderedTiers.indexOf(aggregate.tier)
-    const newTierIndex = orderedTiers.indexOf(newTier)
+    const ordered = TierPolicy.getOrderedTiers(activeConfig)
+    const orderedTierNames = ordered.map(t => t.tier)
+    const oldTierIndex = orderedTierNames.indexOf(aggregate.tier)
+    const newTierIndex = orderedTierNames.indexOf(newTier)
 
     if (newTierIndex < oldTierIndex && oldTierIndex !== -1 && newTierIndex !== -1) {
-      const lostTiers = orderedTiers.slice(newTierIndex + 1, oldTierIndex + 1)
+      const lostTiers = orderedTierNames.slice(newTierIndex + 1, oldTierIndex + 1)
       console.log(`[LoyaltyWorkflowEngine] Demotion detected. Customer lost tiers: ${lostTiers.join(', ')}`)
 
       for (const tier of lostTiers) {
@@ -291,6 +387,23 @@ export class LoyaltyWorkflowEngine {
         )
       }
     }
+
+    const finalBalance = await this.repository.getCurrentBalance(customerId, context)
+    await this.repository.updateCustomerProjection(customerId, finalBalance, 'cancellation_sync', context)
+
+    // Outbox Event Logging (Transaction-Bound Post-Commit event)
+    const outbox = EventOutboxService.getInstance()
+    await outbox.record({
+      type: 'POINTS_REFUNDED',
+      eventId: `evt_ref_cancel_${customerId}_${bookingId}_${Date.now()}`,
+      correlationId: `corr_loy_${customerId}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
+      customerId,
+      points: pointsRedeemed, // points refunded
+      balance: finalBalance,
+      bookingId,
+    }, context)
 
     return { newTier }
   }

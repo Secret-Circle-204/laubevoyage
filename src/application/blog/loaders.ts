@@ -1,5 +1,6 @@
 import { getDomainServices } from '@/domains/factory'
 import type { BlogCatalogDTO, BlogArticleDTO, FaqPageDTO } from './dto'
+import type { Post, Faq } from '@/payload-types'
 
 export class BlogCatalogLoader {
   static async load(params?: { page?: number; limit?: number; category?: string; locale?: string }): Promise<BlogCatalogDTO> {
@@ -14,26 +15,26 @@ export class BlogCatalogLoader {
       const rawTexts: string[] = []
       for (const doc of articlesRes.docs || []) {
         rawTexts.push(String(doc.title || ''))
-        rawTexts.push(String((doc as any).summary || (doc as any).excerpt || ''))
+        rawTexts.push(String(doc.excerpt || ''))
       }
 
       const translatedTexts = await localization.translateBatch(rawTexts, ctx)
       let idx = 0
 
-      const articles: BlogArticleDTO[] = (articlesRes.docs || []).map((doc: any) => {
+      const articles: BlogArticleDTO[] = (articlesRes.docs || []).map((doc: Post) => {
         const translatedTitle = translatedTexts[idx++] || String(doc.title || '')
-        const translatedSummary = translatedTexts[idx++] || String(doc.summary || '')
+        const translatedSummary = translatedTexts[idx++] || String(doc.excerpt || '')
 
         return {
-          id: Number(doc.id),
+          id: doc.id,
           slug: doc.slug || '',
           title: translatedTitle,
           summary: translatedSummary,
           category: doc.category || '',
           publishedAt: doc.publishedAt ? new Date(doc.publishedAt).toLocaleDateString() : '',
-          readTimeMinutes: doc.readTimeMinutes || 5,
-          featuredImageUrl: doc.featuredImage?.url || '',
-          authorName: typeof doc.author === 'object' ? doc.author?.name : '',
+          readTimeMinutes: doc.readTimeMinutes || 3,
+          featuredImageUrl: '',
+          authorName: doc.authorName || '',
         }
       })
 
@@ -64,12 +65,12 @@ export class ArticleLoader {
     try {
       const { content, localization } = await getDomainServices()
       const ctx = await localization.buildContext({ cookieLocale: options?.locale })
-      const doc = (await content.getArticleBySlug(slug)) as any
+      const doc = (await content.getArticleBySlug(slug)) as Post | null
       if (!doc) return null
 
       const rawTitle = String(doc.title || '')
-      const rawSummary = String(doc.summary || '')
-      const rawContent = String(doc.contentHtml || doc.content || doc.summary || '')
+      const rawSummary = String(doc.excerpt || '')
+      const rawContent = String(doc.bodyHtml || doc.excerpt || '')
 
       const [translatedTitle, translatedSummary, translatedContent] = await localization.translateBatch(
         [rawTitle, rawSummary, rawContent],
@@ -77,16 +78,16 @@ export class ArticleLoader {
       )
 
       return {
-        id: Number(doc.id),
+        id: doc.id,
         slug: doc.slug,
         title: translatedTitle || rawTitle,
         summary: translatedSummary || rawSummary,
         contentHtml: translatedContent || rawContent,
         category: doc.category || '',
         publishedAt: doc.publishedAt ? new Date(doc.publishedAt).toLocaleDateString() : '',
-        readTimeMinutes: doc.readTimeMinutes || 5,
-        featuredImageUrl: doc.featuredImage?.url || '',
-        authorName: typeof doc.author === 'object' ? doc.author?.name : '',
+        readTimeMinutes: doc.readTimeMinutes || 3,
+        featuredImageUrl: '',
+        authorName: doc.authorName || '',
       }
     } catch (err) {
       console.error(`[ArticleLoader] Failed loading article with slug ${slug}:`, err)
@@ -111,12 +112,12 @@ export class FaqLoader {
       const translatedTexts = await localization.translateBatch(rawTexts, ctx)
       let idx = 0
 
-      const items = (faqsRes.docs || []).map((doc: any) => {
+      const items = (faqsRes.docs || []).map((doc: Faq) => {
         const translatedQuestion = translatedTexts[idx++] || String(doc.question || '')
         const translatedAnswer = translatedTexts[idx++] || String(doc.answer || '')
 
         return {
-          id: Number(doc.id),
+          id: doc.id,
           question: translatedQuestion,
           answer: translatedAnswer,
           category: doc.category || '',

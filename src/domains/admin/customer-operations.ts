@@ -11,7 +11,20 @@ export class AdminCustomerOperations {
     this.customerService = customerService
   }
 
-  async toggleCustomerStatusByStaff(customerId: number, status: 'active' | 'suspended', reason: string): Promise<boolean> {
+  async toggleCustomerStatusByStaff(
+    customerId: number,
+    status: 'active' | 'suspended',
+    reason: string,
+  ): Promise<boolean> {
+    if (!reason || reason.trim() === '') {
+      throw new Error('[AdminCustomerOperations] Mandatory audit reason required for staff status update.')
+    }
+
+    if (!this.customerService) {
+      throw new Error('[AdminCustomerOperations] CustomerService dependency is required. Cannot toggle customer status.')
+    }
+
+    await this.customerService.updateStatus(customerId, status, reason)
     console.log(`[AdminCustomerOperations] Staff updated customer #${customerId} status to '${status}'. Reason: ${reason}`)
     return true
   }

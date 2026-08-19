@@ -2,6 +2,7 @@ import React from 'react'
 import type { Metadata } from 'next'
 import { GlobalSearchLoader } from '@/application/search/loaders'
 import { GlobalSearchPage } from '@/components/features/search/GlobalSearchPage'
+import { getLocaleContext } from '@/lib/get-locale-context'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,13 +22,17 @@ export default async function Page(props: {
   searchParams: Promise<{ q?: string; category?: string; minPrice?: string; maxPrice?: string }>
 }) {
   const searchParams = await props.searchParams
+  const localeCtx = await getLocaleContext()
 
   const data = await GlobalSearchLoader.load({
     query: searchParams.q,
     category: searchParams.category,
     minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
     maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined,
+    locale: localeCtx.language,
+    currency: localeCtx.currency,
   })
 
   return <GlobalSearchPage data={data} />
 }
+

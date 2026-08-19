@@ -59,6 +59,11 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const services = await getDomainServices()
+    const user = await services.customer.authenticateRequest(request.headers)
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     const searchParams = request.nextUrl.searchParams
 
     const ids: number[] = []
@@ -93,25 +98,49 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (ids.length === 0) {
-      throw new Error('[DELETE /api/bookings] No valid booking IDs provided for deletion.')
+      return NextResponse.json(
+        { error: 'No valid booking IDs provided for deletion.' },
+        { status: 400 },
+      )
     }
 
     const isHardPurge = searchParams.get('purge') === 'true' || searchParams.get('hard') === 'true'
+    const isAdmin = (user as any).role === 'admin' || (user as any).role === 'super_admin'
 
-    const user = await services.customer.authenticateRequest(request.headers)
-    const actor = user
-      ? { type: 'customer' as const, id: user.id }
-      : { type: 'system' as const, id: 'admin' }
+    if (isHardPurge && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Forbidden: Hard purge requires administrator privileges.' },
+        { status: 403 },
+      )
+    }
+
+    const actor = { type: isAdmin ? ('system' as const) : ('customer' as const), id: user.id }
 
     for (const id of ids) {
-      if (isHardPurge) {
+      const targetBooking = await services.booking.getById(id)
+      if (!targetBooking) {
+        return NextResponse.json({ error: `Booking #${id} not found.` }, { status: 404 })
+      }
+
+      // Strict Tenant Isolation: verify booking ownership
+      if (!isAdmin && targetBooking.customerId !== Number(user.id)) {
+        return NextResponse.json(
+          { error: `Forbidden: You do not have permission to delete or cancel Booking #${id}.` },
+          { status: 403 },
+        )
+      }
+
+      if (isHardPurge && isAdmin) {
         await services.booking.delete(id)
       } else {
         await services.booking.cancel(id, 'Cancelled via API DELETE request', actor)
       }
     }
 
-    return NextResponse.json({ success: true, count: ids.length, deletedIds: ids, purged: isHardPurge }, { status: 200 })
+    return NextResponse.json(
+      { success: true, count: ids.length, deletedIds: ids, purged: isHardPurge },
+      { status: 200 },
+    )
   } catch (error: unknown) {
     console.error('Error deleting booking(s):', error)
     return NextResponse.json(

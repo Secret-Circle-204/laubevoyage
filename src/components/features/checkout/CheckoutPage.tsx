@@ -12,14 +12,60 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [keyRotationCounter, setKeyRotationCounter] = useState<number>(0)
 
-  // Traveler Details Form State
-  const [firstName, setFirstName] = useState(data.leadTraveler?.firstName || '')
-  const [lastName, setLastName] = useState(data.leadTraveler?.lastName || '')
-  const [email, setEmail] = useState(data.leadTraveler?.email || '')
-  const [phone, setPhone] = useState(data.leadTraveler?.phone || '')
+  // Traveler Details Form State for all passengers
+  const [travelers, setTravelers] = useState<Array<{
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+    type: 'adult' | 'child'
+  }>>(() => {
+    const initial = []
+    // Traveler 1 (Lead traveler)
+    initial.push({
+      firstName: data.leadTraveler?.firstName || '',
+      lastName: data.leadTraveler?.lastName || '',
+      email: data.leadTraveler?.email || '',
+      phone: data.leadTraveler?.phone || '',
+      type: 'adult' as const,
+    })
 
-  const idempotencyKey = React.useMemo(() => {
-    if (typeof window === 'undefined') return ''
+    // Companion Adults
+    for (let i = 1; i < data.adultsCount; i++) {
+      initial.push({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        type: 'adult' as const,
+      })
+    }
+
+    // Companion Children
+    for (let i = 0; i < data.childrenCount; i++) {
+      initial.push({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        type: 'child' as const,
+      })
+    }
+
+    return initial
+  })
+
+  const updateTravelerField = (index: number, field: 'firstName' | 'lastName' | 'email' | 'phone', value: string) => {
+    setTravelers((prev) => {
+      const copy = [...prev]
+      copy[index] = { ...copy[index], [field]: value }
+      return copy
+    })
+  }
+
+  const [idempotencyKey, setIdempotencyKey] = React.useState<string>('')
+
+  React.useEffect(() => {
     const storageKey = `laube_chk_key_${data.experienceId}_${data.slotId || 'noslot'}_${data.departureDate}`
     let key = sessionStorage.getItem(storageKey)
     if (!key) {
@@ -27,46 +73,36 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
       key = `checkout:${data.experienceId}:${data.slotId || 'noslot'}:${data.departureDate}:${attemptUUID}`
       sessionStorage.setItem(storageKey, key)
     }
-    return key
+    
+    const timer = setTimeout(() => {
+      setIdempotencyKey(key)
+    }, 0)
+    return () => clearTimeout(timer)
   }, [data.experienceId, data.slotId, data.departureDate, keyRotationCounter])
 
   const handleConfirmPayment = async () => {
-    if (!firstName || !email) {
-      addToast({ type: 'error', title: 'Missing Information', description: 'Please fill in lead traveler name and email.' })
-      return
+    // Validate that all travelers have firstName, lastName, email, and phone filled in
+    for (let i = 0; i < travelers.length; i++) {
+      const t = travelers[i]
+      const label = i === 0 ? 'Lead Traveler' : `Traveler #${i + 1} (${t.type === 'adult' ? 'Adult' : 'Child'})`
+      if (!t.firstName || !t.lastName || !t.email || !t.phone) {
+        addToast({
+          type: 'error',
+          title: 'Missing Information',
+          description: `Please fill in all details for ${label}.`,
+        })
+        return
+      }
     }
 
     setIsSubmitting(true)
     try {
-      const travelersArray = []
-      travelersArray.push({ firstName, lastName, email, phone, type: 'adult' })
-
-      for (let i = 1; i < data.adultsCount; i++) {
-        travelersArray.push({
-          firstName: `Guest ${i + 1}`,
-          lastName: 'Adult',
-          email: `guest${i + 1}_adult@example.com`,
-          phone: phone || '0000000000',
-          type: 'adult',
-        })
-      }
-
-      for (let i = 0; i < data.childrenCount; i++) {
-        travelersArray.push({
-          firstName: `Guest ${i + 1}`,
-          lastName: 'Child',
-          email: `guest${i + 1}_child@example.com`,
-          phone: phone || '0000000000',
-          type: 'child',
-        })
-      }
-
       const res = await confirmCheckoutAction({
         bookingId: data.bookingId,
         experienceId: data.experienceId,
         slotId: data.slotId,
         adults: data.adultsCount,
-        travelers: travelersArray,
+        travelers: travelers,
         gatewayId: selectedGateway,
         idempotencyKey,
       })
@@ -125,40 +161,46 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
           {/* Main Checkout Form Column */}
           <div className="lg:col-span-7 flex flex-col gap-8">
             {/* Step 1: Traveler Information */}
-            <Card variant="flat" padding="lg">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-full bg-[#2e3192] text-white text-sm flex items-center justify-center">1</span>
-                Lead Traveler Details
-              </h2>
+            <div className="flex flex-col gap-6">
+              {travelers.map((traveler, idx) => (
+                <Card key={idx} variant="flat" padding="lg">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#2e3192] text-white text-sm flex items-center justify-center">
+                      {idx === 0 ? 1 : `1.${idx}`}
+                    </span>
+                    {idx === 0 ? 'Lead Traveler Details' : `Companion Traveler #${idx + 1} (${traveler.type === 'adult' ? 'Adult' : 'Child'}) *`}
+                  </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="First Name *"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="e.g. Alexander"
-                />
-                <Input
-                  label="Last Name *"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="e.g. Vance"
-                />
-                <Input
-                  label="Email Address *"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="alexander@example.com"
-                />
-                <Input
-                  label="Phone / WhatsApp *"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+20 100 123 4567"
-                />
-              </div>
-            </Card>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="First Name *"
+                      value={traveler.firstName}
+                      onChange={(e) => updateTravelerField(idx, 'firstName', e.target.value)}
+                      placeholder="e.g. Alexander"
+                    />
+                    <Input
+                      label="Last Name *"
+                      value={traveler.lastName}
+                      onChange={(e) => updateTravelerField(idx, 'lastName', e.target.value)}
+                      placeholder="e.g. Vance"
+                    />
+                    <Input
+                      label="Email Address *"
+                      type="email"
+                      value={traveler.email}
+                      onChange={(e) => updateTravelerField(idx, 'email', e.target.value)}
+                      placeholder="alexander@example.com"
+                    />
+                    <Input
+                      label="Phone / WhatsApp *"
+                      value={traveler.phone}
+                      onChange={(e) => updateTravelerField(idx, 'phone', e.target.value)}
+                      placeholder="+20 100 123 4567"
+                    />
+                  </div>
+                </Card>
+              ))}
+            </div>
 
             {/* Step 2: Payment Gateway Selection */}
             <Card variant="flat" padding="lg">

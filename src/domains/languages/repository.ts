@@ -2,12 +2,23 @@ import type { Payload } from 'payload'
 import type { Language } from './types'
 
 export class LanguageRepository {
+  private static instances = new Set<LanguageRepository>()
   private payload: Payload
   private activeLanguagesCache: Language[] | null = null
   private defaultLanguageCache: Language | null = null
 
   constructor(payload: Payload) {
     this.payload = payload
+    LanguageRepository.instances.add(this)
+  }
+
+  /**
+   * Static method to invalidate caches across all active LanguageRepository instances.
+   */
+  static invalidateAll(): void {
+    for (const inst of LanguageRepository.instances) {
+      inst.invalidateCache()
+    }
   }
 
   /**

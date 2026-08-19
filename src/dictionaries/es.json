@@ -16,8 +16,37 @@
     },
     "footer": {
       "rights": "Todos los Derechos Reservados © 2026 L'Aube Voyage",
-      "tagline": "Viajes Extraordinarios desde 1996."
+      "tagline": "Viajes Extraordinarios desde 1996.",
+      "explore": "Explorar",
+      "allExperiences": "Todas las Experiencias",
+      "destinations": "Destinos",
+      "tourPackages": "Paquetes Turísticos",
+      "dailyTours": "Tours Diarios",
+      "company": "Compañía",
+      "aboutUs": "Sobre Nosotros",
+      "travelBlog": "Blog de Viajes",
+      "faqs": "Preguntas Frecuentes",
+      "contactUs": "Contáctenos",
+      "legal": "Legal",
+      "privacyPolicy": "Política de Privacidad",
+      "termsOfService": "Términos del Servicio",
+      "customerPortal": "Portal del Cliente"
     }
+  },
+  "catalog": {
+    "meta": {
+      "title": "Catálogo de Experiencias de Lujo y Paquetes | L'Aube Voyage",
+      "description": "Descubre paquetes de viaje de lujo, cruceros por el Nilo y tours privados en todo Egipto."
+    },
+    "badge": "Colección Exclusiva",
+    "title": "Catálogo de Experiencias",
+    "description": "Descubre paquetes turísticos de lujo y tours privados de un día diseñados para viajeros exigentes.",
+    "filterAll": "Todas las Experiencias ({count})",
+    "filterPackages": "Paquetes Turísticos",
+    "filterDailyTours": "Tours Privados Diarios",
+    "viewItinerary": "Ver Itinerario",
+    "packageLabel": "Paquete Turístico",
+    "dailyTourLabel": "Tour Diario"
   },
   "loyalty": {
     "tier": {
@@ -28,6 +57,10 @@
     "progress": {
       "remainingToTier": "Faltan {amount} para alcanzar el nivel {tier}",
       "maxTier": "¡Nivel de membresía más alto alcanzado!"
+    },
+    "guide": {
+      "title": "Guía de Valor de Puntos",
+      "description": "Usa tus puntos directamente al pagar — sin códigos ni complicaciones. Selecciona tu nivel y ahorra al instante."
     }
   }
 }

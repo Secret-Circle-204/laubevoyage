@@ -32,6 +32,24 @@ export class ExperienceRepository {
   }
 
   /**
+   * Find multiple experience aggregates matching a list of experience IDs in a single query.
+   */
+  async findManyByIds(experienceIds: number[], req?: PayloadRequest): Promise<ExperienceAggregate[]> {
+    if (experienceIds.length === 0) return []
+    const result = await this.payload.find({
+      collection: 'experiences',
+      where: {
+        id: { in: experienceIds },
+      },
+      limit: experienceIds.length,
+      req,
+    })
+
+    return result.docs.map((doc: any) => this.mapDocToAggregate(doc))
+  }
+
+
+  /**
    * Find experience aggregate by unique slug.
    */
   async findBySlug(slug: string, req?: PayloadRequest): Promise<ExperienceAggregate | null> {

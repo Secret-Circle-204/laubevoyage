@@ -4,14 +4,8 @@ export type CurrencyCode = string
 // LOCALIZATION DOMAIN — Locale Context
 // ============================================================================
 
-/**
- * Supported application languages.
- */
-export enum Language {
-  EN = 'en',
-  AR = 'ar',
-  FR = 'fr',
-}
+export type LanguageCode = string
+export type Language = string
 
 /**
  * Supported measurement systems.
@@ -66,7 +60,7 @@ export interface LocaleContext {
  * Default locale context for unauthenticated or new users.
  */
 export const DEFAULT_LOCALE_CONTEXT: LocaleContext = {
-  language: Language.EN,
+  language: 'en',
   currency: 'EGP',
   country: 'EG',
   timezone: 'Africa/Cairo',

@@ -1,4 +1,5 @@
 import { getDomainServices } from '@/domains/factory'
+import { MaintenanceLeaseService } from '@/domains/maintenance/lease-service'
 
 /**
  * Pure Cron Dispatcher
@@ -6,6 +7,8 @@ import { getDomainServices } from '@/domains/factory'
  * Cron triggers only invoke Domain Service operations.
  */
 export class CronDispatcher {
+  private static workerId = `worker_${process.pid || 'main'}_${Math.random().toString(36).substring(2, 7)}`
+
   /**
    * Hourly Scheduled Job Trigger
    */
@@ -13,49 +16,81 @@ export class CronDispatcher {
     const startTime = Date.now()
     const executedTasks: string[] = []
 
-    const { booking, currency } = await getDomainServices()
+    const { maintenance, currency, payload } = await getDomainServices()
 
     // Task 1: Complete Finished Trips & Award Loyalty Points
     try {
-      if (typeof (booking as any).processTripCompletions === 'function') {
-        await (booking as any).processTripCompletions()
+      const res = await maintenance.triggerJob('complete_finished_bookings', 'scheduler', CronDispatcher.workerId)
+      if (res.success) {
+        executedTasks.push('trip_completions')
+      } else {
+        executedTasks.push('trip_completions_skipped_or_locked')
       }
-      executedTasks.push('trip_completions')
-    } catch {
-      executedTasks.push('trip_completions_skipped')
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error('[CronDispatcher] Failed complete_finished_bookings:', errMsg)
+      executedTasks.push('trip_completions_failed')
     }
 
-    // Task 2: Refresh Live Exchange Rate Catalog Cache
+    // Task 2: Refresh Live Exchange Rate Catalog Cache (Independent Lease)
     try {
-      if (typeof (currency as any).refreshRateCatalog === 'function') {
-        await (currency as any).refreshRateCatalog()
+      const acquired = await MaintenanceLeaseService.acquireLease(payload, 'currency_rate_refresh', CronDispatcher.workerId, 300000) // 5 minutes TTL
+      if (acquired) {
+        try {
+          await currency.refreshRateCatalog()
+          executedTasks.push('currency_rate_refresh')
+        } finally {
+          await MaintenanceLeaseService.releaseLease(payload, 'currency_rate_refresh', CronDispatcher.workerId)
+        }
+      } else {
+        executedTasks.push('currency_rate_refresh_skipped_lease_held')
       }
-      executedTasks.push('currency_rate_refresh')
-    } catch {
-      executedTasks.push('currency_rate_refresh_skipped')
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error('[CronDispatcher] Failed refreshRateCatalog:', errMsg)
+      executedTasks.push('currency_rate_refresh_failed')
     }
 
     // Task 3: Release Expired Booking Holds
     try {
-      if (typeof booking.releaseExpiredHolds === 'function') {
-        await booking.releaseExpiredHolds()
+      const res = await maintenance.triggerJob('expire_stale_holds', 'scheduler', CronDispatcher.workerId)
+      if (res.success) {
+        executedTasks.push('release_expired_holds')
+      } else {
+        executedTasks.push('release_expired_holds_skipped_or_locked')
       }
-      executedTasks.push('release_expired_holds')
-    } catch (err: any) {
-      console.error('[CronDispatcher] Failed releasing expired holds:', err)
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error('[CronDispatcher] Failed expire_stale_holds job:', errMsg)
       executedTasks.push('release_expired_holds_failed')
     }
 
     // Task 4: Reconcile Pending Payments
     try {
-      const { payment } = await getDomainServices()
-      if (typeof (payment as any).reconcilePendingPayments === 'function') {
-        await (payment as any).reconcilePendingPayments()
+      const res = await maintenance.triggerJob('financial_reconciliation', 'scheduler', CronDispatcher.workerId)
+      if (res.success) {
+        executedTasks.push('payment_reconciliation')
+      } else {
+        executedTasks.push('payment_reconciliation_skipped_or_locked')
       }
-      executedTasks.push('payment_reconciliation')
-    } catch (err: any) {
-      console.error('[CronDispatcher] Failed payment reconciliation:', err)
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error('[CronDispatcher] Failed payment reconciliation job:', errMsg)
       executedTasks.push('payment_reconciliation_failed')
+    }
+
+    // Task 5: Data Retention Purge (Hourly)
+    try {
+      const res = await maintenance.triggerJob('data_retention_purge', 'scheduler', CronDispatcher.workerId)
+      if (res.success) {
+        executedTasks.push('data_retention_purge')
+      } else {
+        executedTasks.push('data_retention_purge_skipped_or_locked')
+      }
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error('[CronDispatcher] Failed data_retention_purge job:', errMsg)
+      executedTasks.push('data_retention_purge_failed')
     }
 
     return {
@@ -67,27 +102,30 @@ export class CronDispatcher {
 
   public static startWorker(): void {
     const symbol = Symbol.for('laube.cron.dispatcher.started')
-    if ((global as any)[symbol]) return
-    ;(global as any)[symbol] = true
+    const globalContext = global as unknown as Record<symbol, boolean>
+    if (globalContext[symbol]) return
+    globalContext[symbol] = true
 
-    // 1. Hourly Scheduled Tasks (Completions, Rates, Reconciliation)
+    // 1. Hourly Scheduled Tasks (Completions, Rates, Reconciliation, Retention Purge)
     setInterval(() => {
-      CronDispatcher.runHourlyJob().catch((err) => {
-        console.error('[CronDispatcher] Hourly job execution error:', err)
+      CronDispatcher.runHourlyJob().catch((err: unknown) => {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        console.error('[CronDispatcher] Hourly job execution error:', errMsg)
       })
     }, 60 * 60 * 1000)
 
     // 2. 1-Minute Scheduled Tasks (Hold Expiration Reaper)
     setInterval(() => {
-      getDomainServices().then(({ booking }) => {
-        booking.releaseExpiredHolds().catch((err) => {
-          console.error('[CronDispatcher] Expiration reaper execution error:', err)
+      getDomainServices().then(({ maintenance }) => {
+        maintenance.triggerJob('expire_stale_holds', 'scheduler', CronDispatcher.workerId).catch((err: unknown) => {
+          const errMsg = err instanceof Error ? err.message : String(err)
+          console.error('[CronDispatcher] Expiration reaper execution error:', errMsg)
         })
       })
     }, 60 * 1000)
 
     if (process.env.ARCH_TRACE === 'true') {
-      console.log('[CronDispatcher] Hourly scheduler (1h) and Expiration reaper (1m) started successfully.')
+      console.log(`[CronDispatcher] Hourly scheduler (1h) and Expiration reaper (1m) started successfully with worker ID: ${CronDispatcher.workerId}`)
     }
   }
 }

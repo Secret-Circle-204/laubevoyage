@@ -1,6 +1,6 @@
 import type { Payload, PayloadRequest } from 'payload'
 import type { BookingStatus, PaginatedResponse, RequestContext } from '@/types'
-import type { BookingAggregate } from './types'
+import type { BookingAggregate, CustomerTripSummary } from './types'
 import type { Booking } from '@/payload-types'
 
 /**
@@ -64,15 +64,42 @@ export class BookingRepository {
   }
 
   /**
-   * Find a booking aggregate by human-readable booking number.
+   * Find multiple booking aggregates matching a list of IDs in a single batch query.
    */
-  async findByBookingNumber(bookingNumber: string, context?: RequestContext): Promise<BookingAggregate | null> {
+  async findManyByIds(ids: number[], context?: RequestContext): Promise<BookingAggregate[]> {
     const req = this.mapContextToReq(context)
+    if (ids.length === 0) return []
     const result = await this.payload.find({
       collection: 'bookings',
       where: {
-        bookingNumber: { equals: bookingNumber },
+        id: { in: ids },
       },
+      limit: ids.length,
+      req,
+    })
+
+    return result.docs.map((doc) => this.mapDocToAggregate(doc))
+  }
+
+  /**
+   * Find a booking aggregate by human-readable booking number, with optional customerId boundary enforcement.
+   */
+  async findByBookingNumber(
+    bookingNumber: string,
+    customerId?: number,
+    context?: RequestContext,
+  ): Promise<BookingAggregate | null> {
+    const req = this.mapContextToReq(context)
+    const where: any = {
+      bookingNumber: { equals: bookingNumber },
+    }
+    if (customerId !== undefined) {
+      where.user = { equals: customerId }
+    }
+
+    const result = await this.payload.find({
+      collection: 'bookings',
+      where,
       limit: 1,
       req,
     })
@@ -164,14 +191,20 @@ export class BookingRepository {
     userId: number,
     page: number = 1,
     limit: number = 10,
+    filters?: { status?: BookingStatus },
     context?: RequestContext,
   ): Promise<PaginatedResponse<BookingAggregate>> {
     const req = this.mapContextToReq(context)
+    const where: any = {
+      user: { equals: userId },
+    }
+    if (filters?.status) {
+      where.status = { equals: filters.status }
+    }
+
     const result = await this.payload.find({
       collection: 'bookings',
-      where: {
-        user: { equals: userId },
-      },
+      where,
       page,
       limit,
       sort: '-createdAt',
@@ -184,6 +217,49 @@ export class BookingRepository {
       page: result.page || 1,
       limit: result.limit || 10,
       totalPages: result.totalPages || 1,
+    }
+  }
+
+  /**
+   * Retrieve aggregated trip summary metrics for customer overview without full document loading ($O(1) memory).
+   */
+  async getCustomerTripSummary(
+    customerId: number,
+    context?: RequestContext,
+  ): Promise<CustomerTripSummary> {
+    const req = this.mapContextToReq(context)
+
+    const countDocs = async (where: any): Promise<number> => {
+      if (typeof this.payload.count === 'function') {
+        const res = await this.payload.count({ collection: 'bookings', where, req })
+        return res.totalDocs
+      }
+      const res = await this.payload.find({ collection: 'bookings', where, limit: 1, req })
+      return res.totalDocs
+    }
+
+    const [allCount, confirmedCount, latestResult] = await Promise.all([
+      countDocs({ user: { equals: customerId } }),
+      countDocs({
+        user: { equals: customerId },
+        status: { equals: 'confirmed' },
+      }),
+      this.payload.find({
+        collection: 'bookings',
+        where: { user: { equals: customerId } },
+        limit: 1,
+        sort: '-createdAt',
+        req,
+      }),
+    ])
+
+    const latestDoc = latestResult.docs[0]
+
+    return {
+      activeBookingsCount: allCount,
+      upcomingCount: confirmedCount,
+      latestBookingNumber: latestDoc?.bookingNumber,
+      nextDepartureDate: latestDoc?.startDate || latestDoc?.createdAt,
     }
   }
 
