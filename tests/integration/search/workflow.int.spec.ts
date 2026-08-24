@@ -16,7 +16,7 @@ describe('Search Domain: Workflow Integration Tests', () => {
             title: 'Luxury Nile Cruise',
             slug: 'nile-cruise',
             type: 'Package',
-            basePriceEGP: 15000,
+            price: 15000,
             rating: 5,
             reviewsCount: 10,
             availableCapacity: 5,

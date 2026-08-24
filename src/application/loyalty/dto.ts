@@ -1,6 +1,10 @@
 import { LoyaltyTier } from '@/types'
 import type { ConvertedPrice } from '@/domains/currency/types'
 
+export interface PublicLoyaltyConfigDTO {
+  welcomeBonus: number
+}
+
 export interface PointsValueGuideDTO {
   title: string
   description: string

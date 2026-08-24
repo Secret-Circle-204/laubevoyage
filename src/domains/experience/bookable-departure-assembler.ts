@@ -22,13 +22,14 @@ export class BookableDepartureAssembler {
     const effectivePrice = this.priceResolver.resolve(experience, slot)
 
     return new BookableDeparture({
+      id: slot.id,
       experienceId: experience.id,
       experienceTitle: experience.title,
       experienceType: experience.type,
       departureId: slot.departureId,
       date: slot.date,
       startTime: slot.startTime || '',
-      basePriceEGP: effectivePrice,
+      effectiveBasePrice: effectivePrice,
       capacityAvailable: slot.capacityAvailable,
       capacityTotal: slot.capacityTotal,
       status: slot.status,

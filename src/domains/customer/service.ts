@@ -90,8 +90,8 @@ export class CustomerService {
   async loginWithPassword(
     email: string,
     password?: string,
-  ): Promise<{ user: CustomerAggregate; token: string } | null> {
-    return this.repository.login(email, password)
+  ): Promise<{ user: CustomerAggregate; token: string }> {
+    return this.workflowEngine.identity.loginWithPassword(email, password)
   }
 
   async onCustomerAuthenticated(customerId: number): Promise<CustomerAggregate> {

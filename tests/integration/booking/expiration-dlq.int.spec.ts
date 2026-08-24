@@ -38,6 +38,7 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
       travelers: [{ email: 'john@example.com' }],
       createdAt: '2026-07-22T10:00:00.000Z',
       updatedAt: '2026-07-22T10:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T10:15:00.000Z',
     }
 
     mockPayload.find.mockResolvedValue({ docs: [mockExpiredDraft] })
@@ -73,6 +74,7 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
       capacityHold: { holdId: 'c2', status: 'active' },
       createdAt: '2026-07-22T10:00:00.000Z',
       updatedAt: '2026-07-22T10:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T10:15:00.000Z',
     }
 
     mockPayload.find.mockResolvedValue({ docs: [mockUnresolvableDraft] })
@@ -112,6 +114,7 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
       travelers: [{ email: 'john@example.com' }],
       createdAt: '2026-07-22T10:00:00.000Z',
       updatedAt: '2026-07-22T10:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T10:15:00.000Z',
     }
 
     // find returns the booking, but by the time findByID executes inside transaction, it is paid/confirmed
@@ -138,6 +141,7 @@ describe('Layer 9: Expiration Pipeline, Retry & Dead Letter Queue (DLQ) Tests', 
       travelers: [{ email: 'john@example.com' }],
       createdAt: '2026-07-22T10:00:00.000Z',
       updatedAt: '2026-07-22T10:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T10:15:00.000Z',
     }
 
     mockPayload.find.mockResolvedValue({ docs: [mockExpiredDraft] })

@@ -50,6 +50,9 @@ import { SystemRepository } from './system/repository'
 import { SystemIntegrationService } from './system/service'
 import { systemSettingsRegistry } from './system/settings-registry'
 
+import { ReviewRepository } from './review/repository'
+import { ReviewService } from './review/service'
+
 import { PayloadOutboxRepository } from './events/repositories/payload-outbox-repository'
 import { EventOutboxService } from './events/outbox'
 
@@ -83,6 +86,7 @@ async function buildDomainServices() {
   const contentRepository = new ContentRepository(payload)
   const bookingRepository = new BookingRepository(payload)
   const customerRepository = new CustomerRepository(payload)
+  const reviewRepository = new ReviewRepository(payload)
   const dashboardRepository = new DashboardProjectionRepository(payload)
   const paymentRepository = new PaymentRepository(payload)
   const currencyRepository = new CurrencyRepository(payload)
@@ -178,6 +182,7 @@ async function buildDomainServices() {
     loyaltyService,
     pricingPipeline,
   )
+  const reviewService = new ReviewService(reviewRepository, bookingService)
   const paymentService = new PaymentService(
     paymentRepository,
     bookingRepository,
@@ -207,6 +212,7 @@ async function buildDomainServices() {
     content: new ContentService(contentRepository),
     booking: bookingService,
     customer: customerService,
+    review: reviewService,
     search: searchService,
     dashboard: dashboardService,
     payment: paymentService,

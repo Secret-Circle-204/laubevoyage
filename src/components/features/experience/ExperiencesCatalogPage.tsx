@@ -70,14 +70,21 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
           {data.experiences.map((item) => (
             <Card key={item.id} variant="interactive" padding="none" className="group flex flex-col h-full">
               {/* Image Container */}
-              <div className="relative h-72 w-full overflow-hidden">
-                <Image
-                  src={item.imageUrl || "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=2070&auto=format&fit=crop"}
-                  alt={item.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                />
+              <div className="relative h-72 w-full overflow-hidden bg-slate-200 dark:bg-slate-800">
+                {item.imageUrl ? (
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 text-white/40">
+                    <span className="text-4xl">✈️</span>
+                  </div>
+                )}
+
  
                 {/* Subtle Gradient Overlay */}
                 <div

@@ -43,6 +43,13 @@ export class IdentityCoordinatorFacade {
     return this.authentication.authenticate(email)
   }
 
+  async loginWithPassword(
+    email: string,
+    password?: string,
+  ): Promise<{ user: CustomerAggregate; token: string }> {
+    return this.authentication.loginWithPassword(email, password)
+  }
+
   async onCustomerAuthenticated(customerId: number): Promise<CustomerAggregate> {
     return this.authentication.onCustomerAuthenticated(customerId)
   }

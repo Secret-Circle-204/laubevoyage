@@ -14,6 +14,8 @@ export class CapacityHoldService {
     bookingId: number
     customerId: number
     experienceId: number
+    departureId?: string
+    departureSlotId?: number
     seats: number
     date: string
     holdDurationMs?: number
@@ -27,6 +29,8 @@ export class CapacityHoldService {
       bookingId: params.bookingId,
       customerId: params.customerId,
       experienceId: params.experienceId,
+      departureId: params.departureId,
+      departureSlotId: params.departureSlotId,
       seats: params.seats,
       date: params.date,
       createdAt: now.toISOString(),

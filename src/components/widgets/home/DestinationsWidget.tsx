@@ -31,13 +31,18 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
               href={`/destinations/${dest.countrySlug}/${dest.citySlug}`}
               className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg"
             >
-              <Image
-                src={dest.imageUrl || "https://images.unsplash.com/photo-1488085061387-422e29b40080?q=80&w=2031&auto=format&fit=crop"}
-                alt={dest.cityName}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                className="object-cover transition-transform duration-1000 group-hover:scale-110"
-              />
+              {dest.imageUrl ? (
+                <Image
+                  src={dest.imageUrl}
+                  alt={dest.cityName}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                  className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#231F20] to-slate-900" />
+              )}
+
 
               {/* Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-[#231F20] via-[#231F20]/30 to-transparent" />

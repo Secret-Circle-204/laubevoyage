@@ -43,8 +43,14 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
           </h1>
         </div>
 
-        <Badge variant="success" size="md">
-          {data.status.toUpperCase()}
+        <Badge variant={
+          data.status === 'confirmed' || data.status === 'paid' || data.status === 'completed'
+            ? 'success'
+            : data.status === 'pending_admin_review'
+            ? 'warning'
+            : 'default'
+        } size="md">
+          {data.status.replace(/_/g, ' ').toUpperCase()}
         </Badge>
       </div>
 
@@ -68,10 +74,22 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
                 <span>Exchange Rate Snapshot:</span>
                 <span className="font-mono">{data.exchangeRateText}</span>
               </div>
-              <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-2 font-bold text-slate-900 dark:text-white">
-                <span>Total Paid:</span>
+              <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-2 font-semibold text-slate-900 dark:text-white">
+                <span>Total Cost:</span>
                 <CurrencyDisplay price={data.totalCost} size="sm" />
               </div>
+              {data.rawPaidAmount > 0 && (
+                <div className="flex justify-between">
+                  <span>Amount Paid:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{data.paidAmount}</span>
+                </div>
+              )}
+              {data.rawOutstandingBalance > 0 && (
+                <div className="flex justify-between text-amber-600 dark:text-amber-500 font-semibold pt-1">
+                  <span>Outstanding Balance:</span>
+                  <span>{data.outstandingBalance}</span>
+                </div>
+              )}
             </div>
           </div>
 

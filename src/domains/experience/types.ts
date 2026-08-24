@@ -1,8 +1,38 @@
+import type { BlackoutEntry } from './blackout-policy'
+
 export type ExperienceType = 'package' | 'daily_tour'
+
+export type PackageMode = 'fixed_date' | 'flexible_date'
+
+export interface PackageDuration {
+  days: number
+  nights?: number
+}
+
+export interface DailyTourDuration {
+  durationMinutes: number
+}
+
+export type ExperienceDuration =
+  | ({ type: 'package' } & PackageDuration)
+  | ({ type: 'daily_tour' } & DailyTourDuration)
 
 export type ExperienceAvailabilityStatus = 'available' | 'sold_out' | 'coming_soon' | 'unavailable'
 
-export type DepartureSlotStatus = 'available' | 'sold_out' | 'blacked_out' | 'cancelled'
+export type DepartureSlotStatus = 'available' | 'sold_out' | 'blacked_out' | 'cancelled' | 'past'
+
+export interface PriceOverrideEntry {
+  date: string // YYYY-MM-DD
+  startTime?: string // HH:mm (optional)
+  priceEGP: number
+  reason?: string
+}
+
+export interface ScheduleConfig {
+  startTime: string
+  defaultCapacity?: number
+  label?: string
+}
 
 export interface DepartureSlotEntity {
   id?: number
@@ -10,7 +40,7 @@ export interface DepartureSlotEntity {
   experienceId: number
   date: string // YYYY-MM-DD
   startTime?: string // HH:mm
-  basePriceEGP?: number
+  priceOverrideEGP?: number
   capacityTotal: number
   capacityReserved: number
   capacitySold: number

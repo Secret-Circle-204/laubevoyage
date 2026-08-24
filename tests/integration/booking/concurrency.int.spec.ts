@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { BookingWorkflowEngine } from '@/domains/booking/workflow'
 import { BookableDeparture } from '@/domains/experience/bookable-departure'
+import { ExperienceService } from '@/domains/experience/service'
+
+import type { CustomerRepository } from '@/domains/customer/repository'
 
 describe('Layer 8: Concurrency & Seat Race Condition Tests', () => {
   let mockPayload: any
   let workflowEngine: BookingWorkflowEngine
+  let availableSeats = 2
 
   beforeEach(() => {
     mockPayload = {
@@ -13,11 +17,32 @@ describe('Layer 8: Concurrency & Seat Race Condition Tests', () => {
       find: vi.fn(),
       update: vi.fn(),
     }
-    workflowEngine = new BookingWorkflowEngine(mockPayload)
+    availableSeats = 2
+
+    const mockCustomer = { id: 5, status: 'active', fullName: 'John Doe', preferences: { preferredCurrency: 'EGP' } }
+    const mockCustomerRepository = {
+      findById: vi.fn().mockResolvedValue(mockCustomer),
+    } as unknown as CustomerRepository
+
+    const mockExperienceService = {
+      getById: vi.fn().mockImplementation(() => Promise.resolve({
+        id: 12,
+        title: 'Luxury Voyage',
+        slug: 'luxury-voyage',
+        type: 'package',
+        city: 1,
+        price: 5000,
+        availability: availableSeats > 0 ? 'available' : 'sold_out',
+        duration: { days: 5, nights: 4 },
+      })),
+      getDestinationTimezone: vi.fn().mockResolvedValue('Africa/Cairo'),
+      reserveCapacity: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ExperienceService
+
+    workflowEngine = new BookingWorkflowEngine(mockPayload, mockCustomerRepository, mockExperienceService)
   })
 
   it('should handle concurrent checkout attempts gracefully with capacity checks', async () => {
-    let availableSeats = 2
     const totalRequests = 10
 
     mockPayload.findByID.mockImplementation(({ collection }: { collection: string }) => {
@@ -30,10 +55,14 @@ describe('Layer 8: Concurrency & Seat Race Condition Tests', () => {
           city: 1,
           price: 5000,
           availability: availableSeats > 0 ? 'available' : 'sold_out',
+          duration: { days: 5, nights: 4 },
         })
       }
       if (collection === 'customers') {
         return Promise.resolve({ id: 5, status: 'active' })
+      }
+      if (collection === 'cities') {
+        return Promise.resolve({ id: 1, name: 'Cairo', country: { id: 1, timezone: 'Africa/Cairo' } })
       }
       return Promise.resolve(null)
     })
@@ -43,11 +72,14 @@ describe('Layer 8: Concurrency & Seat Race Condition Tests', () => {
         return Promise.resolve({
           docs: [{
             id: 1,
-            departureId: 'dep-123',
+            departureId: 'dep_12',
             experience: 12,
-            date: '2026-08-01',
+            date: '2026-10-01',
             capacityTotal: 10,
+            capacityReserved: 0,
+            capacitySold: 0,
             capacityAvailable: availableSeats,
+            version: 1,
             status: 'available',
           }]
         })
@@ -64,20 +96,28 @@ describe('Layer 8: Concurrency & Seat Race Condition Tests', () => {
         id: Math.floor(Math.random() * 1000),
         bookingNumber: 'LBV-260723-00042',
         status: 'draft',
+        paymentWindowExpiresAt: params.data?.paymentWindowExpiresAt || new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         ...params.data,
       })
     })
 
-    mockPayload.update.mockImplementation((params: any) => Promise.resolve({ id: params.id, ...params.data }))
+    mockPayload.update.mockImplementation((params: any) =>
+      Promise.resolve({
+        id: params.id,
+        paymentWindowExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        ...params.data,
+      }),
+    )
 
     const departure = new BookableDeparture({
+      id: 1,
       experienceId: 12,
       experienceTitle: 'Luxury Voyage',
       experienceType: 'package',
       departureId: 'dep_12',
-      date: '2026-08-01',
+      date: '2026-10-01',
       startTime: '08:00',
-      basePriceEGP: 5000,
+      effectiveBasePrice: 5000,
       capacityAvailable: 10,
       capacityTotal: 20,
       status: 'available',
@@ -89,7 +129,7 @@ describe('Layer 8: Concurrency & Seat Race Condition Tests', () => {
           userId: 5,
           departure,
           travelers: [{ firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '+123456789' }],
-          endDate: '2026-08-05',
+          endDate: '2026-10-05',
           currency: 'EGP',
           source: 'website',
         })

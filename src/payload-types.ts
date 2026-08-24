@@ -100,6 +100,7 @@ export interface Config {
     'departure-slots': DepartureSlot;
     'event-outbox': EventOutbox;
     'event-inbox': EventInbox;
+    'maintenance-leases': MaintenanceLease;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -139,6 +140,7 @@ export interface Config {
     'departure-slots': DepartureSlotsSelect<false> | DepartureSlotsSelect<true>;
     'event-outbox': EventOutboxSelect<false> | EventOutboxSelect<true>;
     'event-inbox': EventInboxSelect<false> | EventInboxSelect<true>;
+    'maintenance-leases': MaintenanceLeasesSelect<false> | MaintenanceLeasesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -519,6 +521,7 @@ export interface Experience {
   title: string;
   slug: string;
   type: 'package' | 'daily_tour';
+  packageMode?: ('fixed_date' | 'flexible_date') | null;
   city: number | City;
   description?: {
     root: {
@@ -542,9 +545,19 @@ export interface Experience {
         id?: string | null;
       }[]
     | null;
-  duration: {
-    days: number;
+  duration?: {
+    /**
+     * Total tour duration in days for multi-day Packages (e.g. 5). Required for packages.
+     */
+    days?: number | null;
+    /**
+     * Total number of nights for multi-day Packages (e.g. 4). Optional.
+     */
     nights?: number | null;
+    /**
+     * Tour duration for Daily Tours entered in Hours (e.g. 3 for 3 hours, 1.5 for 90 minutes) and stored deterministically as minutes. Required for daily_tour.
+     */
+    durationMinutes?: number | null;
   };
   /**
    * Base default price in EGP. Required for Daily Tours; optional for Packages with Departure Slots.
@@ -592,6 +605,49 @@ export interface Experience {
     description?: string | null;
     keywords?: string | null;
   };
+  /**
+   * Recurring departure schedules for Daily Tours.
+   */
+  schedules?:
+    | {
+        startTime: string;
+        /**
+         * Optional operational vehicle/boat capacity guide.
+         */
+        defaultCapacity?: number | null;
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Blackout dates or specific time exceptions when the tour is unavailable.
+   */
+  blackouts?:
+    | {
+        date: string;
+        /**
+         * Leave blank to blackout the entire day, or specify a time (e.g. 09:00).
+         */
+        startTime?: string | null;
+        reason?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Date-specific price overrides (e.g. Holiday or Peak Season Pricing).
+   */
+  priceOverrides?:
+    | {
+        date: string;
+        /**
+         * Leave blank to apply to all times on this date, or specify (e.g. 09:00).
+         */
+        startTime?: string | null;
+        priceEGP: number;
+        reason?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   _slotsPayload?:
     | {
         [k: string]: unknown;
@@ -614,12 +670,14 @@ export interface Booking {
   idempotencyKey?: string | null;
   user: number | Customer;
   experience: number | Experience;
+  departureSlot?: (number | null) | DepartureSlot;
   /**
    * Status can only be changed through BookingService
    */
   status:
     | 'draft'
     | 'pending_payment'
+    | 'pending_admin_review'
     | 'paid'
     | 'confirmed'
     | 'completed'
@@ -636,8 +694,26 @@ export interface Booking {
     passportNumber?: string | null;
     id?: string | null;
   }[];
+  /**
+   * Calendar start date of the booking (Local destination date)
+   */
   startDate: string;
+  /**
+   * Calendar end date of the booking (Identical to Start Date for Daily Tours)
+   */
   endDate: string;
+  /**
+   * Frozen operational moment when trip execution is completed
+   */
+  completionAt?: string | null;
+  /**
+   * Authoritative IANA destination timezone for the booking (e.g. Africa/Cairo)
+   */
+  destinationTimezone?: string | null;
+  /**
+   * Authoritative financial deadline for payment completion (ISO timestamp)
+   */
+  paymentWindowExpiresAt: string;
   /**
    * Immutable financial record of the booking
    */
@@ -751,6 +827,29 @@ export interface Booking {
     | number
     | boolean
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "departure-slots".
+ */
+export interface DepartureSlot {
+  id: number;
+  departureId: string;
+  experience: number | Experience;
+  date: string;
+  startTime?: string | null;
+  /**
+   * Optional price override in EGP for this slot. Inherits Experience.price if left blank.
+   */
+  priceOverrideEGP?: number | null;
+  capacityTotal: number;
+  capacityReserved: number;
+  capacitySold: number;
+  capacityAvailable: number;
+  version: number;
+  status: 'available' | 'sold_out' | 'blacked_out' | 'cancelled';
   updatedAt: string;
   createdAt: string;
 }
@@ -1245,29 +1344,6 @@ export interface ContactRequest {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "departure-slots".
- */
-export interface DepartureSlot {
-  id: number;
-  departureId: string;
-  experience: number | Experience;
-  date: string;
-  startTime?: string | null;
-  /**
-   * Optional price override in EGP for this slot. Falls back to Experience catalog price if left blank.
-   */
-  basePriceEGP?: number | null;
-  capacityTotal: number;
-  capacityReserved: number;
-  capacitySold: number;
-  capacityAvailable: number;
-  version: number;
-  status: 'available' | 'sold_out' | 'blacked_out' | 'cancelled';
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "event-outbox".
  */
 export interface EventOutbox {
@@ -1309,6 +1385,18 @@ export interface EventInbox {
   processedEventId: string;
   subscriberName: string;
   processedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "maintenance-leases".
+ */
+export interface MaintenanceLease {
+  id: number;
+  jobName: string;
+  workerId: string;
+  leaseExpiresAt: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -1463,6 +1551,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'event-inbox';
         value: number | EventInbox;
+      } | null)
+    | ({
+        relationTo: 'maintenance-leases';
+        value: number | MaintenanceLease;
       } | null);
   globalSlug?: string | null;
   user:
@@ -1687,6 +1779,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   type?: T;
+  packageMode?: T;
   city?: T;
   description?: T;
   hero?: T;
@@ -1701,6 +1794,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
     | {
         days?: T;
         nights?: T;
+        durationMinutes?: T;
       };
   price?: T;
   availability?: T;
@@ -1733,6 +1827,31 @@ export interface ExperiencesSelect<T extends boolean = true> {
         description?: T;
         keywords?: T;
       };
+  schedules?:
+    | T
+    | {
+        startTime?: T;
+        defaultCapacity?: T;
+        label?: T;
+        id?: T;
+      };
+  blackouts?:
+    | T
+    | {
+        date?: T;
+        startTime?: T;
+        reason?: T;
+        id?: T;
+      };
+  priceOverrides?:
+    | T
+    | {
+        date?: T;
+        startTime?: T;
+        priceEGP?: T;
+        reason?: T;
+        id?: T;
+      };
   _slotsPayload?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1746,6 +1865,7 @@ export interface BookingsSelect<T extends boolean = true> {
   idempotencyKey?: T;
   user?: T;
   experience?: T;
+  departureSlot?: T;
   status?: T;
   travelers?:
     | T
@@ -1760,6 +1880,9 @@ export interface BookingsSelect<T extends boolean = true> {
       };
   startDate?: T;
   endDate?: T;
+  completionAt?: T;
+  destinationTimezone?: T;
+  paymentWindowExpiresAt?: T;
   pricingSnapshot?:
     | T
     | {
@@ -2159,7 +2282,7 @@ export interface DepartureSlotsSelect<T extends boolean = true> {
   experience?: T;
   date?: T;
   startTime?: T;
-  basePriceEGP?: T;
+  priceOverrideEGP?: T;
   capacityTotal?: T;
   capacityReserved?: T;
   capacitySold?: T;
@@ -2202,6 +2325,17 @@ export interface EventInboxSelect<T extends boolean = true> {
   processedEventId?: T;
   subscriberName?: T;
   processedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "maintenance-leases_select".
+ */
+export interface MaintenanceLeasesSelect<T extends boolean = true> {
+  jobName?: T;
+  workerId?: T;
+  leaseExpiresAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

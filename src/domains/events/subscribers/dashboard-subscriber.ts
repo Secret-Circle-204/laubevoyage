@@ -1,6 +1,6 @@
 import type { Payload } from 'payload'
 import { EventBus } from '../event-bus'
-import type { BookingConfirmedEvent, BookingCancelledEvent } from '../booking-events'
+import type { BookingConfirmedEvent, BookingCancelledEvent, BookingCompletedEvent } from '../booking-events'
 import type {
   LoyaltyEarnedEvent,
   PointsRedeemedEvent,
@@ -259,6 +259,39 @@ export function registerDashboardProjectionSubscribers(payload: Payload): void {
       } catch (err: unknown) {
         console.error(
           `[DashboardSubscriber] Error updating CQRS projection on customer update:`,
+          err instanceof Error ? err.message : String(err),
+        )
+      }
+    },
+  )
+
+  eventBus.subscribe<BookingCompletedEvent>(
+    'BOOKING_COMPLETED',
+    'DashboardSubscriber.updateProjectionOnCompletion',
+    async (event) => {
+      const customerId = event.booking.customerId
+      try {
+        console.log(
+          `[DashboardSubscriber] BookingCompletedEvent received. Updating CQRS Projection for customer #${customerId}...`,
+        )
+        const projection = await workflowEngine.overviewAggregator.aggregatePortalOverview(
+          customerId,
+        )
+        await workflowEngine.repository.saveProjection(projection)
+
+        // Publish DASHBOARD_PROJECTION_REBUILT event for Presentation layers
+        const localBus = EventBus.getInstance()
+        await localBus.publish({
+          type: 'DASHBOARD_PROJECTION_REBUILT',
+          eventId: `evt_dash_rebuilt_compl_${customerId}_${Date.now()}`,
+          correlationId: event.correlationId,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          customerId,
+        })
+      } catch (err: unknown) {
+        console.error(
+          `[DashboardSubscriber] Error updating CQRS projection on completion:`,
           err instanceof Error ? err.message : String(err),
         )
       }

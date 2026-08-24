@@ -1182,3 +1182,49 @@ Exclusive ownership mechanisms reduce duplicate execution but must not be consid
 وبعبارة أخرى:
 
 > **يُراجع الكود وفق إعدادات الإنتاج الفعلية للمشروع، وليس وفق الفروع الاحتياطية أو البيئات الاختبارية أو السيناريوهات الافتراضية، ما لم يكن نطاق التدقيق ينص صراحةً على مراجعة تلك البيئات.**
+
+---
+
+# 28. CONSTITUTIONAL ARCHITECTURAL DIRECTIVE — ZERO SYNTHETIC DYNAMIC DATA
+
+From this point forward, and for all batches, features, and modules in this project, the following rules are non-negotiable architectural mandates:
+
+### 1. ZERO HARDCODED BUSINESS DATA
+No static literal representing dynamic business data may exist in React Components, Pages, Loaders, Actions, Application Services, Domain Services, or Repositories.
+Forbidden: `20` as default capacity, `1` as default ID, `'Egypt'` as default country/city, `5` as default rating, fake prices, fake dates/times, fake UUIDs, or fake states. Dynamic business data must originate from the authoritative Database or Domain Contract.
+
+### 2. ZERO FALLBACKS FOR DYNAMIC BUSINESS DATA
+No `value || fallback`, `value ?? fallback`, or `condition ? real : fake` to mask missing business data (`id || 1`, `capacity || 20`, `duration || 1`, `rating || 5`, `country || 'Egypt'`, `image || '/default.jpg'`, `price || somePrice`, `slotId || 1`).
+The only exception is pure Presentation/UI Invariants (e.g. `page = requestedPage ?? 1` for pagination). When in doubt: **FAIL-FAST OVER FALLBACK**.
+
+### 3. MISSING DATA ≠ DEFAULT DATA
+Strictly distinguish between "Value does not exist" vs "Value exists and equals X". A legitimate absence must remain an absence (`images: []`, `defaultSlotId: null`, `policiesHtml: undefined`). Never convert missing truth into a fake truth.
+
+### 4. FAIL-FAST FOR CORRUPTED REQUIRED DATA
+If data is marked Required in the Schema or Domain Contract and arrives missing or invalid, the system must throw an explicit error immediately.
+
+### 5. ZERO SYNTHETIC IDs
+Never invent `id: 1`, `id: 0`, `slotId: 1`, or `departureId: ''`. If a real ID does not exist, return `null` / `undefined` / `throw Error`. Concrete entities must be created via Domain/Application workflows with real database persistence.
+
+### 6. SERVER IS THE AUTHORITY
+All business decisions (Pricing, Currency Conversion, Availability, Capacity, Default Slot, Departure Creation, Eligibility, Discounts, Taxes, Statuses, Rules) are resolved exclusively on the server in Domain/Application/Action layers, never in React.
+
+### 7. UI MUST NEVER INVENT DATA
+React is a presentation consumer only. If data is not provided by the DTO, the UI displays a clean empty state or handles the error; it never invents data.
+
+### 8. EMPTY STATE IS NOT A FALLBACK
+An Empty State representing legitimate absence (`images: []` -> empty media view, `defaultSlotId: null` -> no upcoming departures available) is an authentic presentation of truth, not a fallback.
+
+### 9. NO SILENT ERROR SWALLOWING
+Never write `try { ... } catch { return null / [] }` when the cause is corrupted data, schema mismatch, or broken relations. Null is allowed only when an entity legitimately does not exist, not when an entity exists but is corrupted.
+
+### 10. MANDATORY FORBIDDEN-PATTERN SCAN FOR EVERY BATCH
+Before completing any batch, perform a mandatory scan across modified files, consumers, loaders, actions, pages, components, and mappers for all forbidden patterns.
+
+### 11. DATABASE SCHEMA IS THE FIRST SOURCE OF TRUTH
+When assumptions conflict with the Database/Payload Schema, the Schema wins. The single required direction is:
+$$\text{Database / Payload Schema} \longrightarrow \text{Repository} \longrightarrow \text{Domain} \longrightarrow \text{Application Use Cases} \longrightarrow \text{DTO} \longrightarrow \text{Loader / Action} \longrightarrow \text{UI}$$
+
+### 12. TESTS MUST PROTECT THESE RULES
+Every resolved fallback, hardcode, synthetic ID, or UI business logic leak must be accompanied by automated regression tests preventing silent reintroduction.
+

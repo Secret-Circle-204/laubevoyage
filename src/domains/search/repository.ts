@@ -29,20 +29,27 @@ export class SearchRepository {
           limit: query.limit || 50,
         })
 
-        const items: SearchResultItemDTO[] = (res.docs || []).map((doc: Record<string, any>) => ({
-          experienceId: Number(doc.id),
-          title: doc.title || '',
-          slug: doc.slug || '',
-          countryName: typeof doc.country === 'object' && doc.country !== null ? doc.country.name || '' : '',
-          cityName: typeof doc.city === 'object' && doc.city !== null ? doc.city.name || '' : '',
-          category: doc.type || '',
-          durationDays: doc.durationDays || 0,
-          priceEGP: doc.basePriceEGP || 0,
-          rating: doc.rating || 0,
-          reviewCount: doc.reviewsCount || 0,
-          thumbnailUrl: typeof doc.featuredImage === 'object' && doc.featuredImage !== null ? doc.featuredImage.url || '' : '',
-          availableSeats: doc.availableCapacity || 0,
-        }))
+        const items: SearchResultItemDTO[] = (res.docs || []).map((doc: Record<string, any>) => {
+          const expType = doc.type === 'daily_tour' ? ('daily_tour' as const) : ('package' as const)
+          const durationObj = doc.duration as Record<string, any> | undefined
+          return {
+            experienceId: Number(doc.id),
+            title: doc.title || '',
+            slug: doc.slug || '',
+            countryName: typeof doc.country === 'object' && doc.country !== null ? doc.country.name || '' : '',
+            cityName: typeof doc.city === 'object' && doc.city !== null ? doc.city.name || '' : '',
+            category: doc.type || '',
+            experienceType: expType,
+            durationDays: expType === 'package' ? (durationObj?.days ?? doc.durationDays) : undefined,
+            durationNights: expType === 'package' ? (durationObj?.nights ?? doc.durationNights) : undefined,
+            durationMinutes: expType === 'daily_tour' ? (durationObj?.durationMinutes ?? doc.durationMinutes) : undefined,
+            priceEGP: doc.price ?? doc.basePriceEGP ?? 0,
+            rating: doc.rating || 0,
+            reviewCount: doc.reviewsCount || 0,
+            thumbnailUrl: typeof doc.featuredImage === 'object' && doc.featuredImage !== null ? doc.featuredImage.url || '' : '',
+            availableSeats: doc.availableCapacity || 0,
+          }
+        })
 
         this.queryPipeline.updateIndex(items)
       } catch (err: unknown) {

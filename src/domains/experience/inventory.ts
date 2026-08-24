@@ -58,6 +58,14 @@ export class InventoryManager {
   }
 
 
+  async commitCapacity(departureId: string, seats: number, context?: RequestContext): Promise<DepartureSlotEntity> {
+    return this.repository.commitCapacity(departureId, seats, context)
+  }
+
+  async releaseCommittedCapacity(departureId: string, seats: number, context?: RequestContext): Promise<DepartureSlotEntity> {
+    return this.repository.releaseCommittedCapacity(departureId, seats, context)
+  }
+
   async releaseCapacity(departureId: string, seats: number, context?: RequestContext): Promise<DepartureSlotEntity> {
     const slot = await this.repository.getDepartureSlot(departureId, context)
     if (!slot) {

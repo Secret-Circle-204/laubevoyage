@@ -8,11 +8,57 @@ import { validateTransition, isTransitionAllowed } from './state-machine'
  */
 export class BookingPolicy {
   /**
-   * Validate if a new booking can be created for the customer and experience.
+   * Authoritative default payment window duration in minutes (15 minutes).
+   * Single source of truth for payment lifecycle TTL across the domain.
+   */
+  public static readonly DEFAULT_PAYMENT_WINDOW_MINUTES = 15
+
+  /**
+   * Authoritative admin review decision window in minutes (7 days = 10080 minutes).
+   * Single source of truth for admin negotiation decision window TTL.
+   */
+  public static readonly ADMIN_DECISION_WINDOW_MINUTES = 10080
+
+  /**
+   * Compute authoritative payment window expiry instant from booking creation time.
+   */
+  static calculatePaymentWindowExpiresAt(createdAt: Date): Date {
+    return new Date(createdAt.getTime() + this.DEFAULT_PAYMENT_WINDOW_MINUTES * 60 * 1000)
+  }
+
+  /**
+   * Compute authoritative admin review window expiry instant from booking transition time.
+   */
+  static calculateAdminReviewWindowExpiresAt(createdAt: Date): Date {
+    return new Date(createdAt.getTime() + this.ADMIN_DECISION_WINDOW_MINUTES * 60 * 1000)
+  }
+
+  /**
+   * Determine if payment window is currently active.
+   * Deterministic invariant: active if and only if expiryTime > now.
+   */
+  static isPaymentWindowActive(expiresAt: string | Date, now: Date): boolean {
+    const expiryTime = typeof expiresAt === 'string' ? new Date(expiresAt).getTime() : expiresAt.getTime()
+    if (isNaN(expiryTime)) {
+      throw new Error(`[BookingPolicy] Invalid paymentWindowExpiresAt timestamp: ${expiresAt}`)
+    }
+    return expiryTime > now.getTime()
+  }
+
+  /**
+   * Determine if payment window has expired.
+   */
+  static isPaymentWindowExpired(expiresAt: string | Date, now: Date): boolean {
+    return !this.isPaymentWindowActive(expiresAt, now)
+  }
+
+  /**
+   * Validate if a new booking can be created for the customer, experience, and departure.
    */
   static canCreate(
     userStatus: string | undefined,
     experienceAvailability: string | undefined,
+    bookabilityResult?: { allowed: boolean; code?: string; reason?: string },
   ): PolicyResult {
     if (userStatus === 'suspended' || userStatus === 'inactive') {
       return {
@@ -27,6 +73,14 @@ export class BookingPolicy {
         allowed: false,
         code: 'EXPERIENCE_UNAVAILABLE',
         reason: `Experience is currently ${experienceAvailability}.`,
+      }
+    }
+
+    if (bookabilityResult && !bookabilityResult.allowed) {
+      return {
+        allowed: false,
+        code: bookabilityResult.code || 'DEPARTURE_NOT_BOOKABLE',
+        reason: bookabilityResult.reason || 'Departure is not eligible for booking.',
       }
     }
 
@@ -56,11 +110,11 @@ export class BookingPolicy {
    * Validate if a booking can be confirmed after payment.
    */
   static canConfirm(booking: BookingAggregate): PolicyResult {
-    if (booking.status !== BookingStatus.PAID) {
+    if (booking.status !== BookingStatus.PAID && booking.status !== BookingStatus.PENDING_ADMIN_REVIEW) {
       return {
         allowed: false,
         code: 'INVALID_STATUS_FOR_CONFIRMATION',
-        reason: `Cannot confirm booking in '${booking.status}' status. Expected '${BookingStatus.PAID}'.`,
+        reason: `Cannot confirm booking in '${booking.status}' status. Expected '${BookingStatus.PAID}' or '${BookingStatus.PENDING_ADMIN_REVIEW}'.`,
       }
     }
 
@@ -74,7 +128,8 @@ export class BookingPolicy {
 
     // Capacity Hold Expiry Check (Sole Source of Truth)
     if (booking.capacityHold) {
-      if (booking.status !== BookingStatus.PAID && (booking.capacityHold.status === 'expired' || booking.capacityHold.status === 'released')) {
+      const isPaidOrReview = booking.status === BookingStatus.PAID || booking.status === BookingStatus.PENDING_ADMIN_REVIEW
+      if (!isPaidOrReview && (booking.capacityHold.status === 'expired' || booking.capacityHold.status === 'released')) {
         return {
           allowed: false,
           code: 'CAPACITY_HOLD_EXPIRED',
@@ -82,7 +137,7 @@ export class BookingPolicy {
         }
       }
       
-      if (booking.capacityHold.expiresAt && booking.status !== BookingStatus.PAID) {
+      if (booking.capacityHold.expiresAt && !isPaidOrReview) {
         const expiresAt = new Date(booking.capacityHold.expiresAt)
         if (new Date() >= expiresAt) {
           return {
@@ -94,27 +149,45 @@ export class BookingPolicy {
       }
     }
 
+    // PointHold Safety Checks (Prevent confirmation with invalid/expired holds)
+    if (booking.pointHold) {
+      if (booking.pointHold.status !== 'held') {
+        return {
+          allowed: false,
+          code: 'INVALID_POINT_HOLD_STATUS',
+          reason: `Point hold is not in 'held' status. Current status: ${booking.pointHold.status}.`,
+        }
+      }
+      if (booking.pointHold.expiresAt) {
+        const pointHoldExpiresAt = new Date(booking.pointHold.expiresAt)
+        if (new Date() >= pointHoldExpiresAt) {
+          return {
+            allowed: false,
+            code: 'POINT_HOLD_EXPIRED',
+            reason: 'Cannot confirm booking: points hold duration has expired.',
+          }
+        }
+      }
+    }
+
     return { allowed: true }
   }
 
   /**
    * Determine if a payment is late chronologically.
-   * A payment is late if the payment completion time is strictly after the capacity hold expiration.
+   * A payment is late if the payment completion time is strictly after the payment window expiration.
    */
   static isPaymentLate(booking: BookingAggregate, paymentCompletedAt?: string): boolean {
     if (!paymentCompletedAt) {
       return false
     }
 
-    if (booking.capacityHold && booking.capacityHold.expiresAt) {
-      const expiresAt = new Date(booking.capacityHold.expiresAt)
-      const paymentTime = new Date(paymentCompletedAt)
-      if (paymentTime > expiresAt) {
-        return true
-      }
+    const paymentTime = new Date(paymentCompletedAt)
+    if (isNaN(paymentTime.getTime())) {
+      throw new Error(`[BookingPolicy] Invalid paymentCompletedAt timestamp: ${paymentCompletedAt}`)
     }
 
-    return false
+    return this.isPaymentWindowExpired(booking.paymentWindowExpiresAt, paymentTime)
   }
 
   /**
@@ -134,6 +207,15 @@ export class BookingPolicy {
         allowed: false,
         code: 'BOOKING_ALREADY_CANCELLED',
         reason: `Booking is already in '${booking.status}' state.`,
+      }
+    }
+
+    // Block paid but unconfirmed bookings from direct cancellation (must be refunded first)
+    if (booking.status === BookingStatus.PAID) {
+      return {
+        allowed: false,
+        code: 'PAID_BOOKING_CANNOT_BE_CANCELLED',
+        reason: 'Paid bookings must be refunded rather than cancelled.',
       }
     }
 
@@ -172,6 +254,7 @@ export class BookingPolicy {
 
   /**
    * Validate if a booking can be marked as completed after trip ends.
+   * Strictly compares current instant (now) against the frozen completionAt instant.
    */
   static canComplete(booking: BookingAggregate): PolicyResult {
     if (booking.status !== BookingStatus.CONFIRMED) {
@@ -182,14 +265,20 @@ export class BookingPolicy {
       }
     }
 
-    const endDate = new Date(booking.endDate)
+    if (!booking.completionAt) {
+      throw new Error(
+        `[BookingPolicy] Booking #${booking.bookingNumber || booking.id} is missing required completionAt operational snapshot.`,
+      )
+    }
+
+    const completionInstant = new Date(booking.completionAt)
     const now = new Date()
 
-    if (now < endDate) {
+    if (now < completionInstant) {
       return {
         allowed: false,
         code: 'TRIP_NOT_ENDED',
-        reason: 'Booking cannot be marked as completed before its end date.',
+        reason: 'Booking cannot be marked as completed before its operational completion instant.',
       }
     }
 
@@ -203,8 +292,20 @@ export class BookingPolicy {
     booking: BookingAggregate,
     userId: number,
     experienceId: number,
-    departureDate: string
+    departureDate: string,
+    requestedCurrencyOrNow?: string | Date,
+    requestedGateway?: string,
+    now: Date = new Date(),
   ): PolicyResult {
+    let requestedCurrency: string | undefined
+    let requestedNow = now
+
+    if (requestedCurrencyOrNow instanceof Date) {
+      requestedNow = requestedCurrencyOrNow
+    } else if (typeof requestedCurrencyOrNow === 'string') {
+      requestedCurrency = requestedCurrencyOrNow
+    }
+
     // 1. Validate Customer Identity
     if (booking.customerId !== userId) {
       return {
@@ -257,23 +358,44 @@ export class BookingPolicy {
       }
     }
 
-    // 5. Validate Capacity Hold Existence and Status for Draft/Pending Bookings
-    if (!booking.capacityHold || (booking.capacityHold as any).status !== 'active') {
+    // 5. Validate Capacity Hold Status ONLY if present (Fixed Package departure slots)
+    if (booking.capacityHold && booking.capacityHold.status !== 'active') {
       return {
         allowed: false,
         code: 'BOOKING_CORRUPTED',
-        reason: 'The seat reservation hold for this checkout attempt is missing or invalid.',
+        reason: 'The seat reservation hold for this checkout attempt is no longer active.',
       }
     }
 
-    // 6. Enforce Hold Duration Timeout for Pending Payment
-    if (booking.status === BookingStatus.PENDING_PAYMENT) {
-      const expiresAt = new Date((booking.capacityHold as any).expiresAt)
-      if (new Date() >= expiresAt) {
+    // 6. Enforce Authoritative Payment Window Timeout for Draft/Pending Payment Bookings
+    if (booking.status === BookingStatus.DRAFT || booking.status === BookingStatus.PENDING_PAYMENT) {
+      if (this.isPaymentWindowExpired(booking.paymentWindowExpiresAt, requestedNow)) {
         return {
           allowed: false,
           code: 'BOOKING_EXPIRED',
-          reason: 'The seat reservation hold for this checkout attempt has expired.',
+          reason: 'The payment window for this checkout attempt has expired.',
+        }
+      }
+    }
+
+    // 7. Validate Currency Intent (Strict Invariant Protection)
+    if (requestedCurrency && booking.pricingSnapshot?.displayCurrency !== requestedCurrency) {
+      return {
+        allowed: false,
+        code: 'IDEMPOTENCY_CURRENCY_MISMATCH',
+        reason: `Existing booking currency (${booking.pricingSnapshot?.displayCurrency || 'none'}) does not match requested currency (${requestedCurrency}).`,
+      }
+    }
+
+    // 8. Validate Gateway Intent (Strict Invariant Protection)
+    if (requestedGateway) {
+      const existingGatewayIsBnpl = booking.status === BookingStatus.PENDING_ADMIN_REVIEW
+      const requestedGatewayIsBnpl = requestedGateway === 'bnpl'
+      if (existingGatewayIsBnpl !== requestedGatewayIsBnpl) {
+        return {
+          allowed: false,
+          code: 'IDEMPOTENCY_GATEWAY_MISMATCH',
+          reason: `Existing booking payment method state does not match requested gateway (${requestedGateway}).`,
         }
       }
     }

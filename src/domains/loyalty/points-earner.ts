@@ -36,7 +36,7 @@ export class PointsEarnProcessor {
     const calculateExpiry = (): string => {
       const d = new Date()
       const months = config.expirationMonths || 12
-      d.setMonth(d.getMonth() + months)
+      d.setUTCMonth(d.getUTCMonth() + months)
       return d.toISOString()
     }
 
@@ -120,7 +120,7 @@ export class PointsEarnProcessor {
     const calculateExpiry = (): string | undefined => {
       if (config.bonusNeverExpires) return undefined
       const d = new Date()
-      d.setMonth(d.getMonth() + (config.expirationMonths || 12))
+      d.setUTCMonth(d.getUTCMonth() + (config.expirationMonths || 12))
       return d.toISOString()
     }
 

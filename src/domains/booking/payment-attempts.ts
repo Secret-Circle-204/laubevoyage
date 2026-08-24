@@ -34,4 +34,21 @@ export class PaymentAttemptsService {
 
     return [...existingAttempts, newAttempt]
   }
+
+  /**
+   * Sum successful payment attempts to calculate total paid amount.
+   */
+  static getPaidAmount(attempts: PaymentAttempt[] = []): number {
+    return attempts
+      .filter((a) => a.status === 'successful')
+      .reduce((sum, a) => sum + a.amount, 0)
+  }
+
+  /**
+   * Compute outstanding balance as total EGP minus sum of successful attempts.
+   */
+  static getOutstandingBalance(totalAmountEGP: number, attempts: PaymentAttempt[] = []): number {
+    const paid = this.getPaidAmount(attempts)
+    return Math.max(0, totalAmountEGP - paid)
+  }
 }

@@ -8,6 +8,7 @@ import { BookingConfirmation } from './confirmation'
 import { BookingCancellation } from './cancellation'
 import { BookingExpiration } from './expiration'
 import { BookingCompletion } from './completion'
+import { BookingRefund } from './refund'
 import { BookingQueries } from './queries'
 import type { CustomerRepository } from '../customer/repository'
 import { ExperienceService } from '../experience/service'
@@ -28,6 +29,7 @@ export class BookingWorkflowEngine {
   public cancellation: BookingCancellation
   public expiration: BookingExpiration
   public completion: BookingCompletion
+  public refund: BookingRefund
   public queries: BookingQueries
 
   constructor(
@@ -52,10 +54,11 @@ export class BookingWorkflowEngine {
     const pipeline = pricingPipeline || ({} as PricingPipeline)
 
     this.creator = new BookingCreator(this.repository, custRepo, expSvc, loySvc, pipeline)
-    this.confirmation = new BookingConfirmation(this.repository)
+    this.confirmation = new BookingConfirmation(this.repository, expSvc, loySvc)
     this.cancellation = new BookingCancellation(this.repository, expSvc)
     this.expiration = new BookingExpiration(this.repository, expSvc)
     this.completion = new BookingCompletion(this.repository)
+    this.refund = new BookingRefund(this.repository, expSvc)
     this.queries = new BookingQueries(this.repository)
   }
 
@@ -68,7 +71,45 @@ export class BookingWorkflowEngine {
   }
 
   async executePendingPaymentWorkflow(bookingId: number, context?: RequestContext): Promise<BookingAggregate> {
-    return this.repository.updateStatus(bookingId, BookingStatus.PENDING_PAYMENT, context)
+    return this.repository.transitionStatus(bookingId, BookingStatus.PENDING_PAYMENT, {}, context)
+  }
+
+  async executePendingAdminReviewWorkflow(bookingId: number, context?: RequestContext): Promise<BookingAggregate> {
+    const booking = await this.repository.findById(bookingId, context)
+    validateTransition(booking.status, BookingStatus.PENDING_ADMIN_REVIEW)
+
+    // Calculate a single deadline for both reservation and PointHold
+    const expiresAt = BookingPolicy.calculateAdminReviewWindowExpiresAt(new Date())
+    const expiresAtIso = expiresAt.toISOString()
+
+    const updatedTimeline = BookingHistoryService.appendTimelineEntry(booking.timeline, {
+      stepKey: 'pending_admin_review',
+      title: 'Awaiting Admin Review',
+      description: 'Your booking has been submitted for administrator review.',
+    })
+
+    const updatedAudit = BookingHistoryService.appendAuditEntry(booking.auditTrail, {
+      actor: { id: 'system', type: 'system', name: 'Booking Workflow Engine' },
+      action: 'PENDING_ADMIN_REVIEW',
+      previousValue: booking.status,
+      newValue: BookingStatus.PENDING_ADMIN_REVIEW,
+    })
+
+    const pointHold = booking.pointHold
+      ? { ...booking.pointHold, expiresAt: expiresAtIso }
+      : null
+
+    return this.repository.transitionStatus(
+      bookingId,
+      BookingStatus.PENDING_ADMIN_REVIEW,
+      {
+        paymentWindowExpiresAt: expiresAtIso,
+        pointHold,
+        timeline: updatedTimeline,
+        auditTrail: updatedAudit,
+      },
+      context,
+    )
   }
 
   async executePaymentWorkflow(
@@ -79,8 +120,13 @@ export class BookingWorkflowEngine {
     return this.confirmation.markAsPaid(bookingId, paymentAttempt, undefined, context)
   }
 
-  async executeConfirmationWorkflow(bookingId: number, actor?: Actor, context?: RequestContext): Promise<BookingAggregate> {
-    return this.confirmation.confirm(bookingId, actor, context)
+  async executeConfirmationWorkflow(
+    bookingId: number,
+    actor?: Actor,
+    context?: RequestContext,
+    paymentAttempts?: PaymentAttempt[],
+  ): Promise<BookingAggregate> {
+    return this.confirmation.confirm(bookingId, actor, context, paymentAttempts)
   }
 
   async publishBookingConfirmedEvent(booking: BookingAggregate, actor?: Actor): Promise<void> {
@@ -91,13 +137,23 @@ export class BookingWorkflowEngine {
     bookingId: number,
     actor?: Actor,
     reason = 'Cancelled',
+    context?: RequestContext,
   ): Promise<BookingAggregate> {
     const currentActor = actor || { id: 'system', type: 'system' as const, name: 'System Worker' }
-    return this.cancellation.cancel(bookingId, currentActor, reason)
+    return this.cancellation.cancel(bookingId, currentActor, reason, context)
   }
 
-  async executeCompletionWorkflow(bookingId: number, actor?: Actor): Promise<BookingAggregate> {
-    return this.completion.complete(bookingId, actor)
+  async executeRefundWorkflow(
+    bookingId: number,
+    actor?: Actor,
+    context?: RequestContext,
+  ): Promise<BookingAggregate> {
+    const currentActor = actor || { id: 'system', type: 'system' as const, name: 'System Worker' }
+    return this.refund.refund(bookingId, currentActor, context)
+  }
+
+  async executeCompletionWorkflow(bookingId: number, actor?: Actor, context?: RequestContext): Promise<BookingAggregate> {
+    return this.completion.complete(bookingId, actor, context)
   }
 
   async executeExpirationWorkflow(expirationWindowMinutes: number = 15): Promise<number> {

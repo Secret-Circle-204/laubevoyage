@@ -4,7 +4,7 @@ import { BookingRepository } from './repository'
 import { CapacityHoldService } from './capacity-hold'
 import { PointHoldService } from '../loyalty/point-hold'
 import { BookingHistoryService } from './history'
-import { EventBus } from '../events/event-bus'
+import { EventOutboxService } from '../events/outbox'
 import { ExperienceService } from '../experience/service'
 
 /**
@@ -14,13 +14,13 @@ import { ExperienceService } from '../experience/service'
 export class BookingExpiration {
   private repository: BookingRepository
   private experienceService: ExperienceService
-  private eventBus: EventBus
+  private outboxService: EventOutboxService
   private deadLetterQueue: BookingAggregate[] = []
 
   constructor(repository: BookingRepository, experienceService: ExperienceService) {
     this.repository = repository
     this.experienceService = experienceService
-    this.eventBus = EventBus.getInstance()
+    this.outboxService = EventOutboxService.getInstance()
   }
 
   /**
@@ -88,10 +88,15 @@ export class BookingExpiration {
     try {
       // Fresh look up to prevent TOCTOU race conditions (inside transaction)
       const latestBooking = await this.repository.findById(booking.id, context)
-      if (latestBooking.status !== BookingStatus.DRAFT && latestBooking.status !== BookingStatus.PENDING_PAYMENT) {
+      if (latestBooking.status !== BookingStatus.DRAFT && latestBooking.status !== BookingStatus.PENDING_PAYMENT && latestBooking.status !== BookingStatus.PENDING_ADMIN_REVIEW) {
         console.log(`[BookingExpiration] Booking #${booking.bookingNumber} status has changed to ${latestBooking.status} concurrently. Skipping expiration.`)
         await this.repository.rollbackTransaction(transactionID)
         return latestBooking
+      }
+
+      const allowedSourceStatuses = [BookingStatus.DRAFT, BookingStatus.PENDING_PAYMENT]
+      if (latestBooking.status === BookingStatus.PENDING_ADMIN_REVIEW) {
+        allowedSourceStatuses.push(BookingStatus.PENDING_ADMIN_REVIEW)
       }
 
       let expiredCapacity = null
@@ -138,7 +143,7 @@ export class BookingExpiration {
       // Step 1: Update status in repository conditionally (atomic database transition)
       const expiredBooking = await this.repository.updateStatusConditionally(
         latestBooking.id,
-        [BookingStatus.DRAFT, BookingStatus.PENDING_PAYMENT],
+        allowedSourceStatuses,
         {
           status: BookingStatus.EXPIRED,
           capacityHold: expiredCapacity,
@@ -160,13 +165,28 @@ export class BookingExpiration {
       // Release slot capacity (if experience service is injected and capacityHold is present)
       try {
         if (latestBooking.capacityHold && typeof this.experienceService?.getDepartureSlotByDate === 'function' && typeof this.experienceService?.releaseCapacity === 'function') {
-          const slot = await this.experienceService.getDepartureSlotByDate(
-            latestBooking.capacityHold.experienceId,
-            latestBooking.capacityHold.date,
-          )
-          if (slot && slot.departureId) {
-            await this.experienceService.releaseCapacity(slot.departureId, latestBooking.capacityHold.seats, context)
-            console.log(`[BookingExpiration] Released slot capacity: Slot ID ${slot.departureId}, ${latestBooking.capacityHold.seats} seats.`)
+          const hold = latestBooking.capacityHold
+          const rawExpId = hold.experienceId as unknown
+          const rawDate = hold.date as unknown
+
+          const expId = typeof rawExpId === 'number'
+            ? rawExpId
+            : (typeof rawExpId === 'string' && rawExpId.trim().length > 0 ? Number(rawExpId) : NaN)
+
+          const hasValidExperienceId = Number.isInteger(expId) && expId > 0
+          const hasValidDate = typeof rawDate === 'string' && rawDate.trim().length > 0 && !isNaN(Date.parse(rawDate))
+
+          if (hasValidExperienceId && hasValidDate) {
+            const slot = await this.experienceService.getDepartureSlotByDate(expId, rawDate)
+            if (slot && slot.departureId) {
+              await this.experienceService.releaseCapacity(slot.departureId, latestBooking.capacityHold.seats, context)
+              console.log(`[BookingExpiration] Released slot capacity: Slot ID ${slot.departureId}, ${latestBooking.capacityHold.seats} seats.`)
+            }
+          } else {
+            console.warn(
+              `🚨 [BookingExpiration] Capacity cleanup is not resolvable from the persisted hold metadata for booking #${booking.bookingNumber} (ID: ${booking.id}). ` +
+              `Reason: Invalid lookup fields in capacityHold (experienceId: ${rawExpId}, date: ${rawDate}). Skipping capacity release cleanup.`
+            )
           }
         }
       } catch (err: any) {
@@ -174,19 +194,14 @@ export class BookingExpiration {
         throw err // Trigger rollback of status change
       }
 
-      await this.repository.commitTransaction(transactionID)
-
-      // Step 6 & 7: Emit BookingExpiredEvent to trigger notification subscriber (outside transaction)
-      await this.eventBus.publish({
-        eventId: `evt_bk_exp_${latestBooking.id}_${Date.now()}`,
-        correlationId: `corr_${latestBooking.id}`,
-        eventVersion: 1,
-        occurredAt: new Date().toISOString(),
+      // Step 6 & 7: Record BookingExpiredEvent to outbox inside active transaction context
+      await this.outboxService.record({
         type: 'BOOKING_EXPIRED',
         booking: expiredBooking,
         reason: 'Payment window timed out',
-        timestamp: new Date().toISOString(),
-      })
+      }, context)
+
+      await this.repository.commitTransaction(transactionID)
 
       return expiredBooking
     } catch (error) {

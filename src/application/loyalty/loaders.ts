@@ -3,7 +3,7 @@ import { getLocaleContext } from '@/lib/get-locale-context'
 import { LoyaltyTier } from '@/types'
 import { TierPolicy } from '@/domains/loyalty/tier-policy'
 import { LoyaltyProgressDTOFactory } from '@/application/loyalty/progress-factory'
-import type { CustomerLoyaltyPortalDTO } from './dto'
+import type { CustomerLoyaltyPortalDTO, PublicLoyaltyConfigDTO } from './dto'
 import { LoyaltyProgramConfigurationException } from '@/domains/loyalty/tier-config'
 
 export class CustomerLoyaltyLoader {
@@ -119,6 +119,17 @@ export class CustomerLoyaltyLoader {
     } catch (err) {
       console.error(`[CustomerLoyaltyLoader] Failed loading loyalty details for customer #${customerId}:`, err)
       throw err
+    }
+  }
+
+  /**
+   * Load public loyalty program configuration (e.g., welcome bonus) for unauthenticated presentation pages.
+   */
+  static async loadPublicConfig(): Promise<PublicLoyaltyConfigDTO> {
+    const { loyalty } = await getApplicationServices()
+    const loyaltyConfig = await loyalty.getActiveConfig()
+    return {
+      welcomeBonus: loyaltyConfig.welcomeBonus,
     }
   }
 }

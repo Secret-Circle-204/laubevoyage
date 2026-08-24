@@ -29,7 +29,9 @@ export class ExperiencesCatalogLoader {
       for (const exp of catalog.experiences || []) {
         const item = exp as Record<string, any>
         rawTexts.push(item.title || '')
-        const locationText = item.cityName ? `${item.cityName}, ${item.countryName}` : 'Egypt'
+        const locationText = item.cityName && item.countryName
+          ? `${item.cityName}, ${item.countryName}`
+          : (item.cityName || item.countryName || '')
         rawTexts.push(locationText)
       }
 
@@ -38,27 +40,31 @@ export class ExperiencesCatalogLoader {
       const experiences = await Promise.all(
         (catalog.experiences || []).map(async (exp, index) => {
           const item = exp as Record<string, any>
+          const rawLocation = item.cityName && item.countryName
+            ? `${item.cityName}, ${item.countryName}`
+            : (item.cityName || item.countryName || '')
           const translatedTitle = translated[index * 2] || item.title || ''
-          const translatedLocation = translated[index * 2 + 1] || 'Egypt'
+          const translatedLocation = translated[index * 2 + 1] || rawLocation
           const todayStr = getBusinessDateString(ctx.timezone)
           const basePriceEGP = await experience.resolveStartingPrice(Number(item.id), todayStr)
           const priceResult = await localization.formatPrice(basePriceEGP, ctx)
 
           return {
             id: Number(item.id),
-            slug: item.slug || '',
+            slug: item.slug,
             title: translatedTitle,
             subtitle: translatedTitle,
-            type: (item.type || 'package') as 'package' | 'daily_tour',
-            imageUrl: item.heroUrl || '/images/hero-bg.jpg',
+            type: (item.type === 'daily_tour' ? 'daily_tour' : 'package') as 'package' | 'daily_tour',
+            imageUrl: item.heroUrl || '',
             location: translatedLocation,
-            durationDays: item.durationDays || 1,
-            rating: item.rating || 5,
-            reviewsCount: item.reviewsCount || 0,
+            durationDays: item.durationDays,
+            rating: typeof item.rating === 'number' ? item.rating : 0,
+            reviewsCount: typeof item.reviewsCount === 'number' ? item.reviewsCount : 0,
             price: priceResult,
           }
         }),
       )
+
 
       const labels = {
         badge: localization.translateUiKey('catalog.badge', ctx),

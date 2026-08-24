@@ -29,7 +29,16 @@ export class DestinationService {
     return this.repository.findCityBySlug(slug, options)
   }
 
+  async getCityById(cityId: number, options?: DestinationQueryOptions) {
+    return this.repository.findCityById(cityId, options)
+  }
+
+  async getCountryById(countryId: number, options?: DestinationQueryOptions) {
+    return this.repository.findCountryById(countryId, options)
+  }
+
   async getExperiencesByCity(cityId: number, options?: DestinationQueryOptions) {
+
     return this.repository.findExperiencesByCity(cityId, options)
   }
 

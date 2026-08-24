@@ -35,17 +35,28 @@ export class HomePageLoader {
           const translatedTitle = doc.title ? (translatedTexts[textIdx++] || String(doc.title)) : ''
           const translatedSubtitle = doc.subtitle ? (translatedTexts[textIdx++] || String(doc.subtitle)) : ''
 
+          const expHeroUrl = doc.hero && typeof doc.hero === 'object' && doc.hero.url
+            ? doc.hero.url
+            : (typeof doc.hero === 'string' ? doc.hero : '')
+
+          const durationDaysRaw = doc.duration && typeof doc.duration === 'object' && doc.duration.days !== undefined
+            ? doc.duration.days
+            : doc.durationDays
+          const durationDays = typeof durationDaysRaw === 'number' && durationDaysRaw >= 1
+            ? durationDaysRaw
+            : (Number(durationDaysRaw) || 1)
+
           return {
             id: Number(doc.id),
-            slug: doc.slug || '',
+            slug: doc.slug,
             title: translatedTitle,
             subtitle: translatedSubtitle,
-            type: (doc.type || 'package') as 'package' | 'daily_tour',
-            imageUrl: doc.featuredImage?.url || '',
+            type: (doc.type === 'daily_tour' ? 'daily_tour' : 'package') as 'package' | 'daily_tour',
+            imageUrl: expHeroUrl,
             location: doc.city?.name || '',
-            durationDays: doc.durationDays || 1,
-            rating: doc.rating || 0,
-            reviewsCount: doc.reviewsCount || 0,
+            durationDays,
+            rating: typeof doc.rating === 'number' ? doc.rating : 0,
+            reviewsCount: typeof doc.reviewsCount === 'number' ? doc.reviewsCount : 0,
             price: pricingResult,
           }
         }),
@@ -53,16 +64,21 @@ export class HomePageLoader {
 
       const topDestinations = (overview.topCountries || []).map((doc: any) => {
         const translatedCountryName = doc.name ? (translatedTexts[textIdx++] || String(doc.name)) : ''
+        const countryBannerUrl = doc.hero && typeof doc.hero === 'object' && doc.hero.url
+          ? doc.hero.url
+          : (typeof doc.hero === 'string' ? doc.hero : '')
+
         return {
           id: Number(doc.id),
           countryName: translatedCountryName,
           cityName: translatedCountryName,
           countrySlug: doc.slug || '',
           citySlug: doc.slug || '',
-          imageUrl: doc.bannerImage?.url || '',
+          imageUrl: countryBannerUrl,
           experiencesCount: doc.experiencesCount || 0,
         }
       })
+
 
       return {
         hero: {

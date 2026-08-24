@@ -37,7 +37,10 @@ export interface SearchResultItemDTO {
   countryName: string
   cityName: string
   category: string
-  durationDays: number
+  experienceType?: 'package' | 'daily_tour'
+  durationDays?: number
+  durationNights?: number
+  durationMinutes?: number
   priceEGP: number
   rating: number
   reviewCount: number

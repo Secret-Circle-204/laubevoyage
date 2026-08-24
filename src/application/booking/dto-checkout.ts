@@ -15,6 +15,7 @@ export interface CheckoutPageDTO {
   experienceType: 'package' | 'daily_tour'
   imageUrl: string
   departureDate: string
+  startTime?: string
   adultsCount: number
   childrenCount: number
   basePricePerPersonEGP: number

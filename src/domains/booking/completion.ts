@@ -1,9 +1,9 @@
-import { BookingStatus } from '@/types'
+import { BookingStatus, RequestContext } from '@/types'
 import type { Actor, BookingAggregate } from './types'
 import { BookingRepository } from './repository'
 import { BookingPolicy } from './policy'
 import { BookingHistoryService } from './history'
-import { EventBus } from '../events/event-bus'
+import { EventOutboxService } from '../events/outbox'
 
 /**
  * Booking Completion Sub-Service
@@ -11,15 +11,15 @@ import { EventBus } from '../events/event-bus'
  */
 export class BookingCompletion {
   private repository: BookingRepository
-  private eventBus: EventBus
+  private outboxService: EventOutboxService
 
   constructor(repository: BookingRepository) {
     this.repository = repository
-    this.eventBus = EventBus.getInstance()
+    this.outboxService = EventOutboxService.getInstance()
   }
 
-  async complete(bookingId: number, actor?: Actor): Promise<BookingAggregate> {
-    const booking = await this.repository.findById(bookingId)
+  async complete(bookingId: number, actor?: Actor, context?: RequestContext): Promise<BookingAggregate> {
+    const booking = await this.repository.findById(bookingId, context)
 
     // Validate completion policy
     const policyResult = BookingPolicy.canComplete(booking)
@@ -42,22 +42,16 @@ export class BookingCompletion {
       newValue: BookingStatus.COMPLETED,
     })
 
-    const completedBooking = await this.repository.update(bookingId, {
-      status: BookingStatus.COMPLETED,
+    const completedBooking = await this.repository.transitionStatus(bookingId, BookingStatus.COMPLETED, {
       timeline: updatedTimeline,
       auditTrail: updatedAudit,
-    })
+    }, context)
 
-    await this.eventBus.publish({
-      eventId: `evt_bk_comp_${bookingId}_${Date.now()}`,
-      correlationId: `corr_${bookingId}`,
-      eventVersion: 1,
-      occurredAt: new Date().toISOString(),
+    await this.outboxService.record({
       type: 'BOOKING_COMPLETED',
       booking: completedBooking,
       actor: currentActor,
-      timestamp: new Date().toISOString(),
-    })
+    }, context)
 
     return completedBooking
   }

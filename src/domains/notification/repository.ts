@@ -3,6 +3,9 @@ import type { NotificationJobEntity } from './types'
 import type { NotificationLog } from '@/payload-types'
 import type { PostgresAdapter } from '@payloadcms/db-postgres'
 
+import { NotificationRetryScheduler } from './policy'
+import { MaintenanceLeaseService } from '../maintenance/lease-service'
+
 /**
  * Notification Repository
  * Sole data persistence layer for 'notification-logs' Payload collection with compound key idempotency.
@@ -152,7 +155,61 @@ export class NotificationRepository {
   }
 
   /**
-   * Find unfulfilled notification jobs for crash recovery (queued, failed under limit, or orphaned processing jobs).
+   * Atomically identify and transition stale 'processing' jobs whose lease has expired / does not exist.
+   * Concurrency Guard: Checks maintenance_leases table to ensure no active worker holds an unexpired lease.
+   * Attempts Semantics: Preserves current attempts count (does NOT increment).
+   * Policy: Calculates nextAttemptAt strictly through NotificationRetryScheduler. Transitions to 'dlq' if max attempts reached.
+   */
+  async reapStaleProcessingJobs(limit = 50, req?: PayloadRequest): Promise<number> {
+    const staleDocs = await this.payload.find({
+      collection: 'notification-logs',
+      where: {
+        status: { equals: 'processing' },
+      },
+      limit,
+      req,
+    })
+
+    let reapedCount = 0
+    for (const doc of staleDocs.docs as NotificationLog[]) {
+      const jobId = doc.notificationId || String(doc.id)
+      const activeLease = await MaintenanceLeaseService.getActiveLease(this.payload, `notification_job_${jobId}`)
+      if (!activeLease) {
+        const attempts = doc.attempts || 0
+        const delaySeconds = NotificationRetryScheduler.calculateNextAttemptDelay(doc.channel, attempts)
+        if (delaySeconds === null || attempts >= 3) {
+          await this.payload.update({
+            collection: 'notification-logs',
+            id: doc.id,
+            data: {
+              status: 'dlq',
+              lastError: 'Worker process crashed or lease expired while processing (max attempts reached)',
+              nextAttemptAt: null,
+            },
+            req,
+          })
+        } else {
+          const nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
+          await this.payload.update({
+            collection: 'notification-logs',
+            id: doc.id,
+            data: {
+              status: 'failed',
+              lastError: 'Worker process crashed or lease expired while processing',
+              nextAttemptAt,
+            },
+            req,
+          })
+        }
+        reapedCount++
+      }
+    }
+    return reapedCount
+  }
+
+  /**
+   * Find unfulfilled notification jobs for crash recovery (queued or failed under limit).
+   * Note: Raw 'processing' jobs are handled by reapStaleProcessingJobs() and never returned directly.
    */
   async findRecoverableJobs(limit = 50, req?: PayloadRequest): Promise<NotificationJobEntity[]> {
     const nowIso = new Date().toISOString()
@@ -161,7 +218,6 @@ export class NotificationRepository {
       where: {
         or: [
           { status: { equals: 'queued' } },
-          { status: { equals: 'processing' } },
           {
             and: [
               { status: { equals: 'failed' } },

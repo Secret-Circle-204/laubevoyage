@@ -1,5 +1,6 @@
 import { BookingStatus, RequestContext } from '@/types'
 import { BookingPolicy } from '../booking/policy'
+import { ExperiencePolicy } from '../experience/policy'
 import type { CreateSessionParams, RefundParams, RefundResult, PaymentProviderType, PaymentStatusType } from './types'
 import type { PaymentAggregate } from './aggregate'
 import { PaymentWorkflowEngine } from './workflow'
@@ -52,33 +53,94 @@ export class PaymentService {
     // 1. Check if existing transaction is already paid (allows reconciliation post-expiry)
     if (existingTx && existingTx.status === 'initiated' && existingTx.session?.sessionId) {
       try {
-        const adapter = PaymentAdapterFactory.resolve(existingTx.provider as PaymentProviderType)
-        const stripeStatus = await adapter.retrievePaymentStatus({ providerSessionId: existingTx.session.sessionId })
-
-        if (stripeStatus.status === 'paid') {
-          console.log(`[PaymentService] Existing transaction ${existingTx.transactionId} is already paid. Reconciling...`)
-          await this.reconcilePendingPayments()
-          return { success: false, error: 'This payment has already been completed. Re-routing...' }
-        }
-
-        // If it is open/active, we can reuse it only if the hold is NOT expired.
-        if (stripeStatus.status === 'open' && existingTx.session.url) {
-          const holdExpired = booking.capacityHold?.expiresAt && new Date() >= new Date(booking.capacityHold.expiresAt)
-          if (!holdExpired) {
-            console.log(`[PaymentService] Reusing active initiated payment session: ${existingTx.transactionId}`);
-            return { success: true, transactionId: existingTx.transactionId, checkoutUrl: existingTx.session.url }
-          }
-        } else {
-          // Terminal/expired old session: mark it failed and allow a new session
-          console.log(`[PaymentService] Old Stripe session ${existingTx.session.sessionId} is expired/failed. Marking old transaction as failed.`)
+        if (existingTx.provider !== providerType) {
+          console.log(`[PaymentService] Gateway changed from ${existingTx.provider} to ${providerType}. Expiring old session.`)
+          const oldAdapter = PaymentAdapterFactory.resolve(existingTx.provider as PaymentProviderType)
+          await oldAdapter.expireSession(existingTx.session.sessionId)
           await this.paymentRepository.updateStatus(existingTx.transactionId, 'failed')
+        } else {
+          const adapter = PaymentAdapterFactory.resolve(existingTx.provider as PaymentProviderType)
+          const stripeStatus = await adapter.retrievePaymentStatus({ providerSessionId: existingTx.session.sessionId })
+
+          if (stripeStatus.status === 'paid') {
+            console.log(`[PaymentService] Existing transaction ${existingTx.transactionId} is already paid. Reconciling...`)
+            await this.reconcilePendingPayments()
+            return { success: false, error: 'This payment has already been completed. Re-routing...' }
+          }
+
+          // If it is open/active, we can reuse it only if the hold is NOT expired.
+          if (stripeStatus.status === 'open' && existingTx.session.url) {
+            const holdExpired = booking.capacityHold?.expiresAt && new Date() >= new Date(booking.capacityHold.expiresAt)
+            if (!holdExpired) {
+              console.log(`[PaymentService] Reusing active initiated payment session: ${existingTx.transactionId}`);
+              return { success: true, transactionId: existingTx.transactionId, checkoutUrl: existingTx.session.url }
+            }
+          } else {
+            // Terminal/expired old session: mark it failed and allow a new session
+            console.log(`[PaymentService] Old Stripe session ${existingTx.session.sessionId} is expired/failed. Marking old transaction as failed.`)
+            await this.paymentRepository.updateStatus(existingTx.transactionId, 'failed')
+          }
         }
       } catch (err) {
         console.error(`[PaymentService] Failed checking status of existing checkout session:`, err)
       }
     }
 
-    // 2. Block new/retry payment session if capacity hold is expired
+    // 2. Block payment session if payment window is expired
+    if (booking.paymentWindowExpiresAt) {
+      if (new Date() >= new Date(booking.paymentWindowExpiresAt)) {
+        return { success: false, error: 'Payment window expired for this booking. Please start a new checkout flow.' }
+      }
+    }
+
+    // 3. Block payment session if departure start instant has already arrived or passed (Admission Cutoff)
+    if (this.experienceRepository && booking.experienceId && booking.startDate) {
+      const expAggregate = await this.experienceRepository.findById(booking.experienceId)
+      if (!expAggregate) {
+        throw new Error(`[PaymentService] Experience #${booking.experienceId} associated with Booking #${booking.id} not found.`)
+      }
+
+      if (expAggregate.type === 'daily_tour' && booking.completionAt && expAggregate.durationMinutes) {
+        const completionMs = new Date(booking.completionAt).getTime()
+        const startInstantMs = completionMs - expAggregate.durationMinutes * 60 * 1000
+        const startInstantUtc = new Date(startInstantMs)
+
+        if (new Date() >= startInstantUtc) {
+          return {
+            success: false,
+            error: 'This experience departure can no longer be paid: Departure start instant has already started or passed.',
+          }
+        }
+      } else if (booking.departureSlot) {
+        const timezone = await this.experienceRepository.findTimezoneByCityId(expAggregate.cityId)
+        if (!timezone) {
+          throw new Error(`[PaymentService] Failed to resolve destination timezone for Experience #${expAggregate.id}.`)
+        }
+        const slotDoc = await this.experienceRepository.getDepartureSlotById(booking.departureSlot)
+        const bookability = ExperiencePolicy.isDepartureBookable({
+          type: expAggregate.type,
+          date: booking.startDate,
+          startTime: slotDoc?.startTime,
+          endDate: booking.endDate,
+          timezone,
+        })
+        if (!bookability.allowed) {
+          return {
+            success: false,
+            error: `This experience departure can no longer be paid: ${bookability.reason}`,
+          }
+        }
+      }
+    }
+
+    // 4. Block payment session if departure/trip has already completed
+    if (booking.completionAt) {
+      if (new Date() >= new Date(booking.completionAt)) {
+        return { success: false, error: 'This experience departure has already completed and cannot be paid.' }
+      }
+    }
+
+    // 5. Block new/retry payment session if capacity hold is expired
     if (booking.capacityHold?.expiresAt) {
       if (new Date() >= new Date(booking.capacityHold.expiresAt)) {
         return { success: false, error: 'Booking capacity hold expired. Please start a new checkout flow.' }
@@ -96,6 +158,13 @@ export class PaymentService {
     const experienceDoc = await this.experienceRepository.findById(booking.experienceId)
 
     const pricingSnapshot = booking.pricingSnapshot
+    if (!pricingSnapshot || !pricingSnapshot.displayCurrency) {
+      throw new Error(`[PaymentService] Booking #${booking.id} is missing authoritative pricing snapshot displayCurrency.`)
+    }
+    if (pricingSnapshot.displayAmount === undefined || pricingSnapshot.displayAmount === null || pricingSnapshot.displayAmount < 0) {
+      throw new Error(`[PaymentService] Booking #${booking.id} is missing authoritative pricing snapshot displayAmount.`)
+    }
+
     const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
 
     const { successUrl, cancelUrl } = PaymentUrlBuilder.buildUrls({
@@ -112,8 +181,8 @@ export class PaymentService {
       customerId: userDoc ? (userDoc.customerId || Number((userDoc as Record<string, any>).id)) : booking.customerId,
       bookingNumber: booking.bookingNumber,
       basePriceEGP: pricingSnapshot.basePriceEGP,
-      displayCurrency: pricingSnapshot.displayCurrency || 'EGP',
-      displayAmount: pricingSnapshot.displayAmount || 0,
+      displayCurrency: pricingSnapshot.displayCurrency,
+      displayAmount: pricingSnapshot.displayAmount,
       successUrl,
       cancelUrl,
       customerEmail: userDoc?.email || undefined,
@@ -123,7 +192,13 @@ export class PaymentService {
     const paymentAggregate = await this.workflowEngine.executeCreateSessionWorkflow(providerType, sessionParams, booking.status)
     const session = paymentAggregate.session || (await adapter.createCheckoutSession(sessionParams))
 
-    return { success: true, transactionId, checkoutUrl: session.url }
+    let finalCheckoutUrl = session.url || ''
+    if (finalCheckoutUrl && !finalCheckoutUrl.includes('session_id=')) {
+      const separator = finalCheckoutUrl.includes('?') ? '&' : '?'
+      finalCheckoutUrl = `${finalCheckoutUrl}${separator}session_id=${session.sessionId}`
+    }
+
+    return { success: true, transactionId, checkoutUrl: finalCheckoutUrl }
   }
 
   /**
@@ -135,8 +210,14 @@ export class PaymentService {
     const experienceDoc = await this.experienceRepository.findById(booking.experienceId)
 
     const pricingSnapshot = booking.pricingSnapshot
-    const displayCurrency = pricingSnapshot.displayCurrency || 'EGP'
-    const displayAmount = pricingSnapshot.displayAmount || 0
+    if (!pricingSnapshot || !pricingSnapshot.displayCurrency) {
+      throw new Error(`[PaymentService] Booking #${booking.id} is missing authoritative pricing snapshot displayCurrency.`)
+    }
+    if (pricingSnapshot.displayAmount === undefined || pricingSnapshot.displayAmount === null || pricingSnapshot.displayAmount < 0) {
+      throw new Error(`[PaymentService] Booking #${booking.id} is missing authoritative pricing snapshot displayAmount.`)
+    }
+    const displayCurrency = pricingSnapshot.displayCurrency
+    const displayAmount = pricingSnapshot.displayAmount
 
     const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
 
@@ -191,6 +272,14 @@ export class PaymentService {
   async processBookNowPayLater(bookingId: number): Promise<PaymentAggregate> {
     const booking = await this.bookingRepository.findById(bookingId)
 
+    const pricingSnapshot = booking.pricingSnapshot
+    if (!pricingSnapshot || !pricingSnapshot.displayCurrency) {
+      throw new Error(`[PaymentService] Booking #${booking.id} is missing authoritative pricing snapshot displayCurrency.`)
+    }
+    if (pricingSnapshot.displayAmount === undefined || pricingSnapshot.displayAmount === null || pricingSnapshot.displayAmount < 0) {
+      throw new Error(`[PaymentService] Booking #${booking.id} is missing authoritative pricing snapshot displayAmount.`)
+    }
+
     const transactionId = `tx_bnpl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
 
     const params: CreateSessionParams = {
@@ -198,9 +287,9 @@ export class PaymentService {
       bookingId: booking.id,
       customerId: booking.customerId,
       bookingNumber: booking.bookingNumber,
-      basePriceEGP: booking.pricingSnapshot.basePriceEGP,
-      displayCurrency: booking.pricingSnapshot.displayCurrency || 'EGP',
-      displayAmount: booking.pricingSnapshot.displayAmount || 0,
+      basePriceEGP: pricingSnapshot.basePriceEGP,
+      displayCurrency: pricingSnapshot.displayCurrency,
+      displayAmount: pricingSnapshot.displayAmount,
       successUrl: '',
       cancelUrl: '',
       experienceTitle: `Booking #${booking.bookingNumber}`,

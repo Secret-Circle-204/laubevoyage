@@ -25,6 +25,10 @@ export class NotificationWorker {
     if (this.isRecovering) return 0
     this.isRecovering = true
     try {
+      // 1. Atomically reap orphaned/stale processing jobs whose lease expired
+      await this.repository.reapStaleProcessingJobs(50)
+
+      // 2. Fetch eligible queued and retry-ready failed jobs
       const recoverableJobs = await this.repository.findRecoverableJobs(50)
       for (const job of recoverableJobs) {
         this.queue.enqueue(job)

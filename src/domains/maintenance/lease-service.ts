@@ -1,5 +1,4 @@
 import type { Payload } from 'payload'
-import type { PostgresAdapter } from '@payloadcms/db-postgres'
 import type { MaintenanceLeaseEntity } from './types'
 
 /**
@@ -9,23 +8,11 @@ import type { MaintenanceLeaseEntity } from './types'
  */
 export class MaintenanceLeaseService {
   private static leases: Map<string, MaintenanceLeaseEntity> = new Map()
-
-  static async acquireLease(
-    jobName: string,
-    workerId: string,
-    ttlMs?: number
-  ): Promise<boolean>;
-
-  static async acquireLease(
-    payload: Payload,
-    jobName: string,
-    workerId: string,
-    ttlMs?: number
-  ): Promise<boolean>;
+  private static activeHeartbeats: Map<string, NodeJS.Timeout> = new Map()
 
   static async acquireLease(
     payloadOrJob: Payload | string,
-    jobOrWorker?: string,
+    jobOrWorker: string,
     workerOrTtl?: string | number,
     ttlMs = 60000
   ): Promise<boolean> {
@@ -36,17 +23,20 @@ export class MaintenanceLeaseService {
 
     if (typeof payloadOrJob === 'string') {
       jobName = payloadOrJob
-      workerId = jobOrWorker as string
+      workerId = jobOrWorker
       ttl = typeof workerOrTtl === 'number' ? workerOrTtl : ttlMs
     } else {
       payload = payloadOrJob
-      jobName = jobOrWorker as string
+      jobName = jobOrWorker
       workerId = workerOrTtl as string
       ttl = typeof ttlMs === 'number' ? ttlMs : 60000
     }
 
-    if (!payload || !payload.db) {
-      // Fallback for unit tests (in-memory lock)
+    const pool = (payload as unknown as { db?: { pool?: { query: Function } } })?.db?.pool
+    if (!pool || typeof pool.query !== 'function') {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('[MaintenanceLeaseService] Database connection pool is unavailable for distributed locking in production.')
+      }
       const now = new Date()
       const existing = this.leases.get(jobName)
       if (existing && new Date(existing.leaseExpiresAt) > now) {
@@ -59,85 +49,109 @@ export class MaintenanceLeaseService {
       return true
     }
 
-    // Cast abstract DatabaseAdapter to concrete PostgresAdapter
-    // Class D: Bounded infrastructure cast to access postgres pgPool query capability
-    const dbAdapter = payload.db as unknown as PostgresAdapter
-    const pool = dbAdapter.pool
-    if (!pool || typeof pool.query !== 'function') {
-      return true
-    }
-
-    const leaseExpiresAt = new Date(Date.now() + ttl).toISOString()
+    const leaseExpiresAt = new Date(Date.now() + ttl)
 
     try {
       const query = `
-        INSERT INTO maintenance_leases (job_name, worker_id, lease_expires_at, updated_at)
-        VALUES ($1, $2, $3, NOW())
-        ON CONFLICT (job_name) DO UPDATE
-        SET worker_id = EXCLUDED.worker_id,
-            lease_expires_at = EXCLUDED.lease_expires_at,
-            updated_at = NOW()
-        WHERE maintenance_leases.lease_expires_at <= NOW()
-           OR maintenance_leases.worker_id = EXCLUDED.worker_id
+        INSERT INTO "maintenance_leases" (job_name, worker_id, lease_expires_at, created_at, updated_at)
+        VALUES ($1, $2, $3, NOW(), NOW())
+        ON CONFLICT (job_name)
+        DO UPDATE SET
+          worker_id = EXCLUDED.worker_id,
+          lease_expires_at = EXCLUDED.lease_expires_at,
+          updated_at = NOW()
+        WHERE "maintenance_leases".lease_expires_at <= NOW()
+           OR "maintenance_leases".worker_id = EXCLUDED.worker_id
         RETURNING *;
       `
       const res = await pool.query(query, [jobName, workerId, leaseExpiresAt])
-      return res.rows.length > 0
-    } catch (error: unknown) {
-      console.error(`[MaintenanceLeaseService] acquireLease failed for job ${jobName}:`, error)
-      throw error // Fail loud on infrastructure/SQL errors
+      const acquired = res.rowCount > 0
+
+      if (acquired) {
+        const old = this.activeHeartbeats.get(jobName)
+        if (old) clearInterval(old)
+
+        const intervalMs = Math.max(5000, ttl / 2)
+        const heartbeat = setInterval(async () => {
+          const renewed = await MaintenanceLeaseService.renewLease(payload!, jobName, workerId, ttl)
+          if (!renewed) {
+            clearInterval(heartbeat)
+            MaintenanceLeaseService.activeHeartbeats.delete(jobName)
+          }
+        }, intervalMs)
+
+        if (typeof heartbeat.unref === 'function') {
+          heartbeat.unref()
+        }
+        this.activeHeartbeats.set(jobName, heartbeat)
+      }
+
+      return acquired
+    } catch (err) {
+      console.error(`[MaintenanceLeaseService] Error claiming DB lease for job ${jobName}:`, err)
+      return false
     }
   }
 
   static async renewLease(
-    jobName: string,
-    workerId: string,
-    ttlMs?: number
-  ): Promise<boolean>;
-
-  static async renewLease(
-    payload: Payload,
-    jobName: string,
-    workerId: string,
-    ttlMs?: number
-  ): Promise<boolean>;
-
-  static async renewLease(
     payloadOrJob: Payload | string,
-    jobOrWorker?: string,
+    jobOrWorker: string,
     workerOrTtl?: string | number,
     ttlMs = 60000
   ): Promise<boolean> {
+    let payload: Payload | undefined
+    let jobName: string
+    let workerId: string
+    let ttl = ttlMs
+
     if (typeof payloadOrJob === 'string') {
-      return this.acquireLease(
-        payloadOrJob,
-        jobOrWorker as string,
-        typeof workerOrTtl === 'number' ? workerOrTtl : ttlMs
-      )
+      jobName = payloadOrJob
+      workerId = jobOrWorker
+      ttl = typeof workerOrTtl === 'number' ? workerOrTtl : ttlMs
     } else {
-      return this.acquireLease(
-        payloadOrJob,
-        jobOrWorker as string,
-        workerOrTtl as string,
-        typeof ttlMs === 'number' ? ttlMs : 60000
-      )
+      payload = payloadOrJob
+      jobName = jobOrWorker
+      workerId = workerOrTtl as string
+      ttl = typeof ttlMs === 'number' ? ttlMs : 60000
+    }
+
+    const pool = (payload as unknown as { db?: { pool?: { query: Function } } })?.db?.pool
+    if (!pool || typeof pool.query !== 'function') {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('[MaintenanceLeaseService] Database connection pool is unavailable for lease renewal in production.')
+      }
+      const now = new Date()
+      const existing = this.leases.get(jobName)
+      if (existing && new Date(existing.leaseExpiresAt) > now) {
+        if (existing.workerId === workerId) {
+          const leaseExpiresAt = new Date(now.getTime() + ttl).toISOString()
+          this.leases.set(jobName, { jobName, workerId, leaseExpiresAt })
+          return true
+        }
+      }
+      return false
+    }
+
+    const leaseExpiresAt = new Date(Date.now() + ttl)
+
+    try {
+      const query = `
+        UPDATE "maintenance_leases"
+        SET lease_expires_at = $1, updated_at = NOW()
+        WHERE job_name = $2 AND worker_id = $3
+        RETURNING *;
+      `
+      const res = await pool.query(query, [leaseExpiresAt, jobName, workerId])
+      return res.rowCount > 0
+    } catch (err) {
+      console.error(`[MaintenanceLeaseService] Error renewing DB lease for job ${jobName}:`, err)
+      return false
     }
   }
 
   static async releaseLease(
-    jobName: string,
-    workerId: string
-  ): Promise<void>;
-
-  static async releaseLease(
-    payload: Payload,
-    jobName: string,
-    workerId: string
-  ): Promise<void>;
-
-  static async releaseLease(
     payloadOrJob: Payload | string,
-    jobOrWorker?: string,
+    jobOrWorker: string,
     workerIdArg?: string
   ): Promise<void> {
     let payload: Payload | undefined
@@ -146,14 +160,21 @@ export class MaintenanceLeaseService {
 
     if (typeof payloadOrJob === 'string') {
       jobName = payloadOrJob
-      workerId = jobOrWorker as string
+      workerId = jobOrWorker
     } else {
       payload = payloadOrJob
-      jobName = jobOrWorker as string
+      jobName = jobOrWorker
       workerId = workerIdArg as string
     }
 
-    if (!payload || !payload.db) {
+    const old = this.activeHeartbeats.get(jobName)
+    if (old) {
+      clearInterval(old)
+      this.activeHeartbeats.delete(jobName)
+    }
+
+    const pool = (payload as unknown as { db?: { pool?: { query: Function } } })?.db?.pool
+    if (!pool || typeof pool.query !== 'function') {
       const existing = this.leases.get(jobName)
       if (existing && existing.workerId === workerId) {
         this.leases.delete(jobName)
@@ -161,34 +182,16 @@ export class MaintenanceLeaseService {
       return
     }
 
-    // Cast abstract DatabaseAdapter to concrete PostgresAdapter
-    // Class D: Bounded infrastructure cast to access postgres pgPool query capability
-    const dbAdapter = payload.db as unknown as PostgresAdapter
-    const pool = dbAdapter.pool
-    if (!pool || typeof pool.query !== 'function') {
-      return
-    }
-
     try {
       const query = `
-        DELETE FROM maintenance_leases
+        DELETE FROM "maintenance_leases"
         WHERE job_name = $1 AND worker_id = $2;
       `
       await pool.query(query, [jobName, workerId])
-    } catch (error: unknown) {
-      console.error(`[MaintenanceLeaseService] releaseLease failed for job ${jobName}:`, error)
-      throw error // Fail loud on infrastructure/SQL errors
+    } catch (err) {
+      console.error(`[MaintenanceLeaseService] Error releasing DB lease for job ${jobName}:`, err)
     }
   }
-
-  static async getActiveLease(
-    jobName: string
-  ): Promise<MaintenanceLeaseEntity | undefined>;
-
-  static async getActiveLease(
-    payload: Payload,
-    jobName: string
-  ): Promise<MaintenanceLeaseEntity | undefined>;
 
   static async getActiveLease(
     payloadOrJob: Payload | string,
@@ -204,7 +207,8 @@ export class MaintenanceLeaseService {
       jobName = jobNameArg as string
     }
 
-    if (!payload || !payload.db) {
+    const pool = (payload as unknown as { db?: { pool?: { query: Function } } })?.db?.pool
+    if (!pool || typeof pool.query !== 'function') {
       const now = new Date()
       const existing = this.leases.get(jobName)
       if (existing && new Date(existing.leaseExpiresAt) > now) {
@@ -213,34 +217,24 @@ export class MaintenanceLeaseService {
       return undefined
     }
 
-    // Cast abstract DatabaseAdapter to concrete PostgresAdapter
-    // Class D: Bounded infrastructure cast to access postgres pgPool query capability
-    const dbAdapter = payload.db as unknown as PostgresAdapter
-    const pool = dbAdapter.pool
-    if (!pool || typeof pool.query !== 'function') {
-      return undefined
-    }
-
     try {
       const query = `
         SELECT job_name, worker_id, lease_expires_at
-        FROM maintenance_leases
+        FROM "maintenance_leases"
         WHERE job_name = $1 AND lease_expires_at > NOW();
       `
       const res = await pool.query(query, [jobName])
-      if (res.rows.length === 0) {
-        return undefined
+      if (res.rowCount > 0) {
+        const row = res.rows[0]
+        return {
+          jobName: row.job_name,
+          workerId: row.worker_id,
+          leaseExpiresAt: new Date(row.lease_expires_at).toISOString(),
+        }
       }
-
-      const row = res.rows[0]
-      return {
-        jobName: row.job_name,
-        workerId: row.worker_id,
-        leaseExpiresAt: new Date(row.lease_expires_at).toISOString(),
-      }
-    } catch (error: unknown) {
-      console.error(`[MaintenanceLeaseService] getActiveLease failed for job ${jobName}:`, error)
-      throw error // Fail loud on infrastructure/SQL errors
+    } catch (err) {
+      console.error(`[MaintenanceLeaseService] Error getting active DB lease for job ${jobName}:`, err)
     }
+    return undefined
   }
 }

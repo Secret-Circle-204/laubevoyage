@@ -64,6 +64,10 @@ export class DestinationsCatalogLoader {
         const translatedCityName = translatedTexts[textIdx++] || String(cityDoc.name || '')
         const translatedCityDesc = translatedTexts[textIdx++] || ''
 
+        const cityBannerUrl = cityDoc.hero && typeof cityDoc.hero === 'object' && cityDoc.hero.url
+          ? cityDoc.hero.url
+          : (typeof cityDoc.hero === 'string' ? cityDoc.hero : '')
+
         return {
           id: Number(cityDoc.id),
           name: translatedCityName,
@@ -71,19 +75,23 @@ export class DestinationsCatalogLoader {
           countryName: translatedCountryName,
           countrySlug,
           description: translatedCityDesc,
-          bannerUrl: cityDoc.bannerImage?.url || '/images/hero-bg.jpg',
+          bannerUrl: cityBannerUrl,
           experiencesCount: cityDoc.experiencesCount || 0,
         }
       })
 
       allCities.push(...translatedCities)
 
+      const countryBannerUrl = countryDoc.hero && typeof countryDoc.hero === 'object' && countryDoc.hero.url
+        ? countryDoc.hero.url
+        : (typeof countryDoc.hero === 'string' ? countryDoc.hero : '')
+
       return {
         id: countryId,
         name: translatedCountryName,
         slug: countrySlug,
         description: translatedCountryDesc,
-        bannerUrl: countryDoc.bannerImage?.url || '/images/hero-bg.jpg',
+        bannerUrl: countryBannerUrl,
         citiesCount: cityDocs.length,
         experiencesCount: countryDoc.experiencesCount || 0,
       }
@@ -130,19 +138,27 @@ export class CountryLoader {
     const translatedCountryName = translated[idx++] || String(countryDoc.name || '')
     const translatedCountryDesc = translated[idx++] || ''
 
+    const countryBannerUrl = countryDoc.hero && typeof countryDoc.hero === 'object' && countryDoc.hero.url
+      ? countryDoc.hero.url
+      : (typeof countryDoc.hero === 'string' ? countryDoc.hero : '')
+
     const country = {
       id: Number(countryDoc.id),
       name: translatedCountryName,
       slug: countryDoc.slug || '',
       description: translatedCountryDesc,
-      bannerUrl: countryDoc.bannerImage?.url || '/images/hero-bg.jpg',
-      citiesCount: citiesRes.totalDocs || 0,
+      bannerUrl: countryBannerUrl,
+      citiesCount: citiesRes.totalDocs || citiesRes.docs?.length || 0,
       experiencesCount: countryDoc.experiencesCount || 0,
     }
 
     const cities = (citiesRes.docs || []).map((doc: Record<string, any>) => {
       const translatedCityName = translated[idx++] || String(doc.name || '')
       const translatedCityDesc = translated[idx++] || ''
+
+      const cityBannerUrl = doc.hero && typeof doc.hero === 'object' && doc.hero.url
+        ? doc.hero.url
+        : (typeof doc.hero === 'string' ? doc.hero : '')
 
       return {
         id: Number(doc.id),
@@ -151,7 +167,7 @@ export class CountryLoader {
         countryName: country.name,
         countrySlug: country.slug,
         description: translatedCityDesc,
-        bannerUrl: doc.bannerImage?.url || '/images/cairo.jpg',
+        bannerUrl: cityBannerUrl,
         experiencesCount: doc.experiencesCount || 0,
       }
     })
@@ -179,6 +195,7 @@ export class CityLoader {
       string,
       any
     > | null
+
     const experiencesRes = await destination.getExperiencesByCity(Number(cityDoc.id), options)
 
     // Collect all texts for 1 Single Batch Request
@@ -203,6 +220,10 @@ export class CityLoader {
     const translatedCountryName = translated[idx++] || String(countryDoc?.name || '')
     const translatedCountryDesc = translated[idx++] || ''
 
+    const cityBannerUrl = cityDoc.hero && typeof cityDoc.hero === 'object' && cityDoc.hero.url
+      ? cityDoc.hero.url
+      : (typeof cityDoc.hero === 'string' ? cityDoc.hero : '')
+
     const city = {
       id: Number(cityDoc.id),
       name: translatedCityName,
@@ -210,16 +231,20 @@ export class CityLoader {
       countryName: translatedCountryName,
       countrySlug: countryDoc?.slug || '',
       description: translatedCityDesc,
-      bannerUrl: cityDoc.bannerImage?.url || '/images/cairo.jpg',
+      bannerUrl: cityBannerUrl,
       experiencesCount: experiencesRes.totalDocs || 0,
     }
+
+    const countryBannerUrl = countryDoc?.hero && typeof countryDoc.hero === 'object' && countryDoc.hero.url
+      ? countryDoc.hero.url
+      : (typeof countryDoc?.hero === 'string' ? countryDoc.hero : '')
 
     const country = {
       id: Number(countryDoc?.id || 1),
       name: translatedCountryName,
       slug: countryDoc?.slug || '',
       description: translatedCountryDesc,
-      bannerUrl: countryDoc?.bannerImage?.url || '/images/hero-bg.jpg',
+      bannerUrl: countryBannerUrl,
       citiesCount: 1,
       experiencesCount: experiencesRes.totalDocs || 0,
     }
@@ -232,17 +257,28 @@ export class CityLoader {
         const basePriceEGP = await experience.resolveStartingPrice(Number(doc.id), todayStr)
         const pricingResult = await localization.formatPrice(basePriceEGP, ctx)
 
+        const expHeroUrl = doc.hero && typeof doc.hero === 'object' && doc.hero.url
+          ? doc.hero.url
+          : (typeof doc.hero === 'string' ? doc.hero : '')
+
+        const durationDaysRaw = doc.duration && typeof doc.duration === 'object' && doc.duration.days !== undefined
+          ? doc.duration.days
+          : doc.durationDays
+        const durationDays = typeof durationDaysRaw === 'number' && durationDaysRaw >= 1
+          ? durationDaysRaw
+          : (Number(durationDaysRaw) || 1)
+
         return {
           id: Number(doc.id),
           slug: doc.slug || `exp-${doc.id}`,
           title: translatedTitle,
           subtitle: translatedSubtitle,
           type: (doc.type || 'package') as 'package' | 'daily_tour',
-          imageUrl: doc.featuredImage?.url || '/images/hero-bg.jpg',
+          imageUrl: expHeroUrl,
           location: `${city.name}, ${country.name}`,
-          durationDays: doc.durationDays || 1,
-          rating: doc.rating || 5.0,
-          reviewsCount: doc.reviewsCount || 0,
+          durationDays,
+          rating: typeof doc.rating === 'number' ? doc.rating : 0,
+          reviewsCount: typeof doc.reviewsCount === 'number' ? doc.reviewsCount : 0,
           price: pricingResult,
         }
       }),

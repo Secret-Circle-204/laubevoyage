@@ -42,6 +42,9 @@ describe('WebhookProcessor Stripe Integration Tests', () => {
         status,
       })),
       isProcessed: vi.fn().mockResolvedValue(false),
+      beginTransaction: vi.fn().mockResolvedValue('tx_mock_123'),
+      commitTransaction: vi.fn().mockResolvedValue(undefined),
+      rollbackTransaction: vi.fn().mockResolvedValue(undefined),
     }
 
     mockOutboxRepo = {
@@ -96,9 +99,11 @@ describe('WebhookProcessor Stripe Integration Tests', () => {
         amount: 4.99,
         currency: 'USD',
         customerEmail: 'hamza@laube.com',
-        occurredAt: '2026-08-09T13:43:01.000Z', // 1786282981 in ISO
+        occurredAt: '2026-08-09T13:43:01.000Z',
       }),
-      undefined,
+      expect.objectContaining({
+        transactionId: expect.any(String),
+      }),
     )
   })
 
@@ -109,8 +114,9 @@ describe('WebhookProcessor Stripe Integration Tests', () => {
       data: {
         object: {
           id: 'sess_123',
-          amount_total: 499,
-          metadata: { bookingId: '101' },
+          currency: null,
+          amount_total: 1000,
+          metadata: { bookingId: '101', transactionId: 'tx_123' },
         },
       },
     }
@@ -130,7 +136,8 @@ describe('WebhookProcessor Stripe Integration Tests', () => {
         object: {
           id: 'sess_123',
           currency: 'usd',
-          metadata: { bookingId: '101' },
+          amount_total: undefined,
+          metadata: { bookingId: '101', transactionId: 'tx_123' },
         },
       },
     }
@@ -151,7 +158,9 @@ describe('WebhookProcessor Stripe Integration Tests', () => {
           id: 'sess_123',
           currency: 'usd',
           amount_total: 1000,
+          customer_details: {},
           metadata: { bookingId: '101', transactionId: 'tx_123' },
+          payment_intent: 'sess_123',
         },
       },
     }
@@ -166,7 +175,9 @@ describe('WebhookProcessor Stripe Integration Tests', () => {
         type: 'PAYMENT_COMPLETED',
         customerEmail: undefined,
       }),
-      undefined,
+      expect.objectContaining({
+        transactionId: expect.any(String),
+      }),
     )
   })
 
@@ -174,12 +185,15 @@ describe('WebhookProcessor Stripe Integration Tests', () => {
     const rawPayload = {
       id: 'evt_stripe_123',
       type: 'checkout.session.completed',
+      created: undefined,
       data: {
         object: {
           id: 'sess_123',
           currency: 'usd',
           amount_total: 1000,
+          customer_details: {},
           metadata: { bookingId: '101', transactionId: 'tx_123' },
+          payment_intent: 'sess_123',
         },
       },
     }
@@ -194,7 +208,9 @@ describe('WebhookProcessor Stripe Integration Tests', () => {
         type: 'PAYMENT_COMPLETED',
         occurredAt: undefined,
       }),
-      undefined,
+      expect.objectContaining({
+        transactionId: expect.any(String),
+      }),
     )
   })
 

@@ -127,7 +127,7 @@ async function run() {
       experience: experience.id,
       date: '2026-10-01',
       startTime: '09:00',
-      basePriceEGP: 5000,
+      priceOverrideEGP: 5000,
       capacityTotal: 10,
       capacityReserved: 9, // Exactly 1 seat remaining
       capacitySold: 0,
@@ -145,7 +145,7 @@ async function run() {
     departureId: slot.departureId,
     date: '2026-10-01',
     startTime: '09:00',
-    basePriceEGP: 5000,
+    effectiveBasePrice: 5000,
     capacityAvailable: 1,
     capacityTotal: 10,
     status: 'available',

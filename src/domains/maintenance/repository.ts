@@ -21,7 +21,9 @@ export class MaintenanceRepository {
   async saveLog(log: MaintenanceLogEntity): Promise<void> {
     this.logStore.set(log.logId, log)
     if (!this.payload) {
-      console.log(`[MaintenanceRepository] Persisting execution log: ${log.jobName} (status: ${log.status})`)
+      console.log(
+        `[MaintenanceRepository] Persisting execution log: ${log.jobName} (status: ${log.status})`,
+      )
       return
     }
     await this.payload.create({
@@ -37,13 +39,17 @@ export class MaintenanceRepository {
     return Array.from(this.logStore.values()).slice(-limit)
   }
 
-  async findConfirmedExpiredBookings(batchSize: number): Promise<Array<{ id: number; status: string }>> {
+  async findConfirmedExpiredBookings(
+    batchSize: number,
+  ): Promise<Array<{ id: number; status: string }>> {
     if (!this.payload) {
       const emptyArray: Array<{ id: number; status: string }> = []
       return emptyArray
     }
     if (batchSize === undefined || batchSize === null) {
-      throw new Error('[MaintenanceRepository] findConfirmedExpiredBookings: batchSize is required.')
+      throw new Error(
+        '[MaintenanceRepository] findConfirmedExpiredBookings: batchSize is required.',
+      )
     }
     try {
       const nowIso = new Date().toISOString()
@@ -51,22 +57,28 @@ export class MaintenanceRepository {
         collection: 'bookings',
         where: {
           status: { equals: 'confirmed' },
-          endDate: { less_than: nowIso },
+          completionAt: { less_than_equal: nowIso },
         },
         limit: batchSize,
       })
       const docs = res.docs as Booking[]
       if (!docs) {
-        throw new Error('[MaintenanceRepository] findConfirmedExpiredBookings: Payload find did not return docs array.')
+        throw new Error(
+          '[MaintenanceRepository] findConfirmedExpiredBookings: Payload find did not return docs array.',
+        )
       }
       return docs.map((doc: Booking) => {
         const id = doc.id
         const status = doc.status
         if (id === undefined || id === null) {
-          throw new Error('[MaintenanceRepository] findConfirmedExpiredBookings: booking id is missing.')
+          throw new Error(
+            '[MaintenanceRepository] findConfirmedExpiredBookings: booking id is missing.',
+          )
         }
         if (!status) {
-          throw new Error('[MaintenanceRepository] findConfirmedExpiredBookings: booking status is missing.')
+          throw new Error(
+            '[MaintenanceRepository] findConfirmedExpiredBookings: booking status is missing.',
+          )
         }
         return { id: Number(id), status: String(status) }
       })
@@ -89,38 +101,31 @@ export class MaintenanceRepository {
       const res = await this.payload.find({
         collection: 'bookings',
         where: {
-          status: { equals: 'draft' },
+          and: [
+            { status: { equals: 'draft' } },
+            { paymentWindowExpiresAt: { less_than_equal: nowIso } },
+          ],
         },
-        limit: 100,
+        limit: batchSize,
       })
 
       const docs = res.docs as Booking[]
       if (!docs) {
-        throw new Error('[MaintenanceRepository] findStaleDraftBookings: Payload find did not return docs array.')
+        throw new Error(
+          '[MaintenanceRepository] findStaleDraftBookings: Payload find did not return docs array.',
+        )
       }
 
-      const now = new Date(nowIso)
-      const staleDocs = docs.filter((doc: Booking) => {
-        const hold = doc.capacityHold as Record<string, unknown> | undefined
-        if (hold) {
-          if (hold.status === 'active') {
-            const expiresAt = hold.expiresAt as string | undefined
-            if (!expiresAt) return true
-            return new Date(expiresAt) <= now
-          }
-          return false
-        }
-        return true
-      })
-
-      return staleDocs.slice(0, batchSize).map((doc: Booking) => {
+      return docs.map((doc: Booking) => {
         const id = doc.id
         const status = doc.status
         if (id === undefined || id === null) {
           throw new Error('[MaintenanceRepository] findStaleDraftBookings: booking id is missing.')
         }
         if (!status) {
-          throw new Error('[MaintenanceRepository] findStaleDraftBookings: booking status is missing.')
+          throw new Error(
+            '[MaintenanceRepository] findStaleDraftBookings: booking status is missing.',
+          )
         }
         return { id: Number(id), status: String(status) }
       })

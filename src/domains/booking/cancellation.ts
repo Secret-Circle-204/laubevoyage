@@ -5,7 +5,7 @@ import { BookingPolicy } from './policy'
 import { CapacityHoldService } from './capacity-hold'
 import { PointHoldService } from '../loyalty/point-hold'
 import { BookingHistoryService } from './history'
-import { EventBus } from '../events/event-bus'
+import { EventOutboxService } from '../events/outbox'
 import { ExperienceService } from '../experience/service'
 
 /**
@@ -15,12 +15,12 @@ import { ExperienceService } from '../experience/service'
 export class BookingCancellation {
   private repository: BookingRepository
   private experienceService: ExperienceService
-  private eventBus: EventBus
+  private outboxService: EventOutboxService
 
   constructor(repository: BookingRepository, experienceService: ExperienceService) {
     this.repository = repository
     this.experienceService = experienceService
-    this.eventBus = EventBus.getInstance()
+    this.outboxService = EventOutboxService.getInstance()
   }
 
   async cancel(bookingId: number, actor: Actor, reason: string, context?: RequestContext): Promise<BookingAggregate> {
@@ -32,23 +32,38 @@ export class BookingCancellation {
       throw new Error(`[BookingPolicy] Cancellation forbidden: ${policyResult.reason}`)
     }
 
-    // Release capacity hold if active
+    // Release capacity hold if active, or release committed capacity if confirmed/paid
     let releasedCapacity = booking.capacityHold
     if (booking.capacityHold && booking.capacityHold.status === 'active') {
       releasedCapacity = CapacityHoldService.releaseHold(booking.capacityHold)
 
       try {
-        const slot = await this.experienceService.getDepartureSlotByDate(
+        const departureId = booking.capacityHold.departureId || (await this.experienceService.getDepartureSlotByDate(
           booking.capacityHold.experienceId,
           booking.capacityHold.date,
           context,
-        )
-        if (slot && slot.departureId) {
-          await this.experienceService.releaseCapacity(slot.departureId, booking.capacityHold.seats, context)
-          console.log(`[BookingCancellation] Released slot capacity: Slot ID ${slot.departureId}, ${booking.capacityHold.seats} seats.`)
+        ))?.departureId
+        if (departureId) {
+          await this.experienceService.releaseCapacity(departureId, booking.capacityHold.seats, context)
+          console.log(`[BookingCancellation] Released uncommitted slot capacity: Slot ID ${departureId}, ${booking.capacityHold.seats} seats.`)
         }
       } catch (err: any) {
         console.error(`[BookingCancellation] Failed to release slot capacity:`, err)
+      }
+    } else if (booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.PAID) {
+      try {
+        const seats = booking.travelers?.length || booking.capacityHold?.seats || 1
+        const departureId = booking.capacityHold?.departureId || (await this.experienceService.getDepartureSlotByDate(
+          booking.experienceId,
+          booking.startDate,
+          context,
+        ))?.departureId
+        if (departureId && typeof this.experienceService.releaseCommittedCapacity === 'function') {
+          await this.experienceService.releaseCommittedCapacity(departureId, seats, context)
+          console.log(`[BookingCancellation] Released committed sold capacity: Slot ID ${departureId}, ${seats} seats.`)
+        }
+      } catch (err: any) {
+        console.error(`[BookingCancellation] Failed to release committed capacity:`, err)
       }
     }
 
@@ -91,8 +106,7 @@ export class BookingCancellation {
       newValue: BookingStatus.CANCELLED,
     })
 
-    const cancelledBooking = await this.repository.update(bookingId, {
-      status: BookingStatus.CANCELLED,
+    const cancelledBooking = await this.repository.transitionStatus(bookingId, BookingStatus.CANCELLED, {
       capacityHold: releasedCapacity,
       pointHold: releasedPointHold,
       notes: reason,
@@ -101,18 +115,13 @@ export class BookingCancellation {
       metadata: updatedMetadata,
     }, context)
 
-    // Publish BookingCancelledEvent
-    await this.eventBus.publish({
-      eventId: `evt_bk_canc_${bookingId}_${Date.now()}`,
-      correlationId: `corr_${bookingId}`,
-      eventVersion: 1,
-      occurredAt: new Date().toISOString(),
+    // Publish BookingCancelledEvent via outbox
+    await this.outboxService.record({
       type: 'BOOKING_CANCELLED',
       booking: cancelledBooking,
       actor,
       reason,
-      timestamp: new Date().toISOString(),
-    })
+    }, context)
 
     return cancelledBooking
   }

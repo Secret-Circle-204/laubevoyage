@@ -101,6 +101,8 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
         bookingId: data.bookingId,
         experienceId: data.experienceId,
         slotId: data.slotId,
+        date: data.departureDate,
+        startTime: data.startTime,
         adults: data.adultsCount,
         travelers: travelers,
         gatewayId: selectedGateway,
@@ -128,7 +130,7 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
       } else {
         const errorMsg = 'error' in res && typeof res.error === 'string' ? res.error : 'Payment gateway failed'
         addToast({ type: 'error', title: 'Payment Failed', description: errorMsg })
-        if ('code' in res && (res.code === 'BOOKING_EXPIRED' || res.code === 'BOOKING_CANCELLED')) {
+        if ('code' in res && (res.code === 'BOOKING_EXPIRED' || res.code === 'BOOKING_CANCELLED' || res.code === 'IDEMPOTENCY_CONFLICT')) {
           const storageKey = `laube_chk_key_${data.experienceId}_${data.slotId || 'noslot'}_${data.departureDate}`
           sessionStorage.removeItem(storageKey)
           setKeyRotationCounter((prev) => prev + 1)

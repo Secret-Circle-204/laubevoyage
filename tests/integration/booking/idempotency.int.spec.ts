@@ -29,6 +29,7 @@ describe('Layer 7: Idempotency & Double Confirmation Tests', () => {
       auditTrail: [{ action: 'BOOKING_CONFIRMED' }],
       createdAt: '2026-07-22T12:00:00.000Z',
       updatedAt: '2026-07-22T12:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T12:15:00.000Z',
     }
 
     mockPayload.findByID.mockResolvedValue(mockAlreadyConfirmedBooking)

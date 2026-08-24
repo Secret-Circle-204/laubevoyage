@@ -18,6 +18,7 @@ describe('Booking Domain: Server-Side Pagination & DB Status Filtering', () => {
           pricingSnapshot: { totalAmountEGP: 15000 },
           createdAt: '2026-08-01T10:00:00Z',
           updatedAt: '2026-08-01T10:00:00Z',
+          paymentWindowExpiresAt: '2026-08-01T10:15:00Z',
         },
       ],
       totalDocs: 42,

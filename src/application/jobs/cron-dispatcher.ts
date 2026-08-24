@@ -106,7 +106,56 @@ export class CronDispatcher {
     if (globalContext[symbol]) return
     globalContext[symbol] = true
 
-    // 1. Hourly Scheduled Tasks (Completions, Rates, Reconciliation, Retention Purge)
+    // 0. Immediate Startup Recovery Sweep (Complete Finished Bookings)
+    getDomainServices()
+      .then(({ maintenance }) => {
+        maintenance
+          .triggerJob('complete_finished_bookings', 'scheduler', CronDispatcher.workerId)
+          .catch((err: unknown) => {
+            const errMsg = err instanceof Error ? err.message : String(err)
+            console.error('[CronDispatcher] Startup trip completion sweep error:', errMsg)
+          })
+      })
+      .catch((err: unknown) => {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        console.error('[CronDispatcher] Failed resolving domain services for startup sweep:', errMsg)
+      })
+
+    // 1. 5-Minute Scheduled Tasks (Trip Completion Lifecycle Sweep)
+    setInterval(() => {
+      getDomainServices()
+        .then(({ maintenance }) => {
+          maintenance
+            .triggerJob('complete_finished_bookings', 'scheduler', CronDispatcher.workerId)
+            .catch((err: unknown) => {
+              const errMsg = err instanceof Error ? err.message : String(err)
+              console.error('[CronDispatcher] Periodic trip completion execution error:', errMsg)
+            })
+        })
+        .catch((err: unknown) => {
+          const errMsg = err instanceof Error ? err.message : String(err)
+          console.error('[CronDispatcher] Failed resolving domain services for periodic completion sweep:', errMsg)
+        })
+    }, 5 * 60 * 1000)
+
+    // 2. 1-Minute Scheduled Tasks (Hold Expiration Reaper)
+    setInterval(() => {
+      getDomainServices()
+        .then(({ maintenance }) => {
+          maintenance
+            .triggerJob('expire_stale_holds', 'scheduler', CronDispatcher.workerId)
+            .catch((err: unknown) => {
+              const errMsg = err instanceof Error ? err.message : String(err)
+              console.error('[CronDispatcher] Expiration reaper execution error:', errMsg)
+            })
+        })
+        .catch((err: unknown) => {
+          const errMsg = err instanceof Error ? err.message : String(err)
+          console.error('[CronDispatcher] Failed resolving domain services for hold expiration reaper:', errMsg)
+        })
+    }, 60 * 1000)
+
+    // 3. Hourly Scheduled Tasks (Exchange Rates, Reconciliation, Retention Purge)
     setInterval(() => {
       CronDispatcher.runHourlyJob().catch((err: unknown) => {
         const errMsg = err instanceof Error ? err.message : String(err)
@@ -114,18 +163,8 @@ export class CronDispatcher {
       })
     }, 60 * 60 * 1000)
 
-    // 2. 1-Minute Scheduled Tasks (Hold Expiration Reaper)
-    setInterval(() => {
-      getDomainServices().then(({ maintenance }) => {
-        maintenance.triggerJob('expire_stale_holds', 'scheduler', CronDispatcher.workerId).catch((err: unknown) => {
-          const errMsg = err instanceof Error ? err.message : String(err)
-          console.error('[CronDispatcher] Expiration reaper execution error:', errMsg)
-        })
-      })
-    }, 60 * 1000)
-
     if (process.env.ARCH_TRACE === 'true') {
-      console.log(`[CronDispatcher] Hourly scheduler (1h) and Expiration reaper (1m) started successfully with worker ID: ${CronDispatcher.workerId}`)
+      console.log(`[CronDispatcher] Schedulers (Startup + 5m completions, 1m holds, 1h maintenance) started successfully with worker ID: ${CronDispatcher.workerId}`)
     }
   }
 }

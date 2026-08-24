@@ -16,7 +16,7 @@ export class BNPLPaymentAdapter implements IPaymentAdapter {
     const sessionId = `bnpl_sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
     return {
       sessionId,
-      url: `${params.successUrl}?session_id=${sessionId}`,
+      url: params.successUrl,
       expiresAt: Math.floor(Date.now() / 1000) + 30 * 60,
     }
   }

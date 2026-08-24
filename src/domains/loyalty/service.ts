@@ -120,6 +120,29 @@ export class LoyaltyService {
   }
 
   /**
+   * Process booking partial refund: compute delta spent and proportionally reverse earned points.
+   */
+  async processBookingPartialRefund(
+    customerId: number,
+    bookingId: number,
+    cumulativeRefundedEGP: number,
+    originalTotalEGP: number,
+    referenceId: string,
+    config?: LoyaltyProgramConfig,
+    context?: RequestContext,
+  ): Promise<{ newTier: LoyaltyTier; pointsReversed: number }> {
+    return this.workflowEngine.processBookingPartialRefund(
+      customerId,
+      bookingId,
+      cumulativeRefundedEGP,
+      originalTotalEGP,
+      referenceId,
+      config,
+      context,
+    )
+  }
+
+  /**
    * Expire unclaimed points past their 12-month rolling validity window.
    */
   async processExpiredPoints(context?: RequestContext): Promise<number> {

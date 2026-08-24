@@ -1,10 +1,12 @@
 import { EventBus } from '../event-bus'
 import type { BookingConfirmedEvent, BookingCancelledEvent } from '../booking-events'
+import type { PaymentRefundedEvent } from '../payment-events'
 import type { LoyaltyService } from '../../loyalty/service'
 import type { CustomerService } from '../../customer/service'
 import { PayloadInboxRepository } from '../repositories/payload-inbox-repository'
 import type { Payload, PayloadRequest } from 'payload'
 import type { RequestContext } from '@/types'
+import type { Booking } from '@/payload-types'
 
 /**
  * Customer Loyalty Subscriber
@@ -136,6 +138,106 @@ export function registerLoyaltySubscriber(
       } catch (error) {
         if (transactionID) await payload.db.rollbackTransaction(transactionID)
         console.error(`[LoyaltySubscriber] Failed processing booking cancelled event #${event.eventId}:`, error)
+        throw error
+      }
+    },
+  )
+
+  eventBus.subscribe<PaymentRefundedEvent>(
+    'PAYMENT_REFUNDED',
+    'LoyaltySubscriber.processPartialRefund',
+    async (event) => {
+      const subscriberName = 'LoyaltySubscriber.processPartialRefund'
+
+      if (!event.eventId) {
+        throw new Error('[LoyaltySubscriber] PaymentRefundedEvent missing required eventId.')
+      }
+
+      const transactionID = await payload.db.beginTransaction()
+      const req = { transactionID } as unknown as PayloadRequest
+      const context: RequestContext = { transactionId: transactionID }
+
+      try {
+        const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName, req)
+        if (!acquired) {
+          console.log(
+            `[LoyaltySubscriber] Idempotency Guard: Event ${event.eventId} already processed by ${subscriberName}. Skipping.`,
+          )
+          if (transactionID) await payload.db.rollbackTransaction(transactionID)
+          return
+        }
+
+        const bookingDoc = await payload.findByID({
+          collection: 'bookings',
+          id: event.bookingId,
+          req,
+        }) as unknown as Booking
+
+        if (!bookingDoc) {
+          throw new Error(`[LoyaltySubscriber] Booking #${event.bookingId} not found.`)
+        }
+
+        const customerId = typeof bookingDoc.user === 'object' ? bookingDoc.user.id : Number(bookingDoc.user)
+
+        // DB Concurrency Row Lock: lock payment transaction, then customer
+        const db = payload.db as unknown as { sessions?: Record<string, { db?: { session?: { client?: { query: Function } } } }> }
+        const session = transactionID ? db.sessions?.[transactionID] : undefined
+        const client = session?.db?.session?.client
+        if (client && typeof client.query === 'function') {
+          console.log(`[LoyaltySubscriber] Acquiring exclusive transactional row lock for Payment Transaction & Customer #${customerId}...`)
+          await client.query('SELECT id FROM payment_transactions WHERE booking_id = $1 FOR UPDATE', [event.bookingId])
+          await client.query('SELECT id FROM customers WHERE id = $1 FOR UPDATE', [customerId])
+        }
+
+        const paymentRes = await payload.find({
+          collection: 'payment-transactions',
+          where: {
+            bookingId: { equals: event.bookingId },
+          },
+          req,
+          limit: 1,
+        })
+        const paymentTx = paymentRes.docs[0]
+        if (!paymentTx) {
+          throw new Error(`[LoyaltySubscriber] Payment transaction not found for booking #${event.bookingId}`)
+        }
+
+        let cumulativeRefundedEGP = 0
+        const exchangeRate = bookingDoc.pricingSnapshot?.exchangeRate || 1.0
+
+        if (paymentTx.attempts && Array.isArray(paymentTx.attempts)) {
+          for (const attempt of (paymentTx.attempts as unknown as Array<{ status: string; amount: number }>)) {
+            if (attempt.status === 'successful' && attempt.amount < 0) {
+              cumulativeRefundedEGP += Math.abs(attempt.amount) * exchangeRate
+            }
+          }
+        }
+
+        const originalTotalEGP = bookingDoc.pricingSnapshot?.totalAmountEGP || 0
+        console.log(`[LoyaltySubscriber] Cumulative refunded: ${cumulativeRefundedEGP} EGP, OriginalTotal: ${originalTotalEGP} EGP. Calling processBookingPartialRefund...`)
+
+        await loyaltyService.processBookingPartialRefund(
+          customerId,
+          event.bookingId,
+          cumulativeRefundedEGP,
+          originalTotalEGP,
+          event.eventId,
+          undefined,
+          context,
+        )
+
+        const newBalance = await loyaltyService.getCustomerBalance(customerId, context)
+        await customerService.updateLoyaltyProfile(
+          customerId,
+          { points: newBalance },
+          context,
+        )
+        console.log(`[LoyaltySubscriber] ✅ Partial refund processing completed. Balance for Customer #${customerId}: ${newBalance}`)
+
+        if (transactionID) await payload.db.commitTransaction(transactionID)
+      } catch (error) {
+        if (transactionID) await payload.db.rollbackTransaction(transactionID)
+        console.error(`[LoyaltySubscriber] Failed processing payment refunded event #${event.eventId}:`, error)
         throw error
       }
     },

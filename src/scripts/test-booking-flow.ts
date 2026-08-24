@@ -108,9 +108,10 @@ async function run() {
     const slot = departureSlotsRes.docs[0]
     departure = await services.experience.resolveBookableDepartureBySlot(experience.id, slot.id)
   } else {
-    departure = await services.experience.resolveBookableDepartureWithoutSlot(experience.id)
+    const slot = await services.experience.getOrCreateDailyDeparture(experience.id, '2026-09-15', '09:00')
+    departure = await services.experience.resolveBookableDepartureBySlot(experience.id, slot.id!)
   }
-  console.log(`✅ Resolved Departure Date: ${departure.date}, Base Price: ${departure.basePriceEGP} EGP`)
+  console.log(`✅ Resolved Departure Date: ${departure.date}, Base Price: ${departure.effectiveBasePrice} EGP`)
 
   // 4. Create Draft Booking (Step 1)
   console.log('\n⚡ Step 1: Creating Draft Booking...')

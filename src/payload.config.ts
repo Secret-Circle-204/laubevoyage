@@ -37,6 +37,7 @@ import { DepartureSlots } from './collections/DepartureSlots'
 import { Languages } from './collections/Languages'
 import { EventOutbox } from './collections/EventOutbox'
 import { EventInbox } from './collections/EventInbox'
+import { MaintenanceLeases } from './collections/MaintenanceLeases'
 import { ContactRequests } from './collections/ContactRequests'
 import { SystemSettings } from './globals/SystemSettings'
 import { LoyaltySettings } from './globals/LoyaltySettings'
@@ -84,6 +85,7 @@ export default buildConfig({
     DepartureSlots,
     EventOutbox,
     EventInbox,
+    MaintenanceLeases,
   ],
   globals: [SystemSettings, LoyaltySettings],
   editor: lexicalEditor(),
@@ -95,7 +97,7 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
-    push: false,
+    push: process.env.NODE_ENV !== 'production' && process.env.VITEST !== 'true',
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
   sharp,

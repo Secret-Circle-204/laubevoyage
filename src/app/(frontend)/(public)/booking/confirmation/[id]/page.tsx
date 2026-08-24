@@ -48,12 +48,30 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
           <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-left space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500">Status:</span>
-              <span className="font-bold text-emerald-600 uppercase">{data.status === 'confirmed' ? 'Confirmed & Paid' : data.status}</span>
+              <span className="font-bold text-emerald-600 uppercase">
+                {data.status === 'confirmed'
+                  ? data.rawOutstandingBalance > 0
+                    ? 'Confirmed (Outstanding Balance)'
+                    : 'Confirmed & Paid'
+                  : data.status}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Payment Snapshot:</span>
+              <span className="text-slate-500">Total Price:</span>
               <CurrencyDisplay price={data.totalCost} size="sm" />
             </div>
+            {data.rawPaidAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">Amount Paid:</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">{data.paidAmount}</span>
+              </div>
+            )}
+            {data.rawOutstandingBalance > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-500 text-amber-600 dark:text-amber-500 font-medium">Outstanding Balance:</span>
+                <span className="font-bold text-amber-600 dark:text-amber-500">{data.outstandingBalance}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-500">Loyalty Points Earned:</span>
               <span className="font-bold text-[#f58220]">+{data.pointsEarned} Points</span>

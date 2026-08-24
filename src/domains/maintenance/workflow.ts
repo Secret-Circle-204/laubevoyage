@@ -21,7 +21,7 @@ export class MaintenanceWorkflowEngine {
   public retentionService: DataRetentionService
   public repository: MaintenanceRepository
 
-  constructor(repository?: MaintenanceRepository | Payload, bookingService?: BookingService) {
+  constructor(repository: MaintenanceRepository | Payload, bookingService: BookingService) {
     if (repository && 'saveLog' in repository) {
       this.repository = repository as MaintenanceRepository
     } else {

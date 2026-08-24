@@ -1,7 +1,17 @@
 import type { Payload, PayloadRequest } from 'payload'
 import type { BookingStatus, PaginatedResponse, RequestContext } from '@/types'
-import type { BookingAggregate, CustomerTripSummary } from './types'
+import type {
+  BookingAggregate,
+  CustomerTripSummary,
+  CapacityHoldEntity,
+  PointHoldEntity,
+  PaymentAttempt,
+  CustomerTimelineEntry,
+  SystemAuditEntry,
+  PricingSnapshotData,
+} from './types'
 import type { Booking } from '@/payload-types'
+import { validateTransition } from './state-machine'
 
 /**
  * Booking Repository
@@ -13,6 +23,13 @@ export class BookingRepository {
 
   constructor(payload: Payload) {
     this.payload = payload
+  }
+
+  /**
+   * Get the underlying typed Payload instance.
+   */
+  getPayloadInstance(): Payload {
+    return this.payload
   }
 
   /**
@@ -155,6 +172,49 @@ export class BookingRepository {
   }
 
   /**
+   * Transition booking status atomically with state machine validation and concurrency protection.
+   */
+  async transitionStatus(
+    id: number,
+    toStatus: BookingStatus,
+    data: Record<string, unknown> = {},
+    context?: RequestContext
+  ): Promise<BookingAggregate> {
+    const req = this.mapContextToReq(context)
+
+    // 1. Fetch current status inside the active transaction context
+    const current = await this.findById(id, context)
+
+    // 2. Validate the transition against the canonical StateMachine
+    validateTransition(current.status, toStatus)
+
+    // 3. Atomically update with current status check in the query filter (optimistic concurrency guard)
+    const result = await this.payload.update({
+      collection: 'bookings',
+      where: {
+        and: [
+          { id: { equals: id } },
+          { status: { equals: current.status } }
+        ]
+      },
+      data: {
+        ...data,
+        status: toStatus as any,
+      },
+      req,
+    })
+
+    const doc = result && typeof result === 'object' && 'docs' in result ? result.docs?.[0] : result
+    if (!doc) {
+      throw new Error(
+        `[BookingRepository] Concurrency Conflict: Booking #${id} status changed concurrently from '${current.status}'`
+      )
+    }
+
+    return this.mapDocToAggregate(doc)
+  }
+
+  /**
    * Update booking status conditionally (atomic state transition).
    * Returns null if no rows were updated (meaning the condition was not met).
    */
@@ -165,6 +225,15 @@ export class BookingRepository {
     context?: RequestContext,
   ): Promise<BookingAggregate | null> {
     const req = this.mapContextToReq(context)
+
+    // Validate target transition against the canonical StateMachine for all expected source states
+    const targetStatus = data.status as BookingStatus
+    if (targetStatus) {
+      for (const expected of expectedStatuses) {
+        validateTransition(expected, targetStatus)
+      }
+    }
+
     const result = await this.payload.update({
       collection: 'bookings',
       where: {
@@ -283,29 +352,24 @@ export class BookingRepository {
     const result = await this.payload.find({
       collection: 'bookings',
       where: {
-        or: [
-          { status: { equals: 'draft' } },
-          { status: { equals: 'pending_payment' } },
+        and: [
+          {
+            or: [
+              { status: { equals: 'draft' } },
+              { status: { equals: 'pending_payment' } },
+              { status: { equals: 'pending_admin_review' } },
+            ],
+          },
+          {
+            paymentWindowExpiresAt: { less_than_equal: nowIso },
+          },
         ],
       },
       limit: 100,
       req,
     })
 
-    const now = new Date(nowIso)
-    const expiredDocs = result.docs.filter((doc) => {
-      const hold = doc.capacityHold as any
-      if (hold) {
-        if (hold.status === 'active') {
-          if (!hold.expiresAt) return true
-          return new Date(hold.expiresAt) <= now
-        }
-        return false
-      }
-      return true
-    })
-
-    return expiredDocs.map((doc) => this.mapDocToAggregate(doc))
+    return result.docs.map((doc) => this.mapDocToAggregate(doc))
   }
 
   /**
@@ -329,39 +393,101 @@ export class BookingRepository {
   /**
    * Map Payload document to strongly-typed BookingAggregate.
    */
-  private mapDocToAggregate(doc: any): BookingAggregate {
+  private mapDocToAggregate(doc: Booking | Record<string, unknown>): BookingAggregate {
+    const docUser = (doc as Booking).user
     const customerId =
-      typeof doc.user === 'object' && doc.user !== null ? Number(doc.user.id) : Number(doc.user)
+      typeof docUser === 'object' && docUser !== null ? Number(docUser.id) : Number(docUser)
+
+    const docExp = (doc as Booking).experience
     const experienceId =
-      typeof doc.experience === 'object' && doc.experience !== null
-        ? Number(doc.experience.id)
-        : Number(doc.experience)
+      typeof docExp === 'object' && docExp !== null
+        ? Number(docExp.id)
+        : Number(docExp)
+
+    const b = doc as Booking
+    const metadata =
+      typeof b.metadata === 'object' && b.metadata !== null && !Array.isArray(b.metadata)
+        ? (b.metadata as Record<string, unknown>)
+        : {}
+    const documents =
+      typeof b.documents === 'object' && b.documents !== null && !Array.isArray(b.documents)
+        ? (b.documents as Record<string, unknown>)
+        : {}
+    const idempotencyKey = typeof b.idempotencyKey === 'string' ? b.idempotencyKey : undefined
+    const createdAt = typeof b.createdAt === 'string' ? b.createdAt : new Date().toISOString()
+    const updatedAt = typeof b.updatedAt === 'string' ? b.updatedAt : new Date().toISOString()
+
+    const travelers = (b.travelers || []).map((t) => ({
+      firstName: t.firstName,
+      lastName: t.lastName,
+      email: t.email,
+      phone: t.phone,
+      dateOfBirth: t.dateOfBirth || undefined,
+      passportNumber: t.passportNumber || undefined,
+    }))
+
+    const capacityHold =
+      b.capacityHold && typeof b.capacityHold === 'object'
+        ? (b.capacityHold as unknown as CapacityHoldEntity)
+        : null
+
+    const pointHold =
+      b.pointHold && typeof b.pointHold === 'object'
+        ? (b.pointHold as unknown as PointHoldEntity)
+        : null
+
+    const paymentAttempts = Array.isArray(b.paymentAttempts)
+      ? (b.paymentAttempts as unknown as PaymentAttempt[])
+      : []
+
+    const timeline = Array.isArray(b.timeline)
+      ? (b.timeline as unknown as CustomerTimelineEntry[])
+      : []
+
+    const auditTrail = Array.isArray(b.auditTrail)
+      ? (b.auditTrail as unknown as SystemAuditEntry[])
+      : []
+
+    const pricingSnapshot =
+      (b.pricingSnapshot as unknown as PricingSnapshotData) || ({} as PricingSnapshotData)
+
+    const rawExpiresAt = (b as any).paymentWindowExpiresAt
+    if (!rawExpiresAt || isNaN(new Date(rawExpiresAt).getTime())) {
+      throw new Error(
+        `[BookingRepository] Database record for booking #${doc.id} (${b.bookingNumber || 'no-number'}) is missing required paymentWindowExpiresAt (or contains an invalid timestamp: ${rawExpiresAt}).`,
+      )
+    }
+    const paymentWindowExpiresAt =
+      typeof rawExpiresAt === 'string' ? rawExpiresAt : new Date(rawExpiresAt).toISOString()
 
     return {
       id: Number(doc.id),
-      bookingNumber: doc.bookingNumber || '',
-      version: doc.version || 1,
-      source: doc.source || 'website',
-      status: doc.status as BookingStatus,
+      bookingNumber: b.bookingNumber || '',
+      version: b.version || 1,
+      source: b.source || 'website',
+      status: b.status as BookingStatus,
       customerId,
       experienceId,
-      travelers: doc.travelers || [],
-      startDate: doc.startDate ? (typeof doc.startDate === 'string' ? doc.startDate.split('T')[0] : new Date(doc.startDate).toISOString().split('T')[0]) : '',
-      endDate: doc.endDate ? (typeof doc.endDate === 'string' ? doc.endDate.split('T')[0] : new Date(doc.endDate).toISOString().split('T')[0]) : '',
-      pricingSnapshot: doc.pricingSnapshot || {},
-      capacityHold: doc.capacityHold || null,
-      pointHold: doc.pointHold || null,
-      pointsEarned: doc.pointsEarned || 0,
-      paymentId: doc.paymentId,
-      notes: doc.notes,
-      paymentAttempts: doc.paymentAttempts || [],
-      timeline: doc.timeline || [],
-      auditTrail: doc.auditTrail || [],
-      documents: doc.documents || {},
-      metadata: doc.metadata || {},
-      idempotencyKey: doc.idempotencyKey || undefined,
-      createdAt: doc.createdAt ? (typeof doc.createdAt === 'string' ? doc.createdAt : new Date(doc.createdAt).toISOString()) : new Date().toISOString(),
-      updatedAt: doc.updatedAt ? (typeof doc.updatedAt === 'string' ? doc.updatedAt : new Date(doc.updatedAt).toISOString()) : new Date().toISOString(),
+      travelers,
+      startDate: b.startDate ? (typeof b.startDate === 'string' ? b.startDate.split('T')[0] : new Date(b.startDate).toISOString().split('T')[0]) : '',
+      endDate: b.endDate ? (typeof b.endDate === 'string' ? b.endDate.split('T')[0] : new Date(b.endDate).toISOString().split('T')[0]) : '',
+      completionAt: b.completionAt ? (typeof b.completionAt === 'string' ? b.completionAt : new Date(b.completionAt).toISOString()) : '',
+      destinationTimezone: b.destinationTimezone || undefined,
+      paymentWindowExpiresAt,
+      pricingSnapshot,
+      capacityHold,
+      pointHold,
+      pointsEarned: b.pointsEarned || 0,
+      paymentId: b.paymentId || undefined,
+      notes: b.notes || undefined,
+      paymentAttempts,
+      timeline,
+      auditTrail,
+      documents,
+      metadata,
+      idempotencyKey,
+      createdAt,
+      updatedAt,
     }
   }
 }

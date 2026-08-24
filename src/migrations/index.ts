@@ -30,6 +30,10 @@ import * as migration_20260809_201143_add_point_ledger_uniqueness_index from './
 import * as migration_20260817_192308_add_verificationExpiresAt from './20260817_192308_add_verificationExpiresAt';
 import * as migration_20260818_125256_change_loyalty_setings from './20260818_125256_change_loyalty_setings';
 import * as migration_20260818_152800_change_loyalty_seting from './20260818_152800_change_loyalty_seting';
+import * as migration_20260819_140000_align_departure_slots_and_booking_relationships from './20260819_140000_align_departure_slots_and_booking_relationships';
+import * as migration_20260819_160000_repair_maintenance_leases from './20260819_160000_repair_maintenance_leases';
+import * as migration_20260822_120000_add_completion_at_and_duration_minutes from './20260822_120000_add_completion_at_and_duration_minutes';
+import * as migration_20260822_140000_add_payment_window_expires_at from './20260822_140000_add_payment_window_expires_at';
 
 export const migrations = [
   {
@@ -191,5 +195,25 @@ export const migrations = [
     up: migration_20260818_152800_change_loyalty_seting.up,
     down: migration_20260818_152800_change_loyalty_seting.down,
     name: '20260818_152800_change_loyalty_seting'
+  },
+  {
+    up: migration_20260819_140000_align_departure_slots_and_booking_relationships.up,
+    down: migration_20260819_140000_align_departure_slots_and_booking_relationships.down,
+    name: '20260819_140000_align_departure_slots_and_booking_relationships'
+  },
+  {
+    up: migration_20260819_160000_repair_maintenance_leases.up,
+    down: migration_20260819_160000_repair_maintenance_leases.down,
+    name: '20260819_160000_repair_maintenance_leases'
+  },
+  {
+    up: migration_20260822_120000_add_completion_at_and_duration_minutes.up,
+    down: migration_20260822_120000_add_completion_at_and_duration_minutes.down,
+    name: '20260822_120000_add_completion_at_and_duration_minutes'
+  },
+  {
+    up: migration_20260822_140000_add_payment_window_expires_at.up,
+    down: migration_20260822_140000_add_payment_window_expires_at.down,
+    name: '20260822_140000_add_payment_window_expires_at'
   },
 ];

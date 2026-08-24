@@ -9,6 +9,7 @@ import type { RequestContext } from '@/types'
 import { EventBus } from '../events/event-bus'
 import { BasePriceResolver } from './base-price-resolver'
 import { BookableDepartureAssembler } from './bookable-departure-assembler'
+import { InventoryReconciliationService } from './reconciliation'
 
 /**
  * Experience Workflow Engine
@@ -23,6 +24,7 @@ export class ExperienceWorkflowEngine {
   public queries: ExperienceQueries
   public priceResolver: BasePriceResolver
   public departureAssembler: BookableDepartureAssembler
+  public reconciliation: InventoryReconciliationService
   private eventBus: EventBus
 
   constructor(repository: ExperienceRepository | Payload, pipelineEngine?: PricingPipelineEngine) {
@@ -40,7 +42,12 @@ export class ExperienceWorkflowEngine {
     this.queries = new ExperienceQueries(this.repository)
     this.priceResolver = new BasePriceResolver()
     this.departureAssembler = new BookableDepartureAssembler(this.priceResolver)
+    this.reconciliation = new InventoryReconciliationService(this.repository.payload, this.repository)
     this.eventBus = EventBus.getInstance()
+  }
+
+  public get inventory(): InventoryManager {
+    return this.inventoryManager
   }
 
   /**

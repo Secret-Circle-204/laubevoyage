@@ -35,6 +35,7 @@ export const Reviews: CollectionConfig = {
       type: 'relationship',
       relationTo: 'bookings',
       required: true,
+      unique: true,
     },
     {
       name: 'rating',

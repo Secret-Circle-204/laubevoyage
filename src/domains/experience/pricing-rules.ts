@@ -34,7 +34,7 @@ export class PricingRuleEngine {
 
     // 2. Weekend Surge Pricing (10% surge on Friday and Saturday departures)
     const departureDate = new Date(context.bookingDate)
-    const dayOfWeek = departureDate.getDay() // 0 = Sun, 5 = Fri, 6 = Sat
+    const dayOfWeek = departureDate.getUTCDay() // 0 = Sun, 5 = Fri, 6 = Sat
     if (dayOfWeek === 5 || dayOfWeek === 6) {
       const surgeAmount = Math.round(currentSubtotal * 0.1)
       currentSubtotal += surgeAmount

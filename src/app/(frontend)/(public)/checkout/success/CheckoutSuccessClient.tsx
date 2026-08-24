@@ -14,7 +14,7 @@ export function CheckoutSuccessClient({
   transactionId,
   bookingNumber,
 }: CheckoutSuccessClientProps) {
-  const [status, setStatus] = useState<'pending' | 'confirmed' | 'failed' | 'timeout'>('pending')
+  const [status, setStatus] = useState<'pending' | 'confirmed' | 'failed' | 'timeout' | 'review'>('pending')
   const [pollCount, setPollCount] = useState<number>(0)
   const [confirmedBookingNumber, setConfirmedBookingNumber] = useState<string | undefined>(
     bookingNumber,
@@ -65,7 +65,14 @@ export function CheckoutSuccessClient({
 
         if (res.success && res.status) {
           const currentStatus = res.status.toLowerCase()
-          if (currentStatus === 'confirmed' || currentStatus === 'paid') {
+          if (currentStatus === 'pending_admin_review') {
+            setStatus('review')
+            if (res.bookingNumber) {
+              setConfirmedBookingNumber(res.bookingNumber)
+            }
+            isPollingRef.current = false
+            return
+          } else if (currentStatus === 'confirmed' || currentStatus === 'paid') {
             setStatus('confirmed')
             if (res.bookingNumber) {
               setConfirmedBookingNumber(res.bookingNumber)
@@ -213,6 +220,47 @@ export function CheckoutSuccessClient({
                 >
                   <Button variant="accent" size="lg" className="w-full font-bold">
                     View Booking Voucher →
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {status === 'review' && (
+            <div className="space-y-6 py-4 animate-in fade-in zoom-in duration-300">
+              <div className="w-20 h-20 rounded-full bg-amber-500/10 border-2 border-amber-500 text-amber-500 flex items-center justify-center mx-auto text-4xl shadow-lg shadow-amber-500/20">
+                ⚡
+              </div>
+
+              <div>
+                <Badge variant="warning" size="md" className="mb-2">
+                  REQUEST SUBMITTED
+                </Badge>
+                <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Awaiting Approval
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                  Your booking request is submitted and awaiting administrator review. We will contact you shortly to confirm the reservation.
+                </p>
+              </div>
+
+              <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-sm text-left space-y-2">
+                <div className="flex justify-between">
+                   <span className="text-slate-500">Booking Reference:</span>
+                   <span className="font-mono font-bold text-[#00aeef]">
+                     #{confirmedBookingNumber}
+                   </span>
+                </div>
+                <div className="flex justify-between">
+                   <span className="text-slate-500">Status:</span>
+                   <span className="font-bold text-amber-500 uppercase">Pending Admin Review</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link href="/dashboard/bookings" className="w-full">
+                  <Button variant="accent" size="lg" className="w-full font-bold">
+                    Go to Customer Dashboard →
                   </Button>
                 </Link>
               </div>

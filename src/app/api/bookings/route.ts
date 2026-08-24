@@ -11,9 +11,27 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const departure = body.slotId
-      ? await services.experience.resolveBookableDepartureBySlot(Number(body.experienceId), Number(body.slotId))
-      : await services.experience.resolveBookableDepartureWithoutSlot(Number(body.experienceId))
+    let slotId: number | undefined = body.slotId ? Number(body.slotId) : undefined
+    if (!slotId) {
+      if (!body.date || !body.startTime) {
+        return NextResponse.json(
+          { error: 'Departure slotId (or explicit date and startTime) is required to create a booking.' },
+          { status: 400 },
+        )
+      }
+      const concreteSlot = await services.experience.getOrCreateDailyDeparture(
+        Number(body.experienceId),
+        body.date,
+        body.startTime,
+      )
+      slotId = concreteSlot.id
+    }
+
+    if (!slotId) {
+      return NextResponse.json({ error: 'Failed to resolve departure slot.' }, { status: 400 })
+    }
+
+    const departure = await services.experience.resolveBookableDepartureBySlot(Number(body.experienceId), slotId)
 
     const bookingId = await services.booking.create({
       userId: Number(user.id),

@@ -20,13 +20,6 @@ export class PaymentUrlBuilder {
     const base = params.baseUrl.replace(/\/$/, '')
     const gateway = params.gatewayId.toLowerCase()
 
-    if (gateway === 'bnpl' || gateway === 'manual') {
-      return {
-        successUrl: `${base}/booking/confirmation/${params.bookingNumber}`,
-        cancelUrl: `${base}/checkout/${params.bookingNumber}`,
-      }
-    }
-
     // Default Hosted Gateway Redirect (Stripe, Paymob, etc.)
     return {
       successUrl: `${base}/checkout/success?tx=${params.transactionId}&bookingNumber=${params.bookingNumber}`,

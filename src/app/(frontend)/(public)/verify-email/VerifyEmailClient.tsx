@@ -9,14 +9,16 @@ import { verifyEmailAction } from '@/application/actions/customer-actions'
 interface VerifyEmailClientProps {
   token?: string
   email?: string
+  welcomeBonus?: number
 }
 
 type StatusState = 'loading' | 'success' | 'already_verified' | 'failed'
 
-export default function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
+export default function VerifyEmailClient({ token, email, welcomeBonus }: VerifyEmailClientProps) {
   const { addToast } = useToast()
   const [status, setStatus] = useState<StatusState>(token ? 'loading' : 'success')
   const [errorMessage, setErrorMessage] = useState('')
+  const hasBonus = typeof welcomeBonus === 'number' && welcomeBonus > 0
 
   useEffect(() => {
     if (!token) return
@@ -41,7 +43,9 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
             addToast({
               type: 'success',
               title: 'Email Verified!',
-              description: 'Account activated successfully! 100 loyalty points awarded!',
+              description: hasBonus
+                ? `Account activated successfully! ${welcomeBonus} loyalty points awarded!`
+                : 'Account activated successfully!',
             })
           }
         } else {
@@ -67,7 +71,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
     return () => {
       isMounted = false
     }
-  }, [token, email, addToast])
+  }, [token, email, addToast, hasBonus, welcomeBonus])
 
   // If no token, show the standard "Check your email" instruction page
   if (!token) {
@@ -85,7 +89,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
             Verify Your Email
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-            We sent a verification link to {email ? <strong>{email}</strong> : 'your email address'}. Please check your inbox and click the link to activate your traveler profile and claim your <strong>100 Welcome Points</strong>.
+            We sent a verification link to {email ? <strong>{email}</strong> : 'your email address'}. Please check your inbox and click the link to activate your traveler profile{hasBonus ? <> and claim your <strong>{welcomeBonus} Welcome Points</strong></> : '.'}
           </p>
 
           <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
@@ -124,13 +128,15 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
               ✅
             </div>
             <Badge variant="accent" size="sm" className="mb-3">
-              🎉 100 Welcome Points Awarded
+              {hasBonus ? `🎉 ${welcomeBonus} Welcome Points Awarded` : '🎉 Account Activated'}
             </Badge>
             <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Email Verified!
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-              Your email is verified and your luxury traveler profile is now active. Your 100 bonus loyalty points are available in your ledger.
+              {hasBonus
+                ? `Your email is verified and your luxury traveler profile is now active. Your ${welcomeBonus} bonus loyalty points are available in your ledger.`
+                : 'Your email is verified and your luxury traveler profile is now active.'}
             </p>
             <div className="mt-8">
               <Link href="/login">

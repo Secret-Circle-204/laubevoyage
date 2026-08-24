@@ -46,6 +46,7 @@ describe('Layer 12: Checkout & Expiration Lifecycle Regression Tests', () => {
       customerId: 5,
       experienceId: 12,
       pricingSnapshot: { basePriceEGP: 5000, displayCurrency: 'EGP', displayAmount: 5000 },
+      paymentWindowExpiresAt: new Date(Date.now() - 60000).toISOString(),
       capacityHold: {
         status: 'expired',
         expiresAt: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
@@ -62,7 +63,7 @@ describe('Layer 12: Checkout & Expiration Lifecycle Regression Tests', () => {
     })
 
     expect(result.success).toBe(false)
-    expect(result.error).toContain('hold expired')
+    expect(result.error).toMatch(/payment window expired|hold expired/i)
   })
 
   it('should enforce central BookingPolicy.canConfirm and mark metadata flags upon payment after hold expiry', async () => {
@@ -73,6 +74,7 @@ describe('Layer 12: Checkout & Expiration Lifecycle Regression Tests', () => {
       customerId: 5,
       experienceId: 12,
       pricingSnapshot: { basePriceEGP: 5000, displayCurrency: 'EGP', displayAmount: 5000 },
+      paymentWindowExpiresAt: new Date(Date.now() - 60000).toISOString(),
       capacityHold: {
         status: 'expired',
         expiresAt: new Date(Date.now() - 60000).toISOString(),

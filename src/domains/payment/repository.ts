@@ -20,14 +20,22 @@ export class PaymentRepository {
    * Start a database transaction.
    */
   async beginTransaction(): Promise<string | number | null> {
-    return this.payload.db.beginTransaction()
+    if (this.payload?.db && typeof this.payload.db.beginTransaction === 'function') {
+      return this.payload.db.beginTransaction()
+    }
+    return null
   }
 
   /**
    * Commit a database transaction.
    */
   async commitTransaction(transactionID: string | number | null): Promise<void> {
-    if (transactionID !== null && transactionID !== undefined) {
+    if (
+      transactionID !== null &&
+      transactionID !== undefined &&
+      this.payload?.db &&
+      typeof this.payload.db.commitTransaction === 'function'
+    ) {
       await this.payload.db.commitTransaction(transactionID)
     }
   }
@@ -36,7 +44,12 @@ export class PaymentRepository {
    * Rollback a database transaction.
    */
   async rollbackTransaction(transactionID: string | number | null): Promise<void> {
-    if (transactionID !== null && transactionID !== undefined) {
+    if (
+      transactionID !== null &&
+      transactionID !== undefined &&
+      this.payload?.db &&
+      typeof this.payload.db.rollbackTransaction === 'function'
+    ) {
       await this.payload.db.rollbackTransaction(transactionID)
     }
   }

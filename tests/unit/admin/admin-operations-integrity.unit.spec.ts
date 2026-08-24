@@ -17,7 +17,8 @@ describe('Admin Operations Integrity & Data-Truth Invariants', () => {
   let adminService: AdminService
 
   const staffAdmin: AdminUserEntity = {
-    id: 'staff_1',
+    id: 1,
+    fullName: 'Staff Admin',
     email: 'staff@laube.com',
     role: 'super_admin',
     status: 'active',

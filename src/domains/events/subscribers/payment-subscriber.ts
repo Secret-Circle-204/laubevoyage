@@ -1,7 +1,7 @@
 import type { Payload } from 'payload'
 import { BookingStatus, RequestContext } from '@/types'
 import { EventBus } from '../event-bus'
-import type { PaymentCompletedEvent } from '../payment-events'
+import type { PaymentCompletedEvent, PaymentRefundedEvent } from '../payment-events'
 import { getDomainServices } from '../../factory'
 import { PayloadInboxRepository } from '../repositories/payload-inbox-repository'
 import { BookingPolicy } from '../../booking/policy'
@@ -120,8 +120,7 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
           metadata.reconciliationNotes = 'payment_received_after_expiry_or_hold_expired'
 
           // Transition directly to PAYMENT_RECEIVED_AFTER_EXPIRY without holding/releasing capacity or confirming
-          await booking.update(Number(bookingId), {
-            status: BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY,
+          await booking.transitionStatus(Number(bookingId), BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY, {
             paymentAttempts: updatedAttempts,
             metadata,
           }, context)
@@ -144,10 +143,84 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
           await payload.db.commitTransaction(transactionID)
           console.log(`[BookingPaymentSubscriber] ✅ Transaction committed successfully for Booking #${bookingId}.`);
         }
+      } catch (err: unknown) {
+        if (transactionID) await payload.db.rollbackTransaction(transactionID)
+        console.error(`[BookingPaymentSubscriber] ❌ Transaction failed for event ${event.eventId as string}:`, err)
+        throw err
+      }
+    },
+  )
 
-        // 4. POST-COMMIT DOMAIN EVENT DISPATCH: Publish event ONLY AFTER successful commit!
-        const { booking: bookingDomain } = await getDomainServices()
-        await bookingDomain.publishBookingConfirmedEvent(confirmedBooking)
+  eventBus.subscribe<PaymentRefundedEvent>(
+    'PAYMENT_REFUNDED',
+    'BookingPaymentSubscriber.onPaymentRefunded',
+    async (event) => {
+      const subscriberName = 'BookingPaymentSubscriber.onPaymentRefunded'
+
+      if (!event.eventId) {
+        throw new Error(
+          '[BookingPaymentSubscriber] PaymentRefundedEvent missing required eventId.',
+        )
+      }
+
+      console.log(`[BookingPaymentSubscriber] 💸 PAYMENT_REFUNDED received for Booking #${event.bookingId}. Amount: ${event.amountRefunded} ${event.currency}.`);
+
+      const transactionID = await payload.db.beginTransaction()
+      const req = { transactionID } as any
+      const context: RequestContext = { transactionId: transactionID }
+      try {
+        const acquired = await inboxRepo.tryAcquire(event.eventId as string, subscriberName, req)
+        if (!acquired) {
+          if (transactionID) await payload.db.rollbackTransaction(transactionID)
+          console.log(
+            `[BookingPaymentSubscriber] Idempotency Guard: Event ${event.eventId as string} already processed by ${subscriberName}. Skipping.`,
+          )
+          return
+        }
+
+        const bookingId = event.bookingId
+        const { booking, payment } = await getDomainServices()
+
+        // 1. Load current booking state inside the active transaction context
+        const currentBooking = await booking.getById(Number(bookingId), context)
+
+        // If booking is already refunded or cancelled, skip
+        if (currentBooking.status === BookingStatus.REFUNDED || currentBooking.status === BookingStatus.CANCELLED) {
+          console.log(`[BookingPaymentSubscriber] Booking #${bookingId} is already in state '${currentBooking.status}'. Skipping.`);
+          if (transactionID) await payload.db.commitTransaction(transactionID)
+          return
+        }
+
+        // 2. Fetch payment transactions for this booking to calculate if this is a FULL refund
+        const tx = await payment.getByTransactionId(event.transactionId)
+        if (!tx) {
+          throw new Error(`[BookingPaymentSubscriber] Transaction ${event.transactionId} not found.`)
+        }
+
+        // Let's sum the successful attempts vs refunded attempts
+        const successfulAmount = tx.attempts
+          .filter((a: any) => a.status === 'successful' && a.amount > 0)
+          .reduce((sum: number, a: any) => sum + a.amount, 0)
+
+        const refundedAmount = tx.attempts
+          .filter((a: any) => a.status === 'successful' && a.amount < 0)
+          .reduce((sum: number, a: any) => sum + Math.abs(a.amount), 0)
+
+        // In this codebase, because any refund transaction sets the status to 'refunded', it represents a FULL refund (as partial refund logic is not yet active).
+        const isFullRefund = tx.status === 'refunded' || (successfulAmount > 0 && refundedAmount >= successfulAmount)
+
+        if (isFullRefund) {
+          console.log(`[BookingPaymentSubscriber] Transaction status is 'refunded'. Processing FULL refund for Booking #${bookingId}...`);
+          // Execute refund workflow in Booking Domain
+          await booking.refund(Number(bookingId), { id: 'system', type: 'system', name: 'Refund Worker' }, context)
+        } else {
+          console.log(`[BookingPaymentSubscriber] Transaction status is '${tx.status}' (not 'refunded'). Skipping booking status transition for partial refund.`);
+        }
+
+        if (transactionID) {
+          await payload.db.commitTransaction(transactionID)
+          console.log(`[BookingPaymentSubscriber] ✅ Transaction committed successfully for Booking #${bookingId} refund processing.`);
+        }
       } catch (err: unknown) {
         if (transactionID) await payload.db.rollbackTransaction(transactionID)
         console.error(`[BookingPaymentSubscriber] ❌ Transaction failed for event ${event.eventId as string}:`, err)

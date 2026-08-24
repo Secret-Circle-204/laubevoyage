@@ -53,6 +53,13 @@ export class BookingService {
   }
 
   /**
+   * Move booking to pending admin review status.
+   */
+  async moveToPendingAdminReview(bookingId: number, context?: RequestContext): Promise<void> {
+    await this.workflowEngine.executePendingAdminReviewWorkflow(bookingId, context)
+  }
+
+  /**
    * Mark as paid (called by PaymentService webhook adapter).
    */
   async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, context?: RequestContext): Promise<void> {
@@ -65,8 +72,20 @@ export class BookingService {
   /**
    * Confirm booking after successful payment.
    */
-  async confirm(bookingId: number, _paymentId?: string, context?: RequestContext): Promise<BookingAggregate> {
-    return this.workflowEngine.executeConfirmationWorkflow(bookingId, undefined, context)
+  async confirm(
+    bookingId: number,
+    actor?: Actor,
+    context?: RequestContext,
+    paymentAttempts?: PaymentAttempt[],
+  ): Promise<BookingAggregate> {
+    return this.workflowEngine.executeConfirmationWorkflow(bookingId, actor, context, paymentAttempts)
+  }
+
+  /**
+   * Retrieve Booking Repository instance for administrative operations.
+   */
+  getRepository(): BookingRepository {
+    return this.repository
   }
 
   /**
@@ -79,15 +98,22 @@ export class BookingService {
   /**
    * Cancel booking with reason and actor tracking.
    */
-  async cancel(bookingId: number, reason: string, actor?: Actor): Promise<void> {
-    await this.workflowEngine.executeCancellationWorkflow(bookingId, actor, reason)
+  async cancel(bookingId: number, reason: string, actor?: Actor, context?: RequestContext): Promise<void> {
+    await this.workflowEngine.executeCancellationWorkflow(bookingId, actor, reason, context)
+  }
+
+  /**
+   * Refund booking after payment refund.
+   */
+  async refund(bookingId: number, actor?: Actor, context?: RequestContext): Promise<void> {
+    await this.workflowEngine.executeRefundWorkflow(bookingId, actor, context)
   }
 
   /**
    * Complete booking after trip ends.
    */
-  async complete(bookingId: number): Promise<void> {
-    await this.workflowEngine.executeCompletionWorkflow(bookingId)
+  async complete(bookingId: number, context?: RequestContext): Promise<void> {
+    await this.workflowEngine.executeCompletionWorkflow(bookingId, undefined, context)
   }
 
   /**
@@ -178,6 +204,18 @@ export class BookingService {
    */
   async update(bookingId: number, data: Partial<BookingAggregate>, context?: RequestContext): Promise<BookingAggregate> {
     return this.repository.update(bookingId, data, context)
+  }
+
+  /**
+   * Transition booking status with validation and optimistic concurrency guard.
+   */
+  async transitionStatus(
+    bookingId: number,
+    toStatus: BookingStatus,
+    data: Record<string, unknown> = {},
+    context?: RequestContext
+  ): Promise<BookingAggregate> {
+    return this.repository.transitionStatus(bookingId, toStatus, data, context)
   }
 
   /**

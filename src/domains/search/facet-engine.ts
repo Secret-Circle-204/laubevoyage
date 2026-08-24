@@ -27,7 +27,9 @@ export class SearchFacetEngine {
 
     for (const item of items) {
       categoryCounts[item.category] = (categoryCounts[item.category] || 0) + 1
-      durationCounts[item.durationDays] = (durationCounts[item.durationDays] || 0) + 1
+      if (typeof item.durationDays === 'number' && item.durationDays > 0) {
+        durationCounts[item.durationDays] = (durationCounts[item.durationDays] || 0) + 1
+      }
       ratingCounts[item.rating] = (ratingCounts[item.rating] || 0) + 1
     }
 

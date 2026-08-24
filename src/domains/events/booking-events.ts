@@ -4,28 +4,24 @@ import type { BaseDomainEvent } from './event-bus'
 export interface BookingCreatedEvent extends BaseDomainEvent {
   type: 'BOOKING_CREATED'
   booking: BookingAggregate
-  customerEmail: string
   actor: Actor
 }
 
 export interface BookingPaidEvent extends BaseDomainEvent {
   type: 'BOOKING_PAID'
   booking: BookingAggregate
-  customerEmail: string
   actor: Actor
 }
 
 export interface BookingConfirmedEvent extends BaseDomainEvent {
   type: 'BOOKING_CONFIRMED'
   booking: BookingAggregate
-  customerEmail: string
   actor: Actor
 }
 
 export interface BookingCancelledEvent extends BaseDomainEvent {
   type: 'BOOKING_CANCELLED'
   booking: BookingAggregate
-  customerEmail: string
   actor: Actor
   reason: string
 }
@@ -33,7 +29,6 @@ export interface BookingCancelledEvent extends BaseDomainEvent {
 export interface BookingCompletedEvent extends BaseDomainEvent {
   type: 'BOOKING_COMPLETED'
   booking: BookingAggregate
-  customerEmail: string
   actor: Actor
 }
 

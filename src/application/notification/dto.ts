@@ -34,8 +34,16 @@ export interface TierUpgradedEmailDTO {
   bonusGranted?: number
 }
 
+export interface LoyaltyEarnedEmailDTO {
+  customerId: number
+  points: number
+  balance?: number
+  bookingId?: number
+}
+
 export type EmailNotificationDTO =
   | { templateId: 'welcome_email'; data: WelcomeEmailDTO }
   | { templateId: 'booking_confirmation'; data: BookingConfirmationEmailDTO }
   | { templateId: 'payment_receipt'; data: PaymentReceiptEmailDTO }
   | { templateId: 'tier_upgraded'; data: TierUpgradedEmailDTO }
+  | { templateId: 'loyalty_earned'; data: LoyaltyEarnedEmailDTO }

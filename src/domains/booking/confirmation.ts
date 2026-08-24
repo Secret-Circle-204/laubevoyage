@@ -9,6 +9,8 @@ import { PaymentAttemptsService } from './payment-attempts'
 import { EventBus } from '../events/event-bus'
 import { EventOutboxService } from '../events/outbox'
 import { validateTransition } from './state-machine'
+import type { ExperienceService } from '../experience/service'
+import type { LoyaltyService } from '../loyalty/service'
 
 /**
  * Booking Confirmation Sub-Service
@@ -16,10 +18,18 @@ import { validateTransition } from './state-machine'
  */
 export class BookingConfirmation {
   private repository: BookingRepository
+  private experienceService: ExperienceService
+  private loyaltyService: LoyaltyService
   private eventBus: EventBus
 
-  constructor(repository: BookingRepository) {
+  constructor(
+    repository: BookingRepository,
+    experienceService: ExperienceService,
+    loyaltyService: LoyaltyService,
+  ) {
     this.repository = repository
+    this.experienceService = experienceService
+    this.loyaltyService = loyaltyService
     this.eventBus = EventBus.getInstance()
   }
 
@@ -58,8 +68,7 @@ export class BookingConfirmation {
     })
 
     // Persist paid status in repository (inside transaction)
-    return this.repository.update(bookingId, {
-      status: BookingStatus.PAID,
+    return this.repository.transitionStatus(bookingId, BookingStatus.PAID, {
       paymentId: paymentAttempt.transactionReference || paymentAttempt.attemptId,
       paymentAttempts: updatedAttempts,
       timeline: updatedTimeline,
@@ -70,7 +79,12 @@ export class BookingConfirmation {
   /**
    * Commit capacity reservations, points, and transition to CONFIRMED.
    */
-  async confirm(bookingId: number, actor?: Actor, context?: RequestContext): Promise<BookingAggregate> {
+  async confirm(
+    bookingId: number,
+    actor?: Actor,
+    context?: RequestContext,
+    paymentAttempts?: PaymentAttempt[],
+  ): Promise<BookingAggregate> {
     console.log(`[BookingConfirmation] 🚀 confirm called for Booking #${bookingId}.`);
     const booking = await this.repository.findById(bookingId, context)
 
@@ -87,6 +101,54 @@ export class BookingConfirmation {
     }
 
     const currentActor: Actor = actor || { id: 'system', type: 'system', name: 'Booking Confirmation Service' }
+
+    // Commit capacity in database for Fixed Packages with physical departure slots
+    let departureId = booking.capacityHold?.departureId
+    const slotId = booking.departureSlot
+    if (!departureId && typeof this.experienceService?.getDepartureSlotById === 'function' && slotId) {
+      const slot = await this.experienceService.getDepartureSlotById(slotId, booking.experienceId)
+      if (slot) {
+        departureId = slot.departureId
+      }
+    }
+
+    const hasSlotOrHold = !!(booking.capacityHold || slotId)
+    if (hasSlotOrHold && !departureId) {
+      throw new Error(`[BookingConfirmation] FATAL: Cannot confirm Booking #${bookingId} without resolving authoritative departureId. Inventory commitment is mandatory.`)
+    }
+
+    if (departureId && this.experienceService && typeof this.experienceService.commitCapacity === 'function') {
+      const seatsToCommit = booking.capacityHold?.seats || (Array.isArray(booking.travelers) && booking.travelers.length > 0 ? booking.travelers.length : undefined)
+      if (!seatsToCommit) {
+        throw new Error(`[BookingConfirmation] FATAL: Cannot confirm Booking #${bookingId} without valid traveler count.`)
+      }
+      await this.experienceService.commitCapacity(
+        departureId,
+        seatsToCommit,
+        context,
+      )
+    }
+
+    // Redeem pointHold points discount idempotently inside transaction context
+    if (booking.pointHold && booking.pointHold.status === 'held') {
+      if (typeof this.loyaltyService?.getBookingLedgerEntries === 'function') {
+        const existingEntries = await this.loyaltyService.getBookingLedgerEntries(booking.id, context)
+        if (!existingEntries.some((e) => e.type === 'redeem')) {
+          if (typeof this.loyaltyService?.redeemPoints === 'function') {
+            await this.loyaltyService.redeemPoints(
+              booking.customerId,
+              booking.pointHold.pointsHeld,
+              booking.id,
+              booking.pricingSnapshot.totalAmountEGP,
+              'Booking point discount redemption',
+              undefined,
+              context,
+            )
+            console.log(`[BookingConfirmation] Redeemed ${booking.pointHold.pointsHeld} points for Booking #${booking.id} in ledger.`)
+          }
+        }
+      }
+    }
 
     // Commit holds
     const committedCapacity = booking.capacityHold
@@ -110,26 +172,47 @@ export class BookingConfirmation {
       newValue: BookingStatus.CONFIRMED,
     })
 
-    // Update repository
-    const confirmedBooking = await this.repository.update(bookingId, {
-      status: BookingStatus.CONFIRMED,
+    const updateData: Record<string, any> = {
       capacityHold: committedCapacity,
       pointHold: committedPointHold,
       timeline: updatedTimeline,
       auditTrail: updatedAudit,
+    }
+    if (paymentAttempts) {
+      updateData.paymentAttempts = paymentAttempts
+    }
+
+    // Update repository
+    const confirmedBooking = await this.repository.transitionStatus(bookingId, BookingStatus.CONFIRMED, updateData, context)
+
+    // ATOMIC IN-TRANSACTION OUTBOX RECORDING:
+    // Records BOOKING_CONFIRMED event into Transactional Outbox inside active DB transaction (context.transactionId)
+    // BEFORE commit, guaranteeing zero crash inconsistency.
+    const outboxService = EventOutboxService.getInstance()
+    await outboxService.record({
+      eventId: `evt_bk_conf_${booking.id}_${Date.now()}`,
+      correlationId: `corr_${booking.id}`,
+      eventVersion: 1,
+      occurredAt: new Date().toISOString(),
+      type: 'BOOKING_CONFIRMED',
+      aggregateType: 'Booking',
+      aggregateId: String(booking.id),
+      booking: confirmedBooking,
+      actor: currentActor,
+      timestamp: new Date().toISOString(),
     }, context)
 
-    console.log(`[BookingConfirmation] 🎉 Booking #${bookingId} status updated to CONFIRMED in repository.`);
+    console.log(`[BookingConfirmation] 🎉 Booking #${bookingId} status updated to CONFIRMED and BOOKING_CONFIRMED recorded to Outbox atomically.`);
     return confirmedBooking
   }
 
   /**
-   * Post-Commit Domain Event Dispatcher:
-   * Records BOOKING_CONFIRMED event into Transactional Outbox ONLY AFTER the database transaction has committed.
+   * Domain Event Dispatcher:
+   * Records BOOKING_CONFIRMED event into Transactional Outbox.
    */
-  async publishBookingConfirmedEvent(booking: BookingAggregate, actor?: Actor): Promise<void> {
+  async publishBookingConfirmedEvent(booking: BookingAggregate, actor?: Actor, context?: RequestContext): Promise<void> {
     const currentActor: Actor = actor || { id: 'system', type: 'system', name: 'Booking Confirmation Service' }
-    console.log(`[BookingConfirmation] 📤 Recording POST-COMMIT BOOKING_CONFIRMED event into Outbox for Booking #${booking.id}...`);
+    console.log(`[BookingConfirmation] 📤 Recording BOOKING_CONFIRMED event into Outbox for Booking #${booking.id}...`);
 
     const outboxService = EventOutboxService.getInstance()
     await outboxService.record({
@@ -143,6 +226,6 @@ export class BookingConfirmation {
       booking,
       actor: currentActor,
       timestamp: new Date().toISOString(),
-    })
+    }, context)
   }
 }

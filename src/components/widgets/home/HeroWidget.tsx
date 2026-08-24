@@ -12,7 +12,7 @@ export function HeroWidget({ data }: { data: HomeHeroDTO }) {
       <div className="absolute inset-0 bg-gradient-to-b from-[#231F20] via-[#231F20]/60 to-[#231F20] z-10" />
       <div className="absolute inset-0 z-0">
         <Image
-          src={data.backgroundImageUrl || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=2070&auto=format&fit=crop"}
+          src={data.backgroundImageUrl || "/images/hero-bg.jpg"}
           alt="L'Aube Voyage Luxury Hero"
           fill
           sizes="100vw"
@@ -20,6 +20,7 @@ export function HeroWidget({ data }: { data: HomeHeroDTO }) {
           priority
         />
       </div>
+
 
       {/* Content Container */}
       <div className="relative z-20 max-w-5xl mx-auto px-4 text-center flex flex-col items-center gap-6">

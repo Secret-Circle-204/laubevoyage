@@ -4,8 +4,10 @@ import type { PricingContext, DepartureSlotEntity, ExperienceSearchQueryParams }
 import type { PricingSnapshotData } from '../currency/pipeline'
 import type { ExperienceAggregate } from './aggregate'
 import { BookableDeparture } from './bookable-departure'
-import { PricingPolicyRegistry } from './pricing-policy-registry'
+import { BlackoutPolicy } from './blackout-policy'
+import { ExperiencePolicy } from './policy'
 import type { RequestContext } from '@/types'
+import type { SlotAuditReport, SystemAuditReport, SlotReconciliationResult, SystemReconciliationResult } from './reconciliation'
 
 
 /**
@@ -76,7 +78,7 @@ export class ExperienceService {
    */
   async getCatalog(params: ExperienceSearchQueryParams) {
     const results = await this.search(params)
-    const prices = results.map((e) => e.basePriceEGP).filter((p): p is number => p !== null)
+    const prices = results.map((e) => e.price).filter((p): p is number => p !== null && p !== undefined)
     const minPrice = prices.length > 0 ? Math.min(...prices) : 0
     const maxPrice = prices.length > 0 ? Math.max(...prices) : 0
     const categories = Array.from(new Set(results.map((e) => e.type)))
@@ -111,32 +113,27 @@ export class ExperienceService {
   }
 
   /**
-   * Resolves the marketing "Starting From" price for an experience.
-   *
-   * Business Contract / Rule:
-   * 1. For catalog-priced experiences (e.g. daily tours), it returns the experience's base catalog price.
-   * 2. For departure-priced experiences (e.g. packages/cruises):
-   *    - It fetches all active (not sold-out/cancelled) departure slots that occur on or after `todayStr`.
-   *    - It resolves the price of each slot (taking slot overrides into account) and returns the minimum (cheapest) price.
-   *    - If no active slots are found, it falls back to the experience's catalog price (if available).
-   * 3. Throws an error if no price can be resolved.
-   *
-   * @param todayStr Current business date formatted as 'YYYY-MM-DD' (assumed Egyptian timezone).
-   *                 Departure dates are stored as 'YYYY-MM-DD' strings, allowing chronological comparison.
+   * Resolves the authoritative destination IANA timezone for an experience.
+   * Traverses Experience ──► City ──► Country.timezone without fallbacks.
+   */
+  async getDestinationTimezone(experienceId: number, context?: RequestContext): Promise<string> {
+    const exp = await this.getById(experienceId)
+    if (!exp || !exp.cityId) {
+      throw new Error(`[ExperienceService] Experience #${experienceId} is missing authoritative city reference to resolve timezone.`)
+    }
+    return this.repository.findTimezoneByCityId(exp.cityId, context)
+  }
+
+  /**
+   * Resolves the "Starting From" price for an experience.
+   * Business rules:
+   * 1. If active slots exist in the future, returns the minimum resolved price among them.
+   * 2. If no future slots exist, falls back to the experience catalog price.
    */
   async resolveStartingPrice(experienceId: number, todayStr: string): Promise<number> {
     const experience = await this.getById(experienceId)
     if (!experience) {
       throw new Error(`[ExperienceService] Experience with ID ${experienceId} not found.`)
-    }
-
-    const pricingSource = PricingPolicyRegistry.getSource(experience.type)
-
-    if (pricingSource === 'catalog') {
-      if (experience.basePriceEGP === undefined) {
-        throw new Error(`[ExperienceService] Experience ${experienceId} is catalog-priced but has no catalog price.`)
-      }
-      return experience.basePriceEGP
     }
 
     const slots = await this.findSlotsByExperienceId(experienceId)
@@ -150,13 +147,28 @@ export class ExperienceService {
     }
 
     if (minPrice === Number.POSITIVE_INFINITY) {
-      if (experience.basePriceEGP === undefined) {
+      if (experience.price === undefined || experience.price === null) {
         throw new Error(`[ExperienceService] Experience ${experienceId} has no available slots and no catalog price fallback.`)
       }
-      return experience.basePriceEGP
+      return experience.price
     }
 
     return minPrice
+  }
+
+
+  /**
+   * Commit reserved capacity to sold.
+   */
+  async commitCapacity(departureId: string, seats: number, context?: RequestContext): Promise<DepartureSlotEntity> {
+    return this.workflowEngine.inventoryManager.commitCapacity(departureId, seats, context)
+  }
+
+  /**
+   * Release committed capacity from sold back to available.
+   */
+  async releaseCommittedCapacity(departureId: string, seats: number, context?: RequestContext): Promise<DepartureSlotEntity> {
+    return this.workflowEngine.inventoryManager.releaseCommittedCapacity(departureId, seats, context)
   }
 
   /**
@@ -183,12 +195,71 @@ export class ExperienceService {
   async findSlotsByExperienceId(experienceId: number): Promise<DepartureSlotEntity[]> {
     const experience = await this.getById(experienceId)
     if (!experience) return []
-    const pricingSource = PricingPolicyRegistry.getSource(experience.type)
-    if (pricingSource === 'catalog') {
-      return [] // Catalog-priced experiences (daily tours) do not support departure slots
-    }
     return this.workflowEngine.queries.findSlotsByExperienceId(experienceId)
   }
+
+  /**
+   * Materializes or fetches a concrete DepartureSlot for a Daily Tour on a given date/time.
+   */
+  async getOrCreateDailyDeparture(
+    experienceId: number,
+    date: string,
+    startTime: string,
+    context?: RequestContext,
+  ): Promise<DepartureSlotEntity> {
+    if (!date || !startTime) {
+      throw new Error(`[ExperienceService] date and startTime are required for daily departure materialization.`)
+    }
+
+    const experience = await this.getById(experienceId)
+    if (!experience) {
+      throw new Error(`[ExperienceService] Experience with ID ${experienceId} not found.`)
+    }
+
+    const existingSlots = await this.workflowEngine.queries.findSlotsByExperienceId(experienceId)
+    const existing = existingSlots.find((s) => s.date === date && s.startTime === startTime)
+    if (existing) {
+      return existing
+    }
+
+    const cleanTime = startTime.replace(':', '')
+    const departureId = `DEP-${experienceId}-${date}-${cleanTime}`
+
+    // Check if slot with this departureId exists
+    const existingById = await this.getDepartureSlot(departureId, context)
+    if (existingById) {
+      return existingById
+    }
+
+    // Match schedule config
+    const schedule = experience.schedules?.find((s) => s.startTime === startTime)
+    if (!schedule) {
+      throw new Error(`[ExperienceService] Requested startTime "${startTime}" is not a configured schedule for Daily Tour #${experienceId}.`)
+    }
+    if (typeof schedule.defaultCapacity !== 'number' || schedule.defaultCapacity < 1) {
+      throw new Error(`[ExperienceService] Daily Tour #${experienceId} schedule for "${startTime}" has invalid defaultCapacity (must be >= 1).`)
+    }
+
+    const capacityTotal = schedule.defaultCapacity
+
+    return this.workflowEngine.repository.saveDepartureSlot(
+      {
+        departureId,
+        experienceId,
+        date,
+        startTime,
+        capacityTotal,
+        capacityReserved: 0,
+        capacitySold: 0,
+        capacityAvailable: capacityTotal,
+        version: 1,
+        status: 'available',
+      },
+      context,
+    )
+  }
+
+
 
   /**
    * Use Case: Resolves the bookable departure read model for a given experience and slot ID.
@@ -209,21 +280,194 @@ export class ExperienceService {
   }
 
   /**
-   * Use Case: Resolves the bookable departure read model for a given experience and date.
-   * Coordinates fetching and pure domain model assembly.
+   * Pure Read-Only Preview: Resolves the bookable departure read model for a given experience, date, and startTime
+   * with ZERO database mutations.
+   * Leverages 3 independent bookability models (Fixed Package, Daily Tour, Flexible Package).
    */
-  async resolveBookableDepartureByDate(experienceId: number, date: string): Promise<BookableDeparture> {
+  async resolvePreviewDepartureByDate(
+    experienceId: number,
+    date: string,
+    startTime: string,
+    now: Date = new Date(),
+  ): Promise<BookableDeparture> {
     const experience = await this.getById(experienceId)
     if (!experience) {
       throw new Error(`[ExperienceService] Experience with ID ${experienceId} not found.`)
     }
 
-    const slot = await this.getDepartureSlotByDate(experienceId, date)
-    if (!slot) {
-      throw new Error(`[ExperienceService] Departure slot on date ${date} not found for experience ${experienceId}.`)
+    const destinationTimezone = await this.getDestinationTimezone(experienceId)
+    const isFixedPackage = experience.type === 'package' && experience.packageMode === 'fixed_date'
+    const isFlexiblePackage = experience.type === 'package' && experience.packageMode === 'flexible_date'
+    const isDailyTour = experience.type === 'daily_tour'
+
+    // ==========================================
+    // PATH 1: Fixed Package (Physical Slot-Driven)
+    // ==========================================
+    if (isFixedPackage) {
+      const slot = await this.getDepartureSlotByDate(experienceId, date)
+      const cleanTime = startTime || slot?.startTime || undefined
+      const effectivePrice = this.workflowEngine.priceResolver.resolve(experience, slot, date, startTime)
+
+      let bookabilityStatus: 'available' | 'sold_out' | 'blacked_out' | 'cancelled' | 'past' = slot?.status || 'available'
+      if (slot) {
+        const slotCheck = ExperiencePolicy.isFixedPackageSlotBookable(
+          {
+            date: slot.date,
+            startTime: slot.startTime || undefined,
+            slotStatus: slot.status,
+            capacityAvailable: slot.capacityAvailable,
+            timezone: destinationTimezone,
+          },
+          now,
+        )
+        if (!slotCheck.allowed) {
+          if (slotCheck.code === 'DEPARTURE_IN_PAST' || slotCheck.code === 'DEPARTURE_COMPLETED') {
+            bookabilityStatus = 'past'
+          } else if (slotCheck.code === 'SLOT_SOLD_OUT') {
+            bookabilityStatus = 'sold_out'
+          }
+        }
+      } else {
+        bookabilityStatus = 'past'
+      }
+
+      return new BookableDeparture({
+        id: slot?.id,
+        experienceId: experience.id,
+        experienceTitle: experience.title,
+        experienceType: experience.type,
+        departureId: slot?.departureId || '',
+        date,
+        startTime: cleanTime,
+        effectiveBasePrice: effectivePrice,
+        capacityAvailable: slot ? slot.capacityAvailable : undefined,
+        capacityTotal: slot ? slot.capacityTotal : undefined,
+        status: bookabilityStatus,
+      })
     }
 
-    return this.workflowEngine.departureAssembler.assemble(experience, slot)
+    // ==========================================
+    // PATH 2: Flexible Package (User-Selected Start Date)
+    // ==========================================
+    if (isFlexiblePackage) {
+      const effectivePrice = this.workflowEngine.priceResolver.resolve(experience, null, date, '')
+      const blackouts = experience.blackouts || []
+      const flexCheck = ExperiencePolicy.isFlexiblePackageStartDateBookable(
+        {
+          startDate: date,
+          durationDays: experience.durationDays,
+          blackouts,
+          timezone: destinationTimezone,
+        },
+        now,
+      )
+
+      let status: 'available' | 'sold_out' | 'blacked_out' | 'cancelled' | 'past' = 'available'
+      if (!flexCheck.allowed) {
+        if (flexCheck.code === 'START_DATE_IN_PAST' || flexCheck.code === 'DEPARTURE_COMPLETED') {
+          status = 'past'
+        } else if (flexCheck.code === 'BLACKED_OUT') {
+          status = 'blacked_out'
+        }
+      }
+
+      return new BookableDeparture({
+        experienceId: experience.id,
+        experienceTitle: experience.title,
+        experienceType: experience.type,
+        departureId: `DEP-${experience.id}-${date}`,
+        date,
+        effectiveBasePrice: effectivePrice,
+        status,
+      })
+    }
+
+    // ==========================================
+    // PATH 3: Daily Tour (Daily Schedule Occurrence)
+    // ==========================================
+    if (isDailyTour) {
+      const effectivePrice = this.workflowEngine.priceResolver.resolve(experience, null, date, startTime)
+      const blackouts = experience.blackouts || []
+      const dailyCheck = ExperiencePolicy.isDailyTourDepartureBookable(
+        {
+          date,
+          startTime,
+          durationMinutes: experience.durationMinutes,
+          blackouts,
+          timezone: destinationTimezone,
+        },
+        now,
+      )
+
+      let status: 'available' | 'sold_out' | 'blacked_out' | 'cancelled' | 'past' = 'available'
+      if (!dailyCheck.allowed) {
+        if (dailyCheck.code === 'DEPARTURE_IN_PAST' || dailyCheck.code === 'DEPARTURE_COMPLETED') {
+          status = 'past'
+        } else if (dailyCheck.code === 'BLACKED_OUT') {
+          status = 'blacked_out'
+        }
+      }
+
+      return new BookableDeparture({
+        experienceId: experience.id,
+        experienceTitle: experience.title,
+        experienceType: experience.type,
+        departureId: `DEP-${experience.id}-${date}-${startTime.replace(':', '')}`,
+        date,
+        startTime,
+        effectiveBasePrice: effectivePrice,
+        status,
+      })
+    }
+
+    throw new Error(`[ExperienceService] Unsupported experience type/mode for Experience #${experienceId}`)
+  }
+
+  /**
+   * Use Case: Resolves the bookable departure read model for a given experience and date.
+   * Coordinates fetching and pure domain model assembly.
+   */
+  async resolveBookableDepartureByDate(
+    experienceId: number,
+    date: string,
+    startTime: string,
+    now: Date = new Date(),
+  ): Promise<BookableDeparture> {
+    const experience = await this.getById(experienceId)
+    if (!experience) {
+      throw new Error(`[ExperienceService] Experience with ID ${experienceId} not found.`)
+    }
+
+    const destinationTimezone = await this.getDestinationTimezone(experienceId)
+    const isFixedPackage = experience.type === 'package' && experience.packageMode === 'fixed_date'
+    const isFlexiblePackage = experience.type === 'package' && experience.packageMode === 'flexible_date'
+    const isDailyTour = experience.type === 'daily_tour'
+
+    if (isFlexiblePackage) {
+      const preview = await this.resolvePreviewDepartureByDate(experienceId, date, '', now)
+      if (preview.status !== 'available') {
+        throw new Error(`[ExperienceService] Cannot book flexible package on start date ${date}: Status is ${preview.status}`)
+      }
+      return preview
+    }
+
+    if (isDailyTour) {
+      const preview = await this.resolvePreviewDepartureByDate(experienceId, date, startTime, now)
+      if (preview.status !== 'available') {
+        throw new Error(`[ExperienceService] Cannot book daily tour on ${date} at ${startTime}: Status is ${preview.status}`)
+      }
+      return preview
+    }
+
+    if (isFixedPackage) {
+      const slot = await this.getDepartureSlotByDate(experienceId, date)
+      if (!slot) {
+        throw new Error(`[ExperienceService] Departure slot on date ${date} not found for experience ${experienceId}.`)
+      }
+      return this.workflowEngine.departureAssembler.assemble(experience, slot)
+    }
+
+    throw new Error(`[ExperienceService] Unsupported experience type for Experience #${experienceId}`)
   }
 
   /**
@@ -249,30 +493,30 @@ export class ExperienceService {
   }
 
   /**
-   * Use Case: Resolves a virtual bookable departure for catalog-priced or fallback experiences
-   * where no slot is currently selected/available.
+   * Phase 1: Pure Read-Only Audit of a Departure Slot against Bookings & Holds.
    */
-  async resolveBookableDepartureWithoutSlot(experienceId: number): Promise<BookableDeparture> {
-    const experience = await this.getById(experienceId)
-    if (!experience) {
-      throw new Error(`[ExperienceService] Experience with ID ${experienceId} not found.`)
-    }
+  async auditSlot(slotId: number, context?: RequestContext): Promise<SlotAuditReport> {
+    return this.workflowEngine.reconciliation.auditSlot(slotId, context)
+  }
 
-    if (experience.basePriceEGP === undefined) {
-      throw new Error(`[ExperienceService] Experience ${experienceId} has no available slots and no catalog price fallback.`)
-    }
+  /**
+   * Phase 1 (Bulk): Audit all departure slots in the database.
+   */
+  async auditAllSlots(context?: RequestContext): Promise<SystemAuditReport> {
+    return this.workflowEngine.reconciliation.auditAllSlots(context)
+  }
 
-    return new BookableDeparture({
-      experienceId: experience.id,
-      experienceTitle: experience.title,
-      experienceType: experience.type,
-      departureId: '',
-      date: '',
-      startTime: '',
-      basePriceEGP: experience.basePriceEGP,
-      capacityAvailable: 0,
-      capacityTotal: 0,
-      status: 'sold_out',
-    })
+  /**
+   * Phase 2: Transactional Self-Healing Reconciliation of a single slot.
+   */
+  async reconcileSlot(slotId: number, context?: RequestContext): Promise<SlotReconciliationResult> {
+    return this.workflowEngine.reconciliation.reconcileSlot(slotId, context)
+  }
+
+  /**
+   * Phase 2 (Bulk): Transactional Self-Healing Reconciliation across all departure slots.
+   */
+  async reconcileAllSlots(context?: RequestContext): Promise<SystemReconciliationResult> {
+    return this.workflowEngine.reconciliation.reconcileAllSlots(context)
   }
 }

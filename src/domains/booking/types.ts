@@ -1,5 +1,8 @@
-import type { BookingStatus, CurrencyCode } from '@/types'
+import { BookingStatus, type CurrencyCode } from '@/types'
 import type { BookableDeparture } from '../experience/bookable-departure'
+
+export { BookingStatus }
+export type { CurrencyCode }
 
 export type BookingSource = 'website' | 'admin' | 'api' | 'partner' | 'affiliate'
 
@@ -26,6 +29,8 @@ export interface CapacityHoldEntity {
   bookingId: number
   customerId: number
   experienceId: number
+  departureId?: string
+  departureSlotId?: number
   seats: number
   date: string
   createdAt: string
@@ -110,9 +115,13 @@ export interface BookingAggregate {
   status: BookingStatus
   customerId: number
   experienceId: number
+  departureSlot?: number
   travelers: TravelerInput[]
   startDate: string
   endDate: string
+  completionAt: string
+  paymentWindowExpiresAt: string
+  destinationTimezone?: string
   
   pricingSnapshot: PricingSnapshotData
   capacityHold: CapacityHoldEntity | null
@@ -137,6 +146,7 @@ export interface CreateBookingParams {
   departure: BookableDeparture
   travelers: TravelerInput[]
   endDate: string
+  completionAt?: string
   pointsToRedeem?: number
   currency?: CurrencyCode
   source: BookingSource

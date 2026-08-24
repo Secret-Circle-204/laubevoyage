@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPayload } from 'payload'
-import config from '@payload-config'
 import { getDomainServices } from '@/domains/factory'
 import { rateRegistry } from '@/domains/currency/rate-registry'
 
@@ -17,8 +15,7 @@ export async function GET(request: NextRequest) {
   const warnings: string[] = []
 
   try {
-    const payload = await getPayload({ config })
-    const { localization, destination, experience } = await getDomainServices()
+    const { localization, destination, experience, payload } = await getDomainServices()
 
     // 1. Database & Config checks
     const activeCurrenciesDocs = await payload.find({

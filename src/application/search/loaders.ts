@@ -1,4 +1,5 @@
 import { getDomainServices } from '@/domains/factory'
+import { formatExperienceDuration } from '@/domains/experience/duration-formatter'
 import type { GlobalSearchQueryDTO, GlobalSearchPageDTO, GlobalSearchResultItemDTO } from './dto'
 
 export class GlobalSearchLoader {
@@ -32,13 +33,30 @@ export class GlobalSearchLoader {
           const translatedTitle = translatedTitles[idx] || item.title || ''
           const priceResult = await localization.formatPrice(item.priceEGP || 0, ctx)
 
+          let formattedDur = ''
+          if (item.experienceType === 'package' && item.durationDays && item.durationDays >= 1) {
+            formattedDur = formatExperienceDuration({
+              type: 'package',
+              days: item.durationDays,
+              nights: item.durationNights,
+            })
+          } else if (item.experienceType === 'daily_tour' && item.durationMinutes && item.durationMinutes >= 15) {
+            formattedDur = formatExperienceDuration({
+              type: 'daily_tour',
+              durationMinutes: item.durationMinutes,
+            })
+          }
+
+          const locationParts = [item.cityName, item.countryName].filter(Boolean).join(', ')
+          const subtitleParts = [locationParts, formattedDur].filter(Boolean).join(' • ')
+
           return {
             id: item.experienceId,
             title: translatedTitle,
-            subtitle: `${item.cityName || ''}, ${item.countryName || ''} • ${item.durationDays || 1} Days`,
+            subtitle: subtitleParts,
             type: 'experience' as const,
             url: `/experiences/${item.slug}`,
-            imageUrl: item.thumbnailUrl || '/images/hero-bg.jpg',
+            imageUrl: item.thumbnailUrl || '',
             price: priceResult,
             rating: item.rating,
           }

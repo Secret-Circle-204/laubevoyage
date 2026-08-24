@@ -88,6 +88,7 @@ async function testIsolation() {
         startDate: '2026-10-01',
         endDate: '2026-10-02',
         status: 'pending_payment',
+        paymentWindowExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         bookingNumber: `TEST_ISO_${Date.now()}`,
         travelers: [{ firstName: 'Iso', lastName: 'Test', email: 'iso@test.com', phone: '000' }],
         pricingSnapshot: {

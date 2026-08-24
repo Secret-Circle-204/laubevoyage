@@ -11,7 +11,7 @@ export class MaintenanceService {
   private repository: MaintenanceRepository
   private workflowEngine: MaintenanceWorkflowEngine
 
-  constructor(repository: MaintenanceRepository, bookingService?: BookingService) {
+  constructor(repository: MaintenanceRepository, bookingService: BookingService) {
     this.repository = repository
     this.workflowEngine = new MaintenanceWorkflowEngine(repository, bookingService)
   }

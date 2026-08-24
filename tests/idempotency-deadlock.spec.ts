@@ -19,13 +19,40 @@ vi.mock('next/headers', () => ({
 
 describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
   let customerId: number
-  const experienceId = 10
-  const slotId = 1
+  let experienceId: number = 10
+  let slotId: number = 1
 
   beforeAll(async () => {
     const { booking: bookingService } = await getDomainServices()
     const payloadInstance = bookingService['repository']['payload']
     
+    // Create isolated dedicated package experience
+    try {
+      const cityRes = await payloadInstance.find({ collection: 'cities', limit: 1 })
+      const cityId = cityRes.docs.length > 0 ? cityRes.docs[0].id : 1
+
+      const newExp = await payloadInstance.create({
+        collection: 'experiences',
+        data: {
+          title: `Idempotency Test Package ${Date.now()}`,
+          slug: `idempotency-pkg-${Date.now()}`,
+          type: 'package',
+          packageMode: 'fixed_date',
+          city: cityId,
+          duration: {
+            days: 3,
+            nights: 2,
+          },
+          price: 5000,
+          availability: 'available',
+        } as any,
+      })
+      experienceId = Number(newExp.id)
+    } catch (err) {
+      console.error('[idempotency-deadlock.spec] Failed to create test experience:', err)
+      throw err
+    }
+
     // Seed customer or resolve existing
     try {
       const existing = await payloadInstance.find({
@@ -52,7 +79,39 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
       }
     } catch (err) {
       console.error(`[idempotency-deadlock.spec] Failed to seed customer:`, err)
-      customerId = 52 // fallback
+      throw err
+    }
+
+    // Seed or resolve slot
+    try {
+      const existingSlot = await payloadInstance.find({
+        collection: 'departure-slots',
+        where: { experience: { equals: experienceId } },
+        limit: 1,
+      })
+      if (existingSlot.docs.length > 0) {
+        slotId = Number(existingSlot.docs[0].id)
+      } else {
+        const doc = await payloadInstance.create({
+          collection: 'departure-slots',
+          data: {
+            departureId: `IDEMP-${experienceId}-2026-09-15-0900`,
+            experience: experienceId,
+            date: '2026-09-15',
+            startTime: '09:00',
+            capacityTotal: 20,
+            capacityReserved: 0,
+            capacitySold: 0,
+            capacityAvailable: 20,
+            version: 1,
+            status: 'available',
+          }
+        } as any)
+        slotId = Number(doc.id)
+      }
+    } catch (err) {
+      console.error(`[idempotency-deadlock.spec] Failed to seed slot:`, err)
+      throw err
     }
 
     vi.spyOn(SessionResolver, 'resolve').mockResolvedValue({
@@ -64,31 +123,33 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
       preferredCurrency: 'EGP',
       preferredLanguage: 'en'
     })
-  })
+  }, 60000)
 
   afterAll(async () => {
     const { booking: bookingService } = await getDomainServices()
     const payloadInstance = bookingService['repository']['payload']
     try {
-      await payloadInstance.delete({
-        collection: 'customers',
-        id: customerId
-      }).catch(() => null)
+      if (slotId) await payloadInstance.delete({ collection: 'departure-slots', id: slotId }).catch(() => null)
+      if (experienceId) await payloadInstance.delete({ collection: 'experiences', id: experienceId }).catch(() => null)
+      if (customerId) await payloadInstance.delete({ collection: 'customers', id: customerId }).catch(() => null)
     } catch {}
-  })
+  }, 60000)
 
   beforeEach(async () => {
-    // Reset departure slot capacity
-    const { booking: bookingService } = await getDomainServices()
-    const payloadInstance = bookingService['repository']['payload']
-    await payloadInstance.update({
-      collection: 'departure-slots',
-      id: slotId,
-      data: {
-        capacityReserved: 0,
-        capacitySold: 0
-      }
-    })
+    // Reset departure slot capacity for THIS test's slot only
+    if (!slotId) return
+    try {
+      const { booking: bookingService } = await getDomainServices()
+      const payloadInstance = bookingService['repository']['payload']
+      await payloadInstance.update({
+        collection: 'departure-slots',
+        id: slotId,
+        data: {
+          capacityReserved: 0,
+          capacitySold: 0,
+        },
+      })
+    } catch {}
   })
 
   it('Test A: should perform idempotent retries for active checkout attempts (Concurrency Recovery)', async () => {
@@ -198,6 +259,7 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
         status: 'pending_payment',
         startDate: '2026-09-15',
         endDate: '2026-09-15',
+        paymentWindowExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         pricingSnapshot: { basePriceEGP: 1000, displayCurrency: 'EGP', displayAmount: 1000, exchangeRate: 1, totalAmountEGP: 1000, subtotalEGP: 1000 },
         capacityHold: null,
         pointHold: null,
@@ -206,9 +268,9 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
       }
     })
 
-    // Execute the Expiration Workflow (we set the reaper window to 0 so all pending bookings are eligible)
-    const expiredCount = await bookingService.processExpiredBookings(0)
-    expect(expiredCount).toBeGreaterThanOrEqual(1)
+    // Execute the Expiration Workflow for this specific orphaned booking
+    const orphanedAggregate = await bookingService.getById(orphanedDoc.id)
+    await (bookingService as any).workflowEngine.expiration.expireBookingWithRetry(orphanedAggregate)
 
     // Verify the booking is now EXPIRED in the database (no longer pending_payment)
     const updatedDoc = await payloadInstance.findByID({
@@ -227,31 +289,35 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
   it('Test D: should prevent recovery or reuse of expired/corrupted bookings (Recovery Guard)', async () => {
     const { booking: bookingService } = await getDomainServices()
 
-    // 1. Mock expired/corrupted booking aggregate (capacityHold null)
+    // 1. Mock corrupted booking aggregate (capacityHold released/invalid)
     const corruptedBooking = {
       id: 999,
       customerId,
       experienceId,
       startDate: '2026-09-15',
       status: BookingStatus.PENDING_PAYMENT,
-      capacityHold: null
+      paymentWindowExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      capacityHold: {
+        status: 'released',
+      },
     } as unknown as BookingAggregate
 
     const resCorrupted = BookingPolicy.canReuseForCheckout(corruptedBooking, customerId, experienceId, '2026-09-15')
     expect(resCorrupted.allowed).toBe(false)
     expect(resCorrupted.code).toBe('BOOKING_CORRUPTED')
 
-    // 2. Mock expired booking aggregate (capacityHold status expired)
+    // 2. Mock expired booking aggregate (payment window expired)
     const expiredBooking = {
       id: 998,
       customerId,
       experienceId,
       startDate: '2026-09-15',
       status: BookingStatus.EXPIRED,
+      paymentWindowExpiresAt: new Date(Date.now() - 1000).toISOString(),
       capacityHold: {
         status: 'expired',
-        expiresAt: new Date(Date.now() - 1000).toISOString()
-      }
+        expiresAt: new Date(Date.now() - 1000).toISOString(),
+      },
     } as unknown as BookingAggregate
 
     const resExpired = BookingPolicy.canReuseForCheckout(expiredBooking, customerId, experienceId, '2026-09-15')

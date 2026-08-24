@@ -45,7 +45,33 @@ export class DestinationRepository {
     })
   }
 
+  async findCityById(cityId: number, _options?: DestinationQueryOptions) {
+    try {
+      const doc = await this.payload.findByID({
+        collection: 'cities',
+        id: cityId,
+        depth: 1, // Populates parent country
+      })
+      return doc || null
+    } catch {
+      return null
+    }
+  }
+
+  async findCountryById(countryId: number, _options?: DestinationQueryOptions) {
+    try {
+      const doc = await this.payload.findByID({
+        collection: 'countries',
+        id: countryId,
+      })
+      return doc || null
+    } catch {
+      return null
+    }
+  }
+
   async findCityBySlug(slug: string, _options?: DestinationQueryOptions) {
+
     const result = await this.payload.find({
       collection: 'cities',
       where: {

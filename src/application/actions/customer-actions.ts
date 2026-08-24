@@ -6,6 +6,7 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
+import { DomainException } from '@/domains/shared/exceptions/domain-exception'
 
 export interface RegisterFormData {
   email: string
@@ -65,21 +66,12 @@ export async function loginCustomerAction(email: string, password?: string) {
 
     const { customer } = await getDomainServices()
 
-    // 1. Verify credentials via Customer Domain Service
-    const loginResult = await customer.loginWithPassword(email, password)
+    // Authenticate and execute post-auth rules within the Customer Domain
+    const { user, token } = await customer.loginWithPassword(email, password)
 
-    if (!loginResult || !loginResult.user || !loginResult.token) {
-      return { success: false, error: 'Invalid email or password' }
-    }
-
-    const customerId = loginResult.user.customerId
-
-    // 2. Execute Domain post-authentication policies and activity log
-    const customerAccount = await customer.onCustomerAuthenticated(customerId)
-
-    // 3. Set HTTP-only session cookie
+    // Set HTTP-only session cookie
     const cookieStore = await cookies()
-    cookieStore.set('payload-token', loginResult.token, {
+    cookieStore.set('payload-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -88,26 +80,18 @@ export async function loginCustomerAction(email: string, password?: string) {
 
     return {
       success: true,
-      customerId: customerAccount.customerId,
-      email: customerAccount.email,
-      fullName: customerAccount.fullName,
+      customerId: user.customerId,
+      email: user.email,
+      fullName: user.fullName,
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Customer login failed'
-
-    // Call domain service to increment failed login attempts, unless account was already locked
-    if (!message.toLowerCase().includes('locked')) {
-      try {
-        const { customer } = await getDomainServices()
-        await customer.handleFailedLogin(email)
-      } catch (err) {
-        console.error('[loginCustomerAction] Error tracking failed login:', err)
-      }
-    }
+    const code = error instanceof DomainException ? error.code : undefined
 
     return {
       success: false,
       error: message,
+      code,
     }
   }
 }

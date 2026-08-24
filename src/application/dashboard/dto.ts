@@ -1,5 +1,5 @@
 import type { ConvertedPrice } from '@/domains/currency/types'
-import { LoyaltyTier } from '@/types'
+import { LoyaltyTier, type BookingStatus } from '@/types'
 
 export interface CustomerBookingCardDTO {
   id: number
@@ -7,7 +7,7 @@ export interface CustomerBookingCardDTO {
   experienceTitle: string
   experienceImage: string
   departureDate: string
-  status: 'confirmed' | 'pending' | 'completed' | 'cancelled'
+  status: BookingStatus
   passengersCount: number
   totalCost: ConvertedPrice
 }

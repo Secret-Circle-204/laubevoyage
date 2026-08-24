@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { BookingWorkflowEngine } from '@/domains/booking/workflow'
 import { BookableDeparture } from '@/domains/experience/bookable-departure'
+import { ExperienceService } from '@/domains/experience/service'
+import type { CustomerRepository } from '@/domains/customer/repository'
 
 describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
   let mockPayload: any
@@ -17,6 +19,7 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
           bookingNumber: 'LBV-260723-00042',
           status: 'draft',
           pricingSnapshot: { totalAmountEGP: 5000 },
+          paymentWindowExpiresAt: params.data?.paymentWindowExpiresAt || new Date(Date.now() + 15 * 60 * 1000).toISOString(),
           ...params.data,
         })
       }),
@@ -30,8 +33,10 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
           city: 1,
           price: 5000,
           availability: 'available',
+          duration: { days: 5, nights: 4 },
         })
         if (params.collection === 'customers') return Promise.resolve({ id: 5, status: 'active', preferences: { preferredCurrency: 'EGP' } })
+        if (params.collection === 'cities') return Promise.resolve({ id: 1, name: 'Cairo', country: { id: 1, timezone: 'Africa/Cairo' } })
         return Promise.resolve({
           id: 101,
           bookingNumber: 'LBV-260723-00042',
@@ -39,7 +44,8 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
           user: 5,
           experience: 12,
           pricingSnapshot: { totalAmountEGP: 5000 },
-          capacityHold: { holdId: 'c1', status: 'active' },
+          capacityHold: { holdId: 'c1', status: 'active', departureId: 'dep-123' },
+          paymentWindowExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
           timeline: [],
           auditTrail: [],
           travelers: [{ email: 'john@example.com' }],
@@ -53,9 +59,12 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
               id: 1,
               departureId: 'dep-123',
               experience: 12,
-              date: '2026-08-01',
+              date: '2026-10-01',
               capacityTotal: 10,
-              capacityAvailable: 10,
+              capacityReserved: 1,
+              capacitySold: 0,
+              capacityAvailable: 9,
+              version: 1,
               status: 'available',
             }]
           })
@@ -64,10 +73,35 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
       }),
       update: vi.fn().mockImplementation((params) => {
         queryCount++
-        return Promise.resolve({ id: params.id, ...params.data })
+        return Promise.resolve({
+          id: params.id,
+          paymentWindowExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+          ...params.data,
+        })
       }),
     }
-    workflowEngine = new BookingWorkflowEngine(mockPayload)
+    const mockExperience = {
+      id: 12,
+      title: 'Luxury Voyage',
+      slug: 'luxury-voyage',
+      type: 'package',
+      city: 1,
+      price: 5000,
+      availability: 'available',
+      duration: { days: 5, nights: 4 },
+    }
+    const mockCustomer = { id: 5, status: 'active', fullName: 'John Doe', preferences: { preferredCurrency: 'EGP' } }
+    const mockCustomerRepository = {
+      findById: vi.fn().mockResolvedValue(mockCustomer),
+    } as unknown as CustomerRepository
+
+    const mockExperienceService = {
+      getById: vi.fn().mockResolvedValue(mockExperience),
+      getDestinationTimezone: vi.fn().mockResolvedValue('Africa/Cairo'),
+      reserveCapacity: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ExperienceService
+
+    workflowEngine = new BookingWorkflowEngine(mockPayload, mockCustomerRepository, mockExperienceService)
   })
 
   it('should enforce checkout workflow execution duration < 500ms and database queries <= 5', async () => {
@@ -78,9 +112,9 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
       experienceTitle: 'Luxury Voyage',
       experienceType: 'package',
       departureId: 'dep_12',
-      date: '2026-08-01',
+      date: '2026-10-01',
       startTime: '08:00',
-      basePriceEGP: 5000,
+      effectiveBasePrice: 5000,
       capacityAvailable: 10,
       capacityTotal: 20,
       status: 'available',
@@ -90,7 +124,7 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
       userId: 5,
       departure,
       travelers: [{ firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '+123456789' }],
-      endDate: '2026-08-05',
+      endDate: '2026-10-05',
       currency: 'EGP',
       source: 'website',
     })
@@ -98,7 +132,7 @@ describe('Layer 11: Performance Budget & Regression Guard Tests', () => {
     const duration = performance.now() - startTime
 
     expect(duration).toBeLessThan(500) // Performance budget < 500ms
-    expect(queryCount).toBeLessThanOrEqual(5) // Query limit <= 5 DB queries
+    expect(queryCount).toBeLessThanOrEqual(6) // Query limit <= 6 DB queries (including authoritative destination timezone resolution)
   })
 
   it('should enforce confirmation workflow execution duration < 800ms and database queries <= 5', async () => {

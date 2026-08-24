@@ -27,3 +27,34 @@ export class UnauthorizedDomainException extends DomainException {
     super(reason, 'UNAUTHORIZED', 403)
   }
 }
+
+export class AuthenticationFailedException extends DomainException {
+  constructor(message: string = 'Invalid email or password', code: string = 'INVALID_CREDENTIALS', statusCode: number = 401) {
+    super(message, code, statusCode)
+  }
+}
+
+export class AccountLockedException extends DomainException {
+  constructor(message: string = 'Account is temporarily locked. Please try again later.') {
+    super(message, 'ACCOUNT_LOCKED', 429)
+  }
+}
+
+export class AccountSuspendedException extends DomainException {
+  constructor(message: string = 'Your account has been suspended. Please contact support.') {
+    super(message, 'ACCOUNT_SUSPENDED', 403)
+  }
+}
+
+export class AccountDeletedException extends DomainException {
+  constructor(message: string = 'This account has been deleted.') {
+    super(message, 'ACCOUNT_DELETED', 403)
+  }
+}
+
+export class EmailNotVerifiedException extends DomainException {
+  constructor(message: string = 'Please verify your email address before logging in.') {
+    super(message, 'EMAIL_NOT_VERIFIED', 403)
+  }
+}
+

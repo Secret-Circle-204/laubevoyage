@@ -3,8 +3,11 @@
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import type { CurrencyCode, RequestContext } from '@/types'
+import type { BookableDeparture } from '@/domains/experience/bookable-departure'
 import { cookies } from 'next/headers'
 import { BookingPolicy } from '@/domains/booking/policy'
+import { PaymentAttemptsService } from '@/domains/booking/payment-attempts'
+import { addDaysToDateString } from '@/lib/date'
 
 /**
  * Orchestrator Server Action to process the checkout submit flow.
@@ -15,6 +18,8 @@ export async function confirmCheckoutAction(params: {
   bookingId: string // 'new' or actual booking number
   experienceId: number
   slotId?: number
+  date?: string
+  startTime?: string
   adults: number
   travelers: Array<{ firstName: string; lastName: string; email: string; phone: string }>
   gatewayId: string
@@ -33,9 +38,15 @@ export async function confirmCheckoutAction(params: {
 
     const { booking, experience, payment, localization, payload } = await getDomainServices()
 
-    const cookieStore = await cookies()
-    const cookieLocale = cookieStore.get('laube-locale')?.value
-    const cookieCurrency = cookieStore.get('laube-currency')?.value
+    let cookieLocale: string | undefined
+    let cookieCurrency: string | undefined
+    try {
+      const cookieStore = await cookies()
+      cookieLocale = cookieStore.get('laube-locale')?.value
+      cookieCurrency = cookieStore.get('laube-currency')?.value
+    } catch {
+      // In unit/integration tests without Next.js request store
+    }
 
     // Single Source of Truth: Resolve currency on server from Localization Domain (Fail-Fast)
     const localeCtx = await localization.buildContext({
@@ -50,19 +61,69 @@ export async function confirmCheckoutAction(params: {
     let targetBookingId: number = 0
     let bookingNumber: string = ''
 
-
-
     if (params.bookingId === 'new') {
-      // 1. Resolve slot dates & details first
-      const departure = params.slotId
-        ? await experience.resolveBookableDepartureBySlot(params.experienceId, params.slotId)
-        : await experience.resolveBookableDepartureWithoutSlot(params.experienceId)
+      let departure: any = null
+
+      const expDoc = await experience.getById(params.experienceId)
+      if (!expDoc) {
+        return { success: false, error: 'Experience not found' }
+      }
+
+      const isFixedPackage = expDoc.type === 'package' && ((expDoc as any).packageMode === 'fixed_date' || (!(expDoc as any).packageMode && params.slotId))
+      const isFlexiblePackage = expDoc.type === 'package' && (expDoc as any).packageMode === 'flexible_date'
+      const isDailyTour = expDoc.type === 'daily_tour'
+
+      if (isDailyTour) {
+        if (!params.date) {
+          return { success: false, error: 'Date is required for daily tour checkout' }
+        }
+        if (!params.startTime) {
+          return { success: false, error: 'Start time is required for daily tour checkout' }
+        }
+        departure = await experience.resolvePreviewDepartureByDate(params.experienceId, params.date, params.startTime)
+        if (!departure) {
+          return { success: false, error: `Departure on date ${params.date} at ${params.startTime} not found` }
+        }
+      } else if (isFlexiblePackage) {
+        if (!params.date) {
+          return { success: false, error: 'Start date is required for flexible package checkout' }
+        }
+        departure = await experience.resolvePreviewDepartureByDate(params.experienceId, params.date, '')
+        if (!departure) {
+          return { success: false, error: `Departure on date ${params.date} not found` }
+        }
+      } else if (isFixedPackage) {
+        if (!params.slotId) {
+          return { success: false, error: 'Departure slot is required for fixed package checkout' }
+        }
+        departure = await experience.resolveBookableDepartureBySlot(params.experienceId, params.slotId)
+        if (!departure) {
+          return { success: false, error: `Departure slot #${params.slotId} not found` }
+        }
+      } else {
+        return { success: false, error: 'Invalid experience type for checkout' }
+      }
+
+      if (departure.status === 'past') {
+        return { success: false, error: 'The selected departure has already passed and cannot be booked.', code: 'DEPARTURE_IN_PAST' }
+      }
+
+      if (departure.status === 'blacked_out') {
+        return { success: false, error: 'The selected date is currently unavailable for booking.', code: 'BLACKED_OUT' }
+      }
 
       // 0. Idempotency Key Fast Path check (before transaction)
       if (params.idempotencyKey) {
         const existing = await booking.getByIdempotencyKey(params.idempotencyKey)
         if (existing) {
-          const policyRes = BookingPolicy.canReuseForCheckout(existing, userId, params.experienceId, departure.date)
+          const policyRes = BookingPolicy.canReuseForCheckout(
+            existing,
+            userId,
+            params.experienceId,
+            departure.date,
+            serverCurrency,
+            params.gatewayId
+          )
           
           if (policyRes.allowed) {
             console.log(`[confirmCheckoutAction] Fast Path: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`)
@@ -70,29 +131,28 @@ export async function confirmCheckoutAction(params: {
             bookingNumber = existing.bookingNumber
             
             if (existing.status === 'draft') {
-              await booking.moveToPendingPayment(existing.id)
+              if (params.gatewayId === 'bnpl') {
+                await booking.moveToPendingAdminReview(existing.id)
+              } else {
+                await booking.moveToPendingPayment(existing.id)
+              }
             }
           } else {
             if (policyRes.code === 'BOOKING_EXPIRED' || policyRes.code === 'BOOKING_CANCELLED' || policyRes.code === 'BOOKING_RESOLVED') {
               return { success: false, error: policyRes.reason, code: policyRes.code }
             }
-            return { success: false, error: `Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but identity does not match. Details: ${policyRes.reason}`, code: 'IDEMPOTENCY_CONFLICT' }
+            return { success: false, error: `Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but details do not match. Details: ${policyRes.reason}`, code: 'IDEMPOTENCY_CONFLICT' }
           }
         }
       }
 
       if (!targetBookingId) {
-        // 2. Fetch experience to get duration
-        const expDoc = await experience.getById(params.experienceId)
-        if (!expDoc) {
-          return { success: false, error: 'Experience not found' }
+        // 3. Compute endDate strictly via calendar arithmetic
+        let endDateStr = departure.date
+        if (expDoc.type === 'package' && expDoc.durationDays && expDoc.durationDays > 0) {
+          endDateStr = addDaysToDateString(departure.date, expDoc.durationDays - 1)
         }
 
-        // 3. Compute endDate
-        const start = new Date(departure.date)
-        const duration = expDoc.durationDays || 1
-        const end = new Date(start.getTime() + (duration - 1) * 24 * 60 * 60 * 1000)
-        const endDateStr = end.toISOString().split('T')[0]
 
         // Start database transaction
         const activeTx = await payload.db.beginTransaction()
@@ -114,8 +174,12 @@ export async function confirmCheckoutAction(params: {
             idempotencyKey: params.idempotencyKey,
           }, context)
 
-          // 5. Move draft booking to pending payment state inside transaction
-          await booking.moveToPendingPayment(targetBookingId, context)
+          // 5. Move draft booking to next state inside transaction
+          if (params.gatewayId === 'bnpl') {
+            await booking.moveToPendingAdminReview(targetBookingId, context)
+          } else {
+            await booking.moveToPendingPayment(targetBookingId, context)
+          }
 
           // Commit database transaction
           await payload.db.commitTransaction(transactionID)
@@ -132,7 +196,14 @@ export async function confirmCheckoutAction(params: {
             console.log(`[confirmCheckoutAction] Checking recovery for idempotency key: ${params.idempotencyKey}`)
             const existing = await booking.getByIdempotencyKey(params.idempotencyKey)
             if (existing) {
-              const policyRes = BookingPolicy.canReuseForCheckout(existing, userId, params.experienceId, departure.date)
+              const policyRes = BookingPolicy.canReuseForCheckout(
+                existing,
+                userId,
+                params.experienceId,
+                departure.date,
+                serverCurrency,
+                params.gatewayId
+              )
               
               if (policyRes.allowed) {
                 console.log(`[confirmCheckoutAction] Concurrency Recovered: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`)
@@ -141,13 +212,17 @@ export async function confirmCheckoutAction(params: {
                 
                 if (existing.status === 'draft') {
                   // Run status transition outside the dead transaction context
-                  await booking.moveToPendingPayment(existing.id)
+                  if (params.gatewayId === 'bnpl') {
+                    await booking.moveToPendingAdminReview(existing.id)
+                  } else {
+                    await booking.moveToPendingPayment(existing.id)
+                  }
                 }
               } else {
                 if (policyRes.code === 'BOOKING_EXPIRED' || policyRes.code === 'BOOKING_CANCELLED' || policyRes.code === 'BOOKING_RESOLVED') {
                   return { success: false, error: policyRes.reason, code: policyRes.code }
                 }
-                throw new Error(`[confirmCheckoutAction] Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but identity does not match. Details: ${policyRes.reason}`)
+                throw new Error(`[confirmCheckoutAction] Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but details do not match. Details: ${policyRes.reason}`)
               }
             } else {
               throw err
@@ -166,9 +241,13 @@ export async function confirmCheckoutAction(params: {
       targetBookingId = bookingDoc.id
       bookingNumber = bookingDoc.bookingNumber
 
-      // Move to pending payment state if it is in draft
+      // Move to next state if it is in draft
       if (bookingDoc.status === 'draft') {
-        await booking.moveToPendingPayment(bookingDoc.id)
+        if (params.gatewayId === 'bnpl') {
+          await booking.moveToPendingAdminReview(bookingDoc.id)
+        } else {
+          await booking.moveToPendingPayment(bookingDoc.id)
+        }
       }
     }
 
@@ -299,6 +378,188 @@ export async function checkBookingStatusAction(params: { transactionId?: string;
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Status check failed',
+    }
+  }
+}
+
+/**
+ * Server Action: Admin Confirm Booking with optional cash/deposit recording.
+ * Requires admin/super_admin privileges and runs inside a single database transaction.
+ */
+export async function confirmAdminBookingAction(params: {
+  bookingId: number
+  depositAmount?: number
+  currency?: string
+}) {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin')) {
+      return { success: false, error: 'Unauthorized. Admin access required.' }
+    }
+
+    const { booking, payload } = await getDomainServices()
+    const repository = booking.getRepository()
+
+    // Start transaction
+    const transactionId = await repository.beginTransaction()
+    if (transactionId === null) {
+      throw new Error('Failed to initiate transaction.')
+    }
+    const context: RequestContext = { transactionId }
+
+    try {
+      // 1. Fetch fresh booking inside transaction
+      const bookingDoc = await repository.findById(params.bookingId, context)
+      if (bookingDoc.status !== 'pending_admin_review') {
+        throw new Error(`Booking is not in pending_admin_review status. Current status: ${bookingDoc.status}`)
+      }
+
+      // 2. Validate deposit amount against fresh state
+      const outstandingBalance = PaymentAttemptsService.getOutstandingBalance(
+        bookingDoc.pricingSnapshot.totalAmountEGP,
+        bookingDoc.paymentAttempts
+      )
+
+      const deposit = params.depositAmount || 0
+      if (deposit < 0 || deposit > outstandingBalance) {
+        throw new Error(`Invalid deposit amount. Must be between 0 and ${outstandingBalance}.`)
+      }
+
+      // 3. Record attempt inside transaction
+      let updatedAttempts = bookingDoc.paymentAttempts
+      if (deposit > 0) {
+        updatedAttempts = PaymentAttemptsService.recordAttempt(bookingDoc.paymentAttempts, {
+          provider: 'manual',
+          amount: deposit,
+          currency: params.currency || bookingDoc.pricingSnapshot.displayCurrency || 'EGP',
+          status: 'successful',
+          transactionReference: `manual_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        })
+      }
+
+      // 4. Confirm booking inside transaction
+      const confirmedBooking = await booking.confirm(
+        params.bookingId,
+        { id: session.customerId.toString(), type: 'admin', name: 'Admin Panel' },
+        context,
+        updatedAttempts
+      )
+
+      // 5. Commit transaction
+      await repository.commitTransaction(transactionId)
+
+      // 6. Post-commit event dispatch
+      try {
+        await booking.publishBookingConfirmedEvent(confirmedBooking, {
+          id: session.customerId.toString(),
+          type: 'admin',
+          name: 'Admin Panel',
+        })
+      } catch (eventErr) {
+        console.error('Failed to publish booking confirmed event post-commit:', eventErr)
+      }
+
+      return { success: true }
+    } catch (innerErr: any) {
+      await repository.rollbackTransaction(transactionId)
+      throw innerErr
+    }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Confirmation failed',
+    }
+  }
+}
+
+/**
+ * Server Action: Admin Cancel Booking.
+ * Requires admin/super_admin privileges and runs inside a single database transaction.
+ */
+export async function cancelAdminBookingAction(params: {
+  bookingId: number
+  reason?: string
+}) {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin')) {
+      return { success: false, error: 'Unauthorized. Admin access required.' }
+    }
+
+    const { booking } = await getDomainServices()
+    const repository = booking.getRepository()
+
+    const transactionId = await repository.beginTransaction()
+    if (transactionId === null) {
+      throw new Error('Failed to initiate transaction.')
+    }
+    const context: RequestContext = { transactionId }
+
+    try {
+      // 1. Fetch fresh booking inside transaction
+      const bookingDoc = await repository.findById(params.bookingId, context)
+      if (bookingDoc.status !== 'pending_admin_review') {
+        throw new Error(`Booking cannot be cancelled from current status: ${bookingDoc.status}`)
+      }
+
+      // 2. Cancel booking inside transaction
+      await booking.cancel(
+        params.bookingId,
+        params.reason || 'Cancelled by admin review',
+        { id: session.customerId.toString(), type: 'admin', name: 'Admin Panel' },
+        context
+      )
+
+      await repository.commitTransaction(transactionId)
+      return { success: true }
+    } catch (innerErr: any) {
+      await repository.rollbackTransaction(transactionId)
+      throw innerErr
+    }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Cancellation failed',
+    }
+  }
+}
+
+/**
+ * Server Action: Submit booking draft for admin review.
+ * Requires admin/super_admin privileges and runs inside a single database transaction.
+ */
+export async function moveToPendingAdminReviewAction(params: {
+  bookingId: number
+}) {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin')) {
+      return { success: false, error: 'Unauthorized. Admin access required.' }
+    }
+
+    const { booking } = await getDomainServices()
+    const repository = booking.getRepository()
+
+    const transactionId = await repository.beginTransaction()
+    if (transactionId === null) {
+      throw new Error('Failed to initiate transaction.')
+    }
+    const context: RequestContext = { transactionId }
+
+    try {
+      // 1. Transition booking to pending review inside transaction
+      await booking.moveToPendingAdminReview(params.bookingId, context)
+
+      await repository.commitTransaction(transactionId)
+      return { success: true }
+    } catch (innerErr: any) {
+      await repository.rollbackTransaction(transactionId)
+      throw innerErr
+    }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Submit for review failed',
     }
   }
 }

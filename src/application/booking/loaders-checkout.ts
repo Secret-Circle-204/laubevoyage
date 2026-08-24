@@ -12,6 +12,8 @@ export class CheckoutPageLoader {
       adults?: number
       children?: number
       slotId?: number
+      date?: string
+      startTime?: string
     },
   ): Promise<CheckoutPageDTO | null> {
     try {
@@ -73,9 +75,7 @@ export class CheckoutPageLoader {
         return {
           bookingId: bookingDoc.bookingNumber,
           experienceId: expDoc.id,
-          slotId: expDoc.type === 'package'
-            ? (await experience.getDepartureSlotByDate(expDoc.id, bookingDoc.startDate))?.id || undefined
-            : undefined,
+          slotId: bookingDoc.departureSlot || undefined,
           experienceTitle: expDoc.title,
           experienceType: expDoc.type === 'daily_tour' ? 'daily_tour' : 'package',
           imageUrl,
@@ -94,26 +94,64 @@ export class CheckoutPageLoader {
       }
 
       // Handle new draft checkout
-      if (!options?.experienceId || !options?.slotId || !options?.adults) {
+      if (!options?.experienceId || !options?.adults) {
         return null
       }
 
       const expId = options.experienceId
-      const slotId = options.slotId
       const expDoc = await experience.getById(expId)
       if (!expDoc) return null
+
+      const isFixedPackage = expDoc.type === 'package' && ((expDoc as any).packageMode === 'fixed_date' || (!(expDoc as any).packageMode && options?.slotId))
+      const isFlexiblePackage = expDoc.type === 'package' && (expDoc as any).packageMode === 'flexible_date'
+      const isDailyTour = expDoc.type === 'daily_tour'
+
+      if (isDailyTour && (!options?.date || !options?.startTime)) {
+        return null
+      }
+      if (isFlexiblePackage && !options?.date) {
+        return null
+      }
+      if (isFixedPackage && !options?.slotId) {
+        return null
+      }
 
       const adultsCount = options.adults
       const childrenCount = options.children ?? 0
 
-      // Delegate pricing and snapshots orchestration to application UseCase
-      const { snapshot, subtotalPrice, totalCost, departure } = await bookingPricingUseCase.calculate({
-        experienceId: expId,
-        slotId,
-        adultsCount,
-        childrenCount,
-        ctx,
-      })
+      // Delegate pricing calculation to pure usecase
+      let calculatedPricing
+      if (isFixedPackage && options.slotId) {
+        calculatedPricing = await bookingPricingUseCase.calculate({
+          experienceId: expId,
+          slotId: options.slotId,
+          adultsCount,
+          childrenCount,
+          ctx,
+        })
+      } else if (isFlexiblePackage && options.date) {
+        calculatedPricing = await bookingPricingUseCase.calculatePreview({
+          experienceId: expId,
+          date: options.date,
+          startTime: '',
+          adultsCount,
+          childrenCount,
+          ctx,
+        })
+      } else if (isDailyTour && options.date && options.startTime) {
+        calculatedPricing = await bookingPricingUseCase.calculatePreview({
+          experienceId: expId,
+          date: options.date,
+          startTime: options.startTime,
+          adultsCount,
+          childrenCount,
+          ctx,
+        })
+      } else {
+        return null
+      }
+
+      const { snapshot, subtotalPrice, totalCost, departure } = calculatedPricing
 
       const imageUrl = expDoc.heroUrl || ''
 
@@ -132,14 +170,15 @@ export class CheckoutPageLoader {
       return {
         bookingId: 'new',
         experienceId: expId,
-        slotId: options.slotId,
+        slotId: isFixedPackage ? (options.slotId || departure.id) : undefined,
         experienceTitle: departure.experienceTitle,
         experienceType: departure.experienceType === 'daily_tour' ? 'daily_tour' : 'package',
         imageUrl,
         departureDate: departure.date,
+        startTime: departure.startTime,
         adultsCount,
         childrenCount,
-        basePricePerPersonEGP: departure.basePriceEGP,
+        basePricePerPersonEGP: departure.effectiveBasePrice,
         subtotalPrice: subtotalPrice,
         promoDiscountEGP: snapshot.promotionDiscountEGP,
         loyaltyDiscountEGP: snapshot.loyaltyDiscountEGP,

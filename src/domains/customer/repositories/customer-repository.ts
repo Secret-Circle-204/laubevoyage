@@ -4,6 +4,12 @@ import type { CustomerAggregate } from '../aggregate'
 import type { CustomerStatus } from '../types'
 import { validateCustomerStatusTransition } from '../state-machine'
 import type { Customer } from '@/payload-types'
+import {
+  DomainException,
+  AuthenticationFailedException,
+  AccountLockedException,
+  EmailNotVerifiedException,
+} from '@/domains/shared/exceptions/domain-exception'
 
 /**
  * Customer Repository
@@ -237,19 +243,30 @@ export class CustomerRepository {
   async login(
     email: string,
     password?: string,
-  ): Promise<{ user: CustomerAggregate; token: string } | null> {
+  ): Promise<{ user: CustomerAggregate; token: string }> {
     try {
       const loginResult = await this.payload.login({
         collection: 'customers',
-        data: { email, password: password || '' },
+        data: { email: email.toLowerCase(), password: password || '' },
       })
-      if (!loginResult.user || !loginResult.token) return null
+      if (!loginResult || !loginResult.user || !loginResult.token) {
+        throw new AuthenticationFailedException('Invalid email or password')
+      }
       return {
         user: this.mapDocToAggregate(loginResult.user),
         token: loginResult.token,
       }
-    } catch {
-      return null
+    } catch (err: unknown) {
+      if (err instanceof DomainException) {
+        throw err
+      }
+      const errName = (err as any)?.name || (err as any)?.constructor?.name
+      const status = (err as any)?.status
+      if (errName === 'AuthenticationError' || status === 401 || status === 403) {
+        throw new AuthenticationFailedException('Invalid email or password')
+      }
+      // Re-throw unexpected database / infrastructure errors faithfully
+      throw err
     }
   }
 

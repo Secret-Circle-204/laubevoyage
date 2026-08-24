@@ -1,6 +1,7 @@
 import { getDomainServices } from '@/domains/factory'
 import { getBusinessDateString } from '@/lib/date'
 import type { BookingAggregate } from '@/domains/booking/types'
+import { PaymentAttemptsService } from '@/domains/booking/payment-attempts'
 import type {
   CustomerPortalOverviewDTO,
   CustomerNotificationsPortalDTO,
@@ -263,8 +264,7 @@ export class CustomerPortalLoader {
 
           const exp = experiencesMap.get(b.experienceId)
           const experienceTitle = exp?.title || `Trip #${b.bookingNumber}`
-          const experienceImage =
-            (exp as any)?.heroUrl || (exp as any)?.featuredImage?.url || '/images/hero-bg.jpg'
+          const experienceImage = exp?.heroUrl || '/images/hero-bg.jpg'
 
           return {
             id: b.id,
@@ -272,8 +272,8 @@ export class CustomerPortalLoader {
             experienceTitle,
             experienceImage,
             departureDate: b.startDate,
-            status: b.status as any,
-            passengersCount: b.travelers.length || 1,
+            status: b.status,
+            passengersCount: b.travelers.length,
             totalCost: formattedCost,
           }
         }),
@@ -457,6 +457,43 @@ export class BookingDetailsLoader {
       const earnEntry = bookingLedgerEntries.find((e) => e.type === 'earn')
       if (earnEntry) pointsEarned = earnEntry.points
 
+      // Calculate and format paid amount & outstanding balance from fresh DB state
+      const totalEGP = snapshot.totalAmountEGP || snapshot.subtotalEGP || snapshot.basePriceEGP || 0
+      const paidEGP = PaymentAttemptsService.getPaidAmount(bookingDoc.paymentAttempts)
+      const outstandingEGP = PaymentAttemptsService.getOutstandingBalance(totalEGP, bookingDoc.paymentAttempts)
+
+      let formattedPaid: string
+      let formattedOutstanding: string
+
+      if (snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
+        const displayPaid = paidEGP * rate
+        const displayOutstanding = outstandingEGP * rate
+
+        const paidDto = await localization.formatAlreadyConvertedPrice(
+          displayPaid,
+          paidEGP,
+          snapshot.displayCurrency,
+          rate,
+          ctx,
+        )
+        formattedPaid = paidDto.formatted
+
+        const outstandingDto = await localization.formatAlreadyConvertedPrice(
+          displayOutstanding,
+          outstandingEGP,
+          snapshot.displayCurrency,
+          rate,
+          ctx,
+        )
+        formattedOutstanding = outstandingDto.formatted
+      } else {
+        const paidDto = await localization.formatPrice(paidEGP, ctx)
+        formattedPaid = paidDto.formatted
+
+        const outstandingDto = await localization.formatPrice(outstandingEGP, ctx)
+        formattedOutstanding = outstandingDto.formatted
+      }
+
       return {
         bookingNumber: bookingDoc.bookingNumber,
         experienceTitle,
@@ -467,6 +504,11 @@ export class BookingDetailsLoader {
         totalCost: formattedTotal,
         pointsEarned,
         status: bookingDoc.status,
+        paidAmount: formattedPaid,
+        outstandingBalance: formattedOutstanding,
+        rawPaidAmount: paidEGP,
+        rawOutstandingBalance: outstandingEGP,
+        rawTotalCost: totalEGP,
       }
     } catch (err) {
       console.error(`[BookingDetailsLoader] Error loading booking #${bookingNumber}:`, err)

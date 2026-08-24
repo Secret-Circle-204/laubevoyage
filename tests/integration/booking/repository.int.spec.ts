@@ -31,6 +31,7 @@ describe('Layer 1: BookingRepository Contract Tests', () => {
       pricingSnapshot: { totalAmountEGP: 5000, displayCurrency: 'EGP', displayAmount: 5000, basePriceEGP: 5000, subtotalEGP: 5000, exchangeRate: 1, version: 1 },
       createdAt: '2026-07-22T12:00:00.000Z',
       updatedAt: '2026-07-22T12:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T12:15:00.000Z',
     }
 
     mockPayload.create.mockResolvedValue(mockDoc)
@@ -58,6 +59,7 @@ describe('Layer 1: BookingRepository Contract Tests', () => {
       experience: 12,
       createdAt: '2026-07-22T12:00:00.000Z',
       updatedAt: '2026-07-22T12:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T12:15:00.000Z',
     }
 
     mockPayload.findByID.mockResolvedValue(mockDoc)
@@ -81,6 +83,7 @@ describe('Layer 1: BookingRepository Contract Tests', () => {
       experience: 12,
       createdAt: '2026-07-22T12:00:00.000Z',
       updatedAt: '2026-07-22T12:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T12:15:00.000Z',
     }
 
     mockPayload.update.mockResolvedValue(mockDoc)
@@ -104,6 +107,7 @@ describe('Layer 1: BookingRepository Contract Tests', () => {
       experience: 12,
       createdAt: '2026-07-22T12:00:00.000Z',
       updatedAt: '2026-07-22T12:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T12:15:00.000Z',
     }
 
     mockPayload.find.mockResolvedValue({ docs: [mockDoc] })

@@ -64,6 +64,17 @@ export class NotificationTemplateEngine {
       return { subject, body }
     }
 
+    if (templateId === 'loyalty_earned') {
+      const points = Number(templateData['points'] ?? 0)
+      const balance = templateData['balance'] !== undefined ? Number(templateData['balance']) : undefined
+      const balanceText = balance !== undefined ? (isArabic ? ` رصيدك الحالي: ${balance} نقطة.` : ` Current balance: ${balance} points.`) : ''
+      const subject = isArabic ? `تمت إضافة ${points} نقطة ولاء إلى حسابك` : `You earned ${points} loyalty points!`
+      const body = isArabic
+        ? `تهانينا! لقد حصلت على ${points} نقطة ولاء جديدة.${balanceText}`
+        : `Congratulations! You have earned ${points} new loyalty points.${balanceText}`
+      return { subject, body }
+    }
+
     throw new Error(`[NotificationTemplateEngine] Unsupported or unhandled templateId: '${templateId}'`)
   }
 }

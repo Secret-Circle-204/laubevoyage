@@ -14,8 +14,8 @@ describe('Payload Save Pipeline Integration: DepartureSlots Lifecycle', () => {
       availability: 'available',
       _slotsPayload: {
         newSlots: [
-          { date: '2026-11-01', startTime: '09:00', basePriceEGP: 12000, capacityTotal: 25 },
-          { date: '2026-11-15', startTime: '09:00', basePriceEGP: 13000, capacityTotal: 25 },
+          { date: '2026-11-01', startTime: '09:00', priceOverrideEGP: 12000, capacityTotal: 25 },
+          { date: '2026-11-15', startTime: '09:00', priceOverrideEGP: 13000, capacityTotal: 25 },
         ],
         cancelledSlotIds: [],
       },
@@ -25,7 +25,16 @@ describe('Payload Save Pipeline Integration: DepartureSlots Lifecycle', () => {
       context: {},
       payload: {
         create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: Math.floor(Math.random() * 1000), ...data })),
-        find: vi.fn(),
+        find: vi.fn().mockResolvedValue({ docs: [{ id: 2, name: 'Aswan', country: { id: 1, name: 'Egypt', timezone: 'Africa/Cairo' } }] }),
+        findByID: vi.fn().mockImplementation(({ collection, id }) => {
+          if (collection === 'cities') {
+            return Promise.resolve({ id, name: 'Aswan', country: { id: 1, name: 'Egypt', timezone: 'Africa/Cairo' } })
+          }
+          if (collection === 'countries') {
+            return Promise.resolve({ id, name: 'Egypt', timezone: 'Africa/Cairo' })
+          }
+          return Promise.resolve(null)
+        }),
         update: vi.fn(),
       },
     }
@@ -51,7 +60,7 @@ describe('Payload Save Pipeline Integration: DepartureSlots Lifecycle', () => {
       data: expect.objectContaining({
         experience: 88,
         date: '2026-11-01',
-        basePriceEGP: 12000,
+        priceOverrideEGP: 12000,
         capacityTotal: 25,
       }),
       req,
@@ -61,7 +70,7 @@ describe('Payload Save Pipeline Integration: DepartureSlots Lifecycle', () => {
       data: expect.objectContaining({
         experience: 88,
         date: '2026-11-15',
-        basePriceEGP: 13000,
+        priceOverrideEGP: 13000,
         capacityTotal: 25,
       }),
       req,
@@ -73,7 +82,7 @@ describe('Payload Save Pipeline Integration: DepartureSlots Lifecycle', () => {
       title: 'Aswan Nile Cruise 4D3N (Updated)',
       _slotsPayload: {
         newSlots: [
-          { date: '2026-12-01', startTime: '10:00', basePriceEGP: 14000, capacityTotal: 20 },
+          { date: '2026-12-01', startTime: '10:00', priceOverrideEGP: 14000, capacityTotal: 20 },
         ],
         cancelledSlotIds: [10],
       },

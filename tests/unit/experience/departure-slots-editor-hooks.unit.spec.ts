@@ -7,7 +7,7 @@ describe('DepartureSlotsEditor Hooks Pipeline', () => {
     it('should extract _slotsPayload into req.context and delete it from data', () => {
       const slotsData = {
         newSlots: [
-          { date: '2026-09-01', startTime: '09:00', capacityTotal: 15, basePriceEGP: 3500 },
+          { date: '2026-09-01', startTime: '09:00', capacityTotal: 15, priceOverrideEGP: 3500 },
         ],
         cancelledSlotIds: [],
       }
@@ -61,8 +61,8 @@ describe('DepartureSlotsEditor Hooks Pipeline', () => {
       const context: any = {
         pendingSlots: {
           newSlots: [
-            { date: '2026-10-01', startTime: '08:00', basePriceEGP: 5000, capacityTotal: 10 },
-            { date: '2026-10-15', startTime: '10:00', basePriceEGP: 6000, capacityTotal: 12 },
+            { date: '2026-10-01', startTime: '08:00', priceOverrideEGP: 5000, capacityTotal: 10 },
+            { date: '2026-10-15', startTime: '10:00', priceOverrideEGP: 6000, capacityTotal: 12 },
           ],
           cancelledSlotIds: [],
         },
@@ -75,11 +75,11 @@ describe('DepartureSlotsEditor Hooks Pipeline', () => {
       expect(mockCreate).toHaveBeenNthCalledWith(1, {
         collection: 'departure-slots',
         data: {
-          departureId: 'DEP-42-2026-10-01',
+          departureId: 'DEP-42-2026-10-01-0800',
           experience: 42,
           date: '2026-10-01',
           startTime: '08:00',
-          basePriceEGP: 5000,
+          priceOverrideEGP: 5000,
           capacityTotal: 10,
           capacityReserved: 0,
           capacitySold: 0,
@@ -92,11 +92,11 @@ describe('DepartureSlotsEditor Hooks Pipeline', () => {
       expect(mockCreate).toHaveBeenNthCalledWith(2, {
         collection: 'departure-slots',
         data: {
-          departureId: 'DEP-42-2026-10-15',
+          departureId: 'DEP-42-2026-10-15-1000',
           experience: 42,
           date: '2026-10-15',
           startTime: '10:00',
-          basePriceEGP: 6000,
+          priceOverrideEGP: 6000,
           capacityTotal: 12,
           capacityReserved: 0,
           capacitySold: 0,
@@ -135,7 +135,7 @@ describe('DepartureSlotsEditor Hooks Pipeline', () => {
         collection: 'bookings',
         where: {
           departureSlot: { equals: 5 },
-          status: { in: ['paid', 'confirmed', 'pending'] },
+          status: { in: ['paid', 'confirmed', 'pending_payment', 'completed'] },
         },
         limit: 1,
         depth: 0,

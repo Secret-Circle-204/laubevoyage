@@ -4,7 +4,17 @@ export const Bookings: CollectionConfig = {
   slug: 'bookings',
   admin: {
     useAsTitle: 'bookingNumber',
-    defaultColumns: ['bookingNumber', 'user', 'experience', 'status', 'totalAmount'],
+    defaultColumns: [
+      'bookingNumber',
+      'user',
+      'experience',
+      'status',
+      'startDate',
+      'endDate',
+      'completionAt',
+      'destinationTimezone',
+      'createdAt',
+    ],
   },
   access: {
     read: ({ req: { user } }) => {
@@ -15,6 +25,7 @@ export const Bookings: CollectionConfig = {
         },
       }
     },
+    delete: () => false, // Financial/Operational Invariant: Hard delete is strictly forbidden
   },
   fields: [
     {
@@ -51,6 +62,15 @@ export const Bookings: CollectionConfig = {
       required: true,
     },
     {
+      name: 'departureSlot',
+      type: 'relationship',
+      relationTo: 'departure-slots',
+      index: true,
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'status',
       type: 'select',
       required: true,
@@ -59,6 +79,7 @@ export const Bookings: CollectionConfig = {
       options: [
         { label: 'Draft', value: 'draft' },
         { label: 'Pending Payment', value: 'pending_payment' },
+        { label: 'Pending Admin Review', value: 'pending_admin_review' },
         { label: 'Paid', value: 'paid' },
         { label: 'Confirmed', value: 'confirmed' },
         { label: 'Completed', value: 'completed' },
@@ -69,7 +90,9 @@ export const Bookings: CollectionConfig = {
       ],
       admin: {
         position: 'sidebar',
-        readOnly: true,
+        components: {
+          Field: '@/components/admin/BookingStatusField#BookingStatusField',
+        },
         description: 'Status can only be changed through BookingService',
       },
     },
@@ -112,12 +135,78 @@ export const Bookings: CollectionConfig = {
     {
       name: 'startDate',
       type: 'date',
+      label: 'Calendar Start Date',
       required: true,
+      index: true,
+      admin: {
+        components: {
+          Cell: '@/components/admin/CalendarDateCell#CalendarDateCell',
+        },
+        date: {
+          pickerAppearance: 'dayOnly',
+          displayFormat: 'yyyy-MM-dd',
+        },
+        description: 'Calendar start date of the booking (Local destination date)',
+      },
     },
     {
       name: 'endDate',
       type: 'date',
+      label: 'Calendar End Date',
       required: true,
+      index: true,
+      admin: {
+        components: {
+          Cell: '@/components/admin/CalendarDateCell#CalendarDateCell',
+        },
+        date: {
+          pickerAppearance: 'dayOnly',
+          displayFormat: 'yyyy-MM-dd',
+        },
+        description: 'Calendar end date of the booking (Identical to Start Date for Daily Tours)',
+      },
+    },
+    {
+      name: 'completionAt',
+      type: 'date',
+      label: 'Operational Completion',
+      index: true,
+      access: {
+        update: () => false,
+      },
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        components: {
+          Cell: '@/components/admin/OperationalCompletionCell#OperationalCompletionCell',
+          Field: '@/components/admin/OperationalCompletionField#OperationalCompletionField',
+        },
+        description: 'Frozen operational moment when trip execution is completed',
+      },
+    },
+    {
+      name: 'destinationTimezone',
+      type: 'text',
+      label: 'Destination Timezone',
+      access: {
+        update: () => false,
+      },
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: 'Authoritative IANA destination timezone for the booking (e.g. Africa/Cairo)',
+      },
+    },
+    {
+      name: 'paymentWindowExpiresAt',
+      type: 'date',
+      required: true,
+      index: true,
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: 'Authoritative financial deadline for payment completion (ISO timestamp)',
+      },
     },
     {
       name: 'pricingSnapshot',

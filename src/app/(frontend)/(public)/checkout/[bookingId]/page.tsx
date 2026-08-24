@@ -41,6 +41,8 @@ export default async function Page(props: {
   const experienceId = searchParams.experienceId ? Number(searchParams.experienceId) : undefined
   const adults = searchParams.adults ? Number(searchParams.adults) : undefined
   const slotId = searchParams.slotId ? Number(searchParams.slotId) : undefined
+  const date = typeof searchParams.date === 'string' ? searchParams.date : undefined
+  const startTime = typeof searchParams.startTime === 'string' ? searchParams.startTime : undefined
 
   const data = await CheckoutPageLoader.loadByBookingId(params.bookingId, {
     locale,
@@ -48,6 +50,8 @@ export default async function Page(props: {
     experienceId,
     adults,
     slotId,
+    date,
+    startTime,
   })
 
   if (!data) {

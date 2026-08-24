@@ -6,21 +6,44 @@ import type { DepartureSlotEntity } from '@/domains/experience/types'
 describe('Experience Domain: BasePriceResolver Unit Tests', () => {
   const resolver = new BasePriceResolver()
 
-  const createMockExperience = (overrides: Partial<ExperienceAggregate>): ExperienceAggregate => ({
-    id: 1,
-    title: 'Test Experience',
-    slug: 'test-experience',
-    type: 'daily_tour',
-    cityId: 101,
-    basePriceEGP: 1000,
-    availability: 'available',
-    durationDays: 1,
-    version: 1,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    ...overrides,
-  })
+  const createMockExperience = (overrides: Partial<ExperienceAggregate>): ExperienceAggregate => {
+    const isPkg = overrides.type === 'package'
+    if (isPkg) {
+      return {
+        id: 1,
+        title: 'Test Package',
+        slug: 'test-package',
+        type: 'package',
+        cityId: 101,
+        price: 1500,
+        availability: 'available',
+        duration: { days: 3, nights: 2 },
+        durationDays: 3,
+        durationNights: 2,
+        version: 1,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ...overrides,
+      } as ExperienceAggregate
+    }
+    return {
+      id: 1,
+      title: 'Test Experience',
+      slug: 'test-experience',
+      type: 'daily_tour',
+      cityId: 101,
+      price: 1000,
+      availability: 'available',
+      duration: { durationMinutes: 180 },
+      durationMinutes: 180,
+      version: 1,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...overrides,
+    } as ExperienceAggregate
+  }
 
   const createMockSlot = (overrides: Partial<DepartureSlotEntity>): DepartureSlotEntity => ({
     departureId: 'slot_1',
@@ -35,51 +58,48 @@ describe('Experience Domain: BasePriceResolver Unit Tests', () => {
     ...overrides,
   })
 
-  describe('Catalog Pricing Source (daily_tour)', () => {
-    it('should return catalog price and ignore slot price override', () => {
-      const experience = createMockExperience({ type: 'daily_tour', basePriceEGP: 1500 })
-      const slot = createMockSlot({ basePriceEGP: 2000 })
-
-      const resolvedPrice = resolver.resolve(experience, slot)
-
-      expect(resolvedPrice).toBe(1500)
-    })
-
-    it('should throw an exception if the catalog price is missing', () => {
-      const experience = createMockExperience({ type: 'daily_tour', basePriceEGP: undefined })
-      const slot = createMockSlot({ basePriceEGP: 2000 })
-
-      expect(() => resolver.resolve(experience, slot)).toThrow(
-        '[BasePriceResolver] Experience 1 is catalog-priced but has no catalog price.'
-      )
-    })
-  })
-
-  describe('Departure Pricing Source (package)', () => {
-    it('should return slot override price if present', () => {
-      const experience = createMockExperience({ type: 'package', basePriceEGP: 1500 })
-      const slot = createMockSlot({ basePriceEGP: 2500 })
+  describe('Unified Pricing Resolution (priceOverrideEGP ?? experience.price)', () => {
+    it('should return slot priceOverrideEGP when present on a package', () => {
+      const experience = createMockExperience({ type: 'package', price: 1500 })
+      const slot = createMockSlot({ priceOverrideEGP: 2500 })
 
       const resolvedPrice = resolver.resolve(experience, slot)
 
       expect(resolvedPrice).toBe(2500)
     })
 
-    it('should fall back to catalog price if slot price is missing', () => {
-      const experience = createMockExperience({ type: 'package', basePriceEGP: 1500 })
-      const slot = createMockSlot({ basePriceEGP: undefined })
+    it('should return slot priceOverrideEGP when present on a daily tour', () => {
+      const experience = createMockExperience({ type: 'daily_tour', price: 1200 })
+      const slot = createMockSlot({ priceOverrideEGP: 1600 })
+
+      const resolvedPrice = resolver.resolve(experience, slot)
+
+      expect(resolvedPrice).toBe(1600)
+    })
+
+    it('should fall back to experience.price when priceOverrideEGP is missing', () => {
+      const experience = createMockExperience({ type: 'package', price: 1500 })
+      const slot = createMockSlot({ priceOverrideEGP: undefined })
 
       const resolvedPrice = resolver.resolve(experience, slot)
 
       expect(resolvedPrice).toBe(1500)
     })
 
-    it('should throw an exception if both slot and catalog price are missing', () => {
-      const experience = createMockExperience({ type: 'package', basePriceEGP: undefined })
-      const slot = createMockSlot({ basePriceEGP: undefined })
+    it('should fall back to experience.price when slot is null or undefined', () => {
+      const experience = createMockExperience({ type: 'daily_tour', price: 1200 })
+
+      const resolvedPrice = resolver.resolve(experience, null)
+
+      expect(resolvedPrice).toBe(1200)
+    })
+
+    it('should throw an exception if neither priceOverrideEGP nor experience.price is available', () => {
+      const experience = createMockExperience({ id: 99, price: undefined as any })
+      const slot = createMockSlot({ id: 5, priceOverrideEGP: undefined })
 
       expect(() => resolver.resolve(experience, slot)).toThrow(
-        '[BasePriceResolver] Experience 1 requires pricing, but neither slot override nor catalog price was found.'
+        '[BasePriceResolver] Experience #99 has no base price and slot #5 has no priceOverrideEGP.'
       )
     })
   })

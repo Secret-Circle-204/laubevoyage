@@ -9,15 +9,15 @@ import type { BookingService } from '../booking/service'
  */
 export class MaintenanceEngine {
   private repository: MaintenanceRepository
-  private bookingService?: BookingService
+  private bookingService: BookingService
 
-  constructor(repository: MaintenanceRepository, bookingService?: BookingService) {
+  constructor(repository: MaintenanceRepository, bookingService: BookingService) {
     this.repository = repository
     this.bookingService = bookingService
   }
 
   /**
-   * Complete Finished Bookings: status == 'confirmed' AND endDate < now() in chunks of 20
+   * Complete Finished Bookings: status == 'confirmed' AND completionAt <= now() in chunks of batchSize
    */
   async completeFinishedBookings(batchSize: number): Promise<{ processedCount: number }> {
     if (batchSize === undefined || batchSize === null) {
@@ -35,11 +35,7 @@ export class MaintenanceEngine {
       }
 
       for (const doc of docs) {
-        if (this.bookingService) {
-          await this.bookingService.complete(doc.id)
-        } else {
-          await this.repository.updateBookingStatus(doc.id, 'completed')
-        }
+        await this.bookingService.complete(doc.id)
         totalProcessed++
       }
 
@@ -59,34 +55,8 @@ export class MaintenanceEngine {
     if (batchSize === undefined || batchSize === null) {
       throw new Error('[MaintenanceEngine] expireStaleDraftHolds: batchSize is required.')
     }
-    if (this.bookingService) {
-      const processedCount = await this.bookingService.processExpiredBookings()
-      const result = { processedCount }
-      return result
-    }
-
-    let totalProcessed = 0
-    let hasMore = true
-
-    while (hasMore) {
-      const docs = await this.repository.findStaleDraftBookings(batchSize)
-
-      if (docs.length === 0) {
-        hasMore = false
-        break
-      }
-
-      for (const doc of docs) {
-        await this.repository.updateBookingStatus(doc.id, 'expired')
-        totalProcessed++
-      }
-
-      if (docs.length < batchSize) {
-        hasMore = false
-      }
-    }
-
-    const result = { processedCount: totalProcessed }
+    const processedCount = await this.bookingService.processExpiredBookings()
+    const result = { processedCount }
     return result
   }
 }

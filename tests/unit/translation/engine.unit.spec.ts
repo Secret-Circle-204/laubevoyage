@@ -9,7 +9,11 @@ describe('Translation Domain: TranslationEngine Unit Tests', () => {
       saveTranslation: vi.fn().mockImplementation((r) => Promise.resolve(r)),
     }
 
-    const engine = new TranslationEngine(mockRepo)
+    const mockProvider = {
+      translateKey: vi.fn().mockResolvedValue('تم تأكيد الحجز'),
+    }
+
+    const engine = new TranslationEngine(mockRepo, mockProvider as any)
     const result = await engine.translate('booking.confirmed', 'ar')
 
     expect(result.translationKey).toBe('booking.confirmed')

@@ -29,6 +29,7 @@ describe('Security & Tenant Isolation: Booking Authorization by Query Boundary',
           },
           createdAt: '2026-08-18T10:00:00Z',
           updatedAt: '2026-08-18T10:00:00Z',
+          paymentWindowExpiresAt: '2026-08-18T10:15:00Z',
         },
       ],
     })

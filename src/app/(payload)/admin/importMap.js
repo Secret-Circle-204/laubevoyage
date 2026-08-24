@@ -21,7 +21,12 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { DurationHoursField as DurationHoursField_cfebf3e08b081faa627e9c76b4ae976d } from '@/components/admin/DurationHoursField'
 import { DepartureSlotsEditor as DepartureSlotsEditor_0a21e2f4ae31ad83e9e65f93bbccf7dc } from '@/components/admin/DepartureSlotsEditor'
+import { BookingStatusField as BookingStatusField_cf146a4a2c9b6435470a488e2d787984 } from '@/components/admin/BookingStatusField'
+import { CalendarDateCell as CalendarDateCell_792460ba378d690e0aef26d86be1a3b0 } from '@/components/admin/CalendarDateCell'
+import { OperationalCompletionCell as OperationalCompletionCell_105d161b8d42a752f14c357f9758c300 } from '@/components/admin/OperationalCompletionCell'
+import { OperationalCompletionField as OperationalCompletionField_a29e11e303c31188a365bf7983cf90cc } from '@/components/admin/OperationalCompletionField'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -49,6 +54,11 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@/components/admin/DurationHoursField#DurationHoursField": DurationHoursField_cfebf3e08b081faa627e9c76b4ae976d,
   "@/components/admin/DepartureSlotsEditor#DepartureSlotsEditor": DepartureSlotsEditor_0a21e2f4ae31ad83e9e65f93bbccf7dc,
+  "@/components/admin/BookingStatusField#BookingStatusField": BookingStatusField_cf146a4a2c9b6435470a488e2d787984,
+  "@/components/admin/CalendarDateCell#CalendarDateCell": CalendarDateCell_792460ba378d690e0aef26d86be1a3b0,
+  "@/components/admin/OperationalCompletionCell#OperationalCompletionCell": OperationalCompletionCell_105d161b8d42a752f14c357f9758c300,
+  "@/components/admin/OperationalCompletionField#OperationalCompletionField": OperationalCompletionField_a29e11e303c31188a365bf7983cf90cc,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

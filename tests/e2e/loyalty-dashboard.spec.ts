@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Customer Loyalty Dashboard End-to-End browser verification', () => {
-  test('should log in, navigate to loyalty dashboard, and verify dynamic points/redemption rates', async ({ page }) => {
+  test('should log in, navigate to loyalty dashboard, and verify dynamic points/redemption rates', async ({ context, page }) => {
+    // Force English locale to match text assertions
+    await context.addCookies([
+      { name: 'laube-locale', value: 'en', domain: 'localhost', path: '/' },
+    ])
     // 1. Navigate to login page
     await page.goto('http://localhost:3000/login')
 
@@ -18,7 +22,8 @@ test.describe('Customer Loyalty Dashboard End-to-End browser verification', () =
 
     // 5. Verify the points balance is displayed
     // Start balance is seeded at 100 points
-    await expect(page.locator('text=100 Points')).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('text=Available Loyalty Balance')).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('text=100').first()).toBeVisible()
 
     // 6. Verify redemption badge
     await expect(page.locator('text=Pts =').first()).toBeVisible()

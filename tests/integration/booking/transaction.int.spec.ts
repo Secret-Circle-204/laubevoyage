@@ -24,7 +24,7 @@ describe('Layer 6: Transaction Failure & Atomic Rollback Tests', () => {
       user: 5,
       experience: 12,
       pricingSnapshot: { totalAmountEGP: 5000 },
-      capacityHold: { holdId: 'cap_1', status: 'active' },
+      capacityHold: { holdId: 'cap_1', status: 'active', departureId: 'dep-123' },
       pointHold: { holdId: 'pt_1', status: 'held', pointsHeld: 100 },
       paymentAttempts: [{ attemptId: 'pay_1', status: 'successful' }],
       timeline: [{ stepKey: 'payment_received' }],
@@ -32,9 +32,29 @@ describe('Layer 6: Transaction Failure & Atomic Rollback Tests', () => {
       travelers: [{ email: 'john@example.com' }],
       createdAt: '2026-07-22T12:00:00.000Z',
       updatedAt: '2026-07-22T12:00:00.000Z',
+      paymentWindowExpiresAt: '2026-07-22T12:15:00.000Z',
     }
 
     mockPayload.findByID.mockResolvedValue(mockPaidBooking)
+    mockPayload.find.mockImplementation(({ collection }: { collection: string }) => {
+      if (collection === 'departure-slots') {
+        return Promise.resolve({
+          docs: [{
+            id: 1,
+            departureId: 'dep-123',
+            experience: 12,
+            date: '2026-08-01',
+            capacityTotal: 10,
+            capacityReserved: 1,
+            capacitySold: 0,
+            capacityAvailable: 9,
+            version: 1,
+            status: 'available',
+          }]
+        })
+      }
+      return Promise.resolve({ docs: [] })
+    })
 
     // Simulate catastrophic database failure during update step
     mockPayload.update.mockRejectedValue(new Error('DATABASE_TRANSACTION_ROLLBACK: Connection failure'))

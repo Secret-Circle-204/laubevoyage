@@ -7,10 +7,17 @@ async function purge() {
   console.log('--- 🧹 DATABASE PURGE UTILITY ---')
   console.log('Target tables/collections to clear:')
   console.log('- Bookings (bookings)')
-  console.log('- Customers (customers)')
+  console.log('- Experiences (experiences & sub-collections)')
+  console.log('- Departure Slots (departure_slots)')
+  console.log('- Customers (customers & sub-collections)')
+  console.log('- Dashboard Projections (dashboard_projections)')
+  console.log('- Reviews (reviews)')
+  console.log('- Payment Transactions (payment-transactions)')
   console.log('- Notifications (notification-logs)')
   console.log('- Events Inbox & Outbox (event-inbox, event-outbox)')
   console.log('- Point Ledger (point-ledger)')
+  console.log('- Maintenance Logs & Leases (maintenance-logs, maintenance-leases)')
+  console.log('- Admin Audit Logs (admin-audit-logs)')
   console.log('--------------------------------')
 
   const payload = await getPayload({ config })
@@ -31,11 +38,23 @@ async function purge() {
     // Truncate tables with CASCADE to automatically handle foreign key dependencies
     const tables = [
       'bookings',
+      'experiences',
+      'departure_slots',
+      'dashboard_projections',
+      'reviews',
       'customers',
+      'customer_addresses',
+      'customer_travelers',
+      'customer_device_sessions',
+      'customer_notification_preferences',
+      'payment_transactions',
+      'point_ledger',
       'notification_logs',
       'event_outbox',
       'event_inbox',
-      'point_ledger',
+      'maintenance_logs',
+      'maintenance_leases',
+      'admin_audit_logs',
     ]
 
     for (const table of tables) {

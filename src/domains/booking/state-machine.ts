@@ -15,8 +15,9 @@ import { BookingStatus } from '@/types'
  */
 
 const ALLOWED_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
-  [BookingStatus.DRAFT]: [BookingStatus.PENDING_PAYMENT, BookingStatus.EXPIRED, BookingStatus.CANCELLED],
-  [BookingStatus.PENDING_PAYMENT]: [BookingStatus.PAID, BookingStatus.CANCELLED, BookingStatus.EXPIRED],
+  [BookingStatus.DRAFT]: [BookingStatus.PENDING_PAYMENT, BookingStatus.EXPIRED, BookingStatus.CANCELLED, BookingStatus.PENDING_ADMIN_REVIEW],
+  [BookingStatus.PENDING_PAYMENT]: [BookingStatus.PAID, BookingStatus.CANCELLED, BookingStatus.EXPIRED, BookingStatus.PENDING_ADMIN_REVIEW],
+  [BookingStatus.PENDING_ADMIN_REVIEW]: [BookingStatus.CONFIRMED, BookingStatus.CANCELLED, BookingStatus.EXPIRED],
   [BookingStatus.PAID]: [BookingStatus.CONFIRMED, BookingStatus.REFUNDED],
   [BookingStatus.CONFIRMED]: [BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.REFUNDED],
   [BookingStatus.COMPLETED]: [],
