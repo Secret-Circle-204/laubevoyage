@@ -11,7 +11,7 @@ export class BookingPolicy {
    * Authoritative default payment window duration in minutes (15 minutes).
    * Single source of truth for payment lifecycle TTL across the domain.
    */
-  public static readonly DEFAULT_PAYMENT_WINDOW_MINUTES = 15
+  public static readonly DEFAULT_PAYMENT_WINDOW_MINUTES = 5
 
   /**
    * Authoritative admin review decision window in minutes (7 days = 10080 minutes).
@@ -241,11 +241,14 @@ export class BookingPolicy {
    * Validate if a booking is eligible for refund.
    */
   static canRefund(booking: BookingAggregate): PolicyResult {
-    if (booking.status !== BookingStatus.PAID && booking.status !== BookingStatus.CONFIRMED) {
+    const isPaidOrConfirmed = booking.status === BookingStatus.PAID || booking.status === BookingStatus.CONFIRMED
+    const isCancelledWithPaid = booking.status === BookingStatus.CANCELLED && booking.amountPaid !== undefined && booking.amountPaid > 0
+
+    if (!isPaidOrConfirmed && !isCancelledWithPaid) {
       return {
         allowed: false,
         code: 'INELIGIBLE_FOR_REFUND',
-        reason: `Only bookings in PAID or CONFIRMED state can be refunded. Current state: '${booking.status}'.`,
+        reason: `Only bookings in PAID, CONFIRMED, or CANCELLED with paid deposit can be refunded. Current state: '${booking.status}', Amount Paid: ${booking.amountPaid || 0}.`,
       }
     }
 

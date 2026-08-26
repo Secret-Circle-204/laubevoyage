@@ -1,4 +1,4 @@
-import type { NotificationJobEntity } from '../types'
+import type { NotificationJobEntity, SenderIdentity } from '../types'
 
 export interface NotificationDispatchResult {
   success: boolean
@@ -7,5 +7,5 @@ export interface NotificationDispatchResult {
 }
 
 export interface INotificationProvider {
-  send(job: NotificationJobEntity): Promise<NotificationDispatchResult>
+  send(job: NotificationJobEntity, sender?: SenderIdentity): Promise<NotificationDispatchResult>
 }

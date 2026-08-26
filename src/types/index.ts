@@ -23,10 +23,8 @@ export type BookingTransition =
   | { from: BookingStatus.DRAFT; to: BookingStatus.PENDING_PAYMENT }
   | { from: BookingStatus.DRAFT; to: BookingStatus.PENDING_ADMIN_REVIEW }
   | { from: BookingStatus.PENDING_PAYMENT; to: BookingStatus.PAID }
-  | { from: BookingStatus.PENDING_PAYMENT; to: BookingStatus.PENDING_ADMIN_REVIEW }
   | { from: BookingStatus.PENDING_ADMIN_REVIEW; to: BookingStatus.CONFIRMED }
   | { from: BookingStatus.PENDING_ADMIN_REVIEW; to: BookingStatus.CANCELLED }
-  | { from: BookingStatus.PENDING_ADMIN_REVIEW; to: BookingStatus.EXPIRED }
   | { from: BookingStatus.PAID; to: BookingStatus.CONFIRMED }
   | { from: BookingStatus.CONFIRMED; to: BookingStatus.COMPLETED }
   | { from: BookingStatus.PENDING_PAYMENT; to: BookingStatus.CANCELLED }

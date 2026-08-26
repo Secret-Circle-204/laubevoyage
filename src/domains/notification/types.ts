@@ -9,6 +9,12 @@ export interface NotificationAttachment {
   contentType: string
 }
 
+export interface SenderIdentity {
+  fromName: string
+  fromEmail: string
+  replyTo: string
+}
+
 export interface NotificationJobEntity {
   jobId: string
   referenceType: string

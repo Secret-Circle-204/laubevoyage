@@ -252,6 +252,7 @@ describe('Checkout Idempotency & Expiration Forensic Investigation', () => {
     // Manually insert an orphaned booking (status pending_payment, capacityHold null)
     const orphanedDoc = await payloadInstance.create({
       collection: 'bookings',
+      draft: true,
       data: {
         bookingNumber: `LBV-TEST-${Date.now()}`,
         user: customerId,

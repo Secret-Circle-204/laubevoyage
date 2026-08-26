@@ -29,3 +29,32 @@ export interface ProductionReadinessDTO {
   checkResults: { checkName: string; passed: boolean; message: string }[]
   timestamp: string
 }
+
+export interface RawSystemSettingsDocument {
+  vatRate?: number | null
+  pricesIncludeVat?: boolean | null
+  vatEnabled?: boolean | null
+  baseCurrency?: string | { isoCode: string } | null
+  defaultDisplayCurrency?: string | { isoCode: string } | null
+  autoSyncExchangeRates?: boolean | null
+  exchangeSyncInterval?: number | null
+  exchangeRateCacheTtl?: number | null
+  bookingNotificationEmails?: { email: string }[] | null
+  emailSenderSettings?: {
+    reservationIdentity?: {
+      fromName?: string | null
+      fromEmail?: string | null
+      replyTo?: string | null
+    } | null
+    loyaltyIdentity?: {
+      fromName?: string | null
+      fromEmail?: string | null
+      replyTo?: string | null
+    } | null
+    securityIdentity?: {
+      fromName?: string | null
+      fromEmail?: string | null
+      replyTo?: string | null
+    } | null
+  } | null
+}

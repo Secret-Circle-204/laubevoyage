@@ -8,7 +8,7 @@ import type {
   CustomerSidebarDTO,
   CustomerBookingsHistoryDTO,
 } from './dto'
-import { LoyaltyTier } from '@/types'
+import { LoyaltyTier, BookingStatus } from '@/types'
 import { TierPolicy } from '@/domains/loyalty/tier-policy'
 import { LoyaltyProgressDTOFactory } from '@/application/loyalty/progress-factory'
 
@@ -228,7 +228,10 @@ export class CustomerPortalLoader {
       // Strict Bounded Limits: Page >= 1, Limit clamped between 1 and 20 (default 10)
       const page = Math.max(1, Number(options?.page) || 1)
       const limit = Math.min(20, Math.max(1, Number(options?.limit) || 10))
-      const statusFilter = options?.status ? (options.status.toLowerCase() as any) : undefined
+      const rawStatus = options?.status ? options.status.toLowerCase() : undefined
+      const statusFilter = rawStatus === 'pending_payment'
+        ? [BookingStatus.PENDING_PAYMENT, BookingStatus.PENDING_ADMIN_REVIEW]
+        : (rawStatus as any)
 
       const bookingsResult = await booking.getUserBookings(
         customerId,
@@ -360,6 +363,12 @@ export class CustomerPortalLoader {
         } else if (log.templateId === 'loyalty_earned') {
           title = 'Loyalty Points Earned'
           text = `You earned ${log.templateData?.points || 0} loyalty points! Your current balance is ${log.templateData?.balance || 0} points.`
+        } else if (log.templateId === 'booking_pending_admin_review') {
+          title = 'Booking Request Received'
+          text = `Your booking request #${log.templateData?.bookingNumber || ''} has been received and is pending concierge review.`
+        } else if (log.templateId === 'admin_bnpl_review_alert') {
+          title = 'New BNPL Booking Review Alert'
+          text = `Action Required: New BNPL Booking request #${log.templateData?.bookingNumber || ''} is pending review.`
         }
 
         return {
@@ -457,10 +466,22 @@ export class BookingDetailsLoader {
       const earnEntry = bookingLedgerEntries.find((e) => e.type === 'earn')
       if (earnEntry) pointsEarned = earnEntry.points
 
-      // Calculate and format paid amount & outstanding balance from fresh DB state
-      const totalEGP = snapshot.totalAmountEGP || snapshot.subtotalEGP || snapshot.basePriceEGP || 0
-      const paidEGP = PaymentAttemptsService.getPaidAmount(bookingDoc.paymentAttempts)
-      const outstandingEGP = PaymentAttemptsService.getOutstandingBalance(totalEGP, bookingDoc.paymentAttempts)
+      // Read paid amount & outstanding balance from authoritative database properties
+      if (!bookingDoc.pricingSnapshot) {
+        throw new Error(`[BookingDetailsLoader] Missing required pricingSnapshot for Booking #${bookingDoc.id}`)
+      }
+      const totalEGP = bookingDoc.pricingSnapshot.totalAmountEGP
+      if (totalEGP === undefined || totalEGP === null || totalEGP < 0) {
+        throw new Error(`[BookingDetailsLoader] Invalid totalAmountEGP in pricingSnapshot for Booking #${bookingDoc.id}`)
+      }
+      const paidEGP = bookingDoc.amountPaid
+      if (paidEGP === undefined || paidEGP === null || paidEGP < 0) {
+        throw new Error(`[BookingDetailsLoader] Invalid amountPaid for Booking #${bookingDoc.id}`)
+      }
+      const outstandingEGP = bookingDoc.outstandingBalance
+      if (outstandingEGP === undefined || outstandingEGP === null || outstandingEGP < 0) {
+        throw new Error(`[BookingDetailsLoader] Invalid outstandingBalance for Booking #${bookingDoc.id}`)
+      }
 
       let formattedPaid: string
       let formattedOutstanding: string

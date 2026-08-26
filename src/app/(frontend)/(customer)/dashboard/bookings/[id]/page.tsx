@@ -48,7 +48,7 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
             ? 'success'
             : data.status === 'pending_admin_review'
             ? 'warning'
-            : 'default'
+            : 'secondary'
         } size="md">
           {data.status.replace(/_/g, ' ').toUpperCase()}
         </Badge>

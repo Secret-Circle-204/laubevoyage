@@ -52,7 +52,7 @@ export interface PointHoldEntity {
 export interface PaymentAttempt {
   attemptId: string
   attemptNumber: number
-  provider: 'stripe' | 'bnpl' | 'manual'
+  provider: 'stripe' | 'bnpl' | 'manual' | 'points' | 'invoice'
   amount: number
   currency: string
   status: 'initiated' | 'successful' | 'failed' | 'timed_out'
@@ -126,6 +126,10 @@ export interface BookingAggregate {
   pricingSnapshot: PricingSnapshotData
   capacityHold: CapacityHoldEntity | null
   pointHold: PointHoldEntity | null
+  
+  paymentStatus?: 'unpaid' | 'partially_paid' | 'paid' | 'refunded' | 'partially_refunded' | 'written_off'
+  amountPaid?: number
+  outstandingBalance?: number
   
   pointsEarned: number
   paymentId?: string

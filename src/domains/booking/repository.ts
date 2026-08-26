@@ -260,7 +260,7 @@ export class BookingRepository {
     userId: number,
     page: number = 1,
     limit: number = 10,
-    filters?: { status?: BookingStatus },
+    filters?: { status?: BookingStatus | BookingStatus[] },
     context?: RequestContext,
   ): Promise<PaginatedResponse<BookingAggregate>> {
     const req = this.mapContextToReq(context)
@@ -268,7 +268,9 @@ export class BookingRepository {
       user: { equals: userId },
     }
     if (filters?.status) {
-      where.status = { equals: filters.status }
+      where.status = Array.isArray(filters.status)
+        ? { in: filters.status }
+        : { equals: filters.status }
     }
 
     const result = await this.payload.find({
@@ -357,7 +359,6 @@ export class BookingRepository {
             or: [
               { status: { equals: 'draft' } },
               { status: { equals: 'pending_payment' } },
-              { status: { equals: 'pending_admin_review' } },
             ],
           },
           {
@@ -477,6 +478,9 @@ export class BookingRepository {
       pricingSnapshot,
       capacityHold,
       pointHold,
+      paymentStatus: (b as any).paymentStatus || 'unpaid',
+      amountPaid: (b as any).amountPaid || 0,
+      outstandingBalance: (b as any).outstandingBalance !== undefined ? (b as any).outstandingBalance : pricingSnapshot.totalAmountEGP,
       pointsEarned: b.pointsEarned || 0,
       paymentId: b.paymentId || undefined,
       notes: b.notes || undefined,

@@ -140,12 +140,12 @@ describe('Layer 2: BookingPolicy Unit Tests', () => {
   })
 
   describe('Payment Window Policy Invariants', () => {
-    it('should calculate paymentWindowExpiresAt strictly as createdAt + 15 minutes', () => {
+    it('should calculate paymentWindowExpiresAt strictly as createdAt + 5 minutes', () => {
       const createdAt = new Date('2026-08-22T10:00:00.000Z')
       const expiresAt = BookingPolicy.calculatePaymentWindowExpiresAt(createdAt)
 
-      expect(expiresAt.toISOString()).toBe('2026-08-22T10:15:00.000Z')
-      expect(expiresAt.getTime() - createdAt.getTime()).toBe(15 * 60 * 1000)
+      expect(expiresAt.toISOString()).toBe('2026-08-22T10:05:00.000Z')
+      expect(expiresAt.getTime() - createdAt.getTime()).toBe(5 * 60 * 1000)
     })
 
     it('should evaluate isPaymentWindowActive and isPaymentWindowExpired deterministically', () => {

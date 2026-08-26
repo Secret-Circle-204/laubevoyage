@@ -101,6 +101,9 @@ export class BookingRefund {
       timeline: updatedTimeline,
       auditTrail: updatedAudit,
       metadata: updatedMetadata,
+      paymentStatus: 'refunded',
+      amountPaid: 0,
+      outstandingBalance: booking.pricingSnapshot?.totalAmountEGP || 0,
     }, context)
 
     return refundedBooking

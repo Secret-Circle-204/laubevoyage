@@ -80,6 +80,107 @@ export const SystemSettings: GlobalConfig = {
       type: 'number',
       defaultValue: 15,
     },
+    {
+      name: 'bookingNotificationEmails',
+      label: 'Booking Notification Recipients',
+      type: 'array',
+      admin: {
+        description: 'Designated operational email addresses to receive new booking requests and BNPL review alerts',
+      },
+      fields: [
+        {
+          name: 'email',
+          label: 'Email Address',
+          type: 'email',
+          required: true,
+        },
+      ],
+    },
+    {
+      name: 'emailSenderSettings',
+      label: 'Email Sender Identities (Business Configuration)',
+      type: 'group',
+      admin: {
+        description: 'Configure official sender identities and reply-to destinations for business communication channels.',
+      },
+      fields: [
+        {
+          name: 'reservationIdentity',
+          label: 'Reservation & Booking Identity',
+          type: 'group',
+          fields: [
+            {
+              name: 'fromName',
+              label: 'Display Name',
+              type: 'text',
+              required: true,
+            },
+            {
+              name: 'fromEmail',
+              label: 'Sender Email Address',
+              type: 'email',
+              required: true,
+            },
+            {
+              name: 'replyTo',
+              label: 'Reply-To Email Address',
+              type: 'email',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'loyaltyIdentity',
+          label: 'Loyalty & Rewards Identity',
+          type: 'group',
+          fields: [
+            {
+              name: 'fromName',
+              label: 'Display Name',
+              type: 'text',
+              required: true,
+            },
+            {
+              name: 'fromEmail',
+              label: 'Sender Email Address',
+              type: 'email',
+              required: true,
+            },
+            {
+              name: 'replyTo',
+              label: 'Reply-To Email Address',
+              type: 'email',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'securityIdentity',
+          label: 'Security & Verification Identity (TBD / Optional)',
+          type: 'group',
+          fields: [
+            {
+              name: 'fromName',
+              label: 'Display Name',
+              type: 'text',
+              required: false,
+            },
+            {
+              name: 'fromEmail',
+              label: 'Sender Email Address',
+              type: 'email',
+              required: false,
+            },
+            {
+              name: 'replyTo',
+              label: 'Reply-To Email Address',
+              type: 'email',
+              required: false,
+            },
+          ],
+        },
+      ],
+    },
   ],
   hooks: {
     afterChange: [afterSystemSettingsChange],

@@ -127,7 +127,7 @@ export class BookingService {
    * Confirm booking from payment webhook with reference
    */
   async confirmBooking(params: { bookingId: number; paymentReference: string }): Promise<void> {
-    await this.confirm(params.bookingId, params.paymentReference)
+    await this.confirm(params.bookingId, { id: 'system', type: 'system', name: 'Payment Webhook' })
   }
 
   /**
@@ -170,7 +170,7 @@ export class BookingService {
     userId: number,
     page: number = 1,
     limit: number = 10,
-    filters?: { status?: BookingStatus },
+    filters?: { status?: BookingStatus | BookingStatus[] },
   ) {
     return this.workflowEngine.queries.getUserBookings(userId, page, limit, filters)
   }

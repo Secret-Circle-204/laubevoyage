@@ -41,9 +41,31 @@ export interface LoyaltyEarnedEmailDTO {
   bookingId?: number
 }
 
+export interface BookingPendingAdminReviewEmailDTO {
+  bookingNumber: string
+  customerName: string
+  experienceTitle?: string
+  departureDate?: string
+  passengersCount?: number
+  totalCost?: string
+}
+
+export interface AdminBnplReviewAlertEmailDTO {
+  bookingNumber: string
+  customerName: string
+  customerEmail?: string
+  experienceTitle?: string
+  departureDate?: string
+  passengersCount?: number
+  totalAmount?: string
+  adminBookingUrl?: string
+}
+
 export type EmailNotificationDTO =
   | { templateId: 'welcome_email'; data: WelcomeEmailDTO }
   | { templateId: 'booking_confirmation'; data: BookingConfirmationEmailDTO }
   | { templateId: 'payment_receipt'; data: PaymentReceiptEmailDTO }
   | { templateId: 'tier_upgraded'; data: TierUpgradedEmailDTO }
   | { templateId: 'loyalty_earned'; data: LoyaltyEarnedEmailDTO }
+  | { templateId: 'booking_pending_admin_review'; data: BookingPendingAdminReviewEmailDTO }
+  | { templateId: 'admin_bnpl_review_alert'; data: AdminBnplReviewAlertEmailDTO }

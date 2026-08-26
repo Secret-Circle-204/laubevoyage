@@ -4,7 +4,63 @@ import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import fs from 'fs'
+import util from 'util'
+
+// Intercept console outputs to write filtered booking/payment logs to a separate file
+// Get-Content -Path logs/payments-bnpl.log -Wait -Tail 50
+
+if (typeof window === 'undefined') {
+  const globalAny = globalThis as any
+  const logDir = path.resolve(process.cwd(), 'logs')
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true })
+  }
+  const logFilePath = path.resolve(logDir, 'payments-bnpl.log')
+
+  if (!globalAny.__PAYLOAD_LOG_INTERCEPTED__) {
+    globalAny.__PAYLOAD_LOG_INTERCEPTED__ = true
+    globalAny.__ORIGINAL_CONSOLE_LOG__ = console.log
+    globalAny.__ORIGINAL_CONSOLE_WARN__ = console.warn
+    globalAny.__ORIGINAL_CONSOLE_ERROR__ = console.error
+
+    // Truncate file on server boot for a clean session
+    fs.writeFileSync(logFilePath, `--- Log session started at ${new Date().toISOString()} ---\n`)
+
+    const filterTags = [
+      '[Booking',
+      '[Payment',
+      '[Cron',
+      '[Loyalty',
+      '[Reconciliation',
+      '[EventBus',
+      '[Outbox',
+      '[Stripe',
+      '[CHECKOUT ACTION',
+      '[CHECKOUT',
+      '[checkout',
+      // '[CurrencyService',
+    ]
+
+    const intercept = (original: typeof console.log, type: string) => {
+      return (...args: any[]) => {
+        original(...args)
+        const formatted = args
+          .map((arg) => (typeof arg === 'object' && arg !== null ? util.inspect(arg, { depth: null, colors: false }) : String(arg)))
+          .join(' ')
+        if (filterTags.some((tag) => formatted.includes(tag))) {
+          fs.appendFileSync(logFilePath, `[${new Date().toISOString()}] [${type}] ${formatted}\n`)
+        }
+      }
+    }
+
+    console.log = intercept(globalAny.__ORIGINAL_CONSOLE_LOG__, 'LOG')
+    console.warn = intercept(globalAny.__ORIGINAL_CONSOLE_WARN__, 'WARN')
+    console.error = intercept(globalAny.__ORIGINAL_CONSOLE_ERROR__, 'ERROR')
+  }
+}
+import { emailNotificationAdapter } from './domains/notification/providers/email-adapter'
+import { systemSettingsRegistry } from './domains/system/settings-registry'
 
 import { Users } from './collections/Users'
 import { Customers } from './collections/Customers'
@@ -100,18 +156,33 @@ export default buildConfig({
     push: process.env.NODE_ENV !== 'production' && process.env.VITEST !== 'true',
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
+  serverURL: process.env.NEXT_PUBLIC_SERVER_URL,
   sharp,
-  email: nodemailerAdapter({
-    defaultFromAddress: process.env.FROM_EMAIL!,
-    defaultFromName: process.env.FROM_NAME!,
-    transportOptions: {
-      host: process.env.SMTP_HOST!,
-      port: Number(process.env.SMTP_PORT!),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER!,
-        pass: process.env.SMTP_PASSWORD!,
-      },
+  email: () => ({
+    name: 'payload-auth-email-adapter',
+    defaultFromAddress: '',
+    defaultFromName: '',
+    sendEmail: async (message: any) => {
+      const settings = await systemSettingsRegistry.getSettings()
+      const sec = settings.emailSenderSettings?.securityIdentity
+
+      if (!sec?.fromName || !sec?.fromEmail || !sec?.replyTo) {
+        throw new Error(
+          '[PayloadAuthEmailAdapter] Security sender identity (fromName, fromEmail, replyTo) is not configured in SystemSettings SSOT. Auth email dispatch blocked.',
+        )
+      }
+
+      const fromHeader = `"${sec.fromName}" <${sec.fromEmail}>`
+      const replyTo = sec.replyTo
+
+      return emailNotificationAdapter.sendDirect({
+        from: fromHeader,
+        to: message.to,
+        replyTo,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      })
     },
   }),
   plugins: [],

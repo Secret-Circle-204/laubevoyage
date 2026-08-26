@@ -27,10 +27,14 @@ export default async function Page(props: {
   // 1. Resolve Session and enforce authentication
   const session = await SessionResolver.resolve()
   if (!session.isAuthenticated || !session.customerId) {
-    const experienceId = searchParams.experienceId || ''
-    const slotId = searchParams.slotId || ''
-    const adults = searchParams.adults || ''
-    const dest = `/checkout/${params.bookingId}?experienceId=${experienceId}&slotId=${slotId}&adults=${adults}`
+    const query = new URLSearchParams()
+    for (const [key, value] of Object.entries(searchParams)) {
+      if (value !== undefined && value !== null && value !== '') {
+        query.set(key, String(value))
+      }
+    }
+    const queryString = query.toString()
+    const dest = `/checkout/${params.bookingId}${queryString ? `?${queryString}` : ''}`
     redirect(`/login?redirect=${encodeURIComponent(dest)}`)
   }
 

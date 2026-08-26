@@ -32,10 +32,10 @@ export interface BookingCompletedEvent extends BaseDomainEvent {
   actor: Actor
 }
 
-export interface BookingExpiredEvent extends BaseDomainEvent {
-  type: 'BOOKING_EXPIRED'
+export interface BookingPendingAdminReviewEvent extends BaseDomainEvent {
+  type: 'BOOKING_PENDING_ADMIN_REVIEW'
   booking: BookingAggregate
-  reason: string
+  actor: Actor
 }
 
 export type DomainEvent =
@@ -44,4 +44,6 @@ export type DomainEvent =
   | BookingConfirmedEvent
   | BookingCancelledEvent
   | BookingCompletedEvent
-  | BookingExpiredEvent
+  | BookingPendingAdminReviewEvent
+
+

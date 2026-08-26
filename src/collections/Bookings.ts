@@ -281,6 +281,43 @@ export const Bookings: CollectionConfig = {
       },
     },
     {
+      name: 'paymentStatus',
+      type: 'select',
+      defaultValue: 'unpaid',
+      required: true,
+      options: [
+        { label: 'Unpaid', value: 'unpaid' },
+        { label: 'Partially Paid', value: 'partially_paid' },
+        { label: 'Paid', value: 'paid' },
+        { label: 'Refunded', value: 'refunded' },
+        { label: 'Partially Refunded', value: 'partially_refunded' },
+        { label: 'Written Off', value: 'written_off' },
+      ],
+      admin: {
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'amountPaid',
+      type: 'number',
+      defaultValue: 0,
+      required: true,
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'outstandingBalance',
+      type: 'number',
+      defaultValue: 0,
+      required: true,
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'capacityHold',
       type: 'json',
       admin: {

@@ -25,10 +25,17 @@ export async function confirmCheckoutAction(params: {
   gatewayId: string
   idempotencyKey?: string
 }) {
-  console.log('==============================')
-  console.log('[CHECKOUT ACTION] START')
-  console.log(params)
-  console.log('==============================')
+  console.log('[CHECKOUT ACTION] START:', {
+    bookingId: params.bookingId,
+    experienceId: params.experienceId,
+    slotId: params.slotId,
+    date: params.date,
+    startTime: params.startTime,
+    adults: params.adults,
+    travelers: params.travelers,
+    gatewayId: params.gatewayId,
+    idempotencyKey: params.idempotencyKey,
+  })
   try {
     const session = await SessionResolver.resolve()
     if (!session.isAuthenticated || !session.customerId) {
@@ -251,6 +258,23 @@ export async function confirmCheckoutAction(params: {
       }
     }
 
+    // 6. BNPL has no external payment gateway or checkout session; route directly to review checkpoint
+    if (params.gatewayId === 'bnpl') {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ''
+      const checkoutUrl = `${baseUrl}/checkout/success?bookingNumber=${bookingNumber}`
+      console.log('[CHECKOUT ACTION] BNPL Result:', {
+        bookingNumber,
+        status: 'pending_admin_review',
+        reviewUrl: `/checkout/success?bookingNumber=${bookingNumber}`,
+      })
+      return {
+        success: true,
+        transactionId: '',
+        checkoutUrl,
+        bookingNumber,
+      }
+    }
+
     // 6. Delegate to PaymentService to create gateway checkout session (reuses initiated session if active)
     const paymentRes = await payment.processPaymentCheckout({
       bookingId: targetBookingId,
@@ -258,14 +282,24 @@ export async function confirmCheckoutAction(params: {
       appUrl: process.env.NEXT_PUBLIC_APP_URL,
     })
 
+    const cleanStripeUrl = paymentRes.checkoutUrl ? paymentRes.checkoutUrl.split('#')[0] : ''
+    console.log('[CHECKOUT ACTION] Stripe Result:', {
+      bookingNumber,
+      success: paymentRes.success,
+      transactionId: paymentRes.transactionId,
+      checkoutUrl: cleanStripeUrl,
+    })
+
     return {
       ...paymentRes,
       bookingNumber,
     }
   } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Checkout processing failed'
+    console.error('[CHECKOUT ACTION] Error:', errorMsg)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Checkout processing failed',
+      error: errorMsg,
     }
   }
 }
@@ -390,14 +424,15 @@ export async function confirmAdminBookingAction(params: {
   bookingId: number
   depositAmount?: number
   currency?: string
+  instrument?: string
 }) {
   try {
     const session = await SessionResolver.resolve()
-    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin')) {
+    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
-    const { booking, payload } = await getDomainServices()
+    const { booking } = await getDomainServices()
     const repository = booking.getRepository()
 
     // Start transaction
@@ -415,25 +450,35 @@ export async function confirmAdminBookingAction(params: {
       }
 
       // 2. Validate deposit amount against fresh state
-      const outstandingBalance = PaymentAttemptsService.getOutstandingBalance(
-        bookingDoc.pricingSnapshot.totalAmountEGP,
-        bookingDoc.paymentAttempts
-      )
+      const pricingSnapshot = bookingDoc.pricingSnapshot
+      if (!pricingSnapshot) {
+        throw new Error(`[confirmAdminBookingAction] Missing required pricingSnapshot for Booking #${bookingDoc.id}`)
+      }
+      const totalAmount = pricingSnapshot.totalAmountEGP
+      if (totalAmount === undefined || totalAmount === null || totalAmount < 0) {
+        throw new Error(`[confirmAdminBookingAction] Invalid totalAmountEGP in pricingSnapshot for Booking #${bookingDoc.id}`)
+      }
+      const amountPaid = bookingDoc.amountPaid
+      if (amountPaid === undefined || amountPaid === null || amountPaid < 0) {
+        throw new Error(`[confirmAdminBookingAction] Invalid amountPaid for Booking #${bookingDoc.id}`)
+      }
+      const outstandingBalance = totalAmount - amountPaid
 
       const deposit = params.depositAmount || 0
       if (deposit < 0 || deposit > outstandingBalance) {
         throw new Error(`Invalid deposit amount. Must be between 0 and ${outstandingBalance}.`)
       }
 
-      // 3. Record attempt inside transaction
+      // 3. Record manual payment attempt if deposit is provided
       let updatedAttempts = bookingDoc.paymentAttempts
       if (deposit > 0) {
+        const ref = `manual_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
         updatedAttempts = PaymentAttemptsService.recordAttempt(bookingDoc.paymentAttempts, {
           provider: 'manual',
           amount: deposit,
-          currency: params.currency || bookingDoc.pricingSnapshot.displayCurrency || 'EGP',
+          currency: 'EGP',
           status: 'successful',
-          transactionReference: `manual_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          transactionReference: ref,
         })
       }
 
@@ -482,7 +527,7 @@ export async function cancelAdminBookingAction(params: {
 }) {
   try {
     const session = await SessionResolver.resolve()
-    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin')) {
+    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
@@ -498,7 +543,7 @@ export async function cancelAdminBookingAction(params: {
     try {
       // 1. Fetch fresh booking inside transaction
       const bookingDoc = await repository.findById(params.bookingId, context)
-      if (bookingDoc.status !== 'pending_admin_review') {
+      if (bookingDoc.status !== 'pending_admin_review' && bookingDoc.status !== 'confirmed') {
         throw new Error(`Booking cannot be cancelled from current status: ${bookingDoc.status}`)
       }
 
@@ -533,7 +578,7 @@ export async function moveToPendingAdminReviewAction(params: {
 }) {
   try {
     const session = await SessionResolver.resolve()
-    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin')) {
+    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
@@ -563,4 +608,127 @@ export async function moveToPendingAdminReviewAction(params: {
     }
   }
 }
+
+/**
+ * Server Action: Admin Record Subsequent Payment on a Confirmed Booking.
+ * Requires admin/super_admin privileges and runs inside a transaction.
+ */
+export async function recordSubsequentPaymentAction(params: {
+  bookingId: number
+  amount: number
+  instrument: string
+}) {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
+      return { success: false, error: 'Unauthorized. Admin access required.' }
+    }
+
+    const { booking } = await getDomainServices()
+    const repository = booking.getRepository()
+
+    const transactionId = await repository.beginTransaction()
+    if (transactionId === null) {
+      throw new Error('Failed to initiate transaction.')
+    }
+    const context: RequestContext = { transactionId }
+
+    try {
+      const bookingDoc = await repository.findById(params.bookingId, context)
+      if (bookingDoc.status !== 'confirmed') {
+        throw new Error(`Subsequent payment can only be recorded for confirmed bookings. Current status: ${bookingDoc.status}`)
+      }
+
+      const outstanding = bookingDoc.outstandingBalance || 0
+      if (params.amount <= 0 || params.amount > outstanding) {
+        throw new Error(`Invalid payment amount. Must be between 0 and ${outstanding}.`)
+      }
+
+      const pricingSnapshot = bookingDoc.pricingSnapshot
+      if (!pricingSnapshot) {
+        throw new Error(`[recordSubsequentPaymentAction] Missing required pricingSnapshot for Booking #${bookingDoc.id}`)
+      }
+      const totalAmountEGP = pricingSnapshot.totalAmountEGP
+      if (totalAmountEGP === undefined || totalAmountEGP === null || totalAmountEGP < 0) {
+        throw new Error(`[recordSubsequentPaymentAction] Invalid totalAmountEGP in pricingSnapshot for Booking #${bookingDoc.id}`)
+      }
+
+      const ref = `manual_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+      const updatedAttempts = PaymentAttemptsService.recordAttempt(bookingDoc.paymentAttempts, {
+        provider: 'manual',
+        amount: params.amount,
+        currency: 'EGP',
+        status: 'successful',
+        transactionReference: ref,
+      })
+
+      const paid = PaymentAttemptsService.getPaidAmount(updatedAttempts)
+      const newOutstanding = PaymentAttemptsService.getOutstandingBalance(totalAmountEGP, updatedAttempts)
+
+      await repository.update(params.bookingId, {
+        paymentAttempts: updatedAttempts,
+        amountPaid: paid,
+        outstandingBalance: newOutstanding,
+        paymentStatus: newOutstanding === 0 ? 'paid' : (paid > 0 ? 'partially_paid' : 'unpaid'),
+      }, context)
+
+      await repository.commitTransaction(transactionId)
+      return { success: true }
+    } catch (innerErr: any) {
+      await repository.rollbackTransaction(transactionId)
+      throw innerErr
+    }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to record subsequent payment',
+    }
+  }
+}
+
+
+
+/**
+ * Server Action: Admin Issue Refund.
+ * Requires admin/super_admin privileges and runs inside a transaction.
+ */
+export async function refundAdminBookingAction(params: {
+  bookingId: number
+}) {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
+      return { success: false, error: 'Unauthorized. Admin access required.' }
+    }
+
+    const { booking } = await getDomainServices()
+    const repository = booking.getRepository()
+
+    const transactionId = await repository.beginTransaction()
+    if (transactionId === null) {
+      throw new Error('Failed to initiate transaction.')
+    }
+    const context: RequestContext = { transactionId }
+
+    try {
+      await booking.refund(
+        params.bookingId,
+        { id: session.customerId.toString(), type: 'admin', name: 'Admin Panel' },
+        context
+      )
+
+      await repository.commitTransaction(transactionId)
+      return { success: true }
+    } catch (innerErr: any) {
+      await repository.rollbackTransaction(transactionId)
+      throw innerErr
+    }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Refund failed',
+    }
+  }
+}
+
 

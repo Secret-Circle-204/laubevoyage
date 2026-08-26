@@ -82,6 +82,7 @@ async function testIsolation() {
     // Create a fresh booking inside transaction T3
     const draftDoc = await payload.create({
       collection: 'bookings',
+      draft: true,
       data: {
         user: customerId,
         experience: 2,

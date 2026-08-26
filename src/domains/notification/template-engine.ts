@@ -75,6 +75,52 @@ export class NotificationTemplateEngine {
       return { subject, body }
     }
 
+    if (templateId === 'booking_pending_admin_review') {
+      if (!templateData['bookingNumber']) {
+        throw new Error(`[NotificationTemplateEngine] Template 'booking_pending_admin_review' missing required field: bookingNumber`)
+      }
+      if (!templateData['customerName']) {
+        throw new Error(`[NotificationTemplateEngine] Template 'booking_pending_admin_review' missing required field: customerName`)
+      }
+
+      const bookingNumber = String(templateData['bookingNumber'])
+      const customerName = String(templateData['customerName'])
+      const experienceTitle = templateData['experienceTitle'] ? String(templateData['experienceTitle']) : ''
+      const departureDate = templateData['departureDate'] ? String(templateData['departureDate']) : ''
+      const passengersCount = templateData['passengersCount'] ? Number(templateData['passengersCount']) : 0
+      const totalCost = templateData['totalCost'] ? String(templateData['totalCost']) : ''
+
+      const subject = isArabic ? `تم استلام طلب الحجز: ${bookingNumber}` : `Booking Request Received: ${bookingNumber}`
+      const body = isArabic
+        ? `مرحباً ${customerName}، تم استلام طلب الحجز رقم ${bookingNumber}${experienceTitle ? ` لرحلة "${experienceTitle}"` : ''}${departureDate ? ` في تاريخ ${departureDate}` : ''}${passengersCount ? ` (${passengersCount} مسافرين)` : ''}${totalCost ? ` (الإجمالي: ${totalCost})` : ''}. يقوم فريقنا بمراجعة طلبك وسنتواصل معك قريباً لتأكيد وإتمام الحجز.`
+        : `Hello ${customerName}, your booking request #${bookingNumber}${experienceTitle ? ` for "${experienceTitle}"` : ''}${departureDate ? ` on ${departureDate}` : ''}${passengersCount ? ` (${passengersCount} travelers)` : ''}${totalCost ? ` (Total: ${totalCost})` : ''} has been received. Our luxury travel concierge team is reviewing your request and will contact you shortly to confirm and finalize your reservation.`
+      return { subject, body }
+    }
+
+    if (templateId === 'admin_bnpl_review_alert') {
+      if (!templateData['bookingNumber']) {
+        throw new Error(`[NotificationTemplateEngine] Template 'admin_bnpl_review_alert' missing required field: bookingNumber`)
+      }
+      if (!templateData['customerName']) {
+        throw new Error(`[NotificationTemplateEngine] Template 'admin_bnpl_review_alert' missing required field: customerName`)
+      }
+
+      const bookingNumber = String(templateData['bookingNumber'])
+      const customerName = String(templateData['customerName'])
+      const customerEmail = templateData['customerEmail'] ? String(templateData['customerEmail']) : ''
+      const experienceTitle = templateData['experienceTitle'] ? String(templateData['experienceTitle']) : ''
+      const departureDate = templateData['departureDate'] ? String(templateData['departureDate']) : ''
+      const passengersCount = templateData['passengersCount'] ? Number(templateData['passengersCount']) : 0
+      const totalAmount = templateData['totalAmount'] ? String(templateData['totalAmount']) : ''
+      const adminBookingUrl = templateData['adminBookingUrl'] ? String(templateData['adminBookingUrl']) : ''
+
+      const subject = isArabic ? `[مطلوب اتخاذ إجراء] طلب حجز BNPL جديد: #${bookingNumber}` : `[ACTION REQUIRED] New BNPL Booking Request: #${bookingNumber}`
+      const body = isArabic
+        ? `تم تقديم طلب حجز BNPL جديد رقم #${bookingNumber} بواسطة ${customerName}${customerEmail ? ` (${customerEmail})` : ''}${experienceTitle ? ` لرحلة "${experienceTitle}"` : ''}${departureDate ? ` في تاريخ ${departureDate}` : ''}${passengersCount ? ` (${passengersCount} مسافرين)` : ''}.${totalAmount ? ` الإجمالي: ${totalAmount}،` : ''} المدفوع: 0 (غير مدفوع). الحالة الحالية: في انتظار مراجعة الإدارة.${adminBookingUrl ? ` يرجى مراجعة الطلب في لوحة التحكم: ${adminBookingUrl}` : ''}`
+        : `A new BNPL reservation request #${bookingNumber} was submitted by ${customerName}${customerEmail ? ` (${customerEmail})` : ''}${experienceTitle ? ` for "${experienceTitle}"` : ''}${departureDate ? ` on ${departureDate}` : ''}${passengersCount ? ` (${passengersCount} travelers)` : ''}.${totalAmount ? ` Total: ${totalAmount},` : ''} Amount Paid: 0 (UNPAID). Current Status: Pending Admin Review.${adminBookingUrl ? ` Review and take action in the admin portal: ${adminBookingUrl}` : ''}`
+      return { subject, body }
+    }
+
     throw new Error(`[NotificationTemplateEngine] Unsupported or unhandled templateId: '${templateId}'`)
   }
 }

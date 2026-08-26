@@ -14,9 +14,10 @@ import type {
 export class BNPLPaymentAdapter implements IPaymentAdapter {
   async createCheckoutSession(params: CreateSessionParams): Promise<PaymentSessionResult> {
     const sessionId = `bnpl_sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+    const separator = params.successUrl.includes('?') ? '&' : '?'
     return {
       sessionId,
-      url: params.successUrl,
+      url: `${params.successUrl}${separator}session_id=${sessionId}`,
       expiresAt: Math.floor(Date.now() / 1000) + 30 * 60,
     }
   }

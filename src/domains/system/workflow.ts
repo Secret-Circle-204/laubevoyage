@@ -109,7 +109,7 @@ export class SystemIntegrationWorkflowEngine {
     registerCustomerSubscribers(this.payload, options.customerService, options.loyaltyService)
     registerLoyaltySubscriber(this.payload, options.customerService, options.loyaltyService)
     registerBookingPaymentSubscriber(this.payload)
-    registerLoyaltyNotificationSubscriber(options.customerService, options.notificationService)
+    registerLoyaltyNotificationSubscriber(this.payload, options.customerService, options.notificationService)
     registerInventorySubscriber(this.payload)
 
     // Event-driven RAM registry cache invalidators (Safe for all node runtimes/workers)

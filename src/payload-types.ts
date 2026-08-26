@@ -743,6 +743,9 @@ export interface Booking {
   notes?: string | null;
   source?: ('website' | 'admin' | 'api' | 'partner' | 'affiliate') | null;
   version?: number | null;
+  paymentStatus: 'unpaid' | 'partially_paid' | 'paid' | 'refunded' | 'partially_refunded' | 'written_off';
+  amountPaid: number;
+  outstandingBalance: number;
   /**
    * Active/Committed capacity hold entity
    */
@@ -1908,6 +1911,9 @@ export interface BookingsSelect<T extends boolean = true> {
   notes?: T;
   source?: T;
   version?: T;
+  paymentStatus?: T;
+  amountPaid?: T;
+  outstandingBalance?: T;
   capacityHold?: T;
   pointHold?: T;
   paymentAttempts?: T;
@@ -2411,6 +2417,35 @@ export interface SystemSetting {
    */
   exchangeSyncInterval?: number | null;
   exchangeRateCacheTtl?: number | null;
+  /**
+   * Designated operational email addresses to receive new booking requests and BNPL review alerts
+   */
+  bookingNotificationEmails?:
+    | {
+        email: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Configure official sender identities and reply-to destinations for business communication channels.
+   */
+  emailSenderSettings: {
+    reservationIdentity: {
+      fromName: string;
+      fromEmail: string;
+      replyTo: string;
+    };
+    loyaltyIdentity: {
+      fromName: string;
+      fromEmail: string;
+      replyTo: string;
+    };
+    securityIdentity?: {
+      fromName?: string | null;
+      fromEmail?: string | null;
+      replyTo?: string | null;
+    };
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2502,6 +2537,37 @@ export interface SystemSettingsSelect<T extends boolean = true> {
   autoSyncExchangeRates?: T;
   exchangeSyncInterval?: T;
   exchangeRateCacheTtl?: T;
+  bookingNotificationEmails?:
+    | T
+    | {
+        email?: T;
+        id?: T;
+      };
+  emailSenderSettings?:
+    | T
+    | {
+        reservationIdentity?:
+          | T
+          | {
+              fromName?: T;
+              fromEmail?: T;
+              replyTo?: T;
+            };
+        loyaltyIdentity?:
+          | T
+          | {
+              fromName?: T;
+              fromEmail?: T;
+              replyTo?: T;
+            };
+        securityIdentity?:
+          | T
+          | {
+              fromName?: T;
+              fromEmail?: T;
+              replyTo?: T;
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

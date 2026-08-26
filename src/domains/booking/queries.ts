@@ -29,7 +29,7 @@ export class BookingQueries {
     userId: number,
     page: number = 1,
     limit: number = 10,
-    filters?: { status?: BookingStatus },
+    filters?: { status?: BookingStatus | BookingStatus[] },
   ): Promise<PaginatedResponse<BookingAggregate>> {
     return this.repository.findByUser(userId, page, limit, filters)
   }

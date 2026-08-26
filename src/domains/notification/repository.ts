@@ -23,25 +23,32 @@ export class NotificationRepository {
   }
 
   /**
-   * Check if notification already exists using compound key: (referenceType, referenceId, channel, templateId).
+   * Check if notification already exists using compound key: (referenceType, referenceId, channel, templateId, recipient?).
    */
   async findByCompoundKey(
     referenceType: string,
     referenceId: string,
     channel: string,
     templateId: string,
+    recipient?: string,
     req?: PayloadRequest,
   ): Promise<NotificationJobEntity | null> {
+    const whereConditions: any[] = [
+      { referenceType: { equals: referenceType } },
+      { referenceId: { equals: referenceId } },
+      { channel: { equals: channel } },
+      { templateId: { equals: templateId } },
+    ]
+    if (recipient) {
+      whereConditions.push({ recipient: { equals: recipient } })
+    }
+
     const res = await this.payload.find({
       collection: 'notification-logs',
       where: {
-        and: [
-          { referenceType: { equals: referenceType } },
-          { referenceId: { equals: referenceId } },
-          { channel: { equals: channel } },
-          { templateId: { equals: templateId } },
-        ],
+        and: whereConditions,
       },
+      depth: 0,
       limit: 1,
       req,
     })
@@ -166,6 +173,7 @@ export class NotificationRepository {
       where: {
         status: { equals: 'processing' },
       },
+      depth: 0,
       limit,
       req,
     })
@@ -178,9 +186,10 @@ export class NotificationRepository {
         const attempts = doc.attempts || 0
         const delaySeconds = NotificationRetryScheduler.calculateNextAttemptDelay(doc.channel, attempts)
         if (delaySeconds === null || attempts >= 3) {
-          await this.payload.update({
+          await (this.payload.update as any)({
             collection: 'notification-logs',
             id: doc.id,
+            where: { id: { equals: doc.id } },
             data: {
               status: 'dlq',
               lastError: 'Worker process crashed or lease expired while processing (max attempts reached)',
@@ -190,9 +199,10 @@ export class NotificationRepository {
           })
         } else {
           const nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
-          await this.payload.update({
+          await (this.payload.update as any)({
             collection: 'notification-logs',
             id: doc.id,
+            where: { id: { equals: doc.id } },
             data: {
               status: 'failed',
               lastError: 'Worker process crashed or lease expired while processing',
@@ -233,6 +243,7 @@ export class NotificationRepository {
           },
         ],
       },
+      depth: 0,
       limit,
       sort: 'createdAt',
       req,
@@ -363,5 +374,20 @@ export class NotificationRepository {
         jobId: doc.notificationId || (doc.id ? String(doc.id) : job.jobId),
       }
     }
+  }
+
+  /**
+   * Load designated booking notification recipients from SystemSettings global configuration.
+   */
+  async getBookingNotificationRecipients(req?: PayloadRequest): Promise<string[]> {
+    const settings = (await this.payload.findGlobal({
+      slug: 'system-settings',
+      req,
+    })) as any
+
+    const rows = settings?.bookingNotificationEmails || []
+    return rows
+      .map((row: any) => (typeof row === 'string' ? row : row?.email)?.trim())
+      .filter((email: string | undefined): email is string => Boolean(email && email.includes('@')))
   }
 }

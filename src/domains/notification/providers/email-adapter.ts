@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer'
 import type { INotificationProvider, NotificationDispatchResult } from './provider.interface'
-import type { NotificationJobEntity } from '../types'
+import type { NotificationJobEntity, SenderIdentity } from '../types'
 import { NotificationTemplateEngine } from '../template-engine'
 
 /**
@@ -12,30 +12,45 @@ export class EmailNotificationAdapter implements INotificationProvider {
   private getTransporter(): nodemailer.Transporter {
     if (!this.transporter) {
       const host = process.env.SMTP_HOST
-      const port = Number(process.env.SMTP_PORT || 587)
+      const portStr = process.env.SMTP_PORT
+      const secureStr = process.env.SMTP_SECURE
       const user = process.env.SMTP_USER
-      const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS
+      const pass = process.env.SMTP_PASSWORD
 
-      if (!host || !user || !pass) {
+      if (!host || !portStr || !secureStr || !user || !pass) {
         throw new Error(
-          `[EmailNotificationAdapter] Real SMTP Configuration Missing! Please specify SMTP_HOST, SMTP_USER, and SMTP_PASSWORD in .env file.`,
+          `[EmailNotificationAdapter] Explicit SMTP Configuration Incomplete! All 5 variables are mandatory in .env: SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASSWORD.`,
         )
       }
+
+      const port = Number(portStr)
+      const secure = secureStr === 'true'
 
       this.transporter = nodemailer.createTransport({
         host,
         port,
-        secure: process.env.SMTP_SECURE === 'true',
+        secure,
         auth: { user, pass },
+        connectionTimeout: 10000,
+        greetingTimeout: 5000,
+        socketTimeout: 15000,
       })
     }
     return this.transporter
   }
 
-  async send(job: NotificationJobEntity): Promise<NotificationDispatchResult> {
-    const fromEmail = process.env.FROM_EMAIL || process.env.SMTP_USER
-    const fromName = process.env.FROM_NAME || "L'Aube Voyage"
-    const fromHeader = `"${fromName}" <${fromEmail}>`
+  async send(
+    job: NotificationJobEntity,
+    sender: SenderIdentity,
+  ): Promise<NotificationDispatchResult> {
+    if (!sender?.fromEmail || !sender?.fromName || !sender?.replyTo) {
+      throw new Error(
+        `[EmailNotificationAdapter] Missing required SenderIdentity for job '${job.jobId}'. Dispatch blocked.`,
+      )
+    }
+
+    const fromHeader = `"${sender.fromName}" <${sender.fromEmail}>`
+    const replyTo = sender.replyTo
 
     const rendered = NotificationTemplateEngine.renderTemplate(
       job.templateId,
@@ -48,13 +63,20 @@ export class EmailNotificationAdapter implements INotificationProvider {
     const textBody = (job.templateData?.['text'] as string) || rendered.body
 
     if (!subject) {
-      throw new Error(`[EmailNotificationAdapter] Invalid Email: Subject is missing for template '${job.templateId}'`)
+      throw new Error(
+        `[EmailNotificationAdapter] Invalid Email: Subject is missing for template '${job.templateId}'`,
+      )
     }
     if (!htmlBody && !textBody) {
-      throw new Error(`[EmailNotificationAdapter] Invalid Email: Body is missing for template '${job.templateId}'`)
+      throw new Error(
+        `[EmailNotificationAdapter] Invalid Email: Body is missing for template '${job.templateId}'`,
+      )
     }
+
     try {
-      console.log(`[EmailNotificationAdapter] 📧 Sending real SMTP email to ${job.recipient} (Subject: ${subject})...`)
+      console.log(
+        `[EmailNotificationAdapter] 📧 Sending real SMTP email to ${job.recipient} (Subject: ${subject}, From: ${fromHeader}, Reply-To: ${replyTo})...`,
+      )
 
       // Note on duplicate delivery: Stable Message Identity (messageId) is used to assist downstream
       // mail systems (like Gmail/Outlook) in deduplicating or threading duplicate messages, but it does
@@ -62,24 +84,56 @@ export class EmailNotificationAdapter implements INotificationProvider {
       const info = await this.getTransporter().sendMail({
         from: fromHeader,
         to: job.recipient,
+        replyTo,
         subject,
         text: textBody,
         html: htmlBody,
         messageId: `<${job.jobId}@laubevoyage.com>`,
       })
 
-      console.log(`[EmailNotificationAdapter] ✅ Real email sent successfully! MessageId: ${info.messageId}`)
+      console.log(
+        `[EmailNotificationAdapter] ✅ Real email sent successfully! MessageId: ${info.messageId}`,
+      )
       return {
         success: true,
         providerMessageId: info.messageId,
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err)
-      console.error(`[EmailNotificationAdapter] ❌ Real SMTP dispatch failed for ${job.recipient}:`, errMsg)
+      console.error(
+        `[EmailNotificationAdapter] ❌ Real SMTP dispatch failed for ${job.recipient}:`,
+        errMsg,
+      )
       return {
         success: false,
         error: `SMTP Error: ${errMsg}`,
       }
     }
   }
+
+  /**
+   * Direct send method for system integrations (e.g. Payload Auth adapter)
+   * that already have their own rendered HTML/subject and resolved SenderIdentity.
+   * Reuses the exact same canonical nodemailer transporter instance.
+   */
+  async sendDirect(options: {
+    to: string
+    from: string
+    replyTo?: string
+    subject: string
+    html?: string
+    text?: string
+  }): Promise<{ messageId?: string }> {
+    const info = await this.getTransporter().sendMail({
+      from: options.from,
+      to: options.to,
+      replyTo: options.replyTo,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+    })
+    return { messageId: info.messageId }
+  }
 }
+
+export const emailNotificationAdapter = new EmailNotificationAdapter()

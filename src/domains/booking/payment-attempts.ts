@@ -11,7 +11,7 @@ export class PaymentAttemptsService {
   static recordAttempt(
     existingAttempts: PaymentAttempt[] = [],
     params: {
-      provider: 'stripe' | 'bnpl' | 'manual'
+      provider: 'stripe' | 'bnpl' | 'manual' | 'points' | 'invoice'
       amount: number
       currency: string
       status: 'initiated' | 'successful' | 'failed' | 'timed_out'

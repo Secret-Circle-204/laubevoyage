@@ -7,6 +7,8 @@ import {
   confirmAdminBookingAction,
   cancelAdminBookingAction,
   moveToPendingAdminReviewAction,
+  recordSubsequentPaymentAction,
+  refundAdminBookingAction,
 } from '@/application/actions/booking-actions'
 
 export const BookingStatusField: SelectFieldClientComponent = (props) => {
@@ -23,12 +25,31 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
   const paymentAttemptsField = useFormFields(([fields]) => fields.paymentAttempts)
   const paymentAttempts = paymentAttemptsField?.value as any[] | undefined
 
+  const paymentStatusField = useFormFields(([fields]) => fields.paymentStatus)
+  const paymentStatus = paymentStatusField?.value as string | undefined
+
+  const amountPaidField = useFormFields(([fields]) => fields.amountPaid)
+  const amountPaid = amountPaidField?.value as number | undefined
+
+  const outstandingBalanceField = useFormFields(([fields]) => fields.outstandingBalance)
+  const outstandingBalance = outstandingBalanceField?.value as number | undefined
+
   // Component UI States
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [depositAmount, setDepositAmount] = useState<number>(0)
+  const [depositAmount, setDepositAmount] = useState<string>('')
+  const [depositInstrument, setDepositInstrument] = useState<string>('manual')
   const [cancelReason, setCancelReason] = useState<string>('')
   const [showCancelPrompt, setShowCancelPrompt] = useState(false)
+
+  // Subsequent Payment States
+  const [subsequentAmount, setSubsequentAmount] = useState<string>('')
+  const [subsequentInstrument, setSubsequentInstrument] = useState<string>('manual')
+
+
+
+  // Refund States
+  const [showRefundPrompt, setShowRefundPrompt] = useState(false)
 
   if (!bookingId) {
     return (
@@ -45,10 +66,10 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
 
   // Calculate dynamic outstanding balance
   const totalAmountEGP = pricingSnapshot?.totalAmountEGP || pricingSnapshot?.subtotalEGP || pricingSnapshot?.basePriceEGP || 0
-  const paidEGP = (paymentAttempts || [])
+  const paidEGP = amountPaid !== undefined ? amountPaid : (paymentAttempts || [])
     .filter((a: any) => a.status === 'successful')
     .reduce((sum: number, a: any) => sum + (a.amount || 0), 0)
-  const outstandingBalanceEGP = Math.max(0, totalAmountEGP - paidEGP)
+  const outstandingBalanceEGP = outstandingBalance !== undefined ? outstandingBalance : Math.max(0, totalAmountEGP - paidEGP)
 
   // Status Styling Config
   const getStatusColor = (statusVal: string) => {
@@ -88,7 +109,8 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
   }
 
   const handleConfirmBooking = async () => {
-    if (depositAmount < 0 || depositAmount > outstandingBalanceEGP) {
+    const depositToPay = depositAmount !== '' ? Number(depositAmount) : 0
+    if (depositToPay < 0 || depositToPay > outstandingBalanceEGP) {
       setErrorMsg(`Deposit must be between 0 and ${outstandingBalanceEGP} EGP.`)
       return
     }
@@ -97,8 +119,9 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
     try {
       const res = await confirmAdminBookingAction({
         bookingId,
-        depositAmount,
+        depositAmount: depositToPay,
         currency: pricingSnapshot?.displayCurrency || 'EGP',
+        instrument: depositInstrument,
       })
       if (res.success) {
         setValue('confirmed')
@@ -126,6 +149,53 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
         window.location.reload()
       } else {
         setErrorMsg(res.error || 'Failed to cancel booking.')
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An unexpected error occurred.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRecordSubsequentPayment = async () => {
+    const amountToPay = subsequentAmount !== '' ? Number(subsequentAmount) : outstandingBalanceEGP
+    if (amountToPay <= 0 || amountToPay > outstandingBalanceEGP) {
+      setErrorMsg(`Payment amount must be between 1 and ${outstandingBalanceEGP} EGP.`)
+      return
+    }
+    setLoading(true)
+    setErrorMsg(null)
+    try {
+      const res = await recordSubsequentPaymentAction({
+        bookingId,
+        amount: amountToPay,
+        instrument: subsequentInstrument,
+      })
+      if (res.success) {
+        window.location.reload()
+      } else {
+        setErrorMsg(res.error || 'Failed to record payment.')
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An unexpected error occurred.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+
+
+  const handleRefund = async () => {
+    setLoading(true)
+    setErrorMsg(null)
+    try {
+      const res = await refundAdminBookingAction({
+        bookingId,
+      })
+      if (res.success) {
+        window.location.reload()
+      } else {
+        setErrorMsg(res.error || 'Failed to process refund.')
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected error occurred.')
@@ -226,7 +296,7 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
               </div>
 
               {outstandingBalanceEGP > 0 && (
-                <div style={{ marginBottom: '0.75rem' }}>
+                <div style={{ marginBottom: '0.75rem', borderTop: '1px solid var(--theme-elevation-200)', paddingTop: '0.5rem' }}>
                   <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--theme-elevation-600)', marginBottom: '0.25rem' }}>
                     Record Deposit Received (EGP):
                   </label>
@@ -234,8 +304,9 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
                     type="number"
                     min="0"
                     max={outstandingBalanceEGP}
+                    placeholder="0"
                     value={depositAmount}
-                    onChange={(e) => setDepositAmount(Math.max(0, Number(e.target.value)))}
+                    onChange={(e) => setDepositAmount(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '0.4rem 0.5rem',
@@ -346,8 +417,322 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
               </div>
             </div>
           )}
+
+          {value === 'confirmed' && (
+            <div style={{ border: '1px solid var(--theme-elevation-150)', padding: '0.85rem', borderRadius: '6px', backgroundColor: 'var(--theme-elevation-50)' }}>
+              <div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                <div style={{ color: 'var(--theme-elevation-500)', marginBottom: '0.2rem' }}>Financial Summary:</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                  <span>Total price:</span>
+                  <span style={{ fontWeight: 600 }}>{totalAmountEGP.toLocaleString()} EGP</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                  <span>Paid:</span>
+                  <span style={{ fontWeight: 600, color: '#137333' }}>{paidEGP.toLocaleString()} EGP</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                  <span>Outstanding:</span>
+                  <span style={{ fontWeight: 600, color: '#b06000' }}>{outstandingBalanceEGP.toLocaleString()} EGP</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                  <span>Financial Status:</span>
+                  <span style={{ textTransform: 'uppercase', color: paymentStatus === 'paid' ? '#137333' : '#b06000' }}>
+                    {paymentStatus || 'unpaid'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Subsequent Payment Option */}
+              {outstandingBalanceEGP > 0 && (
+                <div style={{ borderTop: '1px solid var(--theme-elevation-200)', paddingTop: '0.75rem', marginTop: '0.75rem' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.4rem', color: 'var(--theme-elevation-800)' }}>
+                    Record Subsequent Payment
+                  </div>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--theme-elevation-600)', marginBottom: '0.25rem' }}>
+                      Amount (EGP, defaults to full outstanding):
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={outstandingBalanceEGP}
+                      placeholder={outstandingBalanceEGP.toString()}
+                      value={subsequentAmount}
+                      onChange={(e) => setSubsequentAmount(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.4rem 0.5rem',
+                        borderRadius: '4px',
+                        border: '1px solid var(--theme-elevation-250)',
+                        backgroundColor: 'var(--theme-elevation-0)',
+                        fontSize: '0.8rem',
+                        color: 'var(--theme-elevation-800)',
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRecordSubsequentPayment}
+                    style={{
+                      width: '100%',
+                      padding: '0.45rem 0.6rem',
+                      backgroundColor: '#1a73e8',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    ⚡ Record Payment
+                  </button>
+                </div>
+              )}
+
+
+
+              {/* Refund Option */}
+              {paidEGP > 0 && (
+                <div style={{ borderTop: '1px solid var(--theme-elevation-200)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+                  {!showRefundPrompt ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowRefundPrompt(true)}
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem 0.6rem',
+                        backgroundColor: '#c5221f',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ↺ Issue Manual Refund ({paidEGP.toLocaleString()} EGP)
+                    </button>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#c5221f', marginBottom: '0.4rem', fontWeight: 500 }}>
+                        Are you sure you want to refund all paid amounts? This cannot be undone.
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button
+                          type="button"
+                          onClick={handleRefund}
+                          style={{
+                            flex: 1,
+                            padding: '0.4rem 0.6rem',
+                            backgroundColor: '#c5221f',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Confirm Refund
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowRefundPrompt(false)}
+                          style={{
+                            flex: 1,
+                            padding: '0.4rem 0.6rem',
+                            backgroundColor: 'var(--theme-elevation-200)',
+                            color: 'var(--theme-elevation-800)',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Cancel Booking Option */}
+              <div style={{ borderTop: '1px solid var(--theme-elevation-200)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+                {!showCancelPrompt ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelPrompt(true)}
+                    style={{
+                      width: '100%',
+                      padding: '0.45rem 0.6rem',
+                      backgroundColor: '#3a3a3a',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✕ Cancel Booking
+                  </button>
+                ) : (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--theme-elevation-600)', marginBottom: '0.25rem' }}>
+                      Cancellation Reason:
+                    </label>
+                    <input
+                      type="text"
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      placeholder="Enter reason..."
+                      style={{
+                        width: '100%',
+                        padding: '0.4rem 0.5rem',
+                        borderRadius: '4px',
+                        border: '1px solid var(--theme-elevation-250)',
+                        backgroundColor: 'var(--theme-elevation-0)',
+                        fontSize: '0.8rem',
+                        marginBottom: '0.45rem',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <button
+                        type="button"
+                        onClick={handleCancelBooking}
+                        style={{
+                          flex: 1,
+                          padding: '0.4rem 0.6rem',
+                          backgroundColor: '#c5221f',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Confirm Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowCancelPrompt(false)}
+                        style={{
+                          flex: 1,
+                          padding: '0.4rem 0.6rem',
+                          backgroundColor: 'var(--theme-elevation-200)',
+                          color: 'var(--theme-elevation-800)',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Keep Booking
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {value === 'cancelled' && paidEGP > 0 && (
+            <div style={{ border: '1px solid var(--theme-elevation-150)', padding: '0.85rem', borderRadius: '6px', backgroundColor: 'var(--theme-elevation-50)' }}>
+              <div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                <div style={{ color: 'var(--theme-elevation-500)', marginBottom: '0.2rem' }}>Financial Summary:</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                  <span>Total price:</span>
+                  <span>{totalAmountEGP.toLocaleString()} EGP</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                  <span>Paid (Retained/Pending):</span>
+                  <span style={{ fontWeight: 600, color: '#137333' }}>{paidEGP.toLocaleString()} EGP</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                  <span>Financial Status:</span>
+                  <span style={{ textTransform: 'uppercase', color: paymentStatus === 'refunded' ? '#c5221f' : '#b06000' }}>
+                    {paymentStatus || 'partially_paid'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Refund Option */}
+              {paymentStatus !== 'refunded' && (
+                <div style={{ borderTop: '1px solid var(--theme-elevation-200)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+                  {!showRefundPrompt ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowRefundPrompt(true)}
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem 0.6rem',
+                        backgroundColor: '#c5221f',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ↺ Issue Refund ({paidEGP.toLocaleString()} EGP)
+                    </button>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#c5221f', marginBottom: '0.4rem', fontWeight: 500 }}>
+                        Are you sure you want to refund this amount? This cannot be undone.
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button
+                          type="button"
+                          onClick={handleRefund}
+                          style={{
+                            flex: 1,
+                            padding: '0.4rem 0.6rem',
+                            backgroundColor: '#c5221f',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Confirm Refund
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowRefundPrompt(false)}
+                          style={{
+                            flex: 1,
+                            padding: '0.4rem 0.6rem',
+                            backgroundColor: 'var(--theme-elevation-200)',
+                            color: 'var(--theme-elevation-800)',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
+

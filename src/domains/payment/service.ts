@@ -87,7 +87,7 @@ export class PaymentService {
     }
 
     // 2. Block payment session if payment window is expired
-    if (booking.paymentWindowExpiresAt) {
+    if (booking.status !== 'confirmed' && booking.paymentWindowExpiresAt) {
       if (new Date() >= new Date(booking.paymentWindowExpiresAt)) {
         return { success: false, error: 'Payment window expired for this booking. Please start a new checkout flow.' }
       }
@@ -141,7 +141,7 @@ export class PaymentService {
     }
 
     // 5. Block new/retry payment session if capacity hold is expired
-    if (booking.capacityHold?.expiresAt) {
+    if (booking.status !== 'confirmed' && booking.capacityHold?.expiresAt) {
       if (new Date() >= new Date(booking.capacityHold.expiresAt)) {
         return { success: false, error: 'Booking capacity hold expired. Please start a new checkout flow.' }
       }
@@ -192,13 +192,11 @@ export class PaymentService {
     const paymentAggregate = await this.workflowEngine.executeCreateSessionWorkflow(providerType, sessionParams, booking.status)
     const session = paymentAggregate.session || (await adapter.createCheckoutSession(sessionParams))
 
-    let finalCheckoutUrl = session.url || ''
-    if (finalCheckoutUrl && !finalCheckoutUrl.includes('session_id=')) {
-      const separator = finalCheckoutUrl.includes('?') ? '&' : '?'
-      finalCheckoutUrl = `${finalCheckoutUrl}${separator}session_id=${session.sessionId}`
+    if (!session.url) {
+      throw new Error(`[PaymentService] Checkout session did not return a valid URL for Booking #${booking.id}`)
     }
 
-    return { success: true, transactionId, checkoutUrl: finalCheckoutUrl }
+    return { success: true, transactionId, checkoutUrl: session.url }
   }
 
   /**
@@ -271,13 +269,9 @@ export class PaymentService {
    */
   async processBookNowPayLater(bookingId: number): Promise<PaymentAggregate> {
     const booking = await this.bookingRepository.findById(bookingId)
-
     const pricingSnapshot = booking.pricingSnapshot
-    if (!pricingSnapshot || !pricingSnapshot.displayCurrency) {
-      throw new Error(`[PaymentService] Booking #${booking.id} is missing authoritative pricing snapshot displayCurrency.`)
-    }
-    if (pricingSnapshot.displayAmount === undefined || pricingSnapshot.displayAmount === null || pricingSnapshot.displayAmount < 0) {
-      throw new Error(`[PaymentService] Booking #${booking.id} is missing authoritative pricing snapshot displayAmount.`)
+    if (!pricingSnapshot) {
+      throw new Error(`[PaymentService] Booking #${booking.id} is missing pricing snapshot.`)
     }
 
     const transactionId = `tx_bnpl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`

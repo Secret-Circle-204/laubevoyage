@@ -68,6 +68,7 @@ export class NotificationWorkflowEngine {
       params.referenceId,
       params.channel,
       params.templateId,
+      params.recipient,
       req,
     )
 

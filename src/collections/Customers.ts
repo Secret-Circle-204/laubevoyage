@@ -7,7 +7,12 @@ export const Customers: CollectionConfig = {
   auth: {
     verify: {
       generateEmailHTML: ({ token, user }) => {
-        const serverURL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+        const serverURL = process.env.NEXT_PUBLIC_SERVER_URL
+        if (!serverURL) {
+          throw new Error(
+            '[Customers.auth.verify] NEXT_PUBLIC_SERVER_URL is missing in environment. Cannot generate verification link.',
+          )
+        }
         const verifyURL = `${serverURL}/verify-email?token=${token}&email=${encodeURIComponent(user.email)}`
 
         if (process.env.NODE_ENV === 'development') {

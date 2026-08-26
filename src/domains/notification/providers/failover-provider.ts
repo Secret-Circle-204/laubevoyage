@@ -1,5 +1,5 @@
 import type { INotificationProvider, NotificationDispatchResult } from './provider.interface'
-import type { NotificationJobEntity } from '../types'
+import type { NotificationJobEntity, SenderIdentity } from '../types'
 
 /**
  * Failover Notification Provider Chain
@@ -12,12 +12,12 @@ export class FailoverNotificationProvider implements INotificationProvider {
     this.providers = providers
   }
 
-  async send(job: NotificationJobEntity): Promise<NotificationDispatchResult> {
+  async send(job: NotificationJobEntity, sender?: SenderIdentity): Promise<NotificationDispatchResult> {
     let lastError = 'No providers configured'
 
     for (const provider of this.providers) {
       try {
-        const result = await provider.send(job)
+        const result = await provider.send(job, sender)
         if (result.success) {
           return result
         }

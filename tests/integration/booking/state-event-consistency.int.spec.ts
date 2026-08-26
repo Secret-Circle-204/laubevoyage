@@ -462,7 +462,7 @@ describe('P1-B Integration: Transactional Event Consistency & Outbox Reliability
     // Trigger expiration. Since the hold is malformed, the pipeline should bypass capacity resolution and successfully expire the booking.
     const expiredCount = await bookingService.processExpiredBookings(15)
 
-    // Verify DB: booking status is now EXPIRED, and event outbox record exists
+    // Verify DB: booking status is now EXPIRED, and no orphan BOOKING_EXPIRED outbox record was written
     const finalBooking = await bookingService.getById(booking.id)
     expect(finalBooking.status).toBe(BookingStatus.EXPIRED)
 
@@ -483,7 +483,7 @@ describe('P1-B Integration: Transactional Event Consistency & Outbox Reliability
         ]
       }
     })
-    expect(finalOutbox.docs.length).toBe(1)
+    expect(finalOutbox.docs.length).toBe(0)
 
     getSlotSpy.mockRestore()
   })

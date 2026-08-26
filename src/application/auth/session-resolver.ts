@@ -13,6 +13,7 @@ export interface ResolvedSession {
   tier?: string
   preferredCurrency?: string
   preferredLanguage?: string
+  role?: 'admin' | 'super_admin' | 'customer'
 }
 
 // Request-scoped memoized correlation ID generator
@@ -39,7 +40,22 @@ export class SessionResolver {
       })
       console.log(`[SessionResolver] [Req:${reqId}] DB auth end`)
 
-      if (!user || user.collection !== 'customers') {
+      if (!user) {
+        return { isAuthenticated: false }
+      }
+
+      if (user.collection === 'users') {
+        return {
+          isAuthenticated: true,
+          role: (user as any).role || 'admin',
+          email: user.email,
+          firstName: (user as any).firstName,
+          lastName: (user as any).lastName,
+          customerId: Number(user.id),
+        }
+      }
+
+      if (user.collection !== 'customers') {
         return { isAuthenticated: false }
       }
 
@@ -51,6 +67,7 @@ export class SessionResolver {
 
       return {
         isAuthenticated: true,
+        role: 'customer',
         customerId: profile.customerId,
         email: profile.email,
         firstName: profile.firstName,

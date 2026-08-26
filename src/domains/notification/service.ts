@@ -50,6 +50,10 @@ export class NotificationService {
     return this.workflowEngine.repository.findByRecipient(recipient, page, limit, filters)
   }
 
+  async getBookingNotificationRecipients(req?: PayloadRequest): Promise<string[]> {
+    return this.workflowEngine.repository.getBookingNotificationRecipients(req)
+  }
+
   public startWorker(): void {
     const symbol = Symbol.for('laube.notification.worker.started')
     if ((global as any)[symbol]) return

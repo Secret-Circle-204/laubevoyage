@@ -137,9 +137,9 @@ describe('BATCH 17D/17E — UI Presentation & Component Convergence: ExperienceD
       bookability: {
         model: 'daily_tour',
         isBookable: true,
-        initialSuggestedDate: '2026-08-25',
+        initialSuggestedDate: '2026-11-25',
         initialSuggestedTime: '09:00',
-        minDate: '2026-08-25',
+        minDate: '2026-11-25',
         durationMinutes: 240,
         schedules: [
           { startTime: '09:00', defaultCapacity: 15, label: 'Morning Tour' },
@@ -175,7 +175,7 @@ describe('BATCH 17D/17E — UI Presentation & Component Convergence: ExperienceD
 
     // Select Tour Date
     const dateInput = document.querySelector('input[type="date"]')!
-    fireEvent.change(dateInput, { target: { value: '2026-08-25' } })
+    fireEvent.change(dateInput, { target: { value: '2026-11-25' } })
 
     // Select Afternoon slot
     const sunsetButton = screen.getByText(/14:00/i)
@@ -185,7 +185,7 @@ describe('BATCH 17D/17E — UI Presentation & Component Convergence: ExperienceD
       expect(resolvePricingAction).toHaveBeenCalledWith(
         expect.objectContaining({
           experienceId: 101,
-          date: '2026-08-25',
+          date: '2026-11-25',
           startTime: '14:00',
           adults: 2,
         }),

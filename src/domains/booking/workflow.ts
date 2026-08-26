@@ -16,6 +16,10 @@ import type { ExperienceRepository } from '../experience/repository'
 import { ExperienceWorkflowEngine } from '../experience/workflow'
 import { LoyaltyService } from '../loyalty/service'
 import { PricingPipeline } from '../currency/pipeline'
+import { validateTransition } from './state-machine'
+import { BookingPolicy } from './policy'
+import { BookingHistoryService } from './history'
+import { EventOutboxService } from '../events/outbox'
 
 /**
  * Booking Workflow Engine
@@ -99,7 +103,7 @@ export class BookingWorkflowEngine {
       ? { ...booking.pointHold, expiresAt: expiresAtIso }
       : null
 
-    return this.repository.transitionStatus(
+    const updatedBooking = await this.repository.transitionStatus(
       bookingId,
       BookingStatus.PENDING_ADMIN_REVIEW,
       {
@@ -110,6 +114,26 @@ export class BookingWorkflowEngine {
       },
       context,
     )
+
+    // Record BOOKING_PENDING_ADMIN_REVIEW into Transactional Outbox inside active DB transaction context
+    const outboxService = EventOutboxService.getInstance()
+    await outboxService.record(
+      {
+        eventId: `evt_bk_rev_${booking.id}_${Date.now()}`,
+        correlationId: `corr_${booking.id}`,
+        eventVersion: 1,
+        occurredAt: new Date().toISOString(),
+        type: 'BOOKING_PENDING_ADMIN_REVIEW',
+        aggregateType: 'Booking',
+        aggregateId: String(booking.id),
+        booking: updatedBooking,
+        actor: { id: 'system', type: 'system', name: 'Booking Workflow Engine' },
+        timestamp: new Date().toISOString(),
+      },
+      context,
+    )
+
+    return updatedBooking
   }
 
   async executePaymentWorkflow(

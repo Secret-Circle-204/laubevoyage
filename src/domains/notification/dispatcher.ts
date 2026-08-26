@@ -4,6 +4,7 @@ import { SMSNotificationAdapter } from './providers/sms-adapter'
 import { PushNotificationAdapter } from './providers/push-adapter'
 import { WhatsAppNotificationAdapter } from './providers/whatsapp-adapter'
 import type { NotificationJobEntity, NotificationChannel } from './types'
+import { SenderIdentityResolver } from './sender-identity-resolver'
 
 /**
  * Central Notification Dispatcher
@@ -28,6 +29,7 @@ export class NotificationDispatcher {
       }
     }
 
-    return adapter.send(job)
+    const sender = await SenderIdentityResolver.resolve(job.category)
+    return adapter.send(job, sender)
   }
 }

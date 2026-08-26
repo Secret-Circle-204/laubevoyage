@@ -4,23 +4,20 @@ import { BookingRepository } from './repository'
 import { CapacityHoldService } from './capacity-hold'
 import { PointHoldService } from '../loyalty/point-hold'
 import { BookingHistoryService } from './history'
-import { EventOutboxService } from '../events/outbox'
 import { ExperienceService } from '../experience/service'
 
 /**
  * Booking Expiration Sub-Service
- * Executes the 7-step expiration pipeline with exponential backoff retries, Dead Letter Queue (DLQ), and Admin Security Alerts.
+ * Executes the 5-step expiration pipeline with exponential backoff retries, Dead Letter Queue (DLQ), and Admin Security Alerts.
  */
 export class BookingExpiration {
   private repository: BookingRepository
   private experienceService: ExperienceService
-  private outboxService: EventOutboxService
   private deadLetterQueue: BookingAggregate[] = []
 
   constructor(repository: BookingRepository, experienceService: ExperienceService) {
     this.repository = repository
     this.experienceService = experienceService
-    this.outboxService = EventOutboxService.getInstance()
   }
 
   /**
@@ -72,14 +69,12 @@ export class BookingExpiration {
   }
 
   /**
-   * 7-Step Sequential Expiration Pipeline:
+   * 5-Step Sequential Expiration Pipeline:
    * 1. Expire Booking Status (conditionally & atomically)
    * 2. Release Capacity Hold
    * 3. Release Loyalty Point Hold
    * 4. Append Customer Timeline Entry
    * 5. Append System Audit Record
-   * 6. Emit BookingExpiredEvent
-   * 7. Trigger Notification
    */
   private async executeExpirationPipeline(booking: BookingAggregate): Promise<BookingAggregate> {
     const transactionID = await this.repository.beginTransaction()
@@ -88,16 +83,13 @@ export class BookingExpiration {
     try {
       // Fresh look up to prevent TOCTOU race conditions (inside transaction)
       const latestBooking = await this.repository.findById(booking.id, context)
-      if (latestBooking.status !== BookingStatus.DRAFT && latestBooking.status !== BookingStatus.PENDING_PAYMENT && latestBooking.status !== BookingStatus.PENDING_ADMIN_REVIEW) {
+      if (latestBooking.status !== BookingStatus.DRAFT && latestBooking.status !== BookingStatus.PENDING_PAYMENT) {
         console.log(`[BookingExpiration] Booking #${booking.bookingNumber} status has changed to ${latestBooking.status} concurrently. Skipping expiration.`)
         await this.repository.rollbackTransaction(transactionID)
         return latestBooking
       }
 
       const allowedSourceStatuses = [BookingStatus.DRAFT, BookingStatus.PENDING_PAYMENT]
-      if (latestBooking.status === BookingStatus.PENDING_ADMIN_REVIEW) {
-        allowedSourceStatuses.push(BookingStatus.PENDING_ADMIN_REVIEW)
-      }
 
       let expiredCapacity = null
       let expiredPointHold = null
@@ -193,13 +185,6 @@ export class BookingExpiration {
         console.error(`[BookingExpiration] Failed to release slot capacity:`, err)
         throw err // Trigger rollback of status change
       }
-
-      // Step 6 & 7: Record BookingExpiredEvent to outbox inside active transaction context
-      await this.outboxService.record({
-        type: 'BOOKING_EXPIRED',
-        booking: expiredBooking,
-        reason: 'Payment window timed out',
-      }, context)
 
       await this.repository.commitTransaction(transactionID)
 
