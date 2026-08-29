@@ -64,7 +64,7 @@ async function runHoldLifecycleVerification() {
         password: 'Password123!',
         firstName: 'Hold',
         lastName: 'Tester',
-        role: 'customer',
+        status: 'active',
         loyalty: {
           tier: 'explorer',
           points: 200,

@@ -46,7 +46,6 @@ async function runGate17542Verification() {
       firstName: 'Targeted',
       lastName: 'SliceUser',
       status: 'active',
-      preferredCurrency: 'EGP',
     },
   })
   const customerId = testCustomer.id

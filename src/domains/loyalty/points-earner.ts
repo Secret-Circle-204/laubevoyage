@@ -23,6 +23,7 @@ export class PointsEarnProcessor {
     bookingNumber: string,
     config: LoyaltyProgramConfig,
     context?: RequestContext,
+    subReference?: string,
   ): Promise<PointLedgerRecord> {
     const { aggregate } = await this.repository.getCustomerAggregate(customerId, context)
 
@@ -53,13 +54,15 @@ export class PointsEarnProcessor {
       welcomeBonus: config.welcomeBonus,
     }
 
+    const referenceId = subReference ? `${bookingId}_${subReference}` : String(bookingId)
+
     return this.repository.appendLedgerEntry(
       customerId,
       'earn',
       pointsToEarn,
       `Earned ${pointsToEarn} points for booking #${bookingNumber}`,
       'booking',
-      String(bookingId),
+      referenceId,
       bookingId,
       calculateExpiry(),
       {

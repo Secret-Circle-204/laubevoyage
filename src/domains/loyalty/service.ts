@@ -52,8 +52,9 @@ export class LoyaltyService {
     bookingNumber?: string,
     config?: LoyaltyProgramConfig,
     context?: RequestContext,
+    subReference?: string,
   ): Promise<PointLedgerRecord> {
-    return this.workflowEngine.earnPointsForBooking(userId, bookingId, amountSpentEGP, bookingNumber, config, context)
+    return this.workflowEngine.earnPointsForBooking(userId, bookingId, amountSpentEGP, bookingNumber, config, context, subReference)
   }
 
   async getBalance(userId: number, context?: RequestContext): Promise<number> {

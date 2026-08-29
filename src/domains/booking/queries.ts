@@ -1,5 +1,5 @@
-import type { PaginatedResponse, RequestContext, BookingStatus } from '@/types'
-import type { BookingAggregate, CustomerTripSummary } from './types'
+import type { PaginatedResponse, RequestContext } from '@/types'
+import type { BookingAggregate, CustomerTripSummary, BookingUserFilter } from './types'
 import { BookingRepository } from './repository'
 
 /**
@@ -29,7 +29,7 @@ export class BookingQueries {
     userId: number,
     page: number = 1,
     limit: number = 10,
-    filters?: { status?: BookingStatus | BookingStatus[] },
+    filters?: BookingUserFilter,
   ): Promise<PaginatedResponse<BookingAggregate>> {
     return this.repository.findByUser(userId, page, limit, filters)
   }

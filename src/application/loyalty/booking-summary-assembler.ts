@@ -1,5 +1,6 @@
 import type { BookingAggregate } from '@/domains/booking/types'
 import type { PointLedgerRecord, PointHoldStatus } from '@/domains/loyalty/types'
+import type { ConvertedPrice } from '@/domains/currency/types'
 import type {
   BookingLoyaltySummaryDTO,
   BookingRedemptionStatus,
@@ -15,6 +16,7 @@ export class BookingLoyaltySummaryAssembler {
   static assemble(
     bookingDoc: BookingAggregate,
     ledgerEntries: PointLedgerRecord[],
+    discountPrice?: ConvertedPrice,
   ): BookingLoyaltySummaryDTO {
     // 1. Fail-Fast Integrity Guard on Pricing Snapshot
     if (!bookingDoc.pricingSnapshot) {
@@ -101,6 +103,7 @@ export class BookingLoyaltySummaryAssembler {
 
     return {
       pointsRedeemed,
+      discountPrice,
       discountFromPointsEGP,
       redemptionStatus,
       pointsEarned,

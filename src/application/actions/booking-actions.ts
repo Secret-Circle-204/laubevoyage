@@ -684,6 +684,21 @@ export async function recordSubsequentPaymentAction(params: {
         paymentStatus: newOutstanding === 0 ? 'paid' : (paid > 0 ? 'partially_paid' : 'unpaid'),
       }, context)
 
+      // Atomic Loyalty Earning on newly verified payment delta
+      if (params.amount > 0) {
+        const { loyalty } = await getDomainServices()
+        await loyalty.earnPointsForBooking(
+          bookingDoc.customerId,
+          bookingDoc.id,
+          params.amount,
+          bookingDoc.bookingNumber,
+          undefined,
+          context,
+          `sub_${ref}`,
+        )
+        await loyalty.evaluateAndUpgradeTier(bookingDoc.customerId, params.amount, undefined, context)
+      }
+
       await repository.commitTransaction(transactionId)
       return { success: true }
     } catch (innerErr: any) {

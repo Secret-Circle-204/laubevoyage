@@ -76,31 +76,33 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
           <div>
             <h3 className="font-bold text-slate-900 dark:text-white uppercase text-xs tracking-wider mb-2">
-              Pricing Snapshot (Immutable)
+              Price Summary
             </h3>
             <div className="space-y-2 text-slate-600 dark:text-slate-400">
-              <div className="flex justify-between">
-                <span>Base Price (EGP):</span>
-                <span className="font-bold text-slate-900 dark:text-white">{data.basePriceText}</span>
+              <div className="flex justify-between items-center">
+                <span>Base Price:</span>
+                <CurrencyDisplay price={data.basePrice} size="sm" />
               </div>
-              <div className="flex justify-between">
-                <span>Exchange Rate Snapshot:</span>
-                <span className="font-mono">{data.exchangeRateText}</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-2 font-semibold text-slate-900 dark:text-white">
+              {data.loyaltySummary.discountPrice && (
+                <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
+                  <span>Loyalty Discount:</span>
+                  <span className="font-bold">-{data.loyaltySummary.discountPrice.formatted}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-2 font-semibold text-slate-900 dark:text-white">
                 <span>Total Cost:</span>
                 <CurrencyDisplay price={data.totalCost} size="sm" />
               </div>
               {data.rawPaidAmount > 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span>Amount Paid:</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{data.paidAmount}</span>
+                  <CurrencyDisplay price={data.paidAmount} size="sm" />
                 </div>
               )}
               {data.rawOutstandingBalance > 0 && (
-                <div className="flex justify-between text-amber-600 dark:text-amber-500 font-semibold pt-1">
+                <div className="flex justify-between items-center text-amber-600 dark:text-amber-500 font-semibold pt-1">
                   <span>Outstanding Balance:</span>
-                  <span>{data.outstandingBalance}</span>
+                  <CurrencyDisplay price={data.outstandingBalance} size="sm" />
                 </div>
               )}
             </div>
@@ -146,7 +148,7 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
                   <div className="flex justify-between items-center">
                     <span>Redemption Status:</span>
                     <Badge
-                      variant={
+                  variant={
                         data.loyaltySummary.redemptionStatus === 'redeemed'
                           ? 'success'
                           : data.loyaltySummary.redemptionStatus === 'refunded'
@@ -162,11 +164,11 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
                       {data.loyaltySummary.redemptionStatus.replace(/_/g, ' ').toUpperCase()}
                     </Badge>
                   </div>
-                  {data.loyaltySummary.discountFromPointsEGP > 0 && (
+                  {data.loyaltySummary.discountPrice && (
                     <div className="flex justify-between items-center">
                       <span>Loyalty Discount:</span>
-                      <span className="font-bold text-emerald-600">
-                        -{data.loyaltySummary.discountFromPointsEGP.toLocaleString()} EGP
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        -{data.loyaltySummary.discountPrice.formatted}
                       </span>
                     </div>
                   )}

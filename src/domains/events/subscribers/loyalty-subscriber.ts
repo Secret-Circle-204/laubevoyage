@@ -48,9 +48,12 @@ export function registerLoyaltySubscriber(
 
         const booking = event.booking
         const customerId = booking.customerId
-        const totalAmountEGP = booking.pricingSnapshot.totalAmountEGP
+        const qualifyingAmountEGP =
+          typeof booking.amountPaid === 'number' && booking.amountPaid > 0 ? booking.amountPaid : 0
 
-        console.log(`[LoyaltySubscriber] 🎁 Processing points for Customer #${customerId} for booking #${booking.id} (BookingAmount: ${totalAmountEGP} EGP)`)
+        console.log(
+          `[LoyaltySubscriber] 🎁 Processing points for Customer #${customerId} for booking #${booking.id} (PaidAmount: ${qualifyingAmountEGP} EGP)`,
+        )
 
         const customer = await customerService.getProfile(customerId)
         if (!customer) {
@@ -59,14 +62,19 @@ export function registerLoyaltySubscriber(
           )
         }
 
-        const pointsEarned = await loyaltyService.calculateEarnedPoints(totalAmountEGP)
-        console.log(`[LoyaltySubscriber] Calculated earned points: ${pointsEarned} points for amount ${totalAmountEGP} EGP.`)
+        const pointsEarned =
+          qualifyingAmountEGP > 0
+            ? await loyaltyService.calculateEarnedPoints(qualifyingAmountEGP)
+            : 0
+        console.log(
+          `[LoyaltySubscriber] Calculated earned points: ${pointsEarned} points for amount ${qualifyingAmountEGP} EGP.`,
+        )
 
         if (pointsEarned > 0) {
           const ledgerRecord = await loyaltyService.earnPointsForBooking(
             customerId,
             booking.id,
-            totalAmountEGP,
+            qualifyingAmountEGP,
             booking.bookingNumber,
             undefined,
             context,
@@ -76,14 +84,18 @@ export function registerLoyaltySubscriber(
             { points: ledgerRecord.resultingBalance },
             context,
           )
-          console.log(`[LoyaltySubscriber] ✅ Earned ${pointsEarned} points successfully credited and projection updated to ${ledgerRecord.resultingBalance} for Customer #${customerId}.`)
+          console.log(
+            `[LoyaltySubscriber] ✅ Earned ${pointsEarned} points successfully credited and projection updated to ${ledgerRecord.resultingBalance} for Customer #${customerId}.`,
+          )
         } else {
-          console.log(`[LoyaltySubscriber] ℹ️ Zero points earned for this booking.`)
+          console.log(`[LoyaltySubscriber] ℹ️ Zero points earned for this booking (no paid cash amount).`)
         }
 
-        console.log(`[LoyaltySubscriber] Evaluating tier upgrade for Customer #${customerId}...`)
-        await loyaltyService.evaluateAndUpgradeTier(customerId, totalAmountEGP, undefined, context)
-        console.log(`[LoyaltySubscriber] ✅ Tier evaluation completed for Customer #${customerId}.`)
+        if (qualifyingAmountEGP > 0) {
+          console.log(`[LoyaltySubscriber] Evaluating tier upgrade for Customer #${customerId}...`)
+          await loyaltyService.evaluateAndUpgradeTier(customerId, qualifyingAmountEGP, undefined, context)
+          console.log(`[LoyaltySubscriber] ✅ Tier evaluation completed for Customer #${customerId}.`)
+        }
 
         if (transactionID) await payload.db.commitTransaction(transactionID)
       } catch (error) {

@@ -63,7 +63,7 @@ async function runVerification() {
         password: 'Password123!',
         firstName: 'Lifecycle',
         lastName: 'Tester',
-        role: 'customer',
+        status: 'active',
         loyalty: {
           tier: 'explorer',
           points: 0,

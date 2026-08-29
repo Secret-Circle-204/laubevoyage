@@ -521,11 +521,51 @@ export class BookingDetailsLoader {
       }
 
       const rate = snapshot.exchangeRate || 1
-      const rateText = `1 EGP = ${rate} ${snapshot.displayCurrency || 'EGP'}`
+
+      // Fail-Fast: Format Base Price directly from pricingSnapshot.basePriceEGP (SSOT)
+      const baseEGP = snapshot.basePriceEGP
+      if (typeof baseEGP !== 'number' || isNaN(baseEGP) || baseEGP < 0) {
+        throw new Error(
+          `[BookingDetailsLoader] Missing or invalid basePriceEGP in pricingSnapshot for Booking #${bookingDoc.id}`,
+        )
+      }
+      let formattedBasePrice: ConvertedPrice
+      if (snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
+        formattedBasePrice = await localization.formatAlreadyConvertedPrice(
+          baseEGP * rate,
+          baseEGP,
+          snapshot.displayCurrency,
+          rate,
+          ctx,
+        )
+      } else {
+        formattedBasePrice = await localization.formatPrice(baseEGP, ctx)
+      }
+
+      // Format Loyalty Discount using existing localization abstraction
+      const discountEGP = snapshot.loyaltyDiscountEGP || 0
+      let formattedDiscount: ConvertedPrice | undefined
+      if (discountEGP > 0) {
+        if (snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
+          formattedDiscount = await localization.formatAlreadyConvertedPrice(
+            discountEGP * rate,
+            discountEGP,
+            snapshot.displayCurrency,
+            rate,
+            ctx,
+          )
+        } else {
+          formattedDiscount = await localization.formatPrice(discountEGP, ctx)
+        }
+      }
 
       // Retrieve immutable point-ledger transactions and assemble authoritative loyalty summary
       const bookingLedgerEntries = await loyalty.getBookingLedgerEntries(bookingDoc.id)
-      const loyaltySummary = BookingLoyaltySummaryAssembler.assemble(bookingDoc, bookingLedgerEntries)
+      const loyaltySummary = BookingLoyaltySummaryAssembler.assemble(
+        bookingDoc,
+        bookingLedgerEntries,
+        formattedDiscount,
+      )
 
       // Read paid amount & outstanding balance from authoritative database properties
       if (!bookingDoc.pricingSnapshot) {
@@ -544,36 +584,30 @@ export class BookingDetailsLoader {
         throw new Error(`[BookingDetailsLoader] Invalid outstandingBalance for Booking #${bookingDoc.id}`)
       }
 
-      let formattedPaid: string
-      let formattedOutstanding: string
+      let formattedPaid: ConvertedPrice
+      let formattedOutstanding: ConvertedPrice
 
       if (snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
         const displayPaid = paidEGP * rate
         const displayOutstanding = outstandingEGP * rate
 
-        const paidDto = await localization.formatAlreadyConvertedPrice(
+        formattedPaid = await localization.formatAlreadyConvertedPrice(
           displayPaid,
           paidEGP,
           snapshot.displayCurrency,
           rate,
           ctx,
         )
-        formattedPaid = paidDto.formatted
-
-        const outstandingDto = await localization.formatAlreadyConvertedPrice(
+        formattedOutstanding = await localization.formatAlreadyConvertedPrice(
           displayOutstanding,
           outstandingEGP,
           snapshot.displayCurrency,
           rate,
           ctx,
         )
-        formattedOutstanding = outstandingDto.formatted
       } else {
-        const paidDto = await localization.formatPrice(paidEGP, ctx)
-        formattedPaid = paidDto.formatted
-
-        const outstandingDto = await localization.formatPrice(outstandingEGP, ctx)
-        formattedOutstanding = outstandingDto.formatted
+        formattedPaid = await localization.formatPrice(paidEGP, ctx)
+        formattedOutstanding = await localization.formatPrice(outstandingEGP, ctx)
       }
 
       return {
@@ -581,8 +615,7 @@ export class BookingDetailsLoader {
         experienceTitle,
         departureDate: bookingDoc.startDate,
         passengersCount: bookingDoc.travelers?.length || 1,
-        basePriceText: `${(snapshot.basePriceEGP || 0).toLocaleString()} EGP`,
-        exchangeRateText: rateText,
+        basePrice: formattedBasePrice,
         totalCost: formattedTotal,
         pointsEarned: loyaltySummary.pointsEarned,
         status: bookingDoc.status,

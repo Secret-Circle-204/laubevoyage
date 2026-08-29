@@ -1,5 +1,5 @@
 import type { RequestContext, BookingStatus } from '@/types'
-import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt, CustomerTripSummary } from './types'
+import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt, CustomerTripSummary, BookingUserFilter } from './types'
 import { BookingWorkflowEngine } from './workflow'
 import { BookingRepository } from './repository'
 import type { CustomerRepository } from '../customer/repository'
@@ -171,13 +171,13 @@ export class BookingService {
   }
 
   /**
-   * Get user bookings with pagination.
+   * Get user bookings with pagination and optional filters.
    */
   async getUserBookings(
     userId: number,
     page: number = 1,
     limit: number = 10,
-    filters?: { status?: BookingStatus | BookingStatus[] },
+    filters?: BookingUserFilter,
   ) {
     return this.workflowEngine.queries.getUserBookings(userId, page, limit, filters)
   }

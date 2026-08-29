@@ -180,3 +180,12 @@ export interface CustomerTripSummary {
   nextDepartureDate?: string
 }
 
+export interface BookingUserFilter {
+  status?: BookingStatus | BookingStatus[]
+  statusNotIn?: BookingStatus[]
+  paymentStatus?: BookingPaymentStatus | BookingPaymentStatus[]
+  paymentStatusNotIn?: BookingPaymentStatus[]
+  or?: Array<Record<string, unknown>>
+}
+
+

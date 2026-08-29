@@ -25,7 +25,7 @@ async function runGate17544LoyaltyVerification() {
   systemSettingsRegistry.invalidate()
 
   const repository = new LoyaltyRepository(payload)
-  const workflowEngine = new LoyaltyWorkflowEngine(payload, repository)
+  const workflowEngine = new LoyaltyWorkflowEngine(repository)
 
   // Fetch valid experience and departure slot IDs from live database
   const expRes = await payload.find({ collection: 'experiences', limit: 1 })
@@ -63,6 +63,8 @@ async function runGate17544LoyaltyVerification() {
         status: paid ? 'confirmed' : 'pending_payment',
         paymentStatus: paid ? 'paid' : (amountPaid > 0 ? 'partially_paid' : 'unpaid'),
         amountPaid: paid ? totalAmountEGP : amountPaid,
+        outstandingBalance: Math.max(0, totalAmountEGP - (paid ? totalAmountEGP : amountPaid)),
+        source: 'website',
         paymentWindowExpiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         bookingNumber: `TEST-LOY-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         travelers: [{ firstName: 'Test', lastName: 'User', email: 'test@example.com', phone: '000' }],
@@ -101,7 +103,7 @@ async function runGate17544LoyaltyVerification() {
         password: 'Password123!',
         firstName: 'Unpaid',
         lastName: 'Tester',
-        role: 'customer',
+        status: 'active',
         loyalty: {
           tier: 'explorer',
           points: 100,
@@ -195,7 +197,7 @@ async function runGate17544LoyaltyVerification() {
         password: 'Password123!',
         firstName: 'Paid',
         lastName: 'Lifecycle',
-        role: 'customer',
+        status: 'active',
         loyalty: {
           tier: 'explorer',
           points: 0,
@@ -250,7 +252,7 @@ async function runGate17544LoyaltyVerification() {
         password: 'Password123!',
         firstName: 'Partial',
         lastName: 'Spend',
-        role: 'customer',
+        status: 'active',
         loyalty: {
           tier: 'explorer',
           points: 0,
@@ -300,7 +302,7 @@ async function runGate17544LoyaltyVerification() {
         password: 'Password123!',
         firstName: 'Missing',
         lastName: 'Meta',
-        role: 'customer',
+        status: 'active',
         loyalty: {
           tier: 'explorer',
           points: 100,

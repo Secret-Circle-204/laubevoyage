@@ -27,6 +27,7 @@ describe('Dashboard Domain: Overview Aggregator Unit Tests', () => {
           latestBookingNumber: '#LBV-101',
           nextDepartureDate: '2026-09-15',
         }),
+        getActiveHeldPointsSummaryForCustomer: vi.fn().mockResolvedValue({ totalHeldPoints: 0, activeHoldsCount: 0 }),
       },
     }
 

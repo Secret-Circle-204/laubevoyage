@@ -112,6 +112,7 @@ export type BookingEarningStatus =
 
 export interface BookingLoyaltySummaryDTO {
   pointsRedeemed: number
+  discountPrice?: ConvertedPrice
   discountFromPointsEGP: number
   redemptionStatus: BookingRedemptionStatus
   pointsEarned: number
@@ -125,14 +126,13 @@ export interface BookingDetailsDTO {
   experienceTitle: string
   departureDate: string
   passengersCount: number
-  basePriceText: string
-  exchangeRateText: string
+  basePrice: ConvertedPrice
   totalCost: ConvertedPrice
   pointsEarned: number
   status: BookingStatus
   paymentStatus: BookingPaymentStatus
-  paidAmount: string
-  outstandingBalance: string
+  paidAmount: ConvertedPrice
+  outstandingBalance: ConvertedPrice
   rawPaidAmount: number
   rawOutstandingBalance: number
   rawTotalCost: number

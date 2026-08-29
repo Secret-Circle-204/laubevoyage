@@ -80,7 +80,7 @@ async function runReconciliationSafetyNetVerification() {
         password: 'Password123!',
         firstName: 'Drift',
         lastName: 'Tester',
-        role: 'customer',
+        status: 'active',
         loyalty: {
           tier: 'explorer',
           points: 200,

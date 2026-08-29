@@ -3,6 +3,11 @@ import { getPayload } from 'payload'
 import config from '../payload.config'
 import { getDomainServices } from '../domains/factory'
 import { LoyaltyRepository } from '../domains/loyalty/repository'
+import { DashboardProjectionRepository } from '../domains/dashboard/repository'
+import { CustomerRepository } from '../domains/customer/repository'
+import { DeviceSessionRepository } from '../domains/customer/repositories/session-repository'
+import { DashboardQueryBus } from '../domains/dashboard/query-bus'
+import { DashboardWorkflowEngine } from '../domains/dashboard/workflow'
 import { SystemRepository } from '../domains/system/repository'
 import { systemSettingsRegistry } from '../domains/system/settings-registry'
 import { CustomerLoyaltyLoader } from '../application/loyalty/loaders'
@@ -52,8 +57,11 @@ async function runScaleAudit() {
   const domainServices = await getDomainServices()
   const bookingRepo = domainServices.booking.getRepository()
   const loyaltyRepo = new LoyaltyRepository(payload)
-  const dashboardRepo = domainServices.dashboard.workflowEngine.repository
-  const workflowEngine = domainServices.dashboard.workflowEngine
+  const dashboardRepo = new DashboardProjectionRepository(payload)
+  const customerRepo = new CustomerRepository(payload)
+  const sessionRepo = new DeviceSessionRepository(payload)
+  const queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo, sessionRepo)
+  const workflowEngine = new DashboardWorkflowEngine(dashboardRepo, queryBus)
   const loyaltyService = domainServices.loyalty
 
   const timestamp = Date.now()
@@ -145,13 +153,15 @@ async function runScaleAudit() {
                 experience: expId,
                 departureSlot: slotId,
                 status: bStatus as any,
+                paymentStatus: bStatus === 'completed' ? 'paid' : 'unpaid',
+                amountPaid: bStatus === 'completed' ? 1000 : 0,
+                outstandingBalance: 0,
                 source: 'website',
                 startDate: '2026-09-15',
                 endDate: '2026-09-15',
                 paymentWindowExpiresAt: new Date().toISOString(),
                 pricingSnapshot: {
                   version: 1,
-                  pricingVersion: 1,
                   basePriceEGP: 1000,
                   promotionDiscountEGP: 0,
                   couponDiscountEGP: 0,
@@ -176,7 +186,6 @@ async function runScaleAudit() {
                   {
                     firstName: 'Scale',
                     lastName: 'User',
-                    type: 'adult',
                     email: testEmail,
                     phone: '+201000000000',
                   },
@@ -211,13 +220,15 @@ async function runScaleAudit() {
                 experience: expId,
                 departureSlot: slotId,
                 status: 'pending_admin_review',
+                paymentStatus: 'unpaid',
+                amountPaid: 0,
+                outstandingBalance: 990,
                 source: 'website',
                 startDate: '2026-09-15',
                 endDate: '2026-09-15',
                 paymentWindowExpiresAt: new Date().toISOString(),
                 pricingSnapshot: {
                   version: 1,
-                  pricingVersion: 1,
                   basePriceEGP: 1000,
                   promotionDiscountEGP: 0,
                   couponDiscountEGP: 0,
@@ -241,7 +252,6 @@ async function runScaleAudit() {
                   {
                     firstName: 'Hold',
                     lastName: 'User',
-                    type: 'adult',
                     email: testEmail,
                     phone: '+201000000000',
                   },
@@ -380,7 +390,7 @@ async function runScaleAudit() {
       const t0Q3 = performance.now()
       const q3 = await workflowEngine.queryBus.bookingQueries.getCustomerTripSummary(customerId)
       queryTimes['booking.getCustomerTripSummary'] = performance.now() - t0Q3
-      queryRows['booking.getCustomerTripSummary'] = q3.upcomingBookingsCount + q3.completedTripsCount
+      queryRows['booking.getCustomerTripSummary'] = q3.upcomingCount + q3.activeBookingsCount
 
       // Q4: loyaltyQueries.getActiveProgramConfig
       const t0Q4 = performance.now()

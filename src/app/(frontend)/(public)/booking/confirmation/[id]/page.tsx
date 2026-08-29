@@ -63,13 +63,13 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
             {data.rawPaidAmount > 0 && (
               <div className="flex justify-between">
                 <span className="text-slate-500">Amount Paid:</span>
-                <span className="font-bold text-slate-700 dark:text-slate-300">{data.paidAmount}</span>
+                <CurrencyDisplay price={data.paidAmount} size="sm" />
               </div>
             )}
             {data.rawOutstandingBalance > 0 && (
               <div className="flex justify-between">
                 <span className="text-slate-500 text-amber-600 dark:text-amber-500 font-medium">Outstanding Balance:</span>
-                <span className="font-bold text-amber-600 dark:text-amber-500">{data.outstandingBalance}</span>
+                <CurrencyDisplay price={data.outstandingBalance} size="sm" />
               </div>
             )}
             <div className="flex justify-between">

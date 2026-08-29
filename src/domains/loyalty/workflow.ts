@@ -128,6 +128,7 @@ export class LoyaltyWorkflowEngine {
     bookingNumber = String(bookingId),
     config?: LoyaltyProgramConfig,
     context?: RequestContext,
+    subReference?: string,
   ): Promise<PointLedgerRecord> {
     const activeConfig = await this.getActiveConfig(config, context)
     const record = await this.pointsEarner.earnForBooking(
@@ -137,6 +138,7 @@ export class LoyaltyWorkflowEngine {
       bookingNumber,
       activeConfig,
       context,
+      subReference,
     )
     await this.repository.updateCustomerProjection(
       userId,

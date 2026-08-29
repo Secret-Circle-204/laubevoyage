@@ -2,6 +2,7 @@ import type { Payload, PayloadRequest } from 'payload'
 import type { BookingStatus, PaginatedResponse, RequestContext } from '@/types'
 import type {
   BookingAggregate,
+  BookingUserFilter,
   CustomerTripSummary,
   CapacityHoldEntity,
   PointHoldEntity,
@@ -373,7 +374,7 @@ export class BookingRepository {
     userId: number,
     page: number = 1,
     limit: number = 10,
-    filters?: { status?: BookingStatus | BookingStatus[] },
+    filters?: BookingUserFilter,
     context?: RequestContext,
   ): Promise<PaginatedResponse<BookingAggregate>> {
     const req = this.mapContextToReq(context)
@@ -384,6 +385,20 @@ export class BookingRepository {
       where.status = Array.isArray(filters.status)
         ? { in: filters.status }
         : { equals: filters.status }
+    }
+    if (filters?.statusNotIn && filters.statusNotIn.length > 0) {
+      where.status = { not_in: filters.statusNotIn }
+    }
+    if (filters?.paymentStatus) {
+      where.paymentStatus = Array.isArray(filters.paymentStatus)
+        ? { in: filters.paymentStatus }
+        : { equals: filters.paymentStatus }
+    }
+    if (filters?.paymentStatusNotIn && filters.paymentStatusNotIn.length > 0) {
+      where.paymentStatus = { not_in: filters.paymentStatusNotIn }
+    }
+    if (filters?.or && filters.or.length > 0) {
+      where.or = filters.or
     }
 
     const result = await this.payload.find({
@@ -574,6 +589,14 @@ export class BookingRepository {
     const paymentWindowExpiresAt =
       typeof rawExpiresAt === 'string' ? rawExpiresAt : new Date(rawExpiresAt).toISOString()
 
+    const docSlot = (b as any).departureSlot
+    const departureSlot =
+      typeof docSlot === 'object' && docSlot !== null
+        ? Number(docSlot.id)
+        : typeof docSlot === 'number'
+        ? docSlot
+        : undefined
+
     return {
       id: Number(doc.id),
       bookingNumber: b.bookingNumber || '',
@@ -582,6 +605,7 @@ export class BookingRepository {
       status: b.status as BookingStatus,
       customerId,
       experienceId,
+      departureSlot,
       travelers,
       startDate: b.startDate ? (typeof b.startDate === 'string' ? b.startDate.split('T')[0] : new Date(b.startDate).toISOString().split('T')[0]) : '',
       endDate: b.endDate ? (typeof b.endDate === 'string' ? b.endDate.split('T')[0] : new Date(b.endDate).toISOString().split('T')[0]) : '',

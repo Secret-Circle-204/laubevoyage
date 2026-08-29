@@ -48,7 +48,7 @@ async function runPerformanceAudit() {
   const bookingRepo = new BookingRepository(payload)
   const queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo, sessionRepo)
   const workflowEngine = new DashboardWorkflowEngine(dashboardRepo, queryBus)
-  const loyaltyService = new LoyaltyService(payload)
+  const loyaltyService = new LoyaltyService(loyaltyRepo)
 
   // 1. SELECT OR CREATE TWO TEST CUSTOMERS FROM DB
   console.log('📦 STEP 0: Fetching or creating two test customers (Customer A & Customer B)...')
@@ -233,6 +233,7 @@ async function runPerformanceAudit() {
     const bookingId = await appServices.booking.create({
       userId: custDocA.id,
       departure,
+      endDate: departure.date,
       travelers: [
         { firstName: 'PerfA', lastName: 'Test', email: custDocA.email, phone: '+201000000000' },
       ],

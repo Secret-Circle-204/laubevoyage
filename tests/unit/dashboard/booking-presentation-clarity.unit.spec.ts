@@ -253,4 +253,101 @@ describe('Customer Booking Presentation Clarity & Currency Uniformity (Unit Test
     expect(card.paidAmount?.formatted).toBe('$0.00')
     expect(card.outstandingBalance?.formatted).toBe('$0.00')
   })
+
+  it('BookingDetailsLoader: accurately converts Base Price, Loyalty Discount, and Total Cost into USD', async () => {
+    const { BookingDetailsLoader } = await import('@/application/dashboard/loaders')
+
+    const booking = createMockBooking('partially_paid', 1480, 1720, 3200, 0.0199, 'USD')
+    // Base: 3500 EGP, Discount: 300 EGP, Total: 3200 EGP
+    booking.pricingSnapshot.basePriceEGP = 3500
+    booking.pricingSnapshot.loyaltyDiscountEGP = 300
+    booking.pricingSnapshot.subtotalEGP = 3500
+    booking.pricingSnapshot.totalAmountEGP = 3200
+
+    const mockExperience = { id: 101, title: 'Giza Pyramids Private Tour' }
+
+    ;(getDomainServices as any).mockResolvedValue({
+      localization: mockLocalization,
+      booking: {
+        getByBookingNumber: vi.fn().mockResolvedValue(booking),
+      },
+      experience: {
+        getById: vi.fn().mockResolvedValue(mockExperience),
+      },
+      loyalty: {
+        getBookingLedgerEntries: vi.fn().mockResolvedValue([
+          { type: 'earn', points: 1480, referenceType: 'booking', referenceId: '14427', metadata: { amountSpentEGP: 1480 } },
+          { type: 'redeem', points: -3000, referenceType: 'booking', referenceId: '14427' },
+        ]),
+      },
+    })
+
+    const details = await BookingDetailsLoader.loadByNumber('LBV-260829-81458', 642, {
+      locale: 'en',
+      currency: 'USD',
+    })
+
+    expect(details).not.toBeNull()
+    if (!details) return
+
+    // 1. Base Price properly converted to USD (3500 * 0.0199 = 69.65)
+    expect(details.basePrice.currencyCode).toBe('USD')
+    expect(details.basePrice.formatted).toBe('$69.65')
+
+    // 2. Loyalty Discount properly converted to USD (300 * 0.0199 = 5.97)
+    expect(details.loyaltySummary.discountPrice).toBeDefined()
+    expect(details.loyaltySummary.discountPrice?.currencyCode).toBe('USD')
+    expect(details.loyaltySummary.discountPrice?.formatted).toBe('$5.97')
+
+    // 3. Total Cost properly converted to USD (3200 * 0.0199 = 63.68)
+    expect(details.totalCost.currencyCode).toBe('USD')
+    expect(details.totalCost.formatted).toBe('$63.68')
+
+    // 4. Paid and Outstanding properly converted to USD
+    expect(details.paidAmount.currencyCode).toBe('USD')
+    expect(details.paidAmount.formatted).toBe('$29.45') // 1480 * 0.0199
+    expect(details.outstandingBalance.currencyCode).toBe('USD')
+    expect(details.outstandingBalance.formatted).toBe('$34.23') // 1720 * 0.0199
+
+    // 5. Raw Domain SSOT intact
+    expect(details.rawTotalCost).toBe(3200)
+    expect(details.rawPaidAmount).toBe(1480)
+    expect(details.rawOutstandingBalance).toBe(1720)
+    expect(details.loyaltySummary.discountFromPointsEGP).toBe(300)
+  })
+
+  it('BookingDetailsLoader: accurately presents Base Price and Total Cost in native EGP when resolved currency is EGP', async () => {
+    const { BookingDetailsLoader } = await import('@/application/dashboard/loaders')
+
+    const booking = createMockBooking('paid', 3500, 0, 3500, 1, 'EGP')
+    booking.pricingSnapshot.basePriceEGP = 3500
+    booking.pricingSnapshot.loyaltyDiscountEGP = 0
+    booking.pricingSnapshot.totalAmountEGP = 3500
+
+    ;(getDomainServices as any).mockResolvedValue({
+      localization: mockLocalization,
+      booking: {
+        getByBookingNumber: vi.fn().mockResolvedValue(booking),
+      },
+      experience: {
+        getById: vi.fn().mockResolvedValue({ id: 101, title: 'Giza Tour' }),
+      },
+      loyalty: {
+        getBookingLedgerEntries: vi.fn().mockResolvedValue([]),
+      },
+    })
+
+    const details = await BookingDetailsLoader.loadByNumber('LBV-260829-81458', 642, {
+      locale: 'ar',
+      currency: 'EGP',
+    })
+
+    expect(details).not.toBeNull()
+    if (!details) return
+
+    expect(details.basePrice.currencyCode).toBe('EGP')
+    expect(details.basePrice.formatted).toBe('3500.00 EGP')
+    expect(details.loyaltySummary.discountPrice).toBeUndefined() // Zero discount
+    expect(details.totalCost.formatted).toBe('3500.00 EGP')
+  })
 })
