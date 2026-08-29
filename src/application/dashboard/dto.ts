@@ -8,13 +8,21 @@ export interface CustomerBookingCardDTO {
   reference: string
   experienceTitle: string
   experienceImage: string
+  productTypeLabel?: string
+  destinationCity?: string
+  durationText?: string
   departureDate: string
+  departureTime?: string
+  returnTime?: string
+  endDate?: string
+  destinationTimezone?: string
   status: BookingStatus
   passengersCount: number
   totalCost: ConvertedPrice
   paymentStatus?: BookingPaymentStatus
   paidAmount?: ConvertedPrice
   outstandingBalance?: ConvertedPrice
+  isCancelled?: boolean
 }
 
 export interface LoyaltyRedemptionRateDTO {

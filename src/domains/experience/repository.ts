@@ -303,7 +303,7 @@ export class ExperienceRepository {
       departureId: doc.departureId,
       experienceId: expId,
       date: new Date(doc.date).toISOString().split('T')[0],
-      startTime: doc.startTime || '',
+      startTime: doc.startTime || undefined,
       priceOverrideEGP:
         doc.priceOverrideEGP !== null && doc.priceOverrideEGP !== undefined
           ? Number(doc.priceOverrideEGP)
@@ -315,6 +315,55 @@ export class ExperienceRepository {
       version: doc.version,
       status: doc.status as DepartureSlotStatus,
     }
+  }
+
+  /**
+   * Batch-fetch multiple departure slot entities by slot IDs (True Database Batch Query).
+   */
+  async findDepartureSlotsByIds(
+    slotIds: number[],
+    context?: RequestContext,
+  ): Promise<DepartureSlotEntity[]> {
+    if (slotIds.length === 0) return []
+    const req = this.mapContextToReq(context)
+    const result = await this.payload.find({
+      collection: 'departure-slots',
+      where: {
+        id: { in: slotIds },
+      },
+      limit: slotIds.length,
+      req,
+    })
+
+    return (result.docs as DepartureSlot[]).map((doc) => {
+      const expId = doc.experience
+        ? typeof doc.experience === 'object'
+          ? Number(doc.experience.id)
+          : Number(doc.experience)
+        : 0
+      if (!expId || !doc.date || doc.capacityTotal === undefined) {
+        throw new Error(
+          `[ExperienceRepository] Database slot record ${doc.id} is invalid or missing required fields.`,
+        )
+      }
+      return {
+        id: Number(doc.id),
+        departureId: doc.departureId,
+        experienceId: expId,
+        date: new Date(doc.date).toISOString().split('T')[0],
+        startTime: doc.startTime || undefined,
+        priceOverrideEGP:
+          doc.priceOverrideEGP !== null && doc.priceOverrideEGP !== undefined
+            ? Number(doc.priceOverrideEGP)
+            : undefined,
+        capacityTotal: doc.capacityTotal,
+        capacityReserved: typeof doc.capacityReserved === 'number' ? doc.capacityReserved : 0,
+        capacitySold: typeof doc.capacitySold === 'number' ? doc.capacitySold : 0,
+        capacityAvailable: doc.capacityAvailable,
+        version: doc.version,
+        status: doc.status as DepartureSlotStatus,
+      }
+    })
   }
 
   private mapContextToReq(context?: RequestContext | PayloadRequest): PayloadRequest | undefined {

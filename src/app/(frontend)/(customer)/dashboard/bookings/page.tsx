@@ -52,7 +52,7 @@ export default async function Page({ searchParams }: PageProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">My Bookings History</h1>
-          <p className="text-xs text-slate-500 mt-1">Review, track, and download official vouchers for all your curated voyages.</p>
+          <p className="text-xs text-slate-500 mt-1">Review, track, and manage all your curated voyages and travel reservations.</p>
         </div>
         <Badge variant="primary" size="md">{data.total} Total Bookings</Badge>
       </div>
@@ -100,7 +100,7 @@ export default async function Page({ searchParams }: PageProps) {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-xs font-bold text-[#00aeef]">{booking.reference}</span>
-                    <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'completed' ? 'primary' : 'warning'} size="sm">
+                    <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'completed' ? 'primary' : booking.status === 'cancelled' || booking.status === 'refunded' ? 'error' : 'warning'} size="sm">
                       {booking.status.toUpperCase()}
                     </Badge>
                     {booking.paymentStatus === 'partially_paid' && (
@@ -115,25 +115,58 @@ export default async function Page({ searchParams }: PageProps) {
                     )}
                   </div>
                   <h3 className="font-bold text-base text-slate-900 dark:text-white">{booking.experienceTitle}</h3>
-                  <span className="text-xs text-slate-500">📅 {booking.departureDate} • {booking.passengersCount} Passengers</span>
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500 mt-1">
+                    {booking.productTypeLabel && <Badge variant="outline" size="sm">{booking.productTypeLabel}</Badge>}
+                    {booking.destinationCity && <span className="font-medium">📍 {booking.destinationCity}</span>}
+                    {booking.durationText && <span className="font-medium">⏱️ {booking.durationText}</span>}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1.5 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap text-slate-700 dark:text-slate-300">
+                      <span>📅 <strong>Departure:</strong> {booking.departureDate}{booking.departureTime ? ` at ${booking.departureTime}` : ''}</span>
+                      {booking.destinationTimezone && <span className="text-slate-400">({booking.destinationTimezone})</span>}
+                      {booking.productTypeLabel === 'Daily Tour' && booking.returnTime && (
+                        <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                          • <strong>Return:</strong> {booking.returnTime}
+                        </span>
+                      )}
+                      {booking.endDate && (
+                        <span className="text-slate-600 dark:text-slate-400">
+                          • <strong>End Date:</strong> {booking.endDate}
+                        </span>
+                      )}
+                    </div>
+                    <p>
+                      👥 {booking.passengersCount} {booking.passengersCount === 1 ? 'Passenger' : 'Passengers'}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
                 <CurrencyDisplay price={booking.totalCost} size="md" />
-                {booking.paymentStatus === 'partially_paid' && booking.outstandingBalance && (
+                {booking.isCancelled ? (
                   <div className="text-right mt-1">
-                    <span className="text-[11px] text-slate-500 block">
-                      Paid: <strong className="text-slate-700 dark:text-slate-300">{booking.paidAmount?.formatted}</strong>
-                    </span>
-                    <span className="text-[11px] font-bold text-amber-600 dark:text-amber-500 block">
-                      Remaining: {booking.outstandingBalance.formatted}
+                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 block">
+                      $0.00 (Cancelled / Voided)
                     </span>
                   </div>
-                )}
+                ) : booking.paymentStatus === 'partially_paid' && booking.outstandingBalance ? (
+                  <div className="text-right mt-1 space-y-0.5">
+                    {booking.paidAmount && (
+                      <div className="text-[11px] text-slate-500 flex items-center justify-end gap-1">
+                        <span>Paid:</span>
+                        <CurrencyDisplay price={booking.paidAmount} size="sm" />
+                      </div>
+                    )}
+                    <div className="text-[11px] font-bold text-amber-600 dark:text-amber-500 flex items-center justify-end gap-1">
+                      <span>Remaining:</span>
+                      <CurrencyDisplay price={booking.outstandingBalance} size="sm" />
+                    </div>
+                  </div>
+                ) : null}
                 <Link href={`/dashboard/bookings/${booking.reference}`}>
                   <Button variant="accent" size="sm" className="mt-2">
-                    View Voucher
+                    View Reservation Details
                   </Button>
                 </Link>
               </div>

@@ -35,6 +35,10 @@ export class ExperienceQueries {
     return this.repository.getDepartureSlotById(slotId, experienceId)
   }
 
+  async getDepartureSlotsByIds(slotIds: number[], context?: RequestContext): Promise<DepartureSlotEntity[]> {
+    return this.repository.findDepartureSlotsByIds(slotIds, context)
+  }
+
   async getDepartureSlotByDate(experienceId: number, date: string, context?: RequestContext): Promise<DepartureSlotEntity | null> {
     return this.repository.getDepartureSlotByDate(experienceId, date, context)
   }

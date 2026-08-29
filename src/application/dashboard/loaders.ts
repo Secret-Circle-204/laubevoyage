@@ -1,6 +1,6 @@
 import { getDomainServices } from '@/domains/factory'
 import { getBusinessDateString } from '@/lib/date'
-import type { BookingAggregate } from '@/domains/booking/types'
+import type { BookingAggregate, BookingUserFilter } from '@/domains/booking/types'
 import type { ConvertedPrice } from '@/domains/currency/types'
 import { PaymentAttemptsService } from '@/domains/booking/payment-attempts'
 import type {
@@ -252,7 +252,7 @@ export class CustomerPortalLoader {
     },
   ): Promise<CustomerBookingsHistoryDTO> {
     try {
-      const { booking, experience, localization } = await getDomainServices()
+      const { booking, experience, destination, localization } = await getDomainServices()
       const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
@@ -261,35 +261,166 @@ export class CustomerPortalLoader {
       // Strict Bounded Limits: Page >= 1, Limit clamped between 1 and 20 (default 10)
       const page = Math.max(1, Number(options?.page) || 1)
       const limit = Math.min(20, Math.max(1, Number(options?.limit) || 10))
-      const rawStatus = options?.status ? options.status.toLowerCase() : undefined
-      const statusFilter = rawStatus === 'pending_payment'
-        ? [BookingStatus.PENDING_PAYMENT, BookingStatus.PENDING_ADMIN_REVIEW]
-        : (rawStatus as any)
+      const rawStatus = options?.status ? options.status.toLowerCase().trim() : undefined
 
+      let repoFilter: BookingUserFilter | undefined = undefined
+      if (rawStatus === 'confirmed') {
+        repoFilter = { status: BookingStatus.CONFIRMED }
+      } else if (rawStatus === 'pending_payment') {
+        repoFilter = { status: [BookingStatus.PENDING_PAYMENT, BookingStatus.PENDING_ADMIN_REVIEW] }
+      } else if (rawStatus === 'completed') {
+        repoFilter = { status: BookingStatus.COMPLETED }
+      } else if (rawStatus === 'cancelled') {
+        repoFilter = { status: [BookingStatus.CANCELLED, BookingStatus.REFUNDED] }
+      }
+
+      // 1. Native Database Server-Side Pagination Query ($O(1) Memory)
       const bookingsResult = await booking.getUserBookings(
         customerId,
         page,
         limit,
-        statusFilter ? { status: statusFilter } : undefined,
+        repoFilter,
       )
       const userBookings = bookingsResult.data || []
+      const total = bookingsResult.total || 0
+      const totalPages = bookingsResult.totalPages || 1
 
-      // Batch resolution of experiences (Single Query - Eliminates N+1)
-      const uniqueExperienceIds = Array.from(new Set(userBookings.map((b) => b.experienceId)))
+      if (userBookings.length === 0) {
+        return {
+          bookings: [],
+          total,
+          page,
+          totalPages,
+          limit,
+          currentStatus: rawStatus,
+        }
+      }
+
+      // 2. Batch-Resolve matching experiences (Single True Database Batch Query)
+      const uniqueExperienceIds = Array.from(
+        new Set(
+          userBookings
+            .map((b) => b.experienceId)
+            .filter((id): id is number => typeof id === 'number'),
+        ),
+      )
       const experiences =
         uniqueExperienceIds.length > 0 ? await experience.getManyByIds(uniqueExperienceIds) : []
       const experiencesMap = new Map(experiences.map((e) => [e.id, e]))
 
+      // 3. Batch-Resolve matching departure slots (Single True Database Batch Query)
+      const uniqueSlotIds = Array.from(
+        new Set(
+          userBookings
+            .map((b) => b.departureSlot)
+            .filter((id): id is number => typeof id === 'number'),
+        ),
+      )
+      const slotsList =
+        uniqueSlotIds.length > 0 ? await experience.getDepartureSlotsByIds(uniqueSlotIds) : []
+      const slotsMap = new Map(slotsList.map((s) => [Number(s.id), s]))
+
+      // 4. Batch-Resolve matching cities from Destination Domain (Single True Database Batch Query)
+      const uniqueCityIds = Array.from(
+        new Set(
+          Array.from(experiencesMap.values())
+            .map((e) => e.cityId)
+            .filter((id): id is number => typeof id === 'number' && id > 0),
+        ),
+      )
+      const citiesList =
+        uniqueCityIds.length > 0 ? await destination.getCitiesByIds(uniqueCityIds) : []
+      const citiesMap = new Map(citiesList.map((c: any) => [Number(c.id), c]))
+
       const bookings = await Promise.all(
         userBookings.map(async (b: BookingAggregate) => {
           const snapshot = b.pricingSnapshot
+          const exp = experiencesMap.get(b.experienceId)
+          const isCancelled =
+            b.status === BookingStatus.CANCELLED || b.status === BookingStatus.REFUNDED
+          const rate = snapshot?.exchangeRate || 1
+
+          // Service / Product Type and Labels (Zero Invented Defaults)
+          let productTypeLabel: string | undefined = undefined
+          if (exp?.type) {
+            productTypeLabel =
+              exp.type === 'package'
+                ? localization.translateUiKey('catalog.packageLabel', ctx)
+                : localization.translateUiKey('catalog.dailyTourLabel', ctx)
+          }
+
+          // Authoritative Destination City Resolution via Destination Domain
+          let destinationCity: string | undefined = undefined
+          if (exp?.cityId && citiesMap.has(exp.cityId)) {
+            const cityDoc = citiesMap.get(exp.cityId)
+            if (cityDoc) {
+              const cityName = String(cityDoc.name || '')
+              const countryObj = cityDoc.country
+              const countryName =
+                countryObj && typeof countryObj === 'object' && 'name' in countryObj && countryObj.name
+                  ? String(countryObj.name)
+                  : ''
+              destinationCity =
+                cityName && countryName ? `${cityName}, ${countryName}` : (cityName || countryName || undefined)
+            }
+          }
+
+          // Duration (Zero Invented Defaults & Strict Singular/Plural Grammar)
+          let durationText: string | undefined = undefined
+          if (exp?.type === 'package' && exp.duration?.days) {
+            const days = exp.duration.days
+            const nights = exp.duration.nights
+            const dayLabel = days === 1 ? '1 Day' : `${days} Days`
+            if (nights !== undefined) {
+              const nightLabel = nights === 1 ? '1 Night' : `${nights} Nights`
+              durationText = `${dayLabel} / ${nightLabel}`
+            } else {
+              durationText = dayLabel
+            }
+          } else if (exp?.type === 'daily_tour' && exp.duration?.durationMinutes) {
+            const mins = exp.duration.durationMinutes
+            const hours = mins / 60
+            if (Number.isInteger(hours)) {
+              durationText = hours === 1 ? '1 Hour' : `${hours} Hours`
+            } else {
+              durationText = mins === 1 ? '1 Min' : `${mins} Mins`
+            }
+          }
+
+          // Authoritative Departure Time Resolution (Slot Precedence > Schedule > Undefined)
+          let departureTime: string | undefined = undefined
+          if (b.departureSlot && slotsMap.has(b.departureSlot)) {
+            departureTime = slotsMap.get(b.departureSlot)?.startTime || undefined
+          } else if (exp?.schedules && exp.schedules.length > 0 && exp.schedules[0].startTime) {
+            departureTime = exp.schedules[0].startTime || undefined
+          }
+
+          // Authoritative Operational Return/Completion Time Resolution (from persisted b.completionAt)
+          // Strict SSOT: Only formatted if destinationTimezone is present. Zero synthetic fallback timezones.
+          let returnTime: string | undefined = undefined
+          if (b.completionAt && b.destinationTimezone) {
+            try {
+              const completionDate = new Date(b.completionAt)
+              if (!isNaN(completionDate.getTime())) {
+                returnTime = new Intl.DateTimeFormat('en-GB', {
+                  timeZone: b.destinationTimezone,
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false,
+                }).format(completionDate)
+              }
+            } catch {
+              returnTime = undefined
+            }
+          }
+
           let formattedCost: ConvertedPrice
           if (snapshot && snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
             formattedCost = await localization.formatAlreadyConvertedPrice(
               snapshot.displayAmount,
               snapshot.totalAmountEGP,
               snapshot.displayCurrency,
-              snapshot.exchangeRate || 1,
+              rate,
               ctx,
             )
           } else {
@@ -299,8 +430,7 @@ export class CustomerPortalLoader {
           }
 
           const paidEGP = b.amountPaid ?? 0
-          const outstandingEGP = b.outstandingBalance ?? 0
-          const rate = snapshot?.exchangeRate || 1
+          const outstandingEGP = isCancelled ? 0 : (b.outstandingBalance ?? 0)
 
           let formattedPaid: ConvertedPrice | undefined
           let formattedOutstanding: ConvertedPrice | undefined
@@ -325,7 +455,6 @@ export class CustomerPortalLoader {
             formattedOutstanding = await localization.formatPrice(outstandingEGP, ctx)
           }
 
-          const exp = experiencesMap.get(b.experienceId)
           const experienceTitle = exp?.title || `Trip #${b.bookingNumber}`
           const experienceImage = exp?.heroUrl || '/images/hero-bg.jpg'
 
@@ -334,27 +463,32 @@ export class CustomerPortalLoader {
             reference: b.bookingNumber,
             experienceTitle,
             experienceImage,
+            productTypeLabel,
+            destinationCity,
+            durationText,
             departureDate: b.startDate,
+            departureTime,
+            returnTime,
+            endDate: b.endDate !== b.startDate ? b.endDate : undefined,
+            destinationTimezone: b.destinationTimezone,
             status: b.status,
-            passengersCount: b.travelers.length,
+            passengersCount: b.travelers?.length || 1,
             totalCost: formattedCost,
             paymentStatus: b.paymentStatus,
             paidAmount: formattedPaid,
             outstandingBalance: formattedOutstanding,
+            isCancelled,
           }
         }),
       )
 
-      const total = bookingsResult.total || bookings.length
-      const totalPages = bookingsResult.totalPages || Math.ceil(total / limit) || 1
-
       return {
         bookings,
         total,
-        page: bookingsResult.page || page,
+        page,
         totalPages,
         limit,
-        currentStatus: options?.status,
+        currentStatus: rawStatus,
       }
     } catch (err) {
       console.error(

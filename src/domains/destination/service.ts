@@ -33,6 +33,10 @@ export class DestinationService {
     return this.repository.findCityById(cityId, options)
   }
 
+  async getCitiesByIds(cityIds: number[], options?: DestinationQueryOptions) {
+    return this.repository.findCitiesByIds(cityIds, options)
+  }
+
   async getCountryById(countryId: number, options?: DestinationQueryOptions) {
     return this.repository.findCountryById(countryId, options)
   }

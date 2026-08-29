@@ -186,6 +186,13 @@ export class ExperienceService {
   }
 
   /**
+   * Batch-fetch departure slot entities by slot IDs (True Database Batch Query).
+   */
+  async getDepartureSlotsByIds(slotIds: number[], context?: RequestContext): Promise<DepartureSlotEntity[]> {
+    return this.workflowEngine.queries.getDepartureSlotsByIds(slotIds, context)
+  }
+
+  /**
    * Get departure slot by date and experience ID.
    */
   async getDepartureSlotByDate(experienceId: number, date: string, context?: RequestContext): Promise<DepartureSlotEntity | null> {

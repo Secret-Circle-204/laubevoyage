@@ -58,6 +58,22 @@ export class DestinationRepository {
     }
   }
 
+  /**
+   * Batch-fetch cities by IDs (True Database Batch Query with parent country populated).
+   */
+  async findCitiesByIds(cityIds: number[], _options?: DestinationQueryOptions) {
+    if (cityIds.length === 0) return []
+    const result = await this.payload.find({
+      collection: 'cities',
+      where: {
+        id: { in: cityIds },
+      },
+      limit: cityIds.length,
+      depth: 1, // Populates parent country
+    })
+    return result.docs
+  }
+
   async findCountryById(countryId: number, _options?: DestinationQueryOptions) {
     try {
       const doc = await this.payload.findByID({
