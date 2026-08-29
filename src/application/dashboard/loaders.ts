@@ -1,13 +1,16 @@
 import { getDomainServices } from '@/domains/factory'
 import { getBusinessDateString } from '@/lib/date'
 import type { BookingAggregate } from '@/domains/booking/types'
+import type { ConvertedPrice } from '@/domains/currency/types'
 import { PaymentAttemptsService } from '@/domains/booking/payment-attempts'
 import type {
   CustomerPortalOverviewDTO,
   CustomerNotificationsPortalDTO,
   CustomerSidebarDTO,
   CustomerBookingsHistoryDTO,
+  BookingDetailsDTO,
 } from './dto'
+import { BookingLoyaltySummaryAssembler } from '@/application/loyalty/booking-summary-assembler'
 import { LoyaltyTier, BookingStatus } from '@/types'
 import { TierPolicy } from '@/domains/loyalty/tier-policy'
 import { LoyaltyProgressDTOFactory } from '@/application/loyalty/progress-factory'
@@ -87,7 +90,7 @@ export class CustomerPortalLoader {
       const recentBookings = await Promise.all(
         userBookings.map(async (b: BookingAggregate) => {
           const snap = b.pricingSnapshot
-          let formattedCost: any
+          let formattedCost: ConvertedPrice
           if (snap && snap.displayAmount !== undefined && snap.displayCurrency) {
             formattedCost = await localization.formatAlreadyConvertedPrice(
               snap.displayAmount,
@@ -101,6 +104,33 @@ export class CustomerPortalLoader {
             formattedCost = await localization.formatPrice(totalCostEGP, ctx)
           }
 
+          const paidEGP = b.amountPaid ?? 0
+          const outstandingEGP = b.outstandingBalance ?? 0
+          const rate = snap?.exchangeRate || 1
+
+          let formattedPaid: ConvertedPrice | undefined
+          let formattedOutstanding: ConvertedPrice | undefined
+
+          if (snap && snap.displayAmount !== undefined && snap.displayCurrency) {
+            formattedPaid = await localization.formatAlreadyConvertedPrice(
+              paidEGP * rate,
+              paidEGP,
+              snap.displayCurrency,
+              rate,
+              ctx,
+            )
+            formattedOutstanding = await localization.formatAlreadyConvertedPrice(
+              outstandingEGP * rate,
+              outstandingEGP,
+              snap.displayCurrency,
+              rate,
+              ctx,
+            )
+          } else {
+            formattedPaid = await localization.formatPrice(paidEGP, ctx)
+            formattedOutstanding = await localization.formatPrice(outstandingEGP, ctx)
+          }
+
           const exp = experiencesMap.get(b.experienceId)
           const experienceTitle = exp?.title || `Trip #${b.bookingNumber}`
           const experienceImage =
@@ -112,9 +142,12 @@ export class CustomerPortalLoader {
             experienceTitle,
             experienceImage,
             departureDate: b.startDate,
-            status: b.status as any,
+            status: b.status,
             passengersCount: b.travelers.length || 1,
             totalCost: formattedCost,
+            paymentStatus: b.paymentStatus,
+            paidAmount: formattedPaid,
+            outstandingBalance: formattedOutstanding,
           }
         }),
       )
@@ -250,7 +283,7 @@ export class CustomerPortalLoader {
       const bookings = await Promise.all(
         userBookings.map(async (b: BookingAggregate) => {
           const snapshot = b.pricingSnapshot
-          let formattedCost
+          let formattedCost: ConvertedPrice
           if (snapshot && snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
             formattedCost = await localization.formatAlreadyConvertedPrice(
               snapshot.displayAmount,
@@ -263,6 +296,33 @@ export class CustomerPortalLoader {
             const totalCostEGP =
               snapshot?.totalAmountEGP || snapshot?.subtotalEGP || snapshot?.basePriceEGP || 0
             formattedCost = await localization.formatPrice(totalCostEGP, ctx)
+          }
+
+          const paidEGP = b.amountPaid ?? 0
+          const outstandingEGP = b.outstandingBalance ?? 0
+          const rate = snapshot?.exchangeRate || 1
+
+          let formattedPaid: ConvertedPrice | undefined
+          let formattedOutstanding: ConvertedPrice | undefined
+
+          if (snapshot && snapshot.displayAmount !== undefined && snapshot.displayCurrency) {
+            formattedPaid = await localization.formatAlreadyConvertedPrice(
+              paidEGP * rate,
+              paidEGP,
+              snapshot.displayCurrency,
+              rate,
+              ctx,
+            )
+            formattedOutstanding = await localization.formatAlreadyConvertedPrice(
+              outstandingEGP * rate,
+              outstandingEGP,
+              snapshot.displayCurrency,
+              rate,
+              ctx,
+            )
+          } else {
+            formattedPaid = await localization.formatPrice(paidEGP, ctx)
+            formattedOutstanding = await localization.formatPrice(outstandingEGP, ctx)
           }
 
           const exp = experiencesMap.get(b.experienceId)
@@ -278,6 +338,9 @@ export class CustomerPortalLoader {
             status: b.status,
             passengersCount: b.travelers.length,
             totalCost: formattedCost,
+            paymentStatus: b.paymentStatus,
+            paidAmount: formattedPaid,
+            outstandingBalance: formattedOutstanding,
           }
         }),
       )
@@ -409,7 +472,7 @@ export class BookingDetailsLoader {
     bookingNumber: string,
     customerIdOrOptions?: number | { locale?: string; currency?: string },
     options?: { locale?: string; currency?: string },
-  ) {
+  ): Promise<BookingDetailsDTO | null> {
     try {
       const customerId = typeof customerIdOrOptions === 'number' ? customerIdOrOptions : undefined
       const resolvedOptions =
@@ -460,11 +523,9 @@ export class BookingDetailsLoader {
       const rate = snapshot.exchangeRate || 1
       const rateText = `1 EGP = ${rate} ${snapshot.displayCurrency || 'EGP'}`
 
-      // Single Source of Truth: Retrieve earned points directly from immutable point-ledger for this specific booking
-      let pointsEarned = 0
+      // Retrieve immutable point-ledger transactions and assemble authoritative loyalty summary
       const bookingLedgerEntries = await loyalty.getBookingLedgerEntries(bookingDoc.id)
-      const earnEntry = bookingLedgerEntries.find((e) => e.type === 'earn')
-      if (earnEntry) pointsEarned = earnEntry.points
+      const loyaltySummary = BookingLoyaltySummaryAssembler.assemble(bookingDoc, bookingLedgerEntries)
 
       // Read paid amount & outstanding balance from authoritative database properties
       if (!bookingDoc.pricingSnapshot) {
@@ -523,13 +584,15 @@ export class BookingDetailsLoader {
         basePriceText: `${(snapshot.basePriceEGP || 0).toLocaleString()} EGP`,
         exchangeRateText: rateText,
         totalCost: formattedTotal,
-        pointsEarned,
+        pointsEarned: loyaltySummary.pointsEarned,
         status: bookingDoc.status,
+        paymentStatus: bookingDoc.paymentStatus || 'unpaid',
         paidAmount: formattedPaid,
         outstandingBalance: formattedOutstanding,
         rawPaidAmount: paidEGP,
         rawOutstandingBalance: outstandingEGP,
         rawTotalCost: totalEGP,
+        loyaltySummary,
       }
     } catch (err) {
       console.error(`[BookingDetailsLoader] Error loading booking #${bookingNumber}:`, err)

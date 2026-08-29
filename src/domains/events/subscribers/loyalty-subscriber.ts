@@ -1,5 +1,5 @@
 import { EventBus } from '../event-bus'
-import type { BookingConfirmedEvent, BookingCancelledEvent } from '../booking-events'
+import type { BookingConfirmedEvent, BookingCancelledEvent, BookingRefundedEvent } from '../booking-events'
 import type { PaymentRefundedEvent } from '../payment-events'
 import type { LoyaltyService } from '../../loyalty/service'
 import type { CustomerService } from '../../customer/service'
@@ -11,6 +11,7 @@ import type { Booking } from '@/payload-types'
 /**
  * Customer Loyalty Subscriber
  * Listens to BookingConfirmedEvent to award points and evaluate tier progression via LoyaltyService.
+ * Listens to BookingCancelledEvent and BookingRefundedEvent for Phase A (Redemption refund) & Phase B (Earn reversal).
  * Atomic Inbox Guard protected for Exactly-Once processing & Fail-Fast validation.
  */
 export function registerLoyaltySubscriber(
@@ -97,48 +98,176 @@ export function registerLoyaltySubscriber(
     'BOOKING_CANCELLED',
     'LoyaltySubscriber.processCancellation',
     async (event) => {
-      const subscriberName = 'LoyaltySubscriber.processCancellation'
-
       if (!event.eventId) {
         throw new Error('[LoyaltySubscriber] BookingCancelledEvent missing required eventId.')
       }
 
-      const transactionID = await payload.db.beginTransaction()
-      const req = { transactionID } as unknown as PayloadRequest
-      const context: RequestContext = { transactionId: transactionID }
+      const booking = event.booking
+      const customerId = booking.customerId
+      const totalAmountEGP = booking.pricingSnapshot.totalAmountEGP
+
+      // -----------------------------------------------------------------------------------
+      // 1. Transaction A: Redemption Refund & Tier Restoration (Guaranteed & Isolated)
+      // -----------------------------------------------------------------------------------
+      const subscriberNameA = 'LoyaltySubscriber.processCancellation.PhaseA'
+      const transactionA = await payload.db.beginTransaction()
+      const reqA = { transactionID: transactionA } as unknown as PayloadRequest
+      const contextA: RequestContext = { transactionId: transactionA }
 
       try {
-        const acquired = await inboxRepo.tryAcquire(event.eventId, subscriberName, req)
-        if (!acquired) {
+        const acquiredA = await inboxRepo.tryAcquire(event.eventId, subscriberNameA, reqA)
+        if (!acquiredA) {
           console.log(
-            `[LoyaltySubscriber] Idempotency Guard: Event ${event.eventId} already processed by ${subscriberName}. Skipping.`,
+            `[LoyaltySubscriber] Idempotency Guard: Event ${event.eventId} Phase A already processed by ${subscriberNameA}. Skipping.`,
           )
-          if (transactionID) await payload.db.rollbackTransaction(transactionID)
+          if (transactionA) await payload.db.rollbackTransaction(transactionA)
+        } else {
+          console.log(
+            `[LoyaltySubscriber] 🗑️ Processing cancellation Phase A (Redemption Refund) for Customer #${customerId} on booking #${booking.id}...`,
+          )
+
+          await loyaltyService.processBookingRedemptionRefund(customerId, booking.id, totalAmountEGP, undefined, contextA)
+          const balanceAfterA = await loyaltyService.getCustomerBalance(customerId, contextA)
+          await customerService.updateLoyaltyProfile(
+            customerId,
+            { points: balanceAfterA },
+            contextA,
+          )
+
+          if (transactionA) await payload.db.commitTransaction(transactionA)
+          console.log(`[LoyaltySubscriber] ✅ Cancellation Phase A (Refund) successfully committed for Customer #${customerId}. Balance: ${balanceAfterA}`)
+        }
+      } catch (errorA) {
+        if (transactionA) await payload.db.rollbackTransaction(transactionA)
+        console.error(`[LoyaltySubscriber] ❌ Cancellation Phase A failed for event #${event.eventId}:`, errorA)
+        throw errorA
+      }
+
+      // -----------------------------------------------------------------------------------
+      // 2. Transaction B: Earned Points Reversal (Subject to spendable balance invariant)
+      // -----------------------------------------------------------------------------------
+      const subscriberNameB = 'LoyaltySubscriber.processCancellation.PhaseB'
+      const transactionB = await payload.db.beginTransaction()
+      const reqB = { transactionID: transactionB } as unknown as PayloadRequest
+      const contextB: RequestContext = { transactionId: transactionB }
+
+      try {
+        const acquiredB = await inboxRepo.tryAcquire(event.eventId, subscriberNameB, reqB)
+        if (!acquiredB) {
+          console.log(
+            `[LoyaltySubscriber] Idempotency Guard: Event ${event.eventId} Phase B already processed by ${subscriberNameB}. Skipping.`,
+          )
+          if (transactionB) await payload.db.rollbackTransaction(transactionB)
           return
         }
 
-        const booking = event.booking
-        const customerId = booking.customerId
-        const totalAmountEGP = booking.pricingSnapshot.totalAmountEGP
-
         console.log(
-          `[LoyaltySubscriber] 🗑️ Processing cancellation for Customer #${customerId} for booking #${booking.id} (${totalAmountEGP} EGP)...`,
+          `[LoyaltySubscriber] 🗑️ Processing cancellation Phase B (Earn Reversal) for Customer #${customerId} on booking #${booking.id}...`,
         )
 
-        await loyaltyService.processBookingCancellation(customerId, booking.id, totalAmountEGP, undefined, context)
-        const newBalance = await loyaltyService.getCustomerBalance(customerId, context)
+        await loyaltyService.processBookingEarnedReversal(customerId, booking.id, totalAmountEGP, undefined, contextB)
+        const balanceAfterB = await loyaltyService.getCustomerBalance(customerId, contextB)
         await customerService.updateLoyaltyProfile(
           customerId,
-          { points: newBalance },
-          context,
+          { points: balanceAfterB },
+          contextB,
         )
-        console.log(`[LoyaltySubscriber] ✅ Cancellation processing completed and projection updated to ${newBalance} for Customer #${customerId}.`)
 
-        if (transactionID) await payload.db.commitTransaction(transactionID)
-      } catch (error) {
-        if (transactionID) await payload.db.rollbackTransaction(transactionID)
-        console.error(`[LoyaltySubscriber] Failed processing booking cancelled event #${event.eventId}:`, error)
-        throw error
+        if (transactionB) await payload.db.commitTransaction(transactionB)
+        console.log(`[LoyaltySubscriber] ✅ Cancellation Phase B (Earn Reversal) successfully committed for Customer #${customerId}. Final Balance: ${balanceAfterB}`)
+      } catch (errorB) {
+        if (transactionB) await payload.db.rollbackTransaction(transactionB)
+        console.error(`[LoyaltySubscriber] ⚠️ Cancellation Phase B (Earn Reversal) failed for event #${event.eventId}:`, errorB)
+        throw errorB
+      }
+    },
+  )
+
+  eventBus.subscribe<BookingRefundedEvent>(
+    'BOOKING_REFUNDED',
+    'LoyaltySubscriber.processBookingRefund',
+    async (event) => {
+      if (!event.eventId) {
+        throw new Error('[LoyaltySubscriber] BookingRefundedEvent missing required eventId.')
+      }
+
+      const booking = event.booking
+      const customerId = booking.customerId
+      const totalAmountEGP = booking.pricingSnapshot.totalAmountEGP
+
+      // -----------------------------------------------------------------------------------
+      // 1. Transaction A: Redemption Refund & Spend Adjustment (Guaranteed & Isolated)
+      // -----------------------------------------------------------------------------------
+      const subscriberNameA = 'LoyaltySubscriber.processBookingRefund.PhaseA'
+      const transactionA = await payload.db.beginTransaction()
+      const reqA = { transactionID: transactionA } as unknown as PayloadRequest
+      const contextA: RequestContext = { transactionId: transactionA }
+
+      try {
+        const acquiredA = await inboxRepo.tryAcquire(event.eventId, subscriberNameA, reqA)
+        if (!acquiredA) {
+          console.log(
+            `[LoyaltySubscriber] Idempotency Guard: Event ${event.eventId} Phase A already processed by ${subscriberNameA}. Skipping.`,
+          )
+          if (transactionA) await payload.db.rollbackTransaction(transactionA)
+        } else {
+          console.log(
+            `[LoyaltySubscriber] 🔄 Processing refund Phase A (Redemption Refund) for Customer #${customerId} on booking #${booking.id}...`,
+          )
+
+          await loyaltyService.processBookingRedemptionRefund(customerId, booking.id, totalAmountEGP, undefined, contextA)
+          const balanceAfterA = await loyaltyService.getCustomerBalance(customerId, contextA)
+          await customerService.updateLoyaltyProfile(
+            customerId,
+            { points: balanceAfterA },
+            contextA,
+          )
+
+          if (transactionA) await payload.db.commitTransaction(transactionA)
+          console.log(`[LoyaltySubscriber] ✅ Refund Phase A successfully committed for Customer #${customerId}. Balance: ${balanceAfterA}`)
+        }
+      } catch (errorA) {
+        if (transactionA) await payload.db.rollbackTransaction(transactionA)
+        console.error(`[LoyaltySubscriber] ❌ Refund Phase A failed for event #${event.eventId}:`, errorA)
+        throw errorA
+      }
+
+      // -----------------------------------------------------------------------------------
+      // 2. Transaction B: Earned Points Reversal (Subject to spendable balance invariant)
+      // -----------------------------------------------------------------------------------
+      const subscriberNameB = 'LoyaltySubscriber.processBookingRefund.PhaseB'
+      const transactionB = await payload.db.beginTransaction()
+      const reqB = { transactionID: transactionB } as unknown as PayloadRequest
+      const contextB: RequestContext = { transactionId: transactionB }
+
+      try {
+        const acquiredB = await inboxRepo.tryAcquire(event.eventId, subscriberNameB, reqB)
+        if (!acquiredB) {
+          console.log(
+            `[LoyaltySubscriber] Idempotency Guard: Event ${event.eventId} Phase B already processed by ${subscriberNameB}. Skipping.`,
+          )
+          if (transactionB) await payload.db.rollbackTransaction(transactionB)
+          return
+        }
+
+        console.log(
+          `[LoyaltySubscriber] 🔄 Processing refund Phase B (Earn Reversal) for Customer #${customerId} on booking #${booking.id}...`,
+        )
+
+        await loyaltyService.processBookingEarnedReversal(customerId, booking.id, totalAmountEGP, undefined, contextB)
+        const balanceAfterB = await loyaltyService.getCustomerBalance(customerId, contextB)
+        await customerService.updateLoyaltyProfile(
+          customerId,
+          { points: balanceAfterB },
+          contextB,
+        )
+
+        if (transactionB) await payload.db.commitTransaction(transactionB)
+        console.log(`[LoyaltySubscriber] ✅ Refund Phase B successfully committed for Customer #${customerId}. Final Balance: ${balanceAfterB}`)
+      } catch (errorB) {
+        if (transactionB) await payload.db.rollbackTransaction(transactionB)
+        console.error(`[LoyaltySubscriber] ⚠️ Refund Phase B failed for event #${event.eventId}:`, errorB)
+        throw errorB
       }
     },
   )

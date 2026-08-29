@@ -11,12 +11,34 @@ export class NotificationTemplateEngine {
   ): { subject: string; body: string } {
     const isArabic = locale.startsWith('ar')
 
+    if (templateId === 'verification_email') {
+      const name = String(templateData['name'] || 'Valued Guest')
+      const verifyUrl = String(templateData['verificationUrl'] || '')
+      if (!verifyUrl) {
+        throw new Error(
+          `[NotificationTemplateEngine] Template 'verification_email' missing required field: 'verificationUrl'`,
+        )
+      }
+      const subject = isArabic ? 'تأكيد بريدك الإلكتروني - L\'Aube Voyage' : 'Verify your email - L\'Aube Voyage'
+      const body = isArabic
+        ? `مرحباً ${name}، شكراً لتسجيلك في L'Aube Voyage. يرجى تأكيد بريدك الإلكتروني لتفعيل حسابك:\n${verifyUrl}`
+        : `Hello ${name}, thank you for registering with L'Aube Voyage. Please verify your email to activate your account:\n${verifyUrl}`
+      return { subject, body }
+    }
+
     if (templateId === 'welcome_email') {
       const name = String(templateData['name'] || templateData['customerName'] || 'Valued Guest')
+      const bonusPoints = templateData['bonusPoints']
+      const pointsText =
+        typeof bonusPoints === 'number'
+          ? isArabic
+            ? ` تم تفعيل حسابك بنجاح وحصلت على ${bonusPoints} نقطة ترحيبية!`
+            : ` Your account is now active and you have been awarded ${bonusPoints} Welcome Points!`
+          : ''
       const subject = isArabic ? 'مرحباً بك في L\'Aube Voyage' : 'Welcome to L\'Aube Voyage'
       const body = isArabic
-        ? `أهلاً بك ${name}! يسعدنا انضمامك إلى منصة L'Aube Voyage.`
-        : `Welcome ${name}! We are excited to have you on board with L'Aube Voyage.`
+        ? `أهلاً بك ${name}! يسعدنا انضمامك إلى منصة L'Aube Voyage.${pointsText}`
+        : `Welcome ${name}! We are excited to have you on board with L'Aube Voyage.${pointsText}`
       return { subject, body }
     }
 

@@ -24,6 +24,7 @@ export async function confirmCheckoutAction(params: {
   travelers: Array<{ firstName: string; lastName: string; email: string; phone: string }>
   gatewayId: string
   idempotencyKey?: string
+  pointsToRedeem?: number
 }) {
   console.log('[CHECKOUT ACTION] START:', {
     bookingId: params.bookingId,
@@ -35,6 +36,7 @@ export async function confirmCheckoutAction(params: {
     travelers: params.travelers,
     gatewayId: params.gatewayId,
     idempotencyKey: params.idempotencyKey,
+    pointsToRedeem: params.pointsToRedeem,
   })
   try {
     const session = await SessionResolver.resolve()
@@ -42,6 +44,26 @@ export async function confirmCheckoutAction(params: {
       return { success: false, error: 'Authentication required. Please sign in to check out.' }
     }
     const userId = session.customerId
+
+    // Transport validation: strict non-negative integer check
+    if (params.pointsToRedeem !== undefined && params.pointsToRedeem !== null) {
+      if (
+        typeof params.pointsToRedeem !== 'number' ||
+        !Number.isFinite(params.pointsToRedeem) ||
+        !Number.isInteger(params.pointsToRedeem) ||
+        params.pointsToRedeem < 0
+      ) {
+        return {
+          success: false,
+          error: 'Invalid loyalty points redemption amount. Points must be a non-negative integer.',
+          code: 'INVALID_POINTS_INPUT',
+        }
+      }
+    }
+    const pointsToRedeem =
+      typeof params.pointsToRedeem === 'number' && params.pointsToRedeem > 0
+        ? params.pointsToRedeem
+        : undefined
 
     const { booking, experience, payment, localization, payload } = await getDomainServices()
 
@@ -179,6 +201,7 @@ export async function confirmCheckoutAction(params: {
             currency: serverCurrency,
             source: 'website',
             idempotencyKey: params.idempotencyKey,
+            pointsToRedeem,
           }, context)
 
           // 5. Move draft booking to next state inside transaction
@@ -493,17 +516,6 @@ export async function confirmAdminBookingAction(params: {
       // 5. Commit transaction
       await repository.commitTransaction(transactionId)
 
-      // 6. Post-commit event dispatch
-      try {
-        await booking.publishBookingConfirmedEvent(confirmedBooking, {
-          id: session.customerId.toString(),
-          type: 'admin',
-          name: 'Admin Panel',
-        })
-      } catch (eventErr) {
-        console.error('Failed to publish booking confirmed event post-commit:', eventErr)
-      }
-
       return { success: true }
     } catch (innerErr: any) {
       await repository.rollbackTransaction(transactionId)
@@ -694,6 +706,7 @@ export async function recordSubsequentPaymentAction(params: {
  */
 export async function refundAdminBookingAction(params: {
   bookingId: number
+  reason?: string
 }) {
   try {
     const session = await SessionResolver.resolve()
@@ -714,7 +727,8 @@ export async function refundAdminBookingAction(params: {
       await booking.refund(
         params.bookingId,
         { id: session.customerId.toString(), type: 'admin', name: 'Admin Panel' },
-        context
+        context,
+        params.reason
       )
 
       await repository.commitTransaction(transactionId)

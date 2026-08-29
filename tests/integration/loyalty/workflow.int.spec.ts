@@ -586,4 +586,127 @@ describe('Loyalty Domain: LoyaltyWorkflowEngine Integration Tests', () => {
     expect(progressB.remainingQualifyingSpendEGP).toBe(10400)
     expect(progressB.nextTierName).toBe('Elite')
   })
+
+  it('Gatekeeper Test: Redemption Refund (+200) persists independently when Earn Reversal (-3480) throws FinancialInvariantException due to spent balance', async () => {
+    // Setup Customer with balance = 0 (Earned 3,480 points from Booking #2399 were spent elsewhere)
+    const customerId = 547
+    const bookingId = 2399
+    const bookingTotalEGP = 3480
+
+    const mockCustomerDoc = {
+      id: customerId,
+      loyalty: {
+        points: 0,
+        tier: 'explorer',
+        totalSpent: 3480,
+      },
+    }
+
+    // Existing ledger entries for Booking #2399:
+    // 1. Redeem -200
+    // 2. Earn +3480
+    const existingBookingEntries = [
+      {
+        id: 'ledg_redeem_1',
+        user: customerId,
+        type: 'redeem',
+        amount: -200,
+        balance: 0,
+        booking: bookingId,
+        referenceType: 'booking',
+        referenceId: String(bookingId),
+        points: -200,
+      },
+      {
+        id: 'ledg_earn_1',
+        user: customerId,
+        type: 'earn',
+        amount: 3480,
+        balance: 3480,
+        booking: bookingId,
+        referenceType: 'booking',
+        referenceId: String(bookingId),
+        points: 3480,
+      },
+    ]
+
+    let currentCustomerBalance = 0
+    const ledgerCreated: any[] = []
+
+    const testPayload: any = {
+      findByID: vi.fn().mockResolvedValue(mockCustomerDoc),
+      findGlobal: mockPayload.findGlobal,
+      find: vi.fn().mockImplementation(async ({ collection, where }) => {
+        if (collection === 'point-ledger') {
+          // Check if searching by booking
+          if (where?.booking?.equals === bookingId) {
+            return { docs: existingBookingEntries }
+          }
+          // Check if searching running balance by user
+          if (where?.user?.equals === customerId) {
+            return {
+              docs: [
+                {
+                  id: 'ledg_current',
+                  user: customerId,
+                  balance: currentCustomerBalance,
+                  createdAt: '2026-08-28T12:00:00.000Z',
+                },
+              ],
+            }
+          }
+        }
+        return { docs: [] }
+      }),
+      create: vi.fn().mockImplementation(async ({ collection, data }) => {
+        if (collection === 'point-ledger') {
+          ledgerCreated.push(data)
+          currentCustomerBalance = data.balance
+          return { id: `ledg_${Date.now()}`, ...data }
+        }
+        return { id: 'doc_1' }
+      }),
+      update: vi.fn().mockImplementation(async ({ collection, id, data }) => {
+        return { id, ...data }
+      }),
+    }
+
+    const testWorkflow = new LoyaltyWorkflowEngine(testPayload)
+
+    // 1. Execute Phase A: Redemption Refund
+    const resA = await testWorkflow.processBookingRedemptionRefund(customerId, bookingId, bookingTotalEGP)
+    expect(resA.pointsRedeemed).toBe(200)
+
+    // Verify Phase A created EXACTLY ONE +200 refund entry and updated running balance to 200
+    expect(ledgerCreated.length).toBe(1)
+    expect(ledgerCreated[0].type).toBe('refund')
+    expect(ledgerCreated[0].amount).toBe(200)
+    expect(ledgerCreated[0].balance).toBe(200)
+    expect(currentCustomerBalance).toBe(200)
+
+    // 2. Now simulate customer spending that +200 or starting at 0, and Phase B (Earn Reversal) failing
+    // If balance was 0 and customer owes 3480, 200 - 3480 = -3280 < 0
+    await expect(
+      testWorkflow.processBookingEarnedReversal(customerId, bookingId, bookingTotalEGP),
+    ).rejects.toThrow('Insufficient Funds: Balance would drop below zero')
+
+    // Verify Phase A (+200 refund) remained intact in the ledger
+    expect(ledgerCreated.length).toBe(1)
+    expect(ledgerCreated[0].type).toBe('refund')
+    expect(currentCustomerBalance).toBe(200)
+
+    // 3. Test Phase A Idempotency: Second direct invocation of Phase A
+    // Mock getBookingLedgerEntries to now include the newly created refund entry
+    existingBookingEntries.push(ledgerCreated[0])
+    const updateSpy = vi.spyOn(testPayload, 'update')
+    updateSpy.mockClear()
+
+    const resA2 = await testWorkflow.processBookingRedemptionRefund(customerId, bookingId, bookingTotalEGP)
+    expect(resA2.pointsRedeemed).toBe(0)
+
+    // Verify zero additional ledger entries created
+    expect(ledgerCreated.length).toBe(1)
+    // Verify zero additional customer updates (no duplicate totalSpent deduction!)
+    expect(updateSpy).not.toHaveBeenCalled()
+  })
 })

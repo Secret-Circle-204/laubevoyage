@@ -32,14 +32,40 @@ if (typeof window === 'undefined') {
       '[Payment',
       '[Cron',
       '[Loyalty',
+      '[Point',
+      '[point',
+      '[Ledger',
+      '[ledger',
+      '[Hold',
+      '[hold',
+      '[Refund',
+      '[refund',
+      '[Reversal',
+      '[Reverse',
+      '[reverse',
+      '[Redemption',
+      '[Redeem',
+      '[redeem',
+      '[BNPL',
+      '[bnpl',
       '[Reconciliation',
       '[EventBus',
       '[Outbox',
+      '[Inbox',
       '[Stripe',
-      '[CHECKOUT ACTION',
       '[CHECKOUT',
       '[checkout',
-      // '[CurrencyService',
+      '[CustomerLoyalty',
+      '[BookingDetails',
+      '[Dashboard',
+      'BOOKING_',
+      'PAYMENT_',
+      'LOYALTY_',
+      'REFUND_',
+    ]
+
+    const ignoreTags = [
+      '[LoyaltyProgramRegistry.getProgram]',
     ]
 
     const intercept = (original: typeof console.log, type: string) => {
@@ -48,7 +74,8 @@ if (typeof window === 'undefined') {
         const formatted = args
           .map((arg) => (typeof arg === 'object' && arg !== null ? util.inspect(arg, { depth: null, colors: false }) : String(arg)))
           .join(' ')
-        if (filterTags.some((tag) => formatted.includes(tag))) {
+        const shouldIgnore = ignoreTags.some((tag) => formatted.includes(tag))
+        if (!shouldIgnore && filterTags.some((tag) => formatted.includes(tag))) {
           fs.appendFileSync(logFilePath, `[${new Date().toISOString()}] [${type}] ${formatted}\n`)
         }
       }

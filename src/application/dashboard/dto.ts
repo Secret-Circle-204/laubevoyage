@@ -1,5 +1,7 @@
 import type { ConvertedPrice } from '@/domains/currency/types'
 import { LoyaltyTier, type BookingStatus } from '@/types'
+import type { BookingPaymentStatus } from '@/domains/booking/types'
+import type { PointHoldStatus } from '@/domains/loyalty/types'
 
 export interface CustomerBookingCardDTO {
   id: number
@@ -10,6 +12,9 @@ export interface CustomerBookingCardDTO {
   status: BookingStatus
   passengersCount: number
   totalCost: ConvertedPrice
+  paymentStatus?: BookingPaymentStatus
+  paidAmount?: ConvertedPrice
+  outstandingBalance?: ConvertedPrice
 }
 
 export interface LoyaltyRedemptionRateDTO {
@@ -90,6 +95,46 @@ export interface CustomerBookingsHistoryDTO {
   currentStatus?: string
 }
 
+export type BookingRedemptionStatus =
+  | 'none'
+  | 'held'
+  | 'redeemed'
+  | 'partially_refunded'
+  | 'refunded'
+  | 'released'
 
+export type BookingEarningStatus =
+  | 'none'
+  | 'pending'
+  | 'credited'
+  | 'partially_reversed'
+  | 'reversed'
 
+export interface BookingLoyaltySummaryDTO {
+  pointsRedeemed: number
+  discountFromPointsEGP: number
+  redemptionStatus: BookingRedemptionStatus
+  pointsEarned: number
+  earningStatus: BookingEarningStatus
+  heldPoints: number
+  holdStatus: PointHoldStatus | 'none'
+}
 
+export interface BookingDetailsDTO {
+  bookingNumber: string
+  experienceTitle: string
+  departureDate: string
+  passengersCount: number
+  basePriceText: string
+  exchangeRateText: string
+  totalCost: ConvertedPrice
+  pointsEarned: number
+  status: BookingStatus
+  paymentStatus: BookingPaymentStatus
+  paidAmount: string
+  outstandingBalance: string
+  rawPaidAmount: number
+  rawOutstandingBalance: number
+  rawTotalCost: number
+  loyaltySummary: BookingLoyaltySummaryDTO
+}

@@ -6,6 +6,7 @@ export type MaintenanceJobName =
   | 'financial_reconciliation'
   | 'dlq_recovery'
   | 'data_retention_purge'
+  | 'reconcile_dashboard_projections'
 
 export type ReconciliationStatus =
   | 'matched'

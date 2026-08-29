@@ -1,4 +1,6 @@
 import type { CollectionConfig } from 'payload'
+import { beforePointLedgerChange } from './hooks/beforePointLedgerChange'
+import { afterPointLedgerCreate } from './hooks/afterPointLedgerCreate'
 
 export const PointLedger: CollectionConfig = {
   slug: 'point-ledger',
@@ -18,9 +20,12 @@ export const PointLedger: CollectionConfig = {
     },
     create: ({ req: { user } }) =>
       !!(user && 'role' in user && (user.role === 'admin' || user.role === 'super_admin')),
-    update: () => false, // Immutable
-    delete: ({ req: { user } }) =>
-      !!(user && 'role' in user && (user.role === 'admin' || user.role === 'super_admin')),
+    update: () => false, // Immutable: Existing entries can never be modified
+    delete: () => false, // Immutable: Existing entries can never be deleted
+  },
+  hooks: {
+    beforeChange: [beforePointLedgerChange],
+    afterChange: [afterPointLedgerCreate],
   },
   fields: [
     {
@@ -88,7 +93,8 @@ export const PointLedger: CollectionConfig = {
       type: 'number',
       required: true,
       admin: {
-        description: 'Running balance after this transaction',
+        readOnly: true,
+        description: 'Authoritative running balance (server-derived by beforeChange hook)',
       },
     },
     {

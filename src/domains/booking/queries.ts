@@ -44,4 +44,18 @@ export class BookingQueries {
   ): Promise<CustomerTripSummary> {
     return this.repository.getCustomerTripSummary(customerId, context)
   }
+
+  async getActiveHeldPointsSummaryForCustomer(
+    customerId: number,
+    context?: RequestContext,
+  ): Promise<{ totalPoints: number; count: number }> {
+    return this.repository.getActiveHeldPointsSummaryForCustomer(customerId, context)
+  }
+
+  async getActiveHeldPointsForCustomer(
+    customerId: number,
+    context?: RequestContext,
+  ): Promise<number> {
+    return this.repository.getActiveHeldPointsForCustomer(customerId, context)
+  }
 }

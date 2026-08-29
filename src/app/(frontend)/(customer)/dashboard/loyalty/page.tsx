@@ -35,12 +35,17 @@ export default async function Page() {
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Available Loyalty Balance</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-[#f58220]">{data.formattedPointsBalance}</span>
+              <span className="text-4xl font-extrabold text-[#f58220]">{data.formattedAvailablePoints}</span>
               <span className="text-lg font-bold text-[#f58220]">Points</span>
             </div>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold block mt-1">
               ≈ {data.pointsMonetaryValue.formatted} Cash Value
             </span>
+            {data.heldPoints > 0 && (
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium block mt-1">
+                ({data.heldPoints} pts actively held in pending reservations • Total ledger: {data.formattedPointsBalance} pts)
+              </span>
+            )}
           </div>
 
           <div className="text-left sm:text-right">

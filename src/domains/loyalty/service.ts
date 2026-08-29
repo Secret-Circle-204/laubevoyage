@@ -120,6 +120,32 @@ export class LoyaltyService {
   }
 
   /**
+   * Phase A: Process redemption refund and tier adjustments for cancelled booking (must commit independently).
+   */
+  async processBookingRedemptionRefund(
+    customerId: number,
+    bookingId: number,
+    bookingTotalEGP: number,
+    config?: LoyaltyProgramConfig,
+    context?: RequestContext,
+  ): Promise<{ newTier: LoyaltyTier; pointsRedeemed: number }> {
+    return this.workflowEngine.processBookingRedemptionRefund(customerId, bookingId, bookingTotalEGP, config, context)
+  }
+
+  /**
+   * Phase B: Process earned points reversal for cancelled booking.
+   */
+  async processBookingEarnedReversal(
+    customerId: number,
+    bookingId: number,
+    bookingTotalEGP: number,
+    config?: LoyaltyProgramConfig,
+    context?: RequestContext,
+  ): Promise<{ pointsReversed: number }> {
+    return this.workflowEngine.processBookingEarnedReversal(customerId, bookingId, bookingTotalEGP, config, context)
+  }
+
+  /**
    * Process booking partial refund: compute delta spent and proportionally reverse earned points.
    */
   async processBookingPartialRefund(
@@ -154,6 +180,25 @@ export class LoyaltyService {
    */
   async adminAdjustPoints(params: AdminAdjustmentParams, context?: RequestContext): Promise<PointLedgerRecord> {
     return this.workflowEngine.adminAdjustPoints(params, context)
+  }
+
+  /**
+   * Synchronize customer projection and record MANUAL_ADJUSTMENT event for externally created admin ledger records.
+   */
+  async onAdminLedgerEntryCreated(
+    params: {
+      customerId: number
+      points: number
+      balance: number
+      ledgerId: string
+      type: string
+      reason: string
+      ticket?: string
+      adminId?: string
+    },
+    context?: RequestContext,
+  ): Promise<void> {
+    return this.workflowEngine.onAdminLedgerEntryCreated(params, context)
   }
 
   /**

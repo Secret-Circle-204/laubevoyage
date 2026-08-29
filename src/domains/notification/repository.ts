@@ -22,6 +22,15 @@ export class NotificationRepository {
     return this.payload
   }
 
+  mapContextToReq(context?: import('@/types').RequestContext | PayloadRequest): PayloadRequest | undefined {
+    if (!context) return undefined
+    if ('transactionID' in context) return context as PayloadRequest
+    if ('transactionId' in context && context.transactionId !== undefined && context.transactionId !== null) {
+      return { transactionID: context.transactionId } as unknown as PayloadRequest
+    }
+    return undefined
+  }
+
   /**
    * Check if notification already exists using compound key: (referenceType, referenceId, channel, templateId, recipient?).
    */
@@ -31,8 +40,9 @@ export class NotificationRepository {
     channel: string,
     templateId: string,
     recipient?: string,
-    req?: PayloadRequest,
+    context?: import('@/types').RequestContext | PayloadRequest,
   ): Promise<NotificationJobEntity | null> {
+    const req = this.mapContextToReq(context)
     const whereConditions: any[] = [
       { referenceType: { equals: referenceType } },
       { referenceId: { equals: referenceId } },
@@ -70,6 +80,7 @@ export class NotificationRepository {
       status: doc.status,
       attempts: doc.attempts || 0,
       maxAttempts: 3,
+      lastError: doc.lastError || undefined,
       nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
       lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
       createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
@@ -103,6 +114,7 @@ export class NotificationRepository {
       status: doc.status,
       attempts: doc.attempts || 0,
       maxAttempts: 3,
+      lastError: doc.lastError || undefined,
       nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
       lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
       createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
@@ -150,6 +162,7 @@ export class NotificationRepository {
         status: doc.status,
         attempts: doc.attempts || 0,
         maxAttempts: 3,
+        lastError: doc.lastError || undefined,
         nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
         lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
         createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
@@ -168,6 +181,7 @@ export class NotificationRepository {
    * Policy: Calculates nextAttemptAt strictly through NotificationRetryScheduler. Transitions to 'dlq' if max attempts reached.
    */
   async reapStaleProcessingJobs(limit = 50, req?: PayloadRequest): Promise<number> {
+    const nowIso = new Date().toISOString()
     const staleDocs = await this.payload.find({
       collection: 'notification-logs',
       where: {
@@ -175,43 +189,72 @@ export class NotificationRepository {
       },
       depth: 0,
       limit,
+      sort: 'updatedAt',
       req,
     })
 
+    const dbAdapter = this.payload.db as unknown as PostgresAdapter
+    const pool = dbAdapter?.pool
+
     let reapedCount = 0
     for (const doc of staleDocs.docs as NotificationLog[]) {
+      if (!doc || !doc.id) continue
       const jobId = doc.notificationId || String(doc.id)
       const activeLease = await MaintenanceLeaseService.getActiveLease(this.payload, `notification_job_${jobId}`)
       if (!activeLease) {
         const attempts = doc.attempts || 0
         const delaySeconds = NotificationRetryScheduler.calculateNextAttemptDelay(doc.channel, attempts)
-        if (delaySeconds === null || attempts >= 3) {
-          await (this.payload.update as any)({
-            collection: 'notification-logs',
-            id: doc.id,
-            where: { id: { equals: doc.id } },
-            data: {
-              status: 'dlq',
-              lastError: 'Worker process crashed or lease expired while processing (max attempts reached)',
-              nextAttemptAt: null,
-            },
-            req,
-          })
+        const isDlq = delaySeconds === null || attempts >= 3
+
+        if (pool && typeof pool.query === 'function') {
+          // Atomic Postgres conditional update: ensures no state overwrite if worker finished in parallel
+          const query = `
+            UPDATE "notification_logs"
+            SET "status" = (CASE WHEN "attempts" >= 3 THEN 'dlq' ELSE 'failed' END)::enum_notification_logs_status,
+                "last_error" = CASE WHEN "attempts" >= 3 THEN 'Worker process crashed or lease expired while processing (max attempts reached)' ELSE 'Worker process crashed or lease expired while processing' END,
+                "next_attempt_at" = CASE WHEN "attempts" >= 3 THEN NULL ELSE NOW() + ($2 || ' seconds')::INTERVAL END,
+                "updated_at" = NOW()
+            WHERE "id" = $1
+              AND "status" = 'processing'::enum_notification_logs_status
+            RETURNING "id", "status";
+          `
+          const delayParam = delaySeconds !== null ? String(delaySeconds) : '30'
+          const res = await pool.query(query, [doc.id, delayParam])
+          if (res.rows && res.rows.length > 0) {
+            reapedCount++
+          }
         } else {
-          const nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
-          await (this.payload.update as any)({
-            collection: 'notification-logs',
-            id: doc.id,
-            where: { id: { equals: doc.id } },
-            data: {
-              status: 'failed',
-              lastError: 'Worker process crashed or lease expired while processing',
-              nextAttemptAt,
-            },
-            req,
-          })
+          // Test environment / Mock fallback
+          try {
+            if (isDlq) {
+              await this.payload.update({
+                collection: 'notification-logs',
+                id: doc.id,
+                data: {
+                  status: 'dlq',
+                  lastError: 'Worker process crashed or lease expired while processing (max attempts reached)',
+                  nextAttemptAt: null,
+                },
+                req,
+              })
+            } else {
+              const nextAttemptAt = new Date(Date.now() + delaySeconds * 1000).toISOString()
+              await this.payload.update({
+                collection: 'notification-logs',
+                id: doc.id,
+                data: {
+                  status: 'failed',
+                  lastError: 'Worker process crashed or lease expired while processing',
+                  nextAttemptAt,
+                },
+                req,
+              })
+            }
+            reapedCount++
+          } catch (updateErr) {
+            // Normal concurrency no-op in fallback mode
+          }
         }
-        reapedCount++
       }
     }
     return reapedCount
@@ -249,24 +292,43 @@ export class NotificationRepository {
       req,
     })
 
-    return res.docs.map((doc: NotificationLog) => ({
-      jobId: doc.notificationId || String(doc.id),
-      recipient: doc.recipient || '',
-      channel: doc.channel,
-      category: doc.category,
-      priority: doc.priority || 'normal',
-      templateId: doc.templateId || '',
-      translationKey: '',
-      templateData: (doc.templateData || {}) as Record<string, unknown>,
-      referenceType: doc.referenceType || '',
-      referenceId: doc.referenceId || '',
-      status: doc.status,
-      attempts: doc.attempts || 0,
-      maxAttempts: 3,
-      nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
-      lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
-      createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
-    }))
+    const recoverableJobs: NotificationJobEntity[] = []
+    let skippedInvalidCount = 0
+
+    for (const doc of (res.docs || []) as NotificationLog[]) {
+      if (!doc || typeof doc !== 'object' || (!doc.id && !doc.notificationId)) {
+        skippedInvalidCount++
+        continue
+      }
+
+      recoverableJobs.push({
+        jobId: doc.notificationId || String(doc.id),
+        recipient: doc.recipient || '',
+        channel: doc.channel,
+        category: doc.category,
+        priority: doc.priority || 'normal',
+        templateId: doc.templateId || '',
+        translationKey: '',
+        templateData: (doc.templateData || {}) as Record<string, unknown>,
+        referenceType: doc.referenceType || '',
+        referenceId: doc.referenceId || '',
+        status: doc.status,
+        attempts: doc.attempts || 0,
+        maxAttempts: 3,
+        lastError: doc.lastError || undefined,
+        nextAttemptAt: doc.nextAttemptAt ? new Date(doc.nextAttemptAt).toISOString() : undefined,
+        lastAttemptAt: doc.lastAttemptAt ? new Date(doc.lastAttemptAt).toISOString() : undefined,
+        createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString(),
+      })
+    }
+
+    if (skippedInvalidCount > 0) {
+      console.warn(
+        `[NotificationRepository] findRecoverableJobs observed and safely skipped ${skippedInvalidCount} malformed/concurrently-deleted document(s) in batch of ${res.docs?.length || 0}.`,
+      )
+    }
+
+    return recoverableJobs
   }
 
   /**
@@ -318,7 +380,11 @@ export class NotificationRepository {
     return res.rows.length > 0
   }
 
-  async saveJob(job: NotificationJobEntity, req?: PayloadRequest): Promise<NotificationJobEntity> {
+  async saveJob(
+    job: NotificationJobEntity,
+    context?: import('@/types').RequestContext | PayloadRequest,
+  ): Promise<NotificationJobEntity> {
+    const req = this.mapContextToReq(context)
     const existingDocs = await this.payload.find({
       collection: 'notification-logs',
       where: {
@@ -337,7 +403,7 @@ export class NotificationRepository {
           attempts: job.attempts,
           lastError: job.lastError || null,
           sentAt: job.sentAt || null,
-          nextAttemptAt: job.nextAttemptAt || null,
+          nextAttemptAt: job.status === 'dlq' ? null : (job.nextAttemptAt || null),
           lastAttemptAt: job.lastAttemptAt || null,
         },
         req,
@@ -346,6 +412,7 @@ export class NotificationRepository {
       return {
         ...job,
         jobId: doc.notificationId || (doc.id ? String(doc.id) : job.jobId),
+        nextAttemptAt: job.status === 'dlq' ? undefined : job.nextAttemptAt,
       }
     } else {
       const doc = await this.payload.create({
@@ -364,14 +431,16 @@ export class NotificationRepository {
           attempts: job.attempts,
           lastError: job.lastError || null,
           sentAt: job.sentAt || null,
-          nextAttemptAt: job.nextAttemptAt || null,
+          nextAttemptAt: job.status === 'dlq' ? null : (job.nextAttemptAt || null),
           lastAttemptAt: job.lastAttemptAt || null,
         },
+        req,
       })
 
       return {
         ...job,
         jobId: doc.notificationId || (doc.id ? String(doc.id) : job.jobId),
+        nextAttemptAt: job.status === 'dlq' ? undefined : job.nextAttemptAt,
       }
     }
   }

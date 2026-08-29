@@ -492,7 +492,7 @@ describe('P1-B Integration: Transactional Event Consistency & Outbox Reliability
     // 1. Create a completion outbox event payload
     const eventId = `evt_test_del_${Date.now()}`
     const correlationId = `corr_test_del_${Date.now()}`
-    const bookingData = { id: 8888, bookingNumber: 'BK-TEST-B6', status: BookingStatus.COMPLETED } as any
+    const bookingData = { id: 8888, customerId: testCustomer.id, bookingNumber: 'BK-TEST-B6', status: BookingStatus.COMPLETED } as any
 
     const outboxRepo = new PayloadOutboxRepository(payload)
     const worker = new OutboxPublisherWorker(outboxRepo)
@@ -620,14 +620,17 @@ describe('P1-B Integration: Transactional Event Consistency & Outbox Reliability
     const endBalance = await loyaltyService.getCustomerBalance(testCustomer.id)
     expect(startBalance - endBalance).toBe(pointsEarned) // Exactly 1 points reversal processed!
 
-    // Verify inbox registry has exactly 1 entry for this eventId
+    // Verify inbox registry has entries for both active subscribers (LoyaltySubscriber and DashboardSubscriber)
     const inboxDocs = await payload.find({
       collection: 'event-inbox',
       where: {
         processedEventId: { equals: eventId }
       }
     })
-    expect(inboxDocs.docs.length).toBe(1)
+    expect(inboxDocs.docs.length).toBe(2)
+    const subscriberNames = inboxDocs.docs.map((d: any) => d.subscriberName)
+    expect(subscriberNames).toContain('LoyaltySubscriber.processCancellation')
+    expect(subscriberNames).toContain('DashboardSubscriber.updateProjectionOnCancellation')
   })
 
   afterAll(async () => {
@@ -651,10 +654,15 @@ describe('P1-B Integration: Transactional Event Consistency & Outbox Reliability
       })
     }
 
-    // Also delete any other outbox events generated dynamically by our tracked test bookings
+    // Also delete any other outbox events generated dynamically by our tracked test bookings or test customer
     const outbox = await payload.find({ collection: 'event-outbox', limit: 1000 })
     for (const doc of outbox.docs) {
-      if (doc.payload?.booking?.id && createdBookingIds.includes(doc.payload.booking.id)) {
+      const payloadBookingId = doc.payload?.booking?.id || doc.payload?.bookingId
+      const payloadCustomerId = doc.payload?.customerId || doc.payload?.customer?.id || doc.payload?.booking?.customerId
+      const matchesBooking = typeof payloadBookingId === 'number' && createdBookingIds.includes(payloadBookingId)
+      const matchesCustomer = typeof payloadCustomerId === 'number' && testCustomer?.id === payloadCustomerId
+
+      if (matchesBooking || matchesCustomer) {
         await payload.delete({ collection: 'event-outbox', id: doc.id })
       }
     }

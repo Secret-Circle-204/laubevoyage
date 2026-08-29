@@ -11,13 +11,17 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
   const isDark = theme === 'dark'
 
   return (
-    <section className={`py-20 ${isDark ? 'bg-[#1a1718]' : 'bg-white'} transition-colors duration-500 border-b border-white/5`}>
+    <section
+      className={`py-20 ${isDark ? 'bg-[#1a1718]' : 'bg-white'} transition-colors duration-500 border-b border-white/5`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <span className="text-xs uppercase tracking-[0.25em] font-medium text-[#00aeef] block mb-2">
             Geographical Exploration
           </span>
-          <h2 className={`text-3xl sm:text-4xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
+          <h2
+            className={`text-3xl sm:text-4xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}
+          >
             Top Travel Destinations
           </h2>
           <div className="h-1 w-16 bg-[#f58220] mx-auto mt-3" />
@@ -28,7 +32,7 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
           {destinations.map((dest) => (
             <Link
               key={dest.id}
-              href={`/destinations/${dest.countrySlug}/${dest.citySlug}`}
+              href={`/destinations/${dest.countrySlug}`}
               className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg"
             >
               {dest.imageUrl ? (
@@ -42,7 +46,6 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-[#231F20] to-slate-900" />
               )}
-
 
               {/* Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-[#231F20] via-[#231F20]/30 to-transparent" />
@@ -58,8 +61,18 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
 
                 <div className="flex items-center gap-2 text-white/80 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <span>Explore {dest.experiencesCount} Journeys</span>
-                  <svg className="w-4 h-4 text-[#f58220]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  <svg
+                    className="w-4 h-4 text-[#f58220]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 8l4 4m0 0l-4 4m4-4H3"
+                    />
                   </svg>
                 </div>
               </div>

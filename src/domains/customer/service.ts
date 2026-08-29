@@ -66,6 +66,8 @@ export class CustomerService {
     const outbox = EventOutboxService.getInstance()
     await outbox.recordAndPublish({
       type: 'CUSTOMER_REGISTERED',
+      aggregateType: 'Customer',
+      aggregateId: String(customer.customerId),
       eventVersion: 1,
       customerId: customer.customerId,
       email: customer.email,
@@ -112,6 +114,8 @@ export class CustomerService {
     const outbox = EventOutboxService.getInstance()
     await outbox.recordAndPublish({
       type: 'CUSTOMER_UPDATED',
+      aggregateType: 'Customer',
+      aggregateId: String(updated.customerId),
       eventVersion: 1,
       customerId: updated.customerId,
       email: updated.email,
@@ -143,6 +147,8 @@ export class CustomerService {
     await outbox.recordAndPublish(
       {
         type: 'CUSTOMER_STATUS_UPDATED',
+        aggregateType: 'Customer',
+        aggregateId: String(updated.customerId),
         eventVersion: 1,
         customerId: updated.customerId,
         oldStatus,
@@ -156,6 +162,8 @@ export class CustomerService {
     await outbox.recordAndPublish(
       {
         type: 'CUSTOMER_UPDATED',
+        aggregateType: 'Customer',
+        aggregateId: String(updated.customerId),
         eventVersion: 1,
         customerId: updated.customerId,
         email: updated.email,

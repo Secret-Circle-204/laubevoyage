@@ -46,6 +46,7 @@ export interface SlotInventoryMutatedEvent extends BaseDomainEvent {
 export interface DashboardProjectionRebuiltEvent extends BaseDomainEvent {
   type: 'DASHBOARD_PROJECTION_REBUILT'
   customerId: number
+  slices?: ('loyalty' | 'trips' | 'customer' | 'security')[]
 }
 
 export interface ContentPageMutatedEvent extends BaseDomainEvent {

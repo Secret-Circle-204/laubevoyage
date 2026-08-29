@@ -6,6 +6,7 @@ import type { LoyaltyProjection } from './projection'
 import type { PointLedgerRecord, LedgerEntryType, LedgerReferenceType } from './types'
 import type { LoyaltyProgramConfig, TierDefinitionConfig } from './tier-config'
 import { LoyaltyProgramConfigurationException } from './tier-config'
+import { FinancialInvariantException } from '../shared/exceptions/domain-exception'
 import { LedgerValidator } from './ledger-validator'
 import { TierPolicy } from './tier-policy'
 
@@ -67,10 +68,17 @@ export class LoyaltyRepository {
 
   private mapContextToReq(context?: RequestContext): PayloadRequest | undefined {
     if (!context || context.transactionId === null || context.transactionId === undefined) {
-      return undefined
+      return {
+        context: {
+          eventSource: 'domain',
+        },
+      } as unknown as PayloadRequest
     }
     return {
       transactionID: context.transactionId,
+      context: {
+        eventSource: 'domain',
+      },
     } as unknown as PayloadRequest
   }
 
@@ -421,7 +429,7 @@ export class LoyaltyRepository {
 
     const projection: LoyaltyProjection = {
       customerId,
-      balance: latestBalance || pointsCache,
+      balance: latestBalance,
       tier,
       totalSpentEGP,
       lastLedgerId: '',
@@ -444,6 +452,12 @@ export class LoyaltyRepository {
     const req = this.mapContextToReq(context)
     const { aggregate } = await this.getCustomerAggregate(customerId, context)
     const newTotalSpent = aggregate.totalSpentEGP + additionalSpentEGP
+
+    if (newTotalSpent < 0) {
+      throw new FinancialInvariantException(
+        `[LoyaltyRepository] Financial Invariant Violation: customer totalSpentEGP cannot become negative (attempted: ${newTotalSpent}, current: ${aggregate.totalSpentEGP}, delta: ${additionalSpentEGP}).`,
+      )
+    }
 
     const customer = await this.payload.findByID({
       collection: 'customers',

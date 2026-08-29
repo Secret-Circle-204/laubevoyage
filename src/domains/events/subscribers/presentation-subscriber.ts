@@ -123,8 +123,12 @@ export function registerPresentationSubscriber(): void {
     'DASHBOARD_PROJECTION_REBUILT',
     'PresentationSubscriber.purgeDashboardViews',
     async (event) => {
-      console.log(`[PresentationSubscriber] DASHBOARD_PROJECTION_REBUILT Event received for Customer #${event.customerId}. Purging dashboard views.`)
-      await RevalidationService.purgeDashboard(event.customerId)
+      console.log(`[PresentationSubscriber] DASHBOARD_PROJECTION_REBUILT Event received for Customer #${event.customerId}. Targeted Slices:`, event.slices || 'ALL')
+      if (event.slices && Array.isArray(event.slices) && event.slices.length > 0) {
+        await RevalidationService.purgeDashboardSlices(event.customerId, event.slices)
+      } else {
+        await RevalidationService.purgeDashboard(event.customerId)
+      }
     }
   )
 

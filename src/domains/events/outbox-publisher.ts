@@ -1,5 +1,6 @@
 import type { IOutboxRepository } from './contracts/outbox-repository.interface'
-import { EventBus, SubscriberTimeoutError, type BaseDomainEvent } from './event-bus'
+import { EventBus, type BaseDomainEvent } from './event-bus'
+import { classifyDispatchError } from './error-classifier'
 
 export class OutboxPublisherWorker {
   private static BACKOFF_SCHEDULE_MS = [
@@ -57,31 +58,35 @@ export class OutboxPublisherWorker {
           processedCount++
         } catch (error: unknown) {
           failedCount++
-          const errorMessage = error instanceof Error ? error.message : 'Unknown event dispatch error'
+          const { reasonCode, isRetryable, errorMessage } = classifyDispatchError(error)
           const newRetryCount = record.retryCount + 1
 
-          let reasonCode = 'UNKNOWN_DISPATCH_FAILURE'
-          if (error instanceof SubscriberTimeoutError) {
-            reasonCode = error.reasonCode
-          } else if (errorMessage.toLowerCase().includes('deadlock')) {
-            reasonCode = 'DATABASE_DEADLOCK'
-          } else if (errorMessage.toLowerCase().includes('foreign key') || errorMessage.toLowerCase().includes('fk')) {
-            reasonCode = 'FK_VIOLATION'
-          } else if (errorMessage.toLowerCase().includes('validation')) {
-            reasonCode = 'VALIDATION_FAILED'
-          }
-
-          if (newRetryCount >= OutboxPublisherWorker.MAX_RETRIES) {
-            console.error(`[OutboxPublisherWorker] 🚨 Event ${record.eventId} reached MAX_RETRIES (${OutboxPublisherWorker.MAX_RETRIES}). Moving to dead_letter (ReasonCode: ${reasonCode}). Error: ${errorMessage}`)
+          if (!isRetryable) {
+            console.error(
+              `[OutboxPublisherWorker] 🚨 Poison Event ${record.eventId} encountered non-retryable error (ReasonCode: ${reasonCode}). Moving to dead_letter immediately. Error: ${errorMessage}`,
+            )
+            await this.outboxRepository.markAsDeadLetter(record.eventId, `[${reasonCode}] ${errorMessage}`)
+          } else if (newRetryCount >= OutboxPublisherWorker.MAX_RETRIES) {
+            console.error(
+              `[OutboxPublisherWorker] 🚨 Event ${record.eventId} reached MAX_RETRIES (${OutboxPublisherWorker.MAX_RETRIES}). Moving to dead_letter (ReasonCode: ${reasonCode}). Error: ${errorMessage}`,
+            )
             await this.outboxRepository.markAsDeadLetter(record.eventId, `[${reasonCode}] ${errorMessage}`)
           } else {
-            const delayMs = OutboxPublisherWorker.BACKOFF_SCHEDULE_MS[
-              Math.min(newRetryCount - 1, OutboxPublisherWorker.BACKOFF_SCHEDULE_MS.length - 1)
-            ]
+            const delayMs =
+              OutboxPublisherWorker.BACKOFF_SCHEDULE_MS[
+                Math.min(newRetryCount - 1, OutboxPublisherWorker.BACKOFF_SCHEDULE_MS.length - 1)
+              ]
             const nextRetryAt = new Date(Date.now() + delayMs).toISOString()
 
-            console.warn(`[OutboxPublisherWorker] ⚠️ Event ${record.eventId} failed (attempt ${newRetryCount}, Reason: ${reasonCode}). Error: ${errorMessage}. Next retry at ${nextRetryAt}`)
-            await this.outboxRepository.markAsFailed(record.eventId, `[${reasonCode}] ${errorMessage}`, nextRetryAt, newRetryCount)
+            console.warn(
+              `[OutboxPublisherWorker] ⚠️ Event ${record.eventId} failed (attempt ${newRetryCount}, Reason: ${reasonCode}). Error: ${errorMessage}. Next retry at ${nextRetryAt}`,
+            )
+            await this.outboxRepository.markAsFailed(
+              record.eventId,
+              `[${reasonCode}] ${errorMessage}`,
+              nextRetryAt,
+              newRetryCount,
+            )
           }
         }
       }

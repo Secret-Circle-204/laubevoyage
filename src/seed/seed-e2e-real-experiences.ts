@@ -119,10 +119,12 @@ async function seedRealE2EExperiences() {
     hurghadaId = hurghadaRes.docs[0].id
   }
 
-  console.log(`📍 [Seed] Destination Cities confirmed: Cairo (#${cairoId}), Hurghada (#${hurghadaId})`)
+  console.log(
+    `📍 [Seed] Destination Cities confirmed: Cairo (#${cairoId}), Hurghada (#${hurghadaId})`,
+  )
 
   // =========================================================================
-  // 1. DAILY TOUR: Giza Pyramids & Grand Egyptian Museum Private Tour
+  // 1. DAILY TOUR: Giza Pyramids and Grand Egyptian Museum Private Tour
   // =========================================================================
   console.log('🌱 [Seed 1/3] Creating / Updating Daily Tour Experience...')
   const dailyTourSlug = 'giza-pyramids-gem-private-tour'
@@ -133,7 +135,7 @@ async function seedRealE2EExperiences() {
   })
 
   const dailyTourData = {
-    title: 'Giza Pyramids & Grand Egyptian Museum Private Tour',
+    title: 'Giza Pyramids and Grand Egyptian Museum Private Tour',
     slug: dailyTourSlug,
     type: 'daily_tour' as const,
     city: cairoId,
@@ -151,31 +153,32 @@ async function seedRealE2EExperiences() {
     included: [
       { item: 'Private Certified Egyptologist Tour Guide' },
       { item: 'VIP Air-Conditioned Mercedes Luxury Transport' },
-      { item: 'All Monument & GEM Exhibition Entrance Tickets' },
-      { item: 'Chilled Mineral Water, Fresh Juices & Traditional Snacks' },
+      { item: 'All Monument and GEM Exhibition Entrance Tickets' },
+      { item: 'Chilled Mineral Water, Fresh Juices and Traditional Snacks' },
     ],
     excluded: [
-      { item: 'Tipping & Gratuities for Guide and Driver' },
-      { item: 'Personal Expenses & Souvenirs' },
+      { item: 'Tipping and Gratuities for Guide and Driver' },
+      { item: 'Personal Expenses and Souvenirs' },
       { item: 'Optional Camel or Horse Carriage Ride' },
     ],
     itinerary: [
       {
         dayNumber: 1,
-        title: 'Giza Plateau, Great Sphinx & Grand Egyptian Museum Exploration',
+        title: 'Giza Plateau, Great Sphinx and Grand Egyptian Museum Exploration',
         description:
           'Private guided tour covering the Great Pyramid of Khufu, Khafre, Menkaure, the panoramic viewpoint, Great Sphinx, and the world-class Grand Egyptian Museum featuring King Tutankhamun treasures.',
       },
     ],
     description: toLexical(
-      'Embark on an unforgettable journey through 5,000 years of ancient history with our private Egyptologist tour to the Giza Pyramids and the new Grand Egyptian Museum in absolute luxury.'
+      'Embark on an unforgettable journey through 5,000 years of ancient history with our private Egyptologist tour to the Giza Pyramids and the new Grand Egyptian Museum in absolute luxury.',
     ),
     policies: toLexical(
-      'Full refund for cancellations made at least 24 hours before the scheduled tour departure. Instant booking confirmation.'
+      'Full refund for cancellations made at least 24 hours before the scheduled tour departure. Instant booking confirmation.',
     ),
     seo: {
-      title: 'Giza Pyramids & Grand Egyptian Museum Tour | Laube Voyage',
-      description: 'Book a luxury private tour to the Giza Pyramids and GEM with private transport and guide.',
+      title: 'Giza Pyramids and Grand Egyptian Museum Tour | Laube Voyage',
+      description:
+        'Book a luxury private tour to the Giza Pyramids and GEM with private transport and guide.',
       keywords: 'Giza Pyramids, Grand Egyptian Museum, Cairo Day Tour, Egypt Luxury Travel',
     },
   }
@@ -199,7 +202,7 @@ async function seedRealE2EExperiences() {
   }
 
   // =========================================================================
-  // 2. FIXED PACKAGE: Cairo & Nile Express - 3 Days Luxury Fixed Package
+  // 2. FIXED PACKAGE: Cairo and Nile Express - 3 Days Luxury Fixed Package
   // =========================================================================
   console.log('🌱 [Seed 2/3] Creating / Updating Fixed Package Experience...')
   const fixedPackageSlug = 'cairo-nile-express-3-days-fixed'
@@ -210,7 +213,7 @@ async function seedRealE2EExperiences() {
   })
 
   const fixedPackageData = {
-    title: 'Cairo & Nile Express - 3 Days Luxury Fixed Package',
+    title: 'Cairo and Nile Express - 3 Days Luxury Fixed Package',
     slug: fixedPackageSlug,
     type: 'package' as const,
     packageMode: 'fixed_date' as const,
@@ -224,9 +227,9 @@ async function seedRealE2EExperiences() {
     },
     included: [
       { item: '5-Star Luxury Nile-View Hotel Accommodation (2 Nights)' },
-      { item: 'Daily Gourmet Buffet Breakfast & Welcome Nile Dinner Cruise' },
-      { item: 'Full-Day Pyramids, Egyptian Museum & Old Cairo Sightseeing' },
-      { item: 'VIP Airport Meet & Greet with Private Mercedes Transfers' },
+      { item: 'Daily Gourmet Buffet Breakfast and Welcome Nile Dinner Cruise' },
+      { item: 'Full-Day Pyramids, Egyptian Museum and Old Cairo Sightseeing' },
+      { item: 'VIP Airport Meet and Greet with Private Mercedes Transfers' },
     ],
     excluded: [
       { item: 'International Flight Tickets' },
@@ -236,29 +239,33 @@ async function seedRealE2EExperiences() {
     itinerary: [
       {
         dayNumber: 1,
-        title: 'VIP Arrival & Nile Dinner Cruise',
-        description: 'VIP airport transfer to your 5-star hotel, evening relaxation, and authentic 5-star Nile dinner cruise with live oriental show.',
+        title: 'VIP Arrival and Nile Dinner Cruise',
+        description:
+          'VIP airport transfer to your 5-star hotel, evening relaxation, and authentic 5-star Nile dinner cruise with live oriental show.',
       },
       {
         dayNumber: 2,
-        title: 'Giza Pyramids, Citadel & Khan El Khalili Bazaar',
-        description: 'Full-day VIP guided tour exploring the Giza Pyramids, Sphinx, Saladin Citadel, and vibrant Khan El Khalili historic market.',
+        title: 'Giza Pyramids, Citadel and Khan El Khalili Bazaar',
+        description:
+          'Full-day VIP guided tour exploring the Giza Pyramids, Sphinx, Saladin Citadel, and vibrant Khan El Khalili historic market.',
       },
       {
         dayNumber: 3,
-        title: 'National Museum of Egyptian Civilization & VIP Departure',
-        description: 'Morning visit to NMEC Royal Mummies Hall, checkout at 12:00 PM local time, and private transfer to Cairo International Airport.',
+        title: 'National Museum of Egyptian Civilization and VIP Departure',
+        description:
+          'Morning visit to NMEC Royal Mummies Hall, checkout at 12:00 PM local time, and private transfer to Cairo International Airport.',
       },
     ],
     description: toLexical(
-      'Discover the best of Cairo in a curated 3-day luxury fixed package featuring 5-star accommodations, private Egyptologist guidance, and seamless VIP logistics.'
+      'Discover the best of Cairo in a curated 3-day luxury fixed package featuring 5-star accommodations, private Egyptologist guidance, and seamless VIP logistics.',
     ),
     policies: toLexical(
-      'Checkout policy: Last day checkout at 12:00 PM local Cairo time. Free cancellation up to 7 days prior to departure.'
+      'Checkout policy: Last day checkout at 12:00 PM local Cairo time. Free cancellation up to 7 days prior to departure.',
     ),
     seo: {
       title: 'Cairo 3 Days Luxury Fixed Package | Laube Voyage',
-      description: 'Experience Cairo in 3 days with 5-star luxury hotels, Nile dinner cruise, and private guided sightseeing.',
+      description:
+        'Experience Cairo in 3 days with 5-star luxury hotels, Nile dinner cruise, and private guided sightseeing.',
       keywords: 'Cairo Package, Egypt 3 Days, Nile Cruise, Luxury Travel Egypt',
     },
   }
@@ -284,7 +291,7 @@ async function seedRealE2EExperiences() {
   // Generate departure slots for Fixed Package across multiple calendar dates
   const today = new Date()
   const departureDates: string[] = []
-  
+
   // Seed dates: fixed set + next 30 days every 2-3 days
   const baseDates = [
     '2026-08-22',
@@ -336,7 +343,7 @@ async function seedRealE2EExperiences() {
   }
 
   // =========================================================================
-  // 3. FLEXIBLE PACKAGE: Red Sea & Desert Safari - 4 Days Flexible Explorer
+  // 3. FLEXIBLE PACKAGE: Red Sea and Desert Safari - 4 Days Flexible Explorer
   // =========================================================================
   console.log('🌱 [Seed 3/3] Creating / Updating Flexible Package Experience...')
   const flexPackageSlug = 'red-sea-desert-safari-4-days-flexible'
@@ -347,7 +354,7 @@ async function seedRealE2EExperiences() {
   })
 
   const flexPackageData = {
-    title: 'Red Sea & Desert Safari - 4 Days Flexible Explorer',
+    title: 'Red Sea and Desert Safari - 4 Days Flexible Explorer',
     slug: flexPackageSlug,
     type: 'package' as const,
     packageMode: 'flexible_date' as const,
@@ -367,40 +374,45 @@ async function seedRealE2EExperiences() {
     ],
     excluded: [
       { item: 'Scuba Diving Certification Courses' },
-      { item: 'Resort Spa Treatments & Massage Services' },
-      { item: 'Personal Shopping & Souvenirs' },
+      { item: 'Resort Spa Treatments and Massage Services' },
+      { item: 'Personal Shopping and Souvenirs' },
     ],
     itinerary: [
       {
         dayNumber: 1,
-        title: 'VIP Airport Welcome & Resort Check-in',
-        description: 'Private transfer from Hurghada Airport to your 5-star beachfront luxury resort. Free afternoon to enjoy private beach and pools.',
+        title: 'VIP Airport Welcome and Resort Check-in',
+        description:
+          'Private transfer from Hurghada Airport to your 5-star beachfront luxury resort. Free afternoon to enjoy private beach and pools.',
       },
       {
         dayNumber: 2,
         title: 'Giftun Island VIP Snorkeling Boat Cruise',
-        description: 'Full-day private yacht voyage to Orange Bay / Giftun Island with guided snorkeling among vibrant coral reefs and seafood lunch.',
+        description:
+          'Full-day private yacht voyage to Orange Bay / Giftun Island with guided snorkeling among vibrant coral reefs and seafood lunch.',
       },
       {
         dayNumber: 3,
-        title: 'Desert Quad Safari, Camel Trek & Bedouin Stargazing',
-        description: 'Afternoon quad biking adventure into the Eastern Desert, traditional camel ride, Bedouin barbecue dinner, and guided stargazing.',
+        title: 'Desert Quad Safari, Camel Trek and Bedouin Stargazing',
+        description:
+          'Afternoon quad biking adventure into the Eastern Desert, traditional camel ride, Bedouin barbecue dinner, and guided stargazing.',
       },
       {
         dayNumber: 4,
-        title: 'Morning Beach Relaxation & VIP Departure',
-        description: 'Leisurely morning swim, checkout at 12:00 PM local time, and private Mercedes transfer to Hurghada International Airport.',
+        title: 'Morning Beach Relaxation and VIP Departure',
+        description:
+          'Leisurely morning swim, checkout at 12:00 PM local time, and private Mercedes transfer to Hurghada International Airport.',
       },
     ],
     description: toLexical(
-      'Experience the perfect fusion of Red Sea coastal luxury and exhilarating desert adventures with our 4-day flexible package. Choose any arrival date of your preference.'
+      'Experience the perfect fusion of Red Sea coastal luxury and exhilarating desert adventures with our 4-day flexible package. Choose any arrival date of your preference.',
     ),
     policies: toLexical(
-      'Flexible Date Policy: Customer selects arrival date at checkout. Checkout on final day is 12:00 PM local destination time. Free date adjustments up to 48 hours prior.'
+      'Flexible Date Policy: Customer selects arrival date at checkout. Checkout on final day is 12:00 PM local destination time. Free date adjustments up to 48 hours prior.',
     ),
     seo: {
       title: 'Red Sea 4 Days Flexible Package | Laube Voyage',
-      description: 'Book a 4-day luxury Red Sea resort and safari package with flexible start dates.',
+      description:
+        'Book a 4-day luxury Red Sea resort and safari package with flexible start dates.',
       keywords: 'Hurghada Package, Red Sea Luxury, Desert Safari Egypt, Flexible Travel',
     },
   }

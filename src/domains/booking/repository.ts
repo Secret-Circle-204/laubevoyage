@@ -12,6 +12,7 @@ import type {
 } from './types'
 import type { Booking } from '@/payload-types'
 import { validateTransition } from './state-machine'
+import { sql } from '@payloadcms/db-postgres'
 
 /**
  * Booking Repository
@@ -123,6 +124,118 @@ export class BookingRepository {
 
     const doc = result.docs[0]
     return doc ? this.mapDocToAggregate(doc) : null
+  }
+
+  /**
+   * Acquire exclusive row lock on the customer in PostgreSQL for write serialization.
+   * Reuses the existing PostgreSQL client query pattern: SELECT id FROM customers WHERE id = $1 FOR UPDATE.
+   */
+  async acquireCustomerLock(customerId: number, context?: RequestContext): Promise<void> {
+    const txId = context?.transactionId
+    if (!txId) return
+
+    const db = this.payload.db as unknown as { sessions?: Record<string, { db?: { session?: { client?: { query: Function } } } }> }
+    const txKey = typeof txId === 'object' && txId !== null && 'then' in (txId as any) ? await txId : String(txId)
+    const session = txKey ? db.sessions?.[txKey] : undefined
+    const client = session?.db?.session?.client
+    if (client && typeof client.query === 'function') {
+      await client.query('SELECT id FROM customers WHERE id = $1 FOR UPDATE', [customerId])
+    }
+  }
+
+  /**
+   * Authoritative summary of active loyalty points held in uncommitted bookings for a customer.
+   * Scoped strictly to bookings with active reservation statuses ('draft', 'pending_payment', 'pending_admin_review')
+   * where pointHold.status === 'held'.
+   * 
+   * Performance & Correctness Optimization (Gate 17.5.38):
+   * Performs database-side SQL COUNT + SUM aggregation in PostgreSQL.
+   * Eliminates artificial document limits (limit: 1000), memory bloat, and in-memory JavaScript loops.
+   */
+  async getActiveHeldPointsSummaryForCustomer(
+    customerId: number,
+    context?: RequestContext,
+  ): Promise<{ totalPoints: number; count: number }> {
+    const drizzle = (this.payload.db as any)?.drizzle
+    if (drizzle && typeof drizzle.execute === 'function') {
+      try {
+        const query = sql`
+          SELECT 
+            COALESCE(SUM((point_hold->>'pointsHeld')::integer), 0) AS total_points,
+            COUNT(id)::integer AS count
+          FROM "bookings"
+          WHERE "user_id" = ${customerId}
+            AND "status" IN ('draft', 'pending_payment', 'pending_admin_review')
+            AND (point_hold->>'status') = 'held'
+            AND ((point_hold->>'pointsHeld')::integer) > 0
+            AND (
+              "status" = 'pending_admin_review'
+              OR (point_hold->>'expiresAt') IS NULL
+              OR (point_hold->>'expiresAt')::timestamptz > NOW()
+            )
+        `
+        const result = await drizzle.execute(query)
+        const row = result?.rows?.[0] || result?.[0]
+        if (row) {
+          return {
+            totalPoints: Number(row.total_points || 0),
+            count: Number(row.count || 0),
+          }
+        }
+        return { totalPoints: 0, count: 0 }
+      } catch (dbErr) {
+        console.warn(
+          `[BookingRepository] Database-level hold aggregation failed for customer #${customerId}, using fallback:`,
+          dbErr instanceof Error ? dbErr.message : String(dbErr),
+        )
+      }
+    }
+
+    // Safe fallback for non-Postgres / unit testing environments
+    const req = this.mapContextToReq(context)
+    const result = await this.payload.find({
+      collection: 'bookings',
+      where: {
+        and: [
+          { user: { equals: customerId } },
+          {
+            status: {
+              in: [
+                'draft',
+                'pending_payment',
+                'pending_admin_review',
+              ],
+            },
+          },
+        ],
+      },
+      pagination: false,
+      limit: 0, // No artificial limit in fallback
+      req,
+    })
+
+    let totalHeld = 0
+    let count = 0
+    for (const doc of result.docs) {
+      const hold = doc.pointHold as PointHoldEntity | null | undefined
+      if (hold && hold.status === 'held' && typeof hold.pointsHeld === 'number' && hold.pointsHeld > 0) {
+        if (doc.status !== 'pending_admin_review' && hold.expiresAt && new Date(hold.expiresAt).getTime() <= Date.now()) {
+          continue
+        }
+        totalHeld += hold.pointsHeld
+        count++
+      }
+    }
+
+    return { totalPoints: totalHeld, count }
+  }
+
+  /**
+   * Calculate total active loyalty points held in uncommitted bookings for a customer.
+   */
+  async getActiveHeldPointsForCustomer(customerId: number, context?: RequestContext): Promise<number> {
+    const summary = await this.getActiveHeldPointsSummaryForCustomer(customerId, context)
+    return summary.totalPoints
   }
 
   /**

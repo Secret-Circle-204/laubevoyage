@@ -18,21 +18,7 @@ export class CronDispatcher {
 
     const { maintenance, currency, payload } = await getDomainServices()
 
-    // Task 1: Complete Finished Trips & Award Loyalty Points
-    try {
-      const res = await maintenance.triggerJob('complete_finished_bookings', 'scheduler', CronDispatcher.workerId)
-      if (res.success) {
-        executedTasks.push('trip_completions')
-      } else {
-        executedTasks.push('trip_completions_skipped_or_locked')
-      }
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err)
-      console.error('[CronDispatcher] Failed complete_finished_bookings:', errMsg)
-      executedTasks.push('trip_completions_failed')
-    }
-
-    // Task 2: Refresh Live Exchange Rate Catalog Cache (Independent Lease)
+    // Task 1: Refresh Live Exchange Rate Catalog Cache (Independent Lease)
     try {
       const acquired = await MaintenanceLeaseService.acquireLease(payload, 'currency_rate_refresh', CronDispatcher.workerId, 300000) // 5 minutes TTL
       if (acquired) {
@@ -51,21 +37,7 @@ export class CronDispatcher {
       executedTasks.push('currency_rate_refresh_failed')
     }
 
-    // Task 3: Release Expired Booking Holds
-    try {
-      const res = await maintenance.triggerJob('expire_stale_holds', 'scheduler', CronDispatcher.workerId)
-      if (res.success) {
-        executedTasks.push('release_expired_holds')
-      } else {
-        executedTasks.push('release_expired_holds_skipped_or_locked')
-      }
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err)
-      console.error('[CronDispatcher] Failed expire_stale_holds job:', errMsg)
-      executedTasks.push('release_expired_holds_failed')
-    }
-
-    // Task 4: Reconcile Pending Payments
+    // Task 2: Reconcile Pending Payments
     try {
       const res = await maintenance.triggerJob('financial_reconciliation', 'scheduler', CronDispatcher.workerId)
       if (res.success) {
@@ -79,7 +51,7 @@ export class CronDispatcher {
       executedTasks.push('payment_reconciliation_failed')
     }
 
-    // Task 5: Data Retention Purge (Hourly)
+    // Task 3: Data Retention Purge (Hourly)
     try {
       const res = await maintenance.triggerJob('data_retention_purge', 'scheduler', CronDispatcher.workerId)
       if (res.success) {

@@ -887,7 +887,7 @@ export interface PointLedger {
    */
   amount: number;
   /**
-   * Running balance after this transaction
+   * Authoritative running balance (server-derived by beforeChange hook)
    */
   balance: number;
   reason: string;
@@ -1153,7 +1153,7 @@ export interface NotificationLog {
   customer?: (number | null) | Customer;
   recipient: string;
   channel: 'email' | 'sms' | 'push' | 'whatsapp';
-  category: 'marketing' | 'booking' | 'payment' | 'loyalty';
+  category: 'marketing' | 'booking' | 'payment' | 'loyalty' | 'security';
   priority: 'critical' | 'high' | 'normal' | 'low';
   templateId: string;
   templateData?:

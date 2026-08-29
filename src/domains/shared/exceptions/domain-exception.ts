@@ -58,3 +58,20 @@ export class EmailNotVerifiedException extends DomainException {
   }
 }
 
+export class CustomerNotFoundException extends DomainException {
+  constructor(messageOrId: number | string = 'Customer was not found.') {
+    const msg = typeof messageOrId === 'number' || !isNaN(Number(messageOrId))
+      ? `Customer #${messageOrId} was not found.`
+      : String(messageOrId)
+    super(msg, 'CUSTOMER_NOT_FOUND', 404)
+  }
+}
+
+export class FinancialInvariantException extends DomainException {
+  constructor(message: string = 'Financial invariant violation.') {
+    super(message, 'FINANCIAL_INVARIANT_VIOLATION', 400)
+  }
+}
+
+
+

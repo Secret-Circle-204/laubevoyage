@@ -38,6 +38,13 @@ export interface BookingPendingAdminReviewEvent extends BaseDomainEvent {
   actor: Actor
 }
 
+export interface BookingRefundedEvent extends BaseDomainEvent {
+  type: 'BOOKING_REFUNDED'
+  booking: BookingAggregate
+  actor: Actor
+  reason: string
+}
+
 export type DomainEvent =
   | BookingCreatedEvent
   | BookingPaidEvent
@@ -45,5 +52,6 @@ export type DomainEvent =
   | BookingCancelledEvent
   | BookingCompletedEvent
   | BookingPendingAdminReviewEvent
+  | BookingRefundedEvent
 
 

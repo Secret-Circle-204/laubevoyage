@@ -19,7 +19,8 @@
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/index.ts",
     "db:migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
-    "db:reset": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:reset"
+    "db:reset": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:reset",
+    "maintenance:reconcile-dashboard": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/reconcile-dashboard-projections.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.85.2",

@@ -1,7 +1,9 @@
 import type { ITranslationProvider } from './provider.interface'
+import type { TranslationProviderId } from '../types'
 
 export class LibreTranslationProvider implements ITranslationProvider {
-  readonly providerId = 'libre'
+  readonly providerId: TranslationProviderId = 'libre'
+
 
   async translateText(text: string, targetLocale: string): Promise<string> {
     if (targetLocale === 'en' || !text) return text

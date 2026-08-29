@@ -171,9 +171,10 @@ export class BookingWorkflowEngine {
     bookingId: number,
     actor?: Actor,
     context?: RequestContext,
+    reason?: string,
   ): Promise<BookingAggregate> {
     const currentActor = actor || { id: 'system', type: 'system' as const, name: 'System Worker' }
-    return this.refund.refund(bookingId, currentActor, context)
+    return this.refund.refund(bookingId, currentActor, context, reason)
   }
 
   async executeCompletionWorkflow(bookingId: number, actor?: Actor, context?: RequestContext): Promise<BookingAggregate> {

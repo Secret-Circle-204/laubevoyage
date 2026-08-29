@@ -49,6 +49,8 @@ export class BookingCompletion {
 
     await this.outboxService.record({
       type: 'BOOKING_COMPLETED',
+      aggregateType: 'Booking',
+      aggregateId: String(bookingId),
       booking: completedBooking,
       actor: currentActor,
     }, context)

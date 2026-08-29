@@ -27,7 +27,10 @@ export class CheckoutPageLoader {
       const gateways: PaymentGatewayDTO[] = await payment.getAvailableGateways()
       const session = await SessionResolver.resolve()
       if (!session.customerId) return null
-      const availableLoyaltyPoints = await loyalty.getCustomerBalance(session.customerId)
+      const settledBalance = await loyalty.getCustomerBalance(session.customerId)
+      const activeHeldPoints = await booking.getActiveHeldPointsForCustomer(session.customerId)
+      const availableLoyaltyPoints = Math.max(0, settledBalance - activeHeldPoints)
+      const loyaltyConfig = await loyalty.getActiveConfig()
 
       if (bookingId !== 'new') {
         const bookingDoc = await booking.getByBookingNumber(bookingId)
@@ -70,6 +73,16 @@ export class CheckoutPageLoader {
           ctx
         )
 
+        const loyaltyDiscountPrice = snapshot.loyaltyDiscountEGP > 0
+          ? await localization.formatAlreadyConvertedPrice(
+              snapshot.loyaltyDiscountEGP * snapshot.exchangeRate,
+              snapshot.loyaltyDiscountEGP,
+              snapshot.displayCurrency,
+              snapshot.exchangeRate,
+              ctx
+            )
+          : undefined
+
         const imageUrl = expDoc.heroUrl || ''
 
         return {
@@ -85,9 +98,13 @@ export class CheckoutPageLoader {
           basePricePerPersonEGP: snapshot.basePriceEGP,
           subtotalPrice: subtotalFormatted,
           promoDiscountEGP: snapshot.promotionDiscountEGP,
-          loyaltyDiscountEGP: snapshot.loyaltyDiscountEGP,
           totalCost: totalFormatted,
           availableLoyaltyPoints,
+          redemptionUnit: loyaltyConfig.redemptionPointsUnit,
+          minRedemptionPoints: loyaltyConfig.minRedemptionPoints,
+          maxRedemptionPercent: loyaltyConfig.maxRedemptionPercent,
+          redemptionStepUnit: loyaltyConfig.redemptionStepUnit || loyaltyConfig.redemptionPointsUnit,
+          loyaltyDiscountPrice,
           gateways,
           leadTraveler,
         }
@@ -181,9 +198,14 @@ export class CheckoutPageLoader {
         basePricePerPersonEGP: departure.effectiveBasePrice,
         subtotalPrice: subtotalPrice,
         promoDiscountEGP: snapshot.promotionDiscountEGP,
-        loyaltyDiscountEGP: snapshot.loyaltyDiscountEGP,
         totalCost: totalCost,
         availableLoyaltyPoints,
+        redemptionUnit: loyaltyConfig.redemptionPointsUnit,
+        minRedemptionPoints: loyaltyConfig.minRedemptionPoints,
+        maxRedemptionPercent: loyaltyConfig.maxRedemptionPercent,
+        redemptionStepUnit: loyaltyConfig.redemptionStepUnit || loyaltyConfig.redemptionPointsUnit,
+        estimatedEarnPoints: calculatedPricing.estimatedEarnPoints,
+        loyaltyDiscountPrice: calculatedPricing.loyaltyDiscountPrice,
         gateways,
         leadTraveler,
       }

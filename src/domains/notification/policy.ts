@@ -17,11 +17,11 @@ export class NotificationPolicy {
       }
     }
 
-    if (job.status === 'dlq' || job.attempts >= job.maxAttempts) {
+    if (job.status === 'dlq' || job.attempts > job.maxAttempts) {
       return {
         allowed: false,
         code: 'MAX_ATTEMPTS_EXCEEDED',
-        reason: `Notification ${job.jobId} reached maximum retry limit (${job.maxAttempts})`,
+        reason: `Notification ${job.jobId} exceeded maximum retry limit (${job.maxAttempts})`,
       }
     }
 

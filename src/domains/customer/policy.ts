@@ -37,6 +37,30 @@ export class CustomerPolicy {
   }
 
   /**
+   * Validate if a customer is eligible to receive an email verification link.
+   * Operates purely on customer domain state without touching raw credentials.
+   */
+  static canDispatchVerification(
+    customer: CustomerAggregate | null,
+    state: { hasToken: boolean; isExpired: boolean },
+  ): CustomerPolicyResult {
+    if (!customer) {
+      return { allowed: false, code: 'CUSTOMER_NOT_FOUND', reason: 'Customer record does not exist.' }
+    }
+    if (customer.status !== 'pending_verification' || customer.isEmailVerified) {
+      return { allowed: false, code: 'ALREADY_VERIFIED', reason: 'Customer email is already verified.' }
+    }
+    if (!state.hasToken) {
+      return { allowed: false, code: 'TOKEN_CONSUMED', reason: 'Verification token is not available or already consumed.' }
+    }
+    if (state.isExpired) {
+      return { allowed: false, code: 'TOKEN_EXPIRED', reason: 'Verification token has expired.' }
+    }
+    return { allowed: true }
+  }
+
+
+  /**
    * Validate if customer can request account deletion (GDPR).
    */
   static canDeleteAccount(
@@ -46,6 +70,7 @@ export class CustomerPolicy {
       pointLedgerCount: number
       reviewCount: number
       paymentCount: number
+      pendingOutboxCount?: number
     },
   ): CustomerPolicyResult {
     if (customer.status === 'deleted') {
@@ -69,12 +94,20 @@ export class CustomerPolicy {
     if (checks.paymentCount > 0) {
       violations.push(`has payment transactions`)
     }
+    if (checks.pendingOutboxCount && checks.pendingOutboxCount > 0) {
+      violations.push(`has ${checks.pendingOutboxCount} pending/in-flight outbox event(s)`)
+    }
 
     if (violations.length > 0) {
+      const isPendingOnly =
+        checks.pendingOutboxCount &&
+        checks.pendingOutboxCount > 0 &&
+        violations.length === 1
+
       return {
         allowed: false,
-        code: 'HISTORICAL_RECORDS_EXIST',
-        reason: `Customer cannot be permanently deleted because they have dependencies: ${violations.join(', ')}. Archive/Soft-delete customer instead.`,
+        code: isPendingOnly ? 'PENDING_EVENTS_EXIST' : 'HISTORICAL_RECORDS_EXIST',
+        reason: `Customer cannot be permanently deleted because they ${violations.join(', ')}. Archive/Soft-delete customer instead.`,
       }
     }
 

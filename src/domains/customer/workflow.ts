@@ -13,6 +13,7 @@ import { CustomerQueries } from './queries'
 import { EventOutboxService } from '../events/outbox'
 import type { CustomerAggregate } from './aggregate'
 import type { CustomerPreferencesInput } from './types'
+import { NotificationService } from '../notification/service'
 
 export type VerificationResult =
   | { status: 'VERIFIED'; customer: CustomerAggregate }
@@ -36,16 +37,18 @@ export class CustomerWorkflowEngine {
   public sessionManager: DeviceSessionManager
   public queries: CustomerQueries
   public eventOutbox: EventOutboxService
+  public notificationService: NotificationService
 
   constructor(repository: CustomerRepository | Payload) {
     let payloadInstance: Payload
-    if (repository && 'findByEmail' in repository) {
-      this.repository = repository
-      payloadInstance = repository.getPayload()
+    if (repository && 'getPayload' in repository) {
+      this.repository = repository as CustomerRepository
+      payloadInstance = this.repository.getPayload()
     } else {
-      this.repository = new CustomerRepository(repository as Payload)
       payloadInstance = repository as Payload
+      this.repository = new CustomerRepository(payloadInstance)
     }
+
     this.travelerRepository = new TravelerRepository(payloadInstance)
     this.addressRepository = new AddressRepository(payloadInstance)
     this.sessionRepository = new DeviceSessionRepository(payloadInstance)
@@ -56,6 +59,7 @@ export class CustomerWorkflowEngine {
     this.sessionManager = new DeviceSessionManager(this.sessionRepository)
     this.queries = new CustomerQueries(this.repository, this.sessionRepository)
     this.eventOutbox = EventOutboxService.getInstance()
+    this.notificationService = new NotificationService(payloadInstance)
   }
 
   /**
@@ -82,6 +86,23 @@ export class CustomerWorkflowEngine {
         password,
         preferences,
         options,
+        activeContext,
+      )
+
+      // Transactionally enqueue Email #1: Security Verification (Zero raw token in persistent payload)
+      await this.notificationService.enqueueNotification(
+        {
+          referenceType: 'VERIFICATION',
+          referenceId: String(customer.customerId),
+          customerId: customer.customerId,
+          recipient: customer.email,
+          channel: 'email',
+          category: 'security',
+          priority: 'critical',
+          templateId: 'verification_email',
+          translationKey: 'customer.verify_email',
+          templateData: { name: customer.fullName, customerId: customer.customerId },
+        },
         activeContext,
       )
 

@@ -1,7 +1,1 @@
---- Log session started at 2026-08-26T18:58:13.591Z ---
-[2026-08-26T18:58:15.628Z] [LOG] [EventBus] 📢 Publishing event [EXPERIENCE_MUTATED] (EventID: evt_exp_496_1787770695627, CorrelationID: corr_exp_496)
-[2026-08-26T18:58:15.629Z] [LOG] [EventBus] ⚠️ No subscribers found for event [EXPERIENCE_MUTATED]
-[2026-08-26T18:58:15.660Z] [LOG] [EventBus] 📢 Publishing event [EXPERIENCE_MUTATED] (EventID: evt_exp_497_1787770695659, CorrelationID: corr_exp_497)
-[2026-08-26T18:58:15.660Z] [LOG] [EventBus] ⚠️ No subscribers found for event [EXPERIENCE_MUTATED]
-[2026-08-26T18:58:16.108Z] [LOG] [EventBus] 📢 Publishing event [EXPERIENCE_MUTATED] (EventID: evt_exp_498_1787770696107, CorrelationID: corr_exp_498)
-[2026-08-26T18:58:16.108Z] [LOG] [EventBus] ⚠️ No subscribers found for event [EXPERIENCE_MUTATED]
+--- Log session started at 2026-08-29T01:10:34.882Z ---

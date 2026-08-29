@@ -6,6 +6,14 @@ export type { CurrencyCode }
 
 export type BookingSource = 'website' | 'admin' | 'api' | 'partner' | 'affiliate'
 
+export type BookingPaymentStatus =
+  | 'unpaid'
+  | 'partially_paid'
+  | 'paid'
+  | 'refunded'
+  | 'partially_refunded'
+  | 'written_off'
+
 export interface Actor {
   id: number | string
   type: 'customer' | 'admin' | 'system'
@@ -127,7 +135,7 @@ export interface BookingAggregate {
   capacityHold: CapacityHoldEntity | null
   pointHold: PointHoldEntity | null
   
-  paymentStatus?: 'unpaid' | 'partially_paid' | 'paid' | 'refunded' | 'partially_refunded' | 'written_off'
+  paymentStatus?: BookingPaymentStatus
   amountPaid?: number
   outstandingBalance?: number
   

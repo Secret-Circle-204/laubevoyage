@@ -59,6 +59,7 @@ export const NotificationLogs: CollectionConfig = {
         { label: 'Booking', value: 'booking' },
         { label: 'Payment', value: 'payment' },
         { label: 'Loyalty', value: 'loyalty' },
+        { label: 'Security', value: 'security' },
       ],
     },
     {

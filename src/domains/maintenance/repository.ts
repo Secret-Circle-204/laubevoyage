@@ -59,6 +59,7 @@ export class MaintenanceRepository {
           status: { equals: 'confirmed' },
           completionAt: { less_than_equal: nowIso },
         },
+        sort: 'completionAt',
         limit: batchSize,
       })
       const docs = res.docs as Booking[]
@@ -106,6 +107,7 @@ export class MaintenanceRepository {
             { paymentWindowExpiresAt: { less_than_equal: nowIso } },
           ],
         },
+        sort: 'paymentWindowExpiresAt',
         limit: batchSize,
       })
 

@@ -1,6 +1,7 @@
 import type { NotificationQueue } from './queue'
 import type { NotificationDispatcher } from './dispatcher'
 import type { NotificationRepository } from './repository'
+import type { NotificationJobEntity } from './types'
 import { NotificationPolicy, NotificationRetryScheduler } from './policy'
 import { MaintenanceLeaseService } from '../maintenance/lease-service'
 
@@ -89,14 +90,63 @@ export class NotificationWorker {
       const policyResult = NotificationPolicy.canDispatch(freshJob)
       if (!policyResult.allowed) {
         console.warn(`[NotificationWorker] ⚠️ Job ${freshJob.jobId} dispatch rejected by policy: ${policyResult.reason}`);
-        freshJob.status = 'failed'
+        freshJob.status = (freshJob.attempts >= freshJob.maxAttempts || policyResult.code === 'MISSING_RECIPIENT') ? 'dlq' : 'failed'
         freshJob.lastError = policyResult.reason
+        if (freshJob.status === 'dlq') {
+          freshJob.nextAttemptAt = undefined
+        }
         await this.repository.saveJob(freshJob)
         return false
       }
 
+      // 4.1 JIT Verification Credential Preparation (Delegating to CustomerPolicy)
+      let dispatchJob: NotificationJobEntity = freshJob
+      const targetCustomerId = freshJob.customerId || (freshJob.referenceId ? Number(freshJob.referenceId) : undefined)
+      if (freshJob.templateId === 'verification_email' && targetCustomerId && !isNaN(targetCustomerId)) {
+        const { CustomerRepository } = await import('../customer/repositories/customer-repository')
+        const { CustomerPolicy } = await import('../customer/policy')
+        const customerRepo = new CustomerRepository(payload)
+        const { customer, rawToken, expiresAt } = await customerRepo.getVerificationDispatchData(targetCustomerId)
+
+        const isExpired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false
+        const verificationPolicy = CustomerPolicy.canDispatchVerification(customer, {
+          hasToken: !!rawToken,
+          isExpired,
+        })
+
+        if (!verificationPolicy.allowed) {
+          if (verificationPolicy.code === 'ALREADY_VERIFIED' || verificationPolicy.code === 'TOKEN_CONSUMED') {
+            console.log(`[NotificationWorker] Customer #${targetCustomerId} already verified or token consumed. Marking job as sent.`);
+            freshJob.status = 'sent'
+            freshJob.sentAt = new Date().toISOString()
+            await this.repository.saveJob(freshJob)
+            return true
+          }
+
+          console.log(`[NotificationWorker] Verification dispatch rejected for customer #${freshJob.customerId}: ${verificationPolicy.reason}`);
+          freshJob.status = 'failed'
+          freshJob.lastError = verificationPolicy.reason
+          await this.repository.saveJob(freshJob)
+          return false
+        }
+
+        const serverURL = process.env.NEXT_PUBLIC_SERVER_URL
+        if (!serverURL) {
+          throw new Error('[NotificationWorker] NEXT_PUBLIC_SERVER_URL is missing in environment. Cannot generate verification link.')
+        }
+
+        // Render verify URL transiently in-memory (never persisted to notification-logs)
+        dispatchJob = {
+          ...freshJob,
+          templateData: {
+            ...freshJob.templateData,
+            verificationUrl: `${serverURL.replace(/\/$/, '')}/verify-email?token=${rawToken}&email=${encodeURIComponent(freshJob.recipient)}`,
+          },
+        }
+      }
+
       try {
-        const result = await this.dispatcher.dispatch(freshJob)
+        const result = await this.dispatcher.dispatch(dispatchJob)
 
         if (result.success) {
           console.log(`[NotificationWorker] ✅ Job ${freshJob.jobId} successfully delivered to ${freshJob.recipient}.`);
@@ -109,6 +159,7 @@ export class NotificationWorker {
             console.error(`[NotificationWorker] 🚨 Job ${freshJob.jobId} exceeded max attempts. Routing to DLQ.`);
             freshJob.status = 'dlq'
             freshJob.lastError = result.error || 'Max retries reached'
+            freshJob.nextAttemptAt = undefined
           } else {
             freshJob.status = 'failed'
             freshJob.lastError = result.error
@@ -123,6 +174,7 @@ export class NotificationWorker {
         if (delaySeconds === null) {
           freshJob.status = 'dlq'
           freshJob.lastError = errMsg
+          freshJob.nextAttemptAt = undefined
         } else {
           freshJob.status = 'failed'
           freshJob.lastError = errMsg

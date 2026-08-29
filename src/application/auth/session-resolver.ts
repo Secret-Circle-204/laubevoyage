@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { cache } from 'react'
@@ -31,12 +31,11 @@ export class SessionResolver {
       }
 
       const reqId = getRequestId()
+      const headerStore = await headers()
       console.log(`[SessionResolver] [Req:${reqId}] DB auth start`)
       const payload = await getPayload({ config })
       const { user } = await payload.auth({
-        headers: new Headers({
-          cookie: `payload-token=${token}`,
-        }),
+        headers: headerStore,
       })
       console.log(`[SessionResolver] [Req:${reqId}] DB auth end`)
 

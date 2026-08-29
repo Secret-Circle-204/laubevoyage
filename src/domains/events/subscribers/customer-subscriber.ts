@@ -3,17 +3,20 @@ import { EventBus } from '../event-bus'
 import type { CustomerEmailVerifiedEvent, CustomerRegisteredEvent } from '../customer-events'
 import type { LoyaltyService } from '../../loyalty/service'
 import type { CustomerService } from '../../customer/service'
+import type { NotificationService } from '../../notification/service'
 import { PayloadInboxRepository } from '../repositories/payload-inbox-repository'
 import type { RequestContext } from '@/types'
 
 /**
  * Customer Event Subscriber
- * Listens to Customer Domain events and executes decoupled side effects like awarding welcome points.
+ * Listens to Customer Domain events and executes decoupled side effects like awarding welcome points
+ * and enqueuing the consolidated post-verification Welcome + Loyalty Points communication.
  */
 export function registerCustomerSubscribers(
   payload: Payload,
   customerService: CustomerService,
   loyaltyService: LoyaltyService,
+  notificationService?: NotificationService,
 ): void {
   const eventBus = EventBus.getInstance()
   const inboxRepo = new PayloadInboxRepository(payload)
@@ -29,7 +32,7 @@ export function registerCustomerSubscribers(
     },
   )
 
-  // 2. Customer Email Verified -> Grant welcome bonus points ledger entry (Decoupled)
+  // 2. Customer Email Verified -> Grant welcome bonus points ledger entry & enqueue consolidated Welcome Email (Atomic Transaction B)
   eventBus.subscribe<CustomerEmailVerifiedEvent>(
     'CUSTOMER_EMAIL_VERIFIED',
     'CustomerSubscriber.grantWelcomeBonus',
@@ -62,9 +65,32 @@ export function registerCustomerSubscribers(
           context,
         )
 
+        // 3. Enqueue Email #2: Welcome + Dynamic Loyalty Points Confirmation (Atomic with bonus)
+        if (notificationService) {
+          await notificationService.enqueueNotification(
+            {
+              referenceType: 'WELCOME',
+              referenceId: String(event.customerId),
+              customerId: event.customerId,
+              recipient: event.email,
+              channel: 'email',
+              category: 'loyalty',
+              priority: 'normal',
+              templateId: 'welcome_email',
+              translationKey: 'customer.welcome',
+              templateData: {
+                name: event.fullName,
+                bonusPoints: ledgerRecord.points,
+                balance: ledgerRecord.resultingBalance,
+              },
+            },
+            context,
+          )
+        }
+
         if (transactionID) await payload.db.commitTransaction(transactionID)
         console.log(
-          `[CustomerSubscriber] Welcome bonus successfully granted and projection updated for customer #${event.customerId}.`,
+          `[CustomerSubscriber] Welcome bonus successfully granted, projection updated, and welcome notification enqueued for customer #${event.customerId}.`,
         )
       } catch (error: unknown) {
         if (transactionID) {

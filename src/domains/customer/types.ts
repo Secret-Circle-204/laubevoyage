@@ -72,6 +72,7 @@ export interface CustomerDeletionDependencyChecker {
     pointLedgerCount: number
     reviewCount: number
     paymentCount: number
+    pendingOutboxCount?: number
   }>
 }
 

@@ -33,8 +33,8 @@ export class NotificationService {
     attachments?: NotificationAttachment[]
     sendAt?: string
     customerId?: number
-  }, req?: PayloadRequest): Promise<{ queued: boolean; jobId: string; reason?: string }> {
-    return this.workflowEngine.executeEnqueueWorkflow(params, req)
+  }, context?: import('@/types').RequestContext | PayloadRequest): Promise<{ queued: boolean; jobId: string; reason?: string }> {
+    return this.workflowEngine.executeEnqueueWorkflow(params, context)
   }
 
   async processNextJob(): Promise<boolean> {

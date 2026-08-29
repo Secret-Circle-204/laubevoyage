@@ -37,4 +37,28 @@ describe('Customer Domain: CustomerPolicy Unit Tests', () => {
     const unverified: CustomerAggregate = { ...activeCustomer, isEmailVerified: false }
     expect(CustomerPolicy.canClaimWelcomeBonus(unverified).allowed).toBe(false)
   })
+
+  it('should disallow deletion when pending outbox events exist', () => {
+    const result = CustomerPolicy.canDeleteAccount(activeCustomer, {
+      bookingCount: 0,
+      pointLedgerCount: 0,
+      reviewCount: 0,
+      paymentCount: 0,
+      pendingOutboxCount: 2,
+    })
+    expect(result.allowed).toBe(false)
+    expect(result.code).toBe('PENDING_EVENTS_EXIST')
+  })
+
+  it('should allow deletion when zero dependencies and zero pending events exist', () => {
+    const result = CustomerPolicy.canDeleteAccount(activeCustomer, {
+      bookingCount: 0,
+      pointLedgerCount: 0,
+      reviewCount: 0,
+      paymentCount: 0,
+      pendingOutboxCount: 0,
+    })
+    expect(result.allowed).toBe(true)
+  })
 })
+

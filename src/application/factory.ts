@@ -13,6 +13,8 @@ export async function getApplicationServices() {
     domainServices.experience,
     domainServices.pricingFacade,
     domainServices.localization,
+    domainServices.loyalty,
+    domainServices.booking,
   )
 
   return {
@@ -20,3 +22,4 @@ export async function getApplicationServices() {
     bookingPricingUseCase,
   }
 }
+

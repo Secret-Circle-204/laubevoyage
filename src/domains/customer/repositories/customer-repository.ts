@@ -62,6 +62,7 @@ export class CustomerRepository {
       const doc = await this.payload.create({
         collection: 'customers',
         data: data as any,
+        disableVerificationEmail: true,
         req,
       })
       console.log(`[CustomerRepository.create] Customer document created successfully. ID: ${doc.id}`)
@@ -141,12 +142,35 @@ export class CustomerRepository {
       },
       limit: 1,
       overrideAccess: true,
+      showHiddenFields: true,
       select: {
         email: true,
       },
     })
 
     return result.docs[0] ? Number(result.docs[0].id) : null
+  }
+
+  /**
+   * Fetches customer aggregate and verification metadata for notification dispatch.
+   * Internal data provider for NotificationWorker JIT dispatch.
+   */
+  async getVerificationDispatchData(customerId: number): Promise<{
+    customer: CustomerAggregate | null
+    rawToken: string | null
+    expiresAt: string | null
+  }> {
+    const doc = await this.payload.findByID({
+      collection: 'customers',
+      id: customerId,
+      overrideAccess: true,
+      showHiddenFields: true,
+    })
+    if (!doc) return { customer: null, rawToken: null, expiresAt: null }
+    const customer = this.mapDocToAggregate(doc as any)
+    const rawToken = typeof (doc as any)._verificationToken === 'string' ? (doc as any)._verificationToken : null
+    const expiresAt = (doc as any).verificationExpiresAt ? new Date((doc as any).verificationExpiresAt).toISOString() : null
+    return { customer, rawToken, expiresAt }
   }
 
   async verifyEmailByToken(token: string): Promise<number> {

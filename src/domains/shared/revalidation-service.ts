@@ -13,6 +13,7 @@ export class RevalidationService {
     payload: {
       type: 'dashboard' | 'experience' | 'destination' | 'layout' | 'content'
       customerId?: number
+      slices?: ('loyalty' | 'trips' | 'customer' | 'security')[]
       experienceSlug?: string
       countrySlug?: string
       citySlug?: string
@@ -118,16 +119,58 @@ export class RevalidationService {
     }, options)
   }
 
+  public static async purgeDashboardSlices(
+    customerId: number,
+    slices: ('loyalty' | 'trips' | 'customer' | 'security')[],
+    options?: { forceLocal?: boolean }
+  ): Promise<void> {
+    console.log(`[RevalidationService] Purging targeted dashboard slices for customer ID: ${customerId} (Slices: ${slices.join(', ')})`)
+    await this.executeRevalidation(
+      { type: 'dashboard', customerId, slices },
+      () => {
+        // Overview is always refreshed for the customer who triggered the update
+        revalidateTag(`dashboard-customer-${customerId}`, {})
+        revalidatePath('/dashboard')
+
+        if (slices.includes('loyalty')) {
+          console.log(`[RevalidationService] -> Purging loyalty view & tags for customer #${customerId}`)
+          revalidateTag(`ledger-customer-${customerId}`, {})
+          revalidatePath('/dashboard/loyalty')
+        }
+
+        if (slices.includes('trips')) {
+          console.log(`[RevalidationService] -> Purging trips/bookings view & tags for customer #${customerId}`)
+          revalidateTag(`bookings-customer-${customerId}`, {})
+          revalidatePath('/dashboard/bookings')
+        }
+
+        if (slices.includes('customer')) {
+          console.log(`[RevalidationService] -> Purging profile view & tags for customer #${customerId}`)
+          revalidateTag(`profile-customer-${customerId}`, {})
+          revalidatePath('/dashboard/profile')
+        }
+
+        if (slices.includes('security')) {
+          console.log(`[RevalidationService] -> Purging security tags for customer #${customerId}`)
+          revalidateTag(`security-customer-${customerId}`, {})
+        }
+      },
+      options
+    )
+  }
+
   public static async purgeDashboard(customerId: number, options?: { forceLocal?: boolean }): Promise<void> {
-    console.log('[RevalidationService] purgeDashboard V2')
-    console.log(`[RevalidationService] Purging customer dashboard cache views for customer ID: ${customerId}`)
+    console.log('[RevalidationService] purgeDashboard (Full Invalidation)')
+    console.log(`[RevalidationService] Purging all customer dashboard views for customer ID: ${customerId}`)
     await this.executeRevalidation({ type: 'dashboard', customerId }, () => {
       revalidateTag(`dashboard-customer-${customerId}`, {})
       revalidateTag(`bookings-customer-${customerId}`, {})
       revalidateTag(`ledger-customer-${customerId}`, {})
+      revalidateTag(`profile-customer-${customerId}`, {})
       revalidatePath('/dashboard')
       revalidatePath('/dashboard/bookings')
       revalidatePath('/dashboard/loyalty')
+      revalidatePath('/dashboard/profile')
     }, options)
   }
 

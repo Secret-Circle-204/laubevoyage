@@ -145,6 +145,16 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
                       <Badge variant={booking.status === 'confirmed' ? 'success' : 'warning'} size="sm">
                         {booking.status.toUpperCase()}
                       </Badge>
+                      {booking.paymentStatus === 'partially_paid' && (
+                        <Badge variant="warning" size="sm" className="bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                          PARTIALLY PAID
+                        </Badge>
+                      )}
+                      {booking.paymentStatus === 'paid' && (
+                        <Badge variant="outline" size="sm" className="text-emerald-500 border-emerald-500/30">
+                          PAID
+                        </Badge>
+                      )}
                     </div>
                     <h3 className={`font-serif font-light text-base ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
                       {booking.experienceTitle}
@@ -155,6 +165,16 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
 
                 <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-white/10">
                   <CurrencyDisplay price={booking.totalCost} size="sm" />
+                  {booking.paymentStatus === 'partially_paid' && booking.outstandingBalance && (
+                    <div className="text-right mt-1">
+                      <span className="text-[11px] text-slate-400 block">
+                        Paid: <strong className="text-slate-700 dark:text-slate-300">{booking.paidAmount?.formatted}</strong>
+                      </span>
+                      <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 block">
+                        Remaining: {booking.outstandingBalance.formatted}
+                      </span>
+                    </div>
+                  )}
                   <Link href={`/dashboard/bookings/${booking.id}`}>
                     <button className="mt-2 px-4 py-1.5 text-xs uppercase tracking-wider font-semibold border border-[#00aeef]/40 text-[#00aeef] hover:bg-[#00aeef] hover:text-white rounded-lg transition-colors">
                       Voucher PDF

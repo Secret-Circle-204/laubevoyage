@@ -89,6 +89,9 @@ export class MaintenanceWorkflowEngine {
       } else if (jobName === 'data_retention_purge') {
         const res = await this.retentionService.purgeExpiredHoldsAndSessions()
         itemsProcessed = res.purgedCount
+      } else if (jobName === 'reconcile_dashboard_projections') {
+        const res = await this.engine.reconcileDashboardProjections(50)
+        itemsProcessed = res.processedCount
       }
     } catch (err: unknown) {
       status = 'failed'

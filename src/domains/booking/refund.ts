@@ -7,23 +7,32 @@ import { CapacityHoldService } from './capacity-hold'
 import { PointHoldService } from '../loyalty/point-hold'
 import { BookingHistoryService } from './history'
 import { ExperienceService } from '../experience/service'
+import { EventOutboxService } from '../events/outbox'
 
 /**
  * Booking Refund Sub-Service
- * Transitions booking to REFUNDED, releases capacity holds, restores points.
+ * Transitions booking to REFUNDED, releases capacity holds, restores points, and emits BOOKING_REFUNDED event.
  */
 export class BookingRefund {
   private repository: BookingRepository
   private experienceService: ExperienceService
+  private outboxService: EventOutboxService
 
   constructor(repository: BookingRepository, experienceService: ExperienceService) {
     this.repository = repository
     this.experienceService = experienceService
+    this.outboxService = EventOutboxService.getInstance()
   }
 
-  async refund(bookingId: number, actor?: Actor, context?: RequestContext): Promise<BookingAggregate> {
+  async refund(
+    bookingId: number,
+    actor?: Actor,
+    context?: RequestContext,
+    reason?: string,
+  ): Promise<BookingAggregate> {
     const booking = await this.repository.findById(bookingId, context)
     const currentActor: Actor = actor || { id: 'system', type: 'system', name: 'Refund Service' }
+    const refundReason = reason || 'Payment Refunded'
 
     // Validate state transition using canonical StateMachine
     validateTransition(booking.status, BookingStatus.REFUNDED)
@@ -77,20 +86,20 @@ export class BookingRefund {
     const updatedMetadata = booking.metadata || {}
     updatedMetadata.terminalReason = {
       type: 'REFUND',
-      reason: 'Payment Refunded',
+      reason: refundReason,
     }
 
     // Append timeline and audit
     const updatedTimeline = BookingHistoryService.appendTimelineEntry(booking.timeline, {
       stepKey: 'booking_refunded',
       title: 'Booking Refunded',
-      description: 'The booking was fully refunded.',
+      description: `The booking was fully refunded. Reason: ${refundReason}`,
     })
 
     const updatedAudit = BookingHistoryService.appendAuditEntry(booking.auditTrail, {
       actor: currentActor,
       action: 'BOOKING_REFUNDED',
-      reason: 'Payment Refunded',
+      reason: refundReason,
       previousValue: booking.status,
       newValue: BookingStatus.REFUNDED,
     })
@@ -104,6 +113,16 @@ export class BookingRefund {
       paymentStatus: 'refunded',
       amountPaid: 0,
       outstandingBalance: booking.pricingSnapshot?.totalAmountEGP || 0,
+    }, context)
+
+    // Publish canonical BOOKING_REFUNDED domain event via transactional outbox
+    await this.outboxService.record({
+      type: 'BOOKING_REFUNDED',
+      aggregateType: 'Booking',
+      aggregateId: String(booking.id),
+      booking: refundedBooking,
+      actor: currentActor,
+      reason: refundReason,
     }, context)
 
     return refundedBooking

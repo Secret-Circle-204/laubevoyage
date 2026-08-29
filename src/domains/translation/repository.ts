@@ -1,17 +1,59 @@
 import type { Payload } from 'payload'
 import type { TranslationRecordEntity } from './types'
 
+function parseMaxEntries(customOption?: number): number {
+  if (typeof customOption === 'number' && Number.isInteger(customOption) && customOption > 0) {
+    return Math.min(Math.max(customOption, 1), 100000)
+  }
+
+  const rawEnv = process.env.TRANSLATION_RAM_CACHE_MAX_ENTRIES
+  if (typeof rawEnv === 'string' && rawEnv.trim().length > 0) {
+    const parsed = parseInt(rawEnv.trim(), 10)
+    if (!isNaN(parsed) && parsed > 0) {
+      return Math.min(Math.max(parsed, 50), 100000)
+    }
+  }
+
+  return 20000
+}
+
 /**
  * Translation Repository
- * Two-Tiered Data Persistence Layer (RAM Memory + Persistent Payload DB Collection).
+ * Two-Tiered Data Persistence Layer (Bounded RAM LRU Cache + Persistent Payload DB Collection).
  * Language-agnostic persistence layer following Option B & Enterprise Architecture Contract.
  */
 export class TranslationRepository {
   private payload?: Payload
   private cacheMap: Map<string, TranslationRecordEntity> = new Map()
+  private readonly maxEntries: number
 
-  constructor(payload?: Payload) {
+  constructor(payload?: Payload, options?: { maxEntries?: number }) {
     this.payload = payload
+    this.maxEntries = parseMaxEntries(options?.maxEntries)
+  }
+
+  // --- O(1) Native Map LRU Operations ---
+  private getLru(key: string): TranslationRecordEntity | undefined {
+    const record = this.cacheMap.get(key)
+    if (record) {
+      // Refresh recency: re-inserting moves key to the end of Map iteration order (MRU)
+      this.cacheMap.delete(key)
+      this.cacheMap.set(key, record)
+    }
+    return record
+  }
+
+  private setLru(key: string, record: TranslationRecordEntity): void {
+    if (this.cacheMap.has(key)) {
+      this.cacheMap.delete(key)
+    } else if (this.cacheMap.size >= this.maxEntries) {
+      // Evict oldest (Least Recently Used = first key in Map insertion iterator)
+      const oldestKey = this.cacheMap.keys().next().value
+      if (oldestKey !== undefined) {
+        this.cacheMap.delete(oldestKey)
+      }
+    }
+    this.cacheMap.set(key, record)
   }
 
   async findByKeyAndLocale(
@@ -20,8 +62,8 @@ export class TranslationRepository {
   ): Promise<TranslationRecordEntity | null> {
     const key = `${translationKey}_${locale}`
 
-    // Tier 1: Check RAM Cache
-    const ramCached = this.cacheMap.get(key)
+    // Tier 1: Check Bounded RAM Hot Cache (updates LRU order on hit)
+    const ramCached = this.getLru(key)
     if (ramCached) return ramCached
 
     // Tier 2: Check Database Persistent Cache
@@ -46,8 +88,8 @@ export class TranslationRepository {
             cachedAt: typeof doc.createdAt === 'string' ? doc.createdAt : new Date().toISOString(),
           }
 
-          // Populate RAM Cache
-          this.cacheMap.set(key, record)
+          // Populate Bounded RAM Hot Cache via LRU setter
+          this.setLru(key, record)
           return record
         }
       } catch (err: unknown) {
@@ -69,10 +111,10 @@ export class TranslationRepository {
     const foundMap = new Map<string, string>()
     const missingKeys: string[] = []
 
-    // 1. Check RAM Cache for each key
+    // 1. Check Bounded RAM Hot Cache for each key (updates LRU order on hit)
     for (const keyText of translationKeys) {
       const cacheKey = `${keyText}_${locale}`
-      const ramRecord = this.cacheMap.get(cacheKey)
+      const ramRecord = this.getLru(cacheKey)
       if (ramRecord) {
         foundMap.set(keyText, ramRecord.translatedText)
       } else {
@@ -102,9 +144,9 @@ export class TranslationRepository {
             foundMap.set(originalText, translatedText)
             dbMissingSet.delete(originalText)
 
-            // Populate RAM Cache
+            // Populate Bounded RAM Hot Cache via LRU setter
             const recordKey = `${originalText}_${locale}`
-            this.cacheMap.set(recordKey, {
+            this.setLru(recordKey, {
               translationId: String(item.id),
               translationKey: originalText,
               locale,
@@ -126,12 +168,12 @@ export class TranslationRepository {
   }
 
   /**
-   * Save single translation to RAM Cache and Database Persistent Collection.
+   * Save single translation to RAM Hot Cache and Database Persistent Collection.
    * Relies on Database Compound Unique Constraint (originalHash, language) to handle race conditions cleanly.
    */
   async saveTranslation(record: TranslationRecordEntity): Promise<TranslationRecordEntity> {
     const key = `${record.translationKey}_${record.locale}`
-    this.cacheMap.set(key, record)
+    this.setLru(key, record)
 
     if (this.payload) {
       try {
@@ -164,7 +206,7 @@ export class TranslationRepository {
   }
 
   /**
-   * Batch save translations in parallel (Promise.allSettled) to RAM Cache and Database Persistent Collection.
+   * Batch save translations in parallel (Promise.allSettled) to RAM Hot Cache and Database Persistent Collection.
    */
   async saveTranslationsBatch(
     records: TranslationRecordEntity[],
@@ -174,3 +216,4 @@ export class TranslationRepository {
     return records
   }
 }
+

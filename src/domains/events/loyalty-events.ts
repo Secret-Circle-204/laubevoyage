@@ -7,6 +7,7 @@ export interface LoyaltyEarnedEvent extends BaseDomainEvent {
   points: number
   balance: number
   bookingId?: number
+  source?: 'booking' | 'welcome_bonus' | 'tier_bonus' | 'manual'
 }
 
 export interface PointsRedeemedEvent extends BaseDomainEvent {

@@ -60,6 +60,13 @@ export class BookingService {
   }
 
   /**
+   * Calculate total active loyalty points held in uncommitted bookings for a customer.
+   */
+  async getActiveHeldPointsForCustomer(customerId: number, context?: RequestContext): Promise<number> {
+    return this.repository.getActiveHeldPointsForCustomer(customerId, context)
+  }
+
+  /**
    * Mark as paid (called by PaymentService webhook adapter).
    */
   async markAsPaid(bookingId: number, paymentAttempt: PaymentAttempt, context?: RequestContext): Promise<void> {
@@ -105,8 +112,8 @@ export class BookingService {
   /**
    * Refund booking after payment refund.
    */
-  async refund(bookingId: number, actor?: Actor, context?: RequestContext): Promise<void> {
-    await this.workflowEngine.executeRefundWorkflow(bookingId, actor, context)
+  async refund(bookingId: number, actor?: Actor, context?: RequestContext, reason?: string): Promise<void> {
+    await this.workflowEngine.executeRefundWorkflow(bookingId, actor, context, reason)
   }
 
   /**

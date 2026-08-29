@@ -43,15 +43,28 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
           </h1>
         </div>
 
-        <Badge variant={
-          data.status === 'confirmed' || data.status === 'paid' || data.status === 'completed'
-            ? 'success'
-            : data.status === 'pending_admin_review'
-            ? 'warning'
-            : 'secondary'
-        } size="md">
-          {data.status.replace(/_/g, ' ').toUpperCase()}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={
+            data.status === 'confirmed' || data.status === 'paid' || data.status === 'completed'
+              ? 'success'
+              : data.status === 'pending_admin_review'
+              ? 'warning'
+              : 'secondary'
+          } size="md">
+            {data.status.replace(/_/g, ' ').toUpperCase()}
+          </Badge>
+
+          {data.paymentStatus === 'partially_paid' && (
+            <Badge variant="warning" size="md" className="bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              PARTIALLY PAID
+            </Badge>
+          )}
+          {data.paymentStatus === 'paid' && (
+            <Badge variant="outline" size="md" className="text-emerald-500 border-emerald-500/30">
+              PAID
+            </Badge>
+          )}
+        </div>
       </div>
 
       <Card variant="flat" padding="lg" className="space-y-6">
@@ -98,14 +111,75 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
               Loyalty Summary
             </h3>
             <div className="space-y-2 text-slate-600 dark:text-slate-400">
-              <div className="flex justify-between">
+              {/* 1. Earning Details */}
+              <div className="flex justify-between items-center">
                 <span>Points Earned:</span>
-                <span className="font-bold text-[#f58220]">+{data.pointsEarned} pts</span>
+                <span className="font-bold text-[#f58220]">+{data.loyaltySummary.pointsEarned} pts</span>
               </div>
-              <div className="flex justify-between">
-                <span>Ledger Status:</span>
-                <span className="text-emerald-600 font-bold">Credited</span>
+              <div className="flex justify-between items-center">
+                <span>Earning Status:</span>
+                <Badge
+                  variant={
+                    data.loyaltySummary.earningStatus === 'credited'
+                      ? 'success'
+                      : data.loyaltySummary.earningStatus === 'reversed'
+                      ? 'error'
+                      : data.loyaltySummary.earningStatus === 'partially_reversed'
+                      ? 'warning'
+                      : data.loyaltySummary.earningStatus === 'pending'
+                      ? 'warning'
+                      : 'outline'
+                  }
+                  size="sm"
+                >
+                  {data.loyaltySummary.earningStatus.replace(/_/g, ' ').toUpperCase()}
+                </Badge>
               </div>
+
+              {/* 2. Redemption Details (if applicable) */}
+              {(data.loyaltySummary.pointsRedeemed > 0 || data.loyaltySummary.redemptionStatus !== 'none') && (
+                <>
+                  <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-2">
+                    <span>Points Redeemed:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">-{data.loyaltySummary.pointsRedeemed} pts</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Redemption Status:</span>
+                    <Badge
+                      variant={
+                        data.loyaltySummary.redemptionStatus === 'redeemed'
+                          ? 'success'
+                          : data.loyaltySummary.redemptionStatus === 'refunded'
+                          ? 'outline'
+                          : data.loyaltySummary.redemptionStatus === 'partially_refunded'
+                          ? 'warning'
+                          : data.loyaltySummary.redemptionStatus === 'held'
+                          ? 'warning'
+                          : 'secondary'
+                      }
+                      size="sm"
+                    >
+                      {data.loyaltySummary.redemptionStatus.replace(/_/g, ' ').toUpperCase()}
+                    </Badge>
+                  </div>
+                  {data.loyaltySummary.discountFromPointsEGP > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span>Loyalty Discount:</span>
+                      <span className="font-bold text-emerald-600">
+                        -{data.loyaltySummary.discountFromPointsEGP.toLocaleString()} EGP
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* 3. Active Hold Details (if hold is active) */}
+              {data.loyaltySummary.heldPoints > 0 && (
+                <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-2 text-amber-600 dark:text-amber-500 font-semibold">
+                  <span>Active Points Held:</span>
+                  <span>{data.loyaltySummary.heldPoints} pts</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

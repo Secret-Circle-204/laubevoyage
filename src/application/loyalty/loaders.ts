@@ -9,13 +9,14 @@ import { LoyaltyProgramConfigurationException } from '@/domains/loyalty/tier-con
 export class CustomerLoyaltyLoader {
   static async load(customerId: number): Promise<CustomerLoyaltyPortalDTO> {
     try {
-      const { loyalty, dashboard, localization, currency: currencyService, pricingFacade } = await getApplicationServices()
+      const { loyalty, dashboard, localization, currency: currencyService, pricingFacade, booking } = await getApplicationServices()
       const ctx = await getLocaleContext()
 
-      const [authoritativeBalance, rawHistory, projection] = await Promise.all([
+      const [authoritativeBalance, rawHistory, projection, activeHeldPoints] = await Promise.all([
         loyalty.getCustomerBalance(customerId),
         loyalty.getCustomerLedgerHistory(customerId, 50),
         dashboard.getPortalOverview(customerId),
+        booking.getActiveHeldPointsForCustomer(customerId),
       ])
 
       const loyaltyConfig = await loyalty.getActiveConfig()
@@ -97,9 +98,15 @@ export class CustomerLoyaltyLoader {
         }
       })
 
+      const availablePoints = Math.max(0, authoritativeBalance - activeHeldPoints)
+      const formattedAvailablePoints = localization.formatNumber(availablePoints, ctx)
+
       return {
         pointsBalance: authoritativeBalance,
         formattedPointsBalance,
+        heldPoints: activeHeldPoints,
+        availablePoints,
+        formattedAvailablePoints,
         pointsMonetaryValue: valuationPresentation.pointsMonetaryValue,
         pointsValuesAllCurrencies: valuationPresentation.pointsValuesAllCurrencies,
         pointsValueGuide: valuationPresentation.pointsValueGuide,

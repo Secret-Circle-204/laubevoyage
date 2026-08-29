@@ -106,11 +106,14 @@ export class LoyaltyWorkflowEngine {
         type: 'LOYALTY_EARNED',
         eventId: `evt_wel_${userId}_${Date.now()}`,
         correlationId: `corr_loy_${userId}`,
+        aggregateType: 'Customer',
+        aggregateId: String(userId),
         eventVersion: 1,
         occurredAt: new Date().toISOString(),
         customerId: userId,
         points: record.points,
         balance: record.resultingBalance,
+        source: 'welcome_bonus',
       },
       context,
     )
@@ -149,12 +152,15 @@ export class LoyaltyWorkflowEngine {
         type: 'LOYALTY_EARNED',
         eventId: `evt_earn_${userId}_${bookingId}_${Date.now()}`,
         correlationId: `corr_loy_${userId}`,
+        aggregateType: 'Customer',
+        aggregateId: String(userId),
         eventVersion: 1,
         occurredAt: new Date().toISOString(),
         customerId: userId,
         points: record.points,
         balance: record.resultingBalance,
         bookingId,
+        source: 'booking',
       },
       context,
     )
@@ -195,6 +201,8 @@ export class LoyaltyWorkflowEngine {
         type: 'POINTS_REDEEMED',
         eventId: `evt_red_${userId}_${bookingId}_${Date.now()}`,
         correlationId: `corr_loy_${userId}`,
+        aggregateType: 'Customer',
+        aggregateId: String(userId),
         eventVersion: 1,
         occurredAt: new Date().toISOString(),
         customerId: userId,
@@ -234,6 +242,8 @@ export class LoyaltyWorkflowEngine {
         type: 'POINTS_REFUNDED',
         eventId: `evt_ref_${userId}_${bookingId}_${Date.now()}`,
         correlationId: `corr_loy_${userId}`,
+        aggregateType: 'Customer',
+        aggregateId: String(userId),
         eventVersion: 1,
         occurredAt: new Date().toISOString(),
         customerId: userId,
@@ -270,6 +280,8 @@ export class LoyaltyWorkflowEngine {
         type: 'MANUAL_ADJUSTMENT',
         eventId: `evt_adj_${params.customerId}_${Date.now()}`,
         correlationId: `corr_loy_${params.customerId}`,
+        aggregateType: 'Customer',
+        aggregateId: String(params.customerId),
         eventVersion: 1,
         occurredAt: new Date().toISOString(),
         customerId: params.customerId,
@@ -282,6 +294,48 @@ export class LoyaltyWorkflowEngine {
     )
 
     return record
+  }
+
+  async onAdminLedgerEntryCreated(
+    params: {
+      customerId: number
+      points: number
+      balance: number
+      ledgerId: string
+      type: string
+      reason: string
+      ticket?: string
+      adminId?: string
+    },
+    context?: RequestContext,
+  ): Promise<void> {
+    // 1. Synchronize customer document projection
+    await this.repository.updateCustomerProjection(
+      params.customerId,
+      params.balance,
+      params.ledgerId,
+      context,
+    )
+
+    // 2. Outbox Event Logging (Transaction-Bound Post-Commit event)
+    const outbox = EventOutboxService.getInstance()
+    await outbox.record(
+      {
+        type: 'MANUAL_ADJUSTMENT',
+        eventId: `evt_adj_${params.customerId}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        correlationId: `corr_loy_${params.customerId}`,
+        aggregateType: 'Customer',
+        aggregateId: String(params.customerId),
+        eventVersion: 1,
+        occurredAt: new Date().toISOString(),
+        customerId: params.customerId,
+        points: params.points,
+        balance: params.balance,
+        ticket: params.ticket || `TICK-${Date.now()}`,
+        adminId: params.adminId || 'staff_admin',
+      },
+      context,
+    )
   }
 
   async evaluateAndUpgradeTier(
@@ -306,6 +360,8 @@ export class LoyaltyWorkflowEngine {
           type: 'TIER_UPGRADED',
           eventId: `evt_tier_${userId}_${Date.now()}`,
           correlationId: `corr_loy_${userId}`,
+          aggregateType: 'Customer',
+          aggregateId: String(userId),
           eventVersion: 1,
           occurredAt: new Date().toISOString(),
           customerId: userId,
@@ -328,70 +384,202 @@ export class LoyaltyWorkflowEngine {
     return res.newTier
   }
 
-  async processBookingCancellation(
+  /**
+   * Phase A: Process redemption refund and tier adjustments for cancelled booking.
+   * Restores redeemed points (+200), reverses lost tier bonuses, and adjusts total spent.
+   * This operation is guaranteed to succeed and must be committed independently.
+   */
+  /**
+   * Phase A: Process redemption refund and qualifying spend adjustment for cancelled booking.
+   * Restores redeemed points (+200), adjusts qualifying total spent, and re-evaluates tier projection.
+   * This operation is guaranteed to succeed and must be committed independently.
+   */
+  async processBookingRedemptionRefund(
     customerId: number,
     bookingId: number,
     bookingTotalEGP: number,
     config?: LoyaltyProgramConfig,
     context?: RequestContext,
-  ): Promise<{ newTier: LoyaltyTier }> {
+  ): Promise<{ newTier: LoyaltyTier; pointsRedeemed: number }> {
     const activeConfig = await this.getActiveConfig(config, context)
-
-    // 1. Idempotency Guard: Check if a ledger entry with metadata.isBookingCancellation === true already exists
     const existingEntries = await this.repository.getBookingLedgerEntries(bookingId, context)
-    const hasCancellationProcessed = existingEntries.some(
-      (entry) => entry.metadata && entry.metadata.isBookingCancellation === true,
+
+    // Authoritative Idempotency Guard: Check if Phase A already ran for this booking
+    const hasPhaseAExecuted = existingEntries.some(
+      (e) =>
+        e.referenceType === 'booking' &&
+        e.referenceId === String(bookingId) &&
+        (e.type === 'refund' || (e.metadata && (e.metadata as any).isBookingCancellation === true)),
     )
 
-    if (hasCancellationProcessed) {
+    if (hasPhaseAExecuted) {
       console.log(
-        `[LoyaltyWorkflowEngine] Idempotency Guard: Cancellation already processed for booking #${bookingId}. Skipping.`,
+        `[LoyaltyWorkflowEngine] Idempotency Guard: Phase A (Redemption Refund & Spend Adjustment) already processed for booking #${bookingId}. Skipping.`,
       )
       const { aggregate } = await this.repository.getCustomerAggregate(customerId, context)
-      return { newTier: aggregate.tier }
+      return { newTier: aggregate.tier, pointsRedeemed: 0 }
     }
 
-    // 2. Retrieve Points: Sum up earned and redeemed points from ledger entries linked to this booking
-    let pointsEarned = 0
+    let qualifyingSpendContributed = 0
     let pointsRedeemed = 0
-    let alreadyReversed = 0
-    let alreadyAppliedRefundEGP = 0
 
     for (const entry of existingEntries) {
       if (entry.type === 'earn' && entry.referenceType === 'booking') {
-        pointsEarned += entry.points
+        const entrySpent = (entry.metadata as unknown as { amountSpentEGP?: number })?.amountSpentEGP
+        if (typeof entrySpent === 'number' && entrySpent > 0) {
+          qualifyingSpendContributed += entrySpent
+        }
       } else if (entry.type === 'redeem') {
         pointsRedeemed += Math.abs(entry.points)
-      } else if (entry.type === 'reverse' && entry.referenceType === 'booking') {
-        alreadyReversed += Math.abs(entry.points)
-        alreadyAppliedRefundEGP +=
-          (entry.metadata as unknown as { amountRefundedEGP?: number })?.amountRefundedEGP || 0
       }
     }
 
     console.log(
-      `[LoyaltyWorkflowEngine] Processing cancellation for booking #${bookingId}: deducting spent ${bookingTotalEGP} EGP, reversing earned ${pointsEarned} points, refunding redeemed ${pointsRedeemed} points. Already reversed points: ${alreadyReversed}, already applied refund EGP: ${alreadyAppliedRefundEGP}`,
+      `[LoyaltyWorkflowEngine] Phase A: Processing redemption refund for booking #${bookingId}: qualifying spent to deduct: ${qualifyingSpendContributed} EGP, points redeemed to refund: ${pointsRedeemed} points.`,
     )
 
-    // 3. Deduct booking spent from totalSpentEGP and evaluate new tier using delta
-    const newRefundDeltaEGP = Math.max(0, bookingTotalEGP - alreadyAppliedRefundEGP)
     const { aggregate } = await this.repository.getCustomerAggregate(customerId, context)
-    const newTotalSpent = Math.max(0, aggregate.totalSpentEGP - newRefundDeltaEGP)
-    const newTier = TierPolicy.evaluateEligibleTier(newTotalSpent, activeConfig)
+    let newTier = aggregate.tier
 
-    // Update customer document (reduces totalSpent and updates tier if demoted)
-    await this.repository.updateCustomerTier(customerId, newTier, -newRefundDeltaEGP, context)
+    // 1. Deduct booking qualifying spend from totalSpentEGP ONLY if booking contributed qualifying spend
+    if (qualifyingSpendContributed > 0) {
+      const newTotalSpent = aggregate.totalSpentEGP - qualifyingSpendContributed
+      newTier = TierPolicy.evaluateEligibleTier(newTotalSpent, activeConfig)
 
-    // Reclaim/reverse tier upgrade bonuses for all levels the customer has been demoted from
+      // Update customer document (reduces totalSpent and updates tier if demoted)
+      await this.repository.updateCustomerTier(customerId, newTier, -qualifyingSpendContributed, context)
+    }
+
+    // 2. Refund redeemed points if any, or record audit marker if pointsRedeemed === 0
+    if (pointsRedeemed > 0) {
+      await this.repository.appendLedgerEntry(
+        customerId,
+        'refund',
+        pointsRedeemed,
+        `Refund for cancelled booking #${bookingId}`,
+        'booking',
+        String(bookingId),
+        bookingId,
+        undefined,
+        { isBookingCancellation: true },
+        context,
+      )
+    } else {
+      // Zero-redemption audit marker to authoritatively record that Phase A completed for this booking
+      await this.repository.appendLedgerEntry(
+        customerId,
+        'refund',
+        0,
+        `Cancellation audit marker for booking #${bookingId}`,
+        'booking',
+        String(bookingId),
+        bookingId,
+        undefined,
+        { isBookingCancellation: true },
+        context,
+      )
+    }
+
+    const finalBalance = await this.repository.getCurrentBalance(customerId, context)
+    await this.repository.updateCustomerProjection(
+      customerId,
+      finalBalance,
+      'cancellation_sync',
+      context,
+    )
+
+    if (pointsRedeemed > 0) {
+      const outbox = EventOutboxService.getInstance()
+      await outbox.record(
+        {
+          type: 'POINTS_REFUNDED',
+          eventId: `evt_ref_cancel_${customerId}_${bookingId}_${Date.now()}`,
+          correlationId: `corr_loy_${customerId}`,
+          aggregateType: 'Customer',
+          aggregateId: String(customerId),
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          customerId,
+          points: pointsRedeemed,
+          balance: finalBalance,
+          bookingId,
+        },
+        context,
+      )
+    }
+
+    return { newTier, pointsRedeemed }
+  }
+
+  /**
+   * Phase B: Process earned points and tier bonus reversal for cancelled booking.
+   * Attempts to reverse earned points (-3480) and any lost tier upgrade bonuses.
+   * If customer has insufficient spendable balance, this throws FinancialInvariantException.
+   */
+  async processBookingEarnedReversal(
+    customerId: number,
+    bookingId: number,
+    bookingTotalEGP: number,
+    config?: LoyaltyProgramConfig,
+    context?: RequestContext,
+  ): Promise<{ pointsReversed: number }> {
+    const activeConfig = await this.getActiveConfig(config, context)
+    const existingEntries = await this.repository.getBookingLedgerEntries(bookingId, context)
+
+    const existingReverse = existingEntries.find(
+      (e) => e.type === 'reverse' && e.referenceType === 'booking' && e.referenceId === String(bookingId),
+    )
+
+    if (existingReverse) {
+      console.log(
+        `[LoyaltyWorkflowEngine] Earned points already reversed for booking #${bookingId}. Skipping.`,
+      )
+      return { pointsReversed: Math.abs(existingReverse.points) }
+    }
+
+    let qualifyingSpendContributed = 0
+    let pointsEarned = 0
+    let alreadyReversed = 0
+
+    for (const entry of existingEntries) {
+      if (entry.type === 'earn' && entry.referenceType === 'booking') {
+        pointsEarned += entry.points
+        const entrySpent = (entry.metadata as unknown as { amountSpentEGP?: number })?.amountSpentEGP
+        if (typeof entrySpent === 'number' && entrySpent > 0) {
+          qualifyingSpendContributed += entrySpent
+        }
+      } else if (entry.type === 'reverse' && entry.referenceType === 'booking') {
+        alreadyReversed += Math.abs(entry.points)
+      }
+    }
+
+    const pointsToReverse = Math.max(0, pointsEarned - alreadyReversed)
+
+    // If the booking never contributed qualifying spend and never earned points, Phase B is a clean no-op
+    if (pointsToReverse === 0 && qualifyingSpendContributed === 0) {
+      console.log(
+        `[LoyaltyWorkflowEngine] Phase B: Booking #${bookingId} had zero qualifying spend and zero earned points. Skipping reversal.`,
+      )
+      return { pointsReversed: 0 }
+    }
+
+    // 1. Reclaim/reverse tier upgrade bonuses for all levels the customer has been demoted from
+    const { aggregate } = await this.repository.getCustomerAggregate(customerId, context)
     const ordered = TierPolicy.getOrderedTiers(activeConfig)
     const orderedTierNames = ordered.map((t) => t.tier)
-    const oldTierIndex = orderedTierNames.indexOf(aggregate.tier)
-    const newTierIndex = orderedTierNames.indexOf(newTier)
+    const currentTierIndex = orderedTierNames.indexOf(aggregate.tier)
 
-    if (newTierIndex < oldTierIndex && oldTierIndex !== -1 && newTierIndex !== -1) {
-      const lostTiers = orderedTierNames.slice(newTierIndex + 1, oldTierIndex + 1)
+    // Determine prior tier from totalSpentEGP + qualifyingSpendContributed to identify lost tiers
+    const priorEligibleTier = TierPolicy.evaluateEligibleTier(
+      aggregate.totalSpentEGP + qualifyingSpendContributed,
+      activeConfig,
+    )
+    const priorTierIndex = orderedTierNames.indexOf(priorEligibleTier)
+
+    if (currentTierIndex < priorTierIndex && currentTierIndex !== -1 && priorTierIndex !== -1) {
+      const lostTiers = orderedTierNames.slice(currentTierIndex + 1, priorTierIndex + 1)
       console.log(
-        `[LoyaltyWorkflowEngine] Demotion detected. Customer lost tiers: ${lostTiers.join(', ')}`,
+        `[LoyaltyWorkflowEngine] Phase B: Demotion detected. Customer lost tiers: ${lostTiers.join(', ')}`,
       )
 
       for (const tier of lostTiers) {
@@ -414,7 +602,7 @@ export class LoyaltyWorkflowEngine {
         if (existingBonus && !alreadyReversedBonus) {
           const bonusAmount = existingBonus.points
           console.log(
-            `[LoyaltyWorkflowEngine] Reversing upgrade bonus of ${bonusAmount} points for lost tier ${tier}`,
+            `[LoyaltyWorkflowEngine] Phase B: Reversing upgrade bonus of ${bonusAmount} points for lost tier ${tier}`,
           )
 
           await this.repository.appendLedgerEntry(
@@ -426,16 +614,19 @@ export class LoyaltyWorkflowEngine {
             reverseRef,
             bookingId,
             undefined,
-            { isBookingCancellation: true, amountRefundedEGP: newRefundDeltaEGP },
+            { isBookingCancellation: true },
             context,
           )
         }
       }
     }
 
-    // 4. Reverse earned points if any
-    const pointsToReverse = Math.max(0, pointsEarned - alreadyReversed)
+    // 2. Reverse earned points if any
     if (pointsToReverse > 0) {
+      console.log(
+        `[LoyaltyWorkflowEngine] Phase B: Attempting reversal of ${pointsToReverse} earned points for booking #${bookingId}...`,
+      )
+
       await this.repository.appendLedgerEntry(
         customerId,
         'reverse',
@@ -445,75 +636,53 @@ export class LoyaltyWorkflowEngine {
         String(bookingId),
         bookingId,
         undefined,
-        { isBookingCancellation: true, amountRefundedEGP: newRefundDeltaEGP },
-        context,
-      )
-    }
-
-    // 5. Refund redeemed points if any
-    if (pointsRedeemed > 0) {
-      await this.repository.appendLedgerEntry(
-        customerId,
-        'refund',
-        pointsRedeemed,
-        `Refund for cancelled booking #${bookingId}`,
-        'booking',
-        String(bookingId),
-        bookingId,
-        undefined,
         { isBookingCancellation: true },
         context,
       )
-    }
 
-    // 6. If both pointsEarned and pointsRedeemed are 0, and no upgrade bonuses were reversed,
-    // we still append a 0-amount reverse entry to act as the cancellation audit marker.
-    if (pointsEarned === 0 && pointsRedeemed === 0) {
-      let wroteTierReversal = false
-      if (newTierIndex < oldTierIndex) {
-        wroteTierReversal = true
-      }
-      if (!wroteTierReversal) {
-        await this.repository.appendLedgerEntry(
-          customerId,
-          'reverse',
-          0,
-          `Cancellation audit marker for booking #${bookingId}`,
-          'booking',
-          String(bookingId),
-          bookingId,
-          undefined,
-          { isBookingCancellation: true },
-          context,
-        )
-      }
-    }
-
-    const finalBalance = await this.repository.getCurrentBalance(customerId, context)
-    await this.repository.updateCustomerProjection(
-      customerId,
-      finalBalance,
-      'cancellation_sync',
-      context,
-    )
-
-    // Outbox Event Logging (Transaction-Bound Post-Commit event)
-    const outbox = EventOutboxService.getInstance()
-    await outbox.record(
-      {
-        type: 'POINTS_REFUNDED',
-        eventId: `evt_ref_cancel_${customerId}_${bookingId}_${Date.now()}`,
-        correlationId: `corr_loy_${customerId}`,
-        eventVersion: 1,
-        occurredAt: new Date().toISOString(),
+      const finalBalance = await this.repository.getCurrentBalance(customerId, context)
+      await this.repository.updateCustomerProjection(
         customerId,
-        points: pointsRedeemed, // points refunded
-        balance: finalBalance,
-        bookingId,
-      },
-      context,
-    )
+        finalBalance,
+        'cancellation_sync',
+        context,
+      )
 
+      const outbox = EventOutboxService.getInstance()
+      await outbox.record(
+        {
+          type: 'POINTS_REFUNDED',
+          eventId: `evt_rev_cancel_${customerId}_${bookingId}_${Date.now()}`,
+          correlationId: `corr_loy_${customerId}`,
+          aggregateType: 'Customer',
+          aggregateId: String(customerId),
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+          customerId,
+          points: pointsToReverse,
+          balance: finalBalance,
+          bookingId,
+        },
+        context,
+      )
+    }
+
+    return { pointsReversed: pointsToReverse }
+  }
+
+  /**
+   * Composite booking cancellation method:
+   * Executes Phase A (Redemption Refund & Spend Sync) followed by Phase B (Earned & Tier Reversal).
+   */
+  async processBookingCancellation(
+    customerId: number,
+    bookingId: number,
+    bookingTotalEGP: number,
+    config?: LoyaltyProgramConfig,
+    context?: RequestContext,
+  ): Promise<{ newTier: LoyaltyTier }> {
+    const { newTier } = await this.processBookingRedemptionRefund(customerId, bookingId, bookingTotalEGP, config, context)
+    await this.processBookingEarnedReversal(customerId, bookingId, bookingTotalEGP, config, context)
     return { newTier }
   }
 

@@ -1,6 +1,6 @@
 export type NotificationPriority = 'critical' | 'high' | 'normal' | 'low'
 export type NotificationChannel = 'email' | 'sms' | 'push' | 'whatsapp'
-export type NotificationCategory = 'marketing' | 'booking' | 'payment' | 'loyalty'
+export type NotificationCategory = 'marketing' | 'booking' | 'payment' | 'loyalty' | 'security'
 export type NotificationStatus = 'queued' | 'processing' | 'sent' | 'delivered' | 'failed' | 'dlq'
 
 export interface NotificationAttachment {

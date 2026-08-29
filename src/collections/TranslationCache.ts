@@ -9,7 +9,7 @@ export const TranslationCache: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: () => true,
+    update: () => true,
   },
   indexes: [
     {

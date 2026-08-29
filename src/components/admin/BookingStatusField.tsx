@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useField, useFormFields } from '@payloadcms/ui'
+import { useField, useFormFields, useDocumentInfo } from '@payloadcms/ui'
 import type { SelectFieldClientComponent } from 'payload'
 import {
   confirmAdminBookingAction,
@@ -15,24 +15,34 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
   const { path } = props
   const { value, setValue } = useField<string>({ path })
 
-  // Retrieve essential document fields from Payload Form State
-  const bookingIdField = useFormFields(([fields]) => fields.id)
-  const bookingId = bookingIdField?.value as number | undefined
+  // Retrieve essential document fields from Payload Form State & Document Context
+  const docInfo = useDocumentInfo()
+  const bookingId = docInfo?.id ? Number(docInfo.id) : undefined
+  const docData = (docInfo as any)?.initialData || (docInfo as any)?.savedDocumentData || (docInfo as any)?.data
 
-  const pricingSnapshotField = useFormFields(([fields]) => fields.pricingSnapshot)
-  const pricingSnapshot = pricingSnapshotField?.value as any | undefined
+  const pricingTotalAmountField = useFormFields(([fields]) => fields['pricingSnapshot.totalAmountEGP'])
+  const pricingBasePriceField = useFormFields(([fields]) => fields['pricingSnapshot.basePriceEGP'])
+  const pricingLoyaltyDiscountField = useFormFields(([fields]) => fields['pricingSnapshot.loyaltyDiscountEGP'])
 
   const paymentAttemptsField = useFormFields(([fields]) => fields.paymentAttempts)
-  const paymentAttempts = paymentAttemptsField?.value as any[] | undefined
+  const paymentAttempts = (paymentAttemptsField?.value as any[] | undefined) || docData?.paymentAttempts
 
   const paymentStatusField = useFormFields(([fields]) => fields.paymentStatus)
-  const paymentStatus = paymentStatusField?.value as string | undefined
+  const paymentStatus = (paymentStatusField?.value as string | undefined) || docData?.paymentStatus
 
   const amountPaidField = useFormFields(([fields]) => fields.amountPaid)
-  const amountPaid = amountPaidField?.value as number | undefined
+  const amountPaid = (amountPaidField?.value as number | undefined) ?? docData?.amountPaid
 
   const outstandingBalanceField = useFormFields(([fields]) => fields.outstandingBalance)
-  const outstandingBalance = outstandingBalanceField?.value as number | undefined
+  const outstandingBalance = (outstandingBalanceField?.value as number | undefined) ?? docData?.outstandingBalance
+
+  // Authoritative Pricing Snapshot components
+  const basePriceEGP = (pricingBasePriceField?.value as number | undefined) ?? docData?.pricingSnapshot?.basePriceEGP ?? 0
+  const loyaltyDiscountEGP = (pricingLoyaltyDiscountField?.value as number | undefined) ?? docData?.pricingSnapshot?.loyaltyDiscountEGP ?? 0
+  const totalAmountEGP =
+    (pricingTotalAmountField?.value as number | undefined) ??
+    docData?.pricingSnapshot?.totalAmountEGP ??
+    (basePriceEGP > 0 ? Math.max(0, basePriceEGP - loyaltyDiscountEGP) : 0)
 
   // Component UI States
   const [loading, setLoading] = useState(false)
@@ -45,8 +55,6 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
   // Subsequent Payment States
   const [subsequentAmount, setSubsequentAmount] = useState<string>('')
   const [subsequentInstrument, setSubsequentInstrument] = useState<string>('manual')
-
-
 
   // Refund States
   const [showRefundPrompt, setShowRefundPrompt] = useState(false)
@@ -65,7 +73,6 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
   }
 
   // Calculate dynamic outstanding balance
-  const totalAmountEGP = pricingSnapshot?.totalAmountEGP || pricingSnapshot?.subtotalEGP || pricingSnapshot?.basePriceEGP || 0
   const paidEGP = amountPaid !== undefined ? amountPaid : (paymentAttempts || [])
     .filter((a: any) => a.status === 'successful')
     .reduce((sum: number, a: any) => sum + (a.amount || 0), 0)
@@ -120,7 +127,7 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
       const res = await confirmAdminBookingAction({
         bookingId,
         depositAmount: depositToPay,
-        currency: pricingSnapshot?.displayCurrency || 'EGP',
+        currency: docData?.pricingSnapshot?.displayCurrency || 'EGP',
         instrument: depositInstrument,
       })
       if (res.success) {
@@ -281,8 +288,20 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
             <div style={{ border: '1px solid var(--theme-elevation-150)', padding: '0.85rem', borderRadius: '6px', backgroundColor: 'var(--theme-elevation-50)' }}>
               <div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
                 <div style={{ color: 'var(--theme-elevation-500)', marginBottom: '0.2rem' }}>Financial Summary:</div>
+                {basePriceEGP > 0 && loyaltyDiscountEGP > 0 && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                      <span>Base price:</span>
+                      <span>{basePriceEGP.toLocaleString()} EGP</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem', color: '#137333' }}>
+                      <span>Loyalty discount:</span>
+                      <span>-{loyaltyDiscountEGP.toLocaleString()} EGP</span>
+                    </div>
+                  </>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
-                  <span>Total price:</span>
+                  <span>Net Total:</span>
                   <span style={{ fontWeight: 600 }}>{totalAmountEGP.toLocaleString()} EGP</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
@@ -422,8 +441,20 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
             <div style={{ border: '1px solid var(--theme-elevation-150)', padding: '0.85rem', borderRadius: '6px', backgroundColor: 'var(--theme-elevation-50)' }}>
               <div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
                 <div style={{ color: 'var(--theme-elevation-500)', marginBottom: '0.2rem' }}>Financial Summary:</div>
+                {basePriceEGP > 0 && loyaltyDiscountEGP > 0 && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                      <span>Base price:</span>
+                      <span>{basePriceEGP.toLocaleString()} EGP</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem', color: '#137333' }}>
+                      <span>Loyalty discount:</span>
+                      <span>-{loyaltyDiscountEGP.toLocaleString()} EGP</span>
+                    </div>
+                  </>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
-                  <span>Total price:</span>
+                  <span>Net Total:</span>
                   <span style={{ fontWeight: 600 }}>{totalAmountEGP.toLocaleString()} EGP</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
@@ -646,8 +677,20 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
             <div style={{ border: '1px solid var(--theme-elevation-150)', padding: '0.85rem', borderRadius: '6px', backgroundColor: 'var(--theme-elevation-50)' }}>
               <div style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
                 <div style={{ color: 'var(--theme-elevation-500)', marginBottom: '0.2rem' }}>Financial Summary:</div>
+                {basePriceEGP > 0 && loyaltyDiscountEGP > 0 && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                      <span>Base price:</span>
+                      <span>{basePriceEGP.toLocaleString()} EGP</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem', color: '#137333' }}>
+                      <span>Loyalty discount:</span>
+                      <span>-{loyaltyDiscountEGP.toLocaleString()} EGP</span>
+                    </div>
+                  </>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
-                  <span>Total price:</span>
+                  <span>Net Total:</span>
                   <span>{totalAmountEGP.toLocaleString()} EGP</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.15rem' }}>

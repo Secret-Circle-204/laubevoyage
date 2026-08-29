@@ -3,7 +3,7 @@ import { RevalidationService } from '@/domains/shared/revalidation-service'
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, type, customerId, experienceSlug, countrySlug, citySlug, pageSlug } = await req.json()
+    const { token, type, customerId, slices, experienceSlug, countrySlug, citySlug, pageSlug } = await req.json()
 
     const secret = process.env.INTERNAL_REVALIDATION_TOKEN
     const isProduction = process.env.NODE_ENV === 'production'
@@ -20,8 +20,13 @@ export async function POST(req: NextRequest) {
     // Predefined restricted revalidation types only
     if (type === 'dashboard') {
       if (!customerId) return NextResponse.json({ success: false, error: 'Missing customerId' }, { status: 400 })
-      console.log(`[API Revalidate] Purging customer dashboard for ID: ${customerId}`)
-      await RevalidationService.purgeDashboard(Number(customerId), { forceLocal: true })
+      if (slices && Array.isArray(slices) && slices.length > 0) {
+        console.log(`[API Revalidate] Purging targeted dashboard slices for ID ${customerId}: ${slices.join(', ')}`)
+        await RevalidationService.purgeDashboardSlices(Number(customerId), slices, { forceLocal: true })
+      } else {
+        console.log(`[API Revalidate] Purging full customer dashboard for ID: ${customerId}`)
+        await RevalidationService.purgeDashboard(Number(customerId), { forceLocal: true })
+      }
     } else if (type === 'experience') {
       if (!experienceSlug) return NextResponse.json({ success: false, error: 'Missing experienceSlug' }, { status: 400 })
       console.log(`[API Revalidate] Purging experience: ${experienceSlug}`)

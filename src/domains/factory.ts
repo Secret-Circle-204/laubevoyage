@@ -132,7 +132,7 @@ async function buildDomainServices() {
   const loyaltyService = new LoyaltyService(loyaltyRepository)
   const customerDeletionDependencyChecker = {
     checkDependencies: async (customerId: number, req?: any) => {
-      const [bookings, pointLedgers, reviews, payments] = await Promise.all([
+      const [bookings, pointLedgers, reviews, payments, pendingEvents] = await Promise.all([
         payload.find({
           collection: 'bookings',
           where: { user: { equals: customerId } },
@@ -157,12 +157,30 @@ async function buildDomainServices() {
           limit: 0,
           req,
         }),
+        payload.find({
+          collection: 'event-outbox',
+          where: {
+            and: [
+              { status: { in: ['pending', 'processing', 'failed'] } },
+              {
+                or: [
+                  { 'payload.customerId': { equals: customerId } },
+                  { 'payload.customer.id': { equals: customerId } },
+                  { 'payload.booking.customerId': { equals: customerId } },
+                ],
+              },
+            ],
+          },
+          limit: 0,
+          req,
+        }),
       ])
       return {
         bookingCount: bookings.totalDocs,
         pointLedgerCount: pointLedgers.totalDocs,
         reviewCount: reviews.totalDocs,
         paymentCount: payments.totalDocs,
+        pendingOutboxCount: pendingEvents.totalDocs,
       }
     },
   }

@@ -1,6 +1,7 @@
 import type { PayloadRequest } from 'payload'
 import { TranslationRepository } from './repository'
 import { TranslationEngine } from './engine'
+import type { ITranslationProvider } from './providers/provider.interface'
 import type { TranslationRecordEntity } from './types'
 
 /**
@@ -11,9 +12,9 @@ export class TranslationService {
   private repository: TranslationRepository
   private engine: TranslationEngine
 
-  constructor(repository: TranslationRepository) {
+  constructor(repository: TranslationRepository, provider?: ITranslationProvider) {
     this.repository = repository
-    this.engine = new TranslationEngine(this.repository)
+    this.engine = new TranslationEngine(this.repository, provider)
   }
 
   async getTranslation(translationKey: string, locale: string): Promise<TranslationRecordEntity> {
@@ -26,8 +27,13 @@ export class TranslationService {
     _version?: number,
     _req?: PayloadRequest,
   ): Promise<string> {
-    const record = await this.engine.translate(text, locale)
-    return record?.translatedText || text
+    try {
+      const record = await this.engine.translate(text, locale)
+      return record.translatedText
+    } catch (err: unknown) {
+      console.error('[TranslationService] Single text translation failed, returning source string:', err)
+      return text
+    }
   }
 
   async translateBatch(texts: string[], locale: string): Promise<string[]> {
@@ -51,3 +57,4 @@ export class TranslationService {
     return result
   }
 }
+

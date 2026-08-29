@@ -51,5 +51,8 @@ export interface CustomerLoyaltyPortalDTO {
   formattedRemainingQualifyingSpend: string | null
   nextTierName: string
   progressText: string
+  heldPoints: number
+  availablePoints: number
+  formattedAvailablePoints: string
   history: LoyaltyLedgerRecordDTO[]
 }

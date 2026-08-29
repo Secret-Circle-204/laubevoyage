@@ -10,6 +10,7 @@ describe('Translation Domain: TranslationEngine Unit Tests', () => {
     }
 
     const mockProvider = {
+      providerId: 'google' as const,
       translateKey: vi.fn().mockResolvedValue('تم تأكيد الحجز'),
     }
 

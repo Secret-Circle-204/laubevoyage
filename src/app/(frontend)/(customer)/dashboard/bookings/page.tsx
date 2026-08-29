@@ -103,6 +103,16 @@ export default async function Page({ searchParams }: PageProps) {
                     <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'completed' ? 'primary' : 'warning'} size="sm">
                       {booking.status.toUpperCase()}
                     </Badge>
+                    {booking.paymentStatus === 'partially_paid' && (
+                      <Badge variant="warning" size="sm" className="bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                        PARTIALLY PAID
+                      </Badge>
+                    )}
+                    {booking.paymentStatus === 'paid' && (
+                      <Badge variant="outline" size="sm" className="text-emerald-500 border-emerald-500/30">
+                        PAID
+                      </Badge>
+                    )}
                   </div>
                   <h3 className="font-bold text-base text-slate-900 dark:text-white">{booking.experienceTitle}</h3>
                   <span className="text-xs text-slate-500">📅 {booking.departureDate} • {booking.passengersCount} Passengers</span>
@@ -111,6 +121,16 @@ export default async function Page({ searchParams }: PageProps) {
 
               <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
                 <CurrencyDisplay price={booking.totalCost} size="md" />
+                {booking.paymentStatus === 'partially_paid' && booking.outstandingBalance && (
+                  <div className="text-right mt-1">
+                    <span className="text-[11px] text-slate-500 block">
+                      Paid: <strong className="text-slate-700 dark:text-slate-300">{booking.paidAmount?.formatted}</strong>
+                    </span>
+                    <span className="text-[11px] font-bold text-amber-600 dark:text-amber-500 block">
+                      Remaining: {booking.outstandingBalance.formatted}
+                    </span>
+                  </div>
+                )}
                 <Link href={`/dashboard/bookings/${booking.reference}`}>
                   <Button variant="accent" size="sm" className="mt-2">
                     View Voucher

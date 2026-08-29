@@ -118,6 +118,8 @@ export class BookingCancellation {
     // Publish BookingCancelledEvent via outbox
     await this.outboxService.record({
       type: 'BOOKING_CANCELLED',
+      aggregateType: 'Booking',
+      aggregateId: String(bookingId),
       booking: cancelledBooking,
       actor,
       reason,

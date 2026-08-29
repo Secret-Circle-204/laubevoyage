@@ -10,6 +10,7 @@ export const JOB_PRIORITIES: Record<MaintenanceJobName, MaintenancePriority> = {
   complete_finished_bookings: 'medium',
   dlq_recovery: 'medium',
   data_retention_purge: 'low',
+  reconcile_dashboard_projections: 'low',
 }
 
 /**

@@ -87,6 +87,11 @@ export function registerLoyaltyNotificationSubscriber(
         throw new Error('[LoyaltyNotificationSubscriber] LoyaltyEarnedEvent missing required eventId.')
       }
 
+      // Welcome bonus points are communicated in the consolidated Welcome Email
+      if (event.source === 'welcome_bonus') {
+        return
+      }
+
       const transactionID = await payload.db.beginTransaction()
       const req = { transactionID } as any
       try {

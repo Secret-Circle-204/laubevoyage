@@ -21,9 +21,14 @@ export interface CheckoutPageDTO {
   basePricePerPersonEGP: number
   subtotalPrice: ConvertedPrice
   promoDiscountEGP: number
-  loyaltyDiscountEGP: number
   totalCost: ConvertedPrice
   availableLoyaltyPoints: number
+  redemptionUnit: number
+  minRedemptionPoints: number
+  maxRedemptionPercent: number
+  redemptionStepUnit: number
+  estimatedEarnPoints?: number
+  loyaltyDiscountPrice?: ConvertedPrice
   gateways: PaymentGatewayDTO[]
   leadTraveler?: {
     firstName: string
@@ -32,3 +37,5 @@ export interface CheckoutPageDTO {
     phone: string
   }
 }
+
+

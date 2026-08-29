@@ -158,12 +158,20 @@ export class BookingCreator {
       throw new Error(`[BookingCreator] Creation forbidden: ${blackoutCheck.reason}`)
     }
 
-    // 3. Handle points redemption and hold via LoyaltyService calculation
+    // 3. Handle points redemption and hold with strict Atomic Concurrency & Invariant Enforcement
     let pointsRedeemed = 0
     let pointsValueEGP = 0
     if (params.pointsToRedeem && params.pointsToRedeem > 0) {
-      const availablePoints = await this.loyaltyService.getCustomerBalance(params.userId)
-      const pointsPolicy = BookingPolicy.canRedeemPoints(availablePoints, params.pointsToRedeem)
+      // Step 1: Acquire exclusive customer row lock inside active transaction to serialize concurrent checkout attempts
+      await this.repository.acquireCustomerLock(params.userId, context)
+
+      // Step 2: Read settled ledger balance and active uncommitted booking holds
+      const settledBalance = await this.loyaltyService.getCustomerBalance(params.userId, context)
+      const activeHeldPoints = await this.repository.getActiveHeldPointsForCustomer(params.userId, context)
+      const availableToRedeem = Math.max(0, settledBalance - activeHeldPoints)
+
+      // Step 3: Validate available spendable points via BookingPolicy
+      const pointsPolicy = BookingPolicy.canRedeemPoints(availableToRedeem, params.pointsToRedeem)
       if (!pointsPolicy.allowed) {
         throw new Error(`[BookingPolicy] Redemption forbidden: ${pointsPolicy.reason}`)
       }

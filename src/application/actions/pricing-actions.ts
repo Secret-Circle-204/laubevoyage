@@ -1,6 +1,7 @@
 'use server'
 
 import { getApplicationServices } from '@/application/factory'
+import { SessionResolver } from '@/application/auth/session-resolver'
 import type { ConvertedPrice } from '@/domains/currency/types'
 
 /**
@@ -13,16 +14,54 @@ export async function resolvePricingAction(params: {
   date?: string
   startTime?: string
   adults: number
+  children?: number
   currency: string
   locale?: string
+  pointsToRedeem?: number
 }): Promise<{
   success: boolean
   slotId?: number
   departureId?: string
-  pricing?: { unitPrice: ConvertedPrice; totalPrice: ConvertedPrice }
+  pricing?: {
+    unitPrice: ConvertedPrice
+    totalPrice: ConvertedPrice
+    originalPrice?: ConvertedPrice
+    loyaltyDiscountPrice?: ConvertedPrice
+    estimatedEarnPoints?: number
+    remainingLoyaltyPoints?: number
+  }
   error?: string
+  code?: string
 }> {
   try {
+    // 1. Strict Transport Invariant Validation on Points Input
+    if (params.pointsToRedeem !== undefined && params.pointsToRedeem !== null) {
+      if (
+        typeof params.pointsToRedeem !== 'number' ||
+        !Number.isFinite(params.pointsToRedeem) ||
+        !Number.isInteger(params.pointsToRedeem) ||
+        params.pointsToRedeem < 0
+      ) {
+        return {
+          success: false,
+          error: 'Invalid loyalty points redemption amount. Points must be a non-negative integer.',
+          code: 'INVALID_POINTS_INPUT',
+        }
+      }
+    }
+
+    // 2. Server Session Identity Resolution (Zero client trust)
+    const session = await SessionResolver.resolve()
+    const customerId = session.isAuthenticated && session.customerId ? session.customerId : undefined
+
+    if (params.pointsToRedeem && params.pointsToRedeem > 0 && !customerId) {
+      return {
+        success: false,
+        error: 'Authentication required. Please sign in to preview loyalty rewards.',
+        code: 'UNAUTHENTICATED',
+      }
+    }
+
     const { bookingPricingUseCase, localization, experience } = await getApplicationServices()
 
     const ctx = await localization.buildContext({
@@ -38,71 +77,88 @@ export async function resolvePricingAction(params: {
     const isFixedPackage = expDoc.type === 'package' && expDoc.packageMode === 'fixed_date'
     const isFlexiblePackage = expDoc.type === 'package' && expDoc.packageMode === 'flexible_date'
     const isDailyTour = expDoc.type === 'daily_tour'
+    const effectiveChildren = params.children ?? 0
 
     if (isFixedPackage) {
       if (!params.slotId) {
         return { success: false, error: 'slotId is required to resolve pricing for fixed package' }
       }
-      const { totalCost, unitPrice, departure } = await bookingPricingUseCase.calculate({
+      const result = await bookingPricingUseCase.calculate({
         experienceId: params.experienceId,
         slotId: params.slotId,
         adultsCount: params.adults,
-        childrenCount: 0,
+        childrenCount: effectiveChildren,
         ctx,
+        pointsToRedeem: params.pointsToRedeem,
+        customerId,
       })
 
       return {
         success: true,
         slotId: params.slotId,
-        departureId: departure.departureId,
+        departureId: result.departure.departureId,
         pricing: {
-          unitPrice,
-          totalPrice: totalCost,
+          unitPrice: result.unitPrice,
+          totalPrice: result.totalCost,
+          originalPrice: result.originalPrice,
+          loyaltyDiscountPrice: result.loyaltyDiscountPrice,
+          estimatedEarnPoints: result.estimatedEarnPoints,
+          remainingLoyaltyPoints: result.remainingLoyaltyPoints,
         },
       }
     } else if (isFlexiblePackage) {
-      // Flexible Package: Date-driven (no slotId, no startTime)
       const today = new Date().toISOString().split('T')[0]
       const pricingDate = params.date || today
-      const { totalCost, unitPrice, departure } = await bookingPricingUseCase.calculatePreview({
+      const result = await bookingPricingUseCase.calculatePreview({
         experienceId: params.experienceId,
         date: pricingDate,
         startTime: '',
         adultsCount: params.adults,
-        childrenCount: 0,
+        childrenCount: effectiveChildren,
         ctx,
+        pointsToRedeem: params.pointsToRedeem,
+        customerId,
       })
 
       return {
         success: true,
         slotId: undefined,
-        departureId: departure.departureId,
+        departureId: result.departure.departureId,
         pricing: {
-          unitPrice,
-          totalPrice: totalCost,
+          unitPrice: result.unitPrice,
+          totalPrice: result.totalCost,
+          originalPrice: result.originalPrice,
+          loyaltyDiscountPrice: result.loyaltyDiscountPrice,
+          estimatedEarnPoints: result.estimatedEarnPoints,
+          remainingLoyaltyPoints: result.remainingLoyaltyPoints,
         },
       }
     } else if (isDailyTour) {
-      // Daily Tour: requires date and startTime
       if (!params.date || !params.startTime) {
         return { success: false, error: 'date and startTime are required to resolve pricing for daily tour' }
       }
-      const { totalCost, unitPrice, departure } = await bookingPricingUseCase.calculatePreview({
+      const result = await bookingPricingUseCase.calculatePreview({
         experienceId: params.experienceId,
         date: params.date,
         startTime: params.startTime,
         adultsCount: params.adults,
-        childrenCount: 0,
+        childrenCount: effectiveChildren,
         ctx,
+        pointsToRedeem: params.pointsToRedeem,
+        customerId,
       })
 
       return {
         success: true,
         slotId: undefined,
-        departureId: departure.departureId,
+        departureId: result.departure.departureId,
         pricing: {
-          unitPrice,
-          totalPrice: totalCost,
+          unitPrice: result.unitPrice,
+          totalPrice: result.totalCost,
+          originalPrice: result.originalPrice,
+          loyaltyDiscountPrice: result.loyaltyDiscountPrice,
+          estimatedEarnPoints: result.estimatedEarnPoints,
+          remainingLoyaltyPoints: result.remainingLoyaltyPoints,
         },
       }
     } else {
@@ -115,4 +171,5 @@ export async function resolvePricingAction(params: {
     }
   }
 }
+
 

@@ -18,62 +18,7 @@ export function registerNotificationSubscribers(payload: Payload): void {
   const notificationService = new NotificationService(payload)
   const customerRepository = new CustomerRepository(payload)
 
-  // 1. Customer Registered Event -> Enqueue welcome email
-  eventBus.subscribe<CustomerRegisteredEvent>(
-    'CUSTOMER_REGISTERED',
-    'NotificationSubscriber.enqueueWelcomeNotification',
-    async (event) => {
-      const subscriberName = 'NotificationSubscriber.enqueueWelcomeNotification'
-      if (!event.eventId)
-        throw new Error(
-          '[NotificationSubscriber] CustomerRegisteredEvent missing required eventId.',
-        )
-
-      const transactionID = await payload.db.beginTransaction()
-      const req = { transactionID } as any
-      try {
-        const acquired = await inboxRepo.tryAcquire(event.eventId as string, subscriberName, req)
-        if (!acquired) {
-          if (transactionID) await payload.db.rollbackTransaction(transactionID)
-          return
-        }
-
-        if (!event.email)
-          throw new Error(
-            `[NotificationSubscriber] Missing required email for customer #${event.customerId}.`,
-          )
-
-        console.log(
-          `[NotificationSubscriber] Customer #${event.customerId} registered. Enqueuing welcome email...`,
-        )
-        await notificationService.enqueueNotification(
-          {
-            referenceType: 'WELCOME',
-            referenceId: String(event.customerId),
-            recipient: event.email as string,
-            channel: 'email',
-            category: 'marketing',
-            priority: 'normal',
-            templateId: 'welcome_email',
-            translationKey: 'customer.welcome',
-            templateData: { name: event.fullName },
-          },
-          req,
-        )
-
-        if (transactionID) await payload.db.commitTransaction(transactionID)
-      } catch (err: unknown) {
-        if (transactionID) await payload.db.rollbackTransaction(transactionID)
-        console.error(
-          `[NotificationSubscriber] CUSTOMER_REGISTERED transaction failed for event ${event.eventId as string}:`,
-          err,
-        )
-        throw err
-      }
-    },
-  )
-
-  // 2. Booking Confirmed Event -> Fetch customer email & enqueue confirmation
+  // 1. Booking Confirmed Event -> Fetch customer email & enqueue confirmation
   eventBus.subscribe<BookingConfirmedEvent>(
     'BOOKING_CONFIRMED',
     'NotificationSubscriber.enqueueBookingConfirmation',
