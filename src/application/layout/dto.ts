@@ -38,5 +38,12 @@ export interface LayoutDTO {
     tier?: string
   }
   unreadNotificationsCount: number
+  uiLabels: {
+    myAccount: string
+    signOut: string
+    logIn: string
+    bookNow: string
+    brandDescription: string
+  }
 }
 

@@ -2,13 +2,10 @@ import type { Payload } from 'payload'
 import type { RequestContext } from '@/types'
 import { CustomerRepository } from './repositories/customer-repository'
 import { TravelerRepository } from './repositories/traveler-repository'
-import { AddressRepository } from './repositories/address-repository'
-import { DeviceSessionRepository } from './repositories/session-repository'
 import { IdentityCoordinatorFacade } from './identity/identity-facade'
 import { ProfileManager } from './profile-manager'
 import { PreferencesManager } from './preferences-manager'
 import { GDPRConsentManager } from './gdpr-consent'
-import { DeviceSessionManager } from './device-sessions'
 import { CustomerQueries } from './queries'
 import { EventOutboxService } from '../events/outbox'
 import type { CustomerAggregate } from './aggregate'
@@ -28,13 +25,10 @@ export type VerificationResult =
 export class CustomerWorkflowEngine {
   public repository: CustomerRepository
   public travelerRepository: TravelerRepository
-  public addressRepository: AddressRepository
-  public sessionRepository: DeviceSessionRepository
   public identity: IdentityCoordinatorFacade
   public profileManager: ProfileManager
   public preferencesManager: PreferencesManager
   public gdprManager: GDPRConsentManager
-  public sessionManager: DeviceSessionManager
   public queries: CustomerQueries
   public eventOutbox: EventOutboxService
   public notificationService: NotificationService
@@ -50,14 +44,11 @@ export class CustomerWorkflowEngine {
     }
 
     this.travelerRepository = new TravelerRepository(payloadInstance)
-    this.addressRepository = new AddressRepository(payloadInstance)
-    this.sessionRepository = new DeviceSessionRepository(payloadInstance)
     this.identity = new IdentityCoordinatorFacade(this.repository)
-    this.profileManager = new ProfileManager(this.travelerRepository, this.addressRepository)
+    this.profileManager = new ProfileManager(this.travelerRepository)
     this.preferencesManager = new PreferencesManager()
     this.gdprManager = new GDPRConsentManager(this.repository)
-    this.sessionManager = new DeviceSessionManager(this.sessionRepository)
-    this.queries = new CustomerQueries(this.repository, this.sessionRepository)
+    this.queries = new CustomerQueries(this.repository)
     this.eventOutbox = EventOutboxService.getInstance()
     this.notificationService = new NotificationService(payloadInstance)
   }

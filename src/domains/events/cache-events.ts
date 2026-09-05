@@ -62,3 +62,9 @@ export interface BlogPostMutatedEvent extends BaseDomainEvent {
 export interface FaqMutatedEvent extends BaseDomainEvent {
   type: 'FAQ_MUTATED'
 }
+
+export interface TranslationCacheMutatedEvent extends BaseDomainEvent {
+  type: 'TRANSLATION_CACHE_MUTATED'
+  originalHash: string
+  language: string
+}

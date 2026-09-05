@@ -179,57 +179,61 @@ export class BookingCreator {
       pointsValueEGP = await this.loyaltyService.calculatePointValueInEGP(pointsRedeemed)
     }
 
-    // 4. Generate Pricing Snapshot
-    const basePricePerPerson = departure.effectiveBasePrice
-    const travelersCount = params.travelers.length
-    const totalBasePriceEGP = basePricePerPerson * travelersCount
-    const targetCurrency = params.currency || 'EGP'
+    // 4. Validate Passenger Manifest Invariants via BookingPolicy
+    const expectedAdults =
+      params.commercialBreakdown?.adultsCount ??
+      (params.travelers.filter((t: any) => t.type !== 'child' && t.type !== 'infant').length ||
+        params.travelers.length)
+    const expectedChildren =
+      params.commercialBreakdown?.children?.length ??
+      params.travelers.filter((t: any) => t.type === 'child' || t.type === 'infant').length
 
-    let pricingSnapshot: PricingSnapshotData
-    const pipeline = this.pricingPipeline as unknown as IPricingPipeline
+    const manifestPolicy = BookingPolicy.validateTravelersManifest(
+      params.travelers,
+      expectedAdults,
+      expectedChildren,
+    )
+    if (!manifestPolicy.allowed) {
+      throw new Error(`[BookingCreator] ${manifestPolicy.reason}`)
+    }
 
-    if (typeof pipeline?.calculatePricingSnapshot === 'function') {
-      pricingSnapshot = await pipeline.calculatePricingSnapshot(
-        totalBasePriceEGP,
-        {
-          departureId: departure.departureId,
-          experienceId: experienceId,
-          displayCurrency: targetCurrency,
-          travelers: { adults: travelersCount },
-          bookingDate: startDate,
-        },
-        {
-          loyalty: pointsValueEGP,
-        },
-      )
-    } else if (typeof pipeline?.calculate === 'function') {
-      pricingSnapshot = await pipeline.calculate({
-        experienceId,
-        departure,
-        travelers: params.travelers,
-        pointsRedeemed,
-        pointsValueEGP,
-        targetCurrency,
-      })
+    // 5. Authoritative Pricing Snapshot Verification (SSOT Enforcement - No Fallback Pricing)
+    let pricingSnapshot: any
+
+    if (params.pricingSnapshot) {
+      pricingSnapshot = params.pricingSnapshot
+      // Invariant: One calculated result -> one authoritative representation.
+      if (params.commercialBreakdown && !pricingSnapshot.commercialBreakdown) {
+        pricingSnapshot.commercialBreakdown = params.commercialBreakdown
+      }
     } else {
-      pricingSnapshot = {
-        snapshotId: `snap_${Date.now()}`,
-        snapshotVersion: 'v1',
-        pricingRuleVersion: 'v1.0.0',
-        exchangeRateVersion: 'v1.0.0',
-        basePriceEGP: totalBasePriceEGP,
-        loyaltyDiscountEGP: pointsValueEGP,
-        promotionDiscountEGP: 0,
-        couponDiscountEGP: 0,
-        subtotalEGP: Math.max(0, totalBasePriceEGP - pointsValueEGP),
-        taxes: 0,
-        fees: 0,
-        totalAmountEGP: Math.max(0, totalBasePriceEGP - pointsValueEGP),
-        displayCurrency: targetCurrency,
-        displayAmount: Math.max(0, totalBasePriceEGP - pointsValueEGP),
-        exchangeRate: 1,
-        exchangeRateTimestamp: new Date().toISOString(),
-        calculatedAt: new Date().toISOString(),
+      const pipeline = this.pricingPipeline as unknown as IPricingPipeline
+      if (typeof pipeline?.calculatePricingSnapshot === 'function') {
+        const totalBasePriceEGP =
+          params.commercialBreakdown?.adultsTotalEGP !== undefined
+            ? params.commercialBreakdown.adultsTotalEGP +
+              (params.commercialBreakdown.occupancySupplementsTotalEGP || 0) +
+              (params.commercialBreakdown.childrenTotalEGP || 0)
+            : departure.effectiveBasePrice * params.travelers.length
+
+        pricingSnapshot = await pipeline.calculatePricingSnapshot(
+          totalBasePriceEGP,
+          {
+            departureId: departure.departureId,
+            experienceId: experienceId,
+            displayCurrency: params.currency || 'EGP',
+            travelers: { adults: params.travelers.length },
+            bookingDate: startDate,
+            commercialBreakdown: params.commercialBreakdown,
+          },
+          {
+            loyalty: pointsValueEGP,
+          },
+        )
+      } else {
+        throw new Error(
+          `[BookingCreator] Missing authoritative pricingSnapshot for experience #${experienceId}. BookingCreator has no fallback pricing algorithm.`,
+        )
       }
     }
 
@@ -310,6 +314,7 @@ export class BookingCreator {
       timeline,
       auditTrail,
       documents: {},
+      pickupLocation: params.pickupLocation || null,
       idempotencyKey: params.idempotencyKey,
     }
 

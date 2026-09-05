@@ -14,9 +14,15 @@ export async function generateMetadata(): Promise<Metadata> {
 
 import { cookies } from 'next/headers'
 
-export default async function Page() {
+export default async function Page(props: {
+  searchParams?: Promise<{ page?: string; category?: string }>
+}) {
+  const searchParams = props.searchParams ? await props.searchParams : {}
+  const page = Math.max(1, Number(searchParams.page) || 1)
+  const category = searchParams.category
+
   const cookieStore = await cookies()
   const locale = cookieStore.get('laube-locale')?.value
-  const data = await BlogCatalogLoader.load({ locale })
+  const data = await BlogCatalogLoader.load({ locale, page, limit: 9, category })
   return <BlogCatalogPage data={data} />
 }

@@ -23,16 +23,42 @@ export interface CityDTO {
 
 export interface DestinationsCatalogDTO {
   countries: CountryDTO[]
-  featuredCities: CityDTO[]
+  cities: CityDTO[]
+  pagination: {
+    page: number
+    limit: number
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
 }
+
+
 
 export interface CountryDetailsDTO {
   country: CountryDTO
   cities: CityDTO[]
+  pagination?: {
+    page: number
+    limit: number
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
 }
 
 export interface CityExperiencesDTO {
   city: CityDTO
   country: CountryDTO
   experiences: HomeFeaturedExperienceDTO[]
+  pagination?: {
+    page: number
+    limit: number
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
 }

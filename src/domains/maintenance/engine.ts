@@ -1,12 +1,7 @@
 import { MaintenanceRepository } from './repository'
 import type { BookingService } from '../booking/service'
-import { DashboardProjectionRepository } from '../dashboard/repository'
-import { DashboardOverviewAggregator } from '../dashboard/overview-aggregator'
-import { DashboardQueryBus } from '../dashboard/query-bus'
-import { CustomerRepository } from '../customer/repositories/customer-repository'
-import { DeviceSessionRepository } from '../customer/repositories/session-repository'
-import { LoyaltyRepository } from '../loyalty/repository'
-import { BookingRepository } from '../booking/repository'
+import type { DashboardProjectionRepository } from '../dashboard/repository'
+import type { DashboardOverviewAggregator } from '../dashboard/overview-aggregator'
 import type { CustomerPortalProjection } from '../dashboard/types'
 import { EventBus } from '../events/event-bus'
 import type { DashboardProjectionRebuiltEvent } from '../events/cache-events'
@@ -40,16 +35,12 @@ export class MaintenanceEngine {
     if (!payload) {
       throw new Error('[MaintenanceEngine] Cannot reconcile projections without initialized Payload instance.')
     }
-    const dashboardRepo = this.dashboardRepo || new DashboardProjectionRepository(payload)
-    if (!this.overviewAggregator) {
-      const customerRepo = new CustomerRepository(payload)
-      const sessionRepo = new DeviceSessionRepository(payload)
-      const loyaltyRepo = new LoyaltyRepository(payload)
-      const bookingRepo = new BookingRepository(payload)
-      const queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo, sessionRepo)
-      this.overviewAggregator = new DashboardOverviewAggregator(queryBus)
+    if (!this.dashboardRepo || !this.overviewAggregator) {
+      throw new Error(
+        '[MaintenanceEngine] Cannot reconcile projections: dashboardRepo and overviewAggregator must be injected via constructor.',
+      )
     }
-    return { dashboardRepo, overviewAggregator: this.overviewAggregator }
+    return { dashboardRepo: this.dashboardRepo, overviewAggregator: this.overviewAggregator }
   }
 
   /**

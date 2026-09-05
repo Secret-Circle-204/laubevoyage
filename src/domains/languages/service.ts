@@ -110,6 +110,15 @@ export class LanguageService {
   }
 
   /**
+   * Resolve authoritative RTL status for the given language code.
+   */
+  async isRtlLanguage(languageCode: string): Promise<boolean> {
+    const active = await this.getActiveLanguages()
+    const match = active.find((l) => l.code.toLowerCase() === languageCode.toLowerCase())
+    return match?.isRTL ?? false
+  }
+
+  /**
    * Invalidate the in-memory cache manually.
    */
   invalidateCache(): void {

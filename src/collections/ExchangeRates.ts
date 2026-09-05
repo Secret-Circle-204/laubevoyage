@@ -1,6 +1,8 @@
 import type { CollectionConfig } from 'payload'
 import { rateRegistry } from '@/domains/currency/rate-registry'
 import { EXCHANGE_RATE_SOURCES } from '@/domains/currency/types'
+import { EventBus } from '@/domains/events/event-bus'
+import { CacheInvalidationCoordinator } from '@/domains/events/coordination/cache-coordinator'
 
 export const ExchangeRates: CollectionConfig = {
   slug: 'exchange-rates',
@@ -8,20 +10,69 @@ export const ExchangeRates: CollectionConfig = {
     useAsTitle: 'toCurrency',
     defaultColumns: ['fromCurrency', 'toCurrency', 'rate', 'source', 'syncStatus', 'lastUpdate'],
     description: 'Live Financial Data for Exchange Rates',
+    components: {
+      beforeListTable: [
+        '@/components/admin/SyncExchangeRatesButton#SyncExchangeRatesButton',
+      ],
+    },
   },
   access: {
     read: () => true, // Publicly readable for conversion
   },
   hooks: {
     afterChange: [
-      ({ doc }) => {
+      async ({ doc, req }) => {
         rateRegistry.invalidate()
+
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'CURRENCY_RATES_UPDATED',
+          eventId: `evt_rate_${doc.id}_${Date.now()}`,
+          correlationId: `corr_rate_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+        })
+
+        try {
+          const coordinator = CacheInvalidationCoordinator.getInstance(req?.payload)
+          const txId = req?.transactionID ? await req.transactionID : undefined
+          const dbTx = txId ? (req?.payload?.db as any)?.sessions?.[txId] : undefined
+          await coordinator.publish({ type: 'currency' }, dbTx)
+        } catch (err: unknown) {
+          console.warn(
+            '[ExchangeRates Hook] Distributed currency cache invalidation failed:',
+            err instanceof Error ? err.message : String(err),
+          )
+        }
+
         return doc
       },
     ],
     afterDelete: [
-      ({ doc }) => {
+      async ({ doc, req }) => {
         rateRegistry.invalidate()
+
+        const eventBus = EventBus.getInstance()
+        await eventBus.publish({
+          type: 'CURRENCY_RATES_UPDATED',
+          eventId: `evt_rate_del_${doc.id}_${Date.now()}`,
+          correlationId: `corr_rate_del_${doc.id}`,
+          eventVersion: 1,
+          occurredAt: new Date().toISOString(),
+        })
+
+        try {
+          const coordinator = CacheInvalidationCoordinator.getInstance(req?.payload)
+          const txId = req?.transactionID ? await req.transactionID : undefined
+          const dbTx = txId ? (req?.payload?.db as any)?.sessions?.[txId] : undefined
+          await coordinator.publish({ type: 'currency' }, dbTx)
+        } catch (err: unknown) {
+          console.warn(
+            '[ExchangeRates Hook] Distributed currency cache invalidation on delete failed:',
+            err instanceof Error ? err.message : String(err),
+          )
+        }
+
         return doc
       },
     ],

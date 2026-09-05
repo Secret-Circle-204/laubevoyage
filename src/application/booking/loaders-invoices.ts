@@ -93,11 +93,7 @@ export class CustomerInvoicesLoader {
         ),
       )
       const slotsList =
-        uniqueSlotIds.length > 0
-          ? await Promise.all(
-              uniqueSlotIds.map((slotId: number) => experience.getDepartureSlotById(slotId)),
-            )
-          : []
+        uniqueSlotIds.length > 0 ? await experience.getDepartureSlotsByIds(uniqueSlotIds) : []
       const slotsMap = new Map(
         slotsList
           .filter((s): s is DepartureSlotEntity => s !== null && s !== undefined)
@@ -113,9 +109,7 @@ export class CustomerInvoicesLoader {
         ),
       )
       const citiesList =
-        uniqueCityIds.length > 0
-          ? await Promise.all(uniqueCityIds.map((cityId: number) => destination.getCityById(cityId)))
-          : []
+        uniqueCityIds.length > 0 ? await destination.getCitiesByIds(uniqueCityIds) : []
       const citiesMap = new Map(
         citiesList
           .filter((c): c is NonNullable<typeof c> => c !== null && c !== undefined)

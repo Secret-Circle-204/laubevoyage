@@ -7,6 +7,7 @@ import type { MaintenanceJobName, MaintenancePriority } from './types'
 export const JOB_PRIORITIES: Record<MaintenanceJobName, MaintenancePriority> = {
   financial_reconciliation: 'critical',
   expire_stale_holds: 'high',
+  currency_rate_refresh: 'high',
   complete_finished_bookings: 'medium',
   dlq_recovery: 'medium',
   data_retention_purge: 'low',

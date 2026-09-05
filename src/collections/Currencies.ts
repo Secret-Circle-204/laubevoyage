@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { EventBus } from '@/domains/events/event-bus'
+import { CacheInvalidationCoordinator } from '@/domains/events/coordination/cache-coordinator'
 
 export const Currencies: CollectionConfig = {
   slug: 'currencies',
@@ -13,7 +14,7 @@ export const Currencies: CollectionConfig = {
   },
   hooks: {
     afterChange: [
-      async ({ doc }) => {
+      async ({ doc, req }) => {
         const eventBus = EventBus.getInstance()
         await eventBus.publish({
           type: 'CURRENCY_CATALOG_UPDATED',
@@ -22,11 +23,24 @@ export const Currencies: CollectionConfig = {
           eventVersion: 1,
           occurredAt: new Date().toISOString(),
         })
+
+        try {
+          const coordinator = CacheInvalidationCoordinator.getInstance(req?.payload)
+          const txId = req?.transactionID ? await req.transactionID : undefined
+          const dbTx = txId ? (req?.payload?.db as any)?.sessions?.[txId] : undefined
+          await coordinator.publish({ type: 'currency' }, dbTx)
+        } catch (err: unknown) {
+          console.warn(
+            '[Currencies Hook] Distributed currency catalog cache invalidation failed:',
+            err instanceof Error ? err.message : String(err),
+          )
+        }
+
         return doc
       },
     ],
     afterDelete: [
-      async ({ doc }) => {
+      async ({ doc, req }) => {
         const eventBus = EventBus.getInstance()
         await eventBus.publish({
           type: 'CURRENCY_CATALOG_UPDATED',
@@ -35,6 +49,19 @@ export const Currencies: CollectionConfig = {
           eventVersion: 1,
           occurredAt: new Date().toISOString(),
         })
+
+        try {
+          const coordinator = CacheInvalidationCoordinator.getInstance(req?.payload)
+          const txId = req?.transactionID ? await req.transactionID : undefined
+          const dbTx = txId ? (req?.payload?.db as any)?.sessions?.[txId] : undefined
+          await coordinator.publish({ type: 'currency' }, dbTx)
+        } catch (err: unknown) {
+          console.warn(
+            '[Currencies Hook] Distributed currency catalog cache invalidation on delete failed:',
+            err instanceof Error ? err.message : String(err),
+          )
+        }
+
         return doc
       },
     ],

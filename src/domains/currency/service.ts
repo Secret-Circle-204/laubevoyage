@@ -1,12 +1,29 @@
 import type { CurrencyCode, Money } from '@/types'
+import { unstable_cache } from 'next/cache'
 import { rateRegistry } from './rate-registry'
-import { catalogRegistry } from './catalog-registry'
+import type { CurrencyIdentity } from './catalog-registry'
 import { CurrencyRepository } from './repository'
 import { CompositeExchangeRateProvider } from './providers/composite-provider'
 import type { ExchangeRateProvider } from './contracts/exchange-rate-provider'
 import type { ExchangeRateSource } from './types'
 import { ExchangeRateUnavailableError, EXCHANGE_RATE_SOURCES } from './types'
 import { CurrencySyncPolicy } from './policy'
+
+function formatProviderDiagnostic(providerName: string, err: unknown): string {
+  if (err instanceof Error) {
+    const cause = (err as Error & { cause?: { code?: string; message?: string; hostname?: string } }).cause
+    const code = cause?.code || (err as Error & { code?: string }).code
+    const status = (err as Error & { status?: number }).status
+
+    const tokens: string[] = [`${providerName}:`]
+    if (status) tokens.push(`HTTP ${status}`)
+    if (code) tokens.push(`[${code}]`)
+    if (cause?.hostname) tokens.push(`host: ${cause.hostname}`)
+    tokens.push(cause?.message || err.message)
+    return tokens.join(' ')
+  }
+  return `${providerName}: ${String(err)}`
+}
 
 /**
  * Currency Domain Service
@@ -16,18 +33,43 @@ import { CurrencySyncPolicy } from './policy'
 export class CurrencyService {
   private repository: CurrencyRepository
   private rateProvider: ExchangeRateProvider
-  private static syncPromise: Promise<{ success: boolean; message: string; timestamp: string }> | null = null
+  private getCachedActiveCurrencies: () => Promise<CurrencyIdentity[]>
 
   constructor(repository: CurrencyRepository, rateProvider?: ExchangeRateProvider) {
     this.repository = repository
     this.rateProvider = rateProvider || new CompositeExchangeRateProvider()
+
+    this.getCachedActiveCurrencies = unstable_cache(
+      async (): Promise<CurrencyIdentity[]> => {
+        const { docs } = await this.repository.findActiveCurrencies()
+        return docs
+          .map((doc) => ({
+            isoCode: doc.isoCode,
+            numericCode: doc.numericCode,
+            name: doc.name,
+            symbol: doc.symbol,
+            nativeSymbol: doc.nativeSymbol || null,
+            decimals: doc.decimals,
+            isActive: doc.isActive ?? true,
+            displayOrder: doc.displayOrder ?? 0,
+            isDefault: doc.isDefault ?? false,
+            flagCode: doc.flagCode || null,
+          }))
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+      },
+      ['active-currencies-catalog'],
+      {
+        tags: ['currencies'],
+      }
+    )
   }
 
   /**
-   * Domain Gateway method for retrieving all active currencies from catalog registry.
+   * Domain Gateway method for retrieving all active currencies.
+   * Cached by Next.js Server-side Data Cache with tag ['currencies'].
    */
-  async getActiveCurrencies() {
-    return catalogRegistry.getAll(this.repository)
+  async getActiveCurrencies(): Promise<CurrencyIdentity[]> {
+    return this.getCachedActiveCurrencies()
   }
 
   /**
@@ -49,22 +91,69 @@ export class CurrencyService {
     const activeCurrencies = await this.getActiveCurrencies()
     const supportedCodes = new Set(activeCurrencies.map((c) => c.isoCode.toUpperCase()))
 
-    const candidate = (raw.cookieCurrency || raw.sessionCurrency || '').trim().toUpperCase()
-    if (candidate && supportedCodes.has(candidate)) {
-      return candidate
-    }
-
-    if (raw.geoCurrencyCode) {
-      const geoCurrUpper = raw.geoCurrencyCode.trim().toUpperCase()
-      if (supportedCodes.has(geoCurrUpper)) {
-        return geoCurrUpper
+    // 1. Explicit Cookie Override
+    if (raw.cookieCurrency) {
+      const normalized = raw.cookieCurrency.trim().toUpperCase()
+      if (supportedCodes.has(normalized)) {
+        return normalized
       }
     }
 
-    if (supportedCodes.has('USD')) {
+    // 2. Session Currency Override
+    if (raw.sessionCurrency) {
+      const normalized = raw.sessionCurrency.trim().toUpperCase()
+      if (supportedCodes.has(normalized)) {
+        return normalized
+      }
+    }
+
+    // 3. Direct Geo Currency Code
+    if (raw.geoCurrencyCode) {
+      const normalized = raw.geoCurrencyCode.trim().toUpperCase()
+      if (supportedCodes.has(normalized)) {
+        return normalized
+      }
+      if (supportedCodes.has('USD')) {
+        return 'USD'
+      }
+    }
+
+    // 4. Country Code Mapping (ISO 3166-1 alpha-2)
+    if (raw.geoCountry) {
+      const code = raw.geoCountry.trim().toUpperCase()
+      const COUNTRY_MAP: Record<string, string> = {
+        EG: 'EGP',
+        US: 'USD',
+        GB: 'GBP',
+        EU: 'EUR',
+        DE: 'EUR',
+        FR: 'EUR',
+        IT: 'EUR',
+        ES: 'EUR',
+        NL: 'EUR',
+        BE: 'EUR',
+        SA: 'SAR',
+        AE: 'AED',
+        KW: 'KWD',
+        QA: 'QAR',
+        BH: 'BHD',
+        OM: 'OMR',
+        JO: 'JOD',
+        CH: 'CHF',
+        CA: 'CAD',
+        AU: 'AUD',
+      }
+      const mapped = COUNTRY_MAP[code]
+      if (mapped && supportedCodes.has(mapped)) {
+        return mapped
+      }
+      if (supportedCodes.has('USD')) {
+        return 'USD'
+      }
       return 'USD'
     }
 
+    // 5. Default Fallback
     return 'EGP'
   }
 
@@ -87,16 +176,19 @@ export class CurrencyService {
     return result
   }
 
-  /**
-   * Helper to retrieve list of providers (flattens composite provider)
-   */
   private getProviders(): ExchangeRateProvider[] {
+    if (this.rateProvider instanceof CompositeExchangeRateProvider) {
+      return this.rateProvider.providers
+    }
     if ('providers' in this.rateProvider && Array.isArray((this.rateProvider as any).providers)) {
       return (this.rateProvider as any).providers
     }
     return [this.rateProvider]
   }
 
+  /**
+   * Primary Provider Sync Method with Composite Failover
+   */
   async syncExchangeRates(force = false): Promise<{ success: boolean; message: string; timestamp: string; skipped?: boolean }> {
     const now = new Date()
     const nowIso = now.toISOString()
@@ -145,9 +237,9 @@ export class CurrencyService {
           break
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err)
-        console.warn(`[CurrencyService] Provider ${provider.name} failed: ${msg}`)
-        failedProviders.push(`${provider.name}: ${msg}`)
+        const formattedMsg = formatProviderDiagnostic(provider.name, err)
+        console.warn(`[CurrencyService] Provider ${provider.name} failed: ${formattedMsg}`)
+        failedProviders.push(formattedMsg)
       }
     }
 
@@ -174,26 +266,25 @@ export class CurrencyService {
 
     let updated = 0
     for (const [currency, rate] of Object.entries(fetchedRates)) {
-      if (!rate) continue
-      const currencyUpper = currency.toUpperCase()
-      if (!activeIsoCodes.has(currencyUpper)) continue
-
-      await this.repository.upsertRate({
-        fromCurrency: 'EGP',
-        toCurrency: currencyUpper,
-        rate,
-        source: activeProviderUsed.source,
-        syncStatus: 'synced',
-        timestamp: nowIso,
-      })
-      updated++
+      const normalizedCurrency = currency.toUpperCase().trim()
+      if (activeIsoCodes.has(normalizedCurrency) && normalizedCurrency !== 'EGP') {
+        await this.repository.upsertRate({
+          fromCurrency: 'EGP',
+          toCurrency: normalizedCurrency,
+          rate,
+          source: activeProviderUsed.source,
+          syncStatus: 'synced',
+          timestamp: nowIso,
+        })
+        updated++
+      }
     }
 
     rateRegistry.invalidate()
-    console.log(`[CurrencyService] Sync completed successfully. Updated ${updated} exchange rates via ${activeProviderUsed.name}.`)
+
     return {
       success: true,
-      message: `Updated ${updated} exchange rates via ${activeProviderUsed.name}`,
+      message: `Successfully synchronized ${updated} exchange rates using provider: ${activeProviderUsed.name}`,
       timestamp: nowIso,
     }
   }
@@ -209,61 +300,21 @@ export class CurrencyService {
   }
 
   /**
-   * Run syncExchangeRates with a single-flight mutex and a 10s timeout to prevent API spamming
-   */
-  async syncExchangeRatesSingleFlight(): Promise<{ success: boolean; message: string; timestamp: string }> {
-    if (CurrencyService.syncPromise) {
-      console.log('[CurrencySync] Existing sync detected. Awaiting...')
-      return CurrencyService.syncPromise
-    }
-
-    console.log('[CurrencySync] Starting auto-sync...')
-
-    let timeoutId: NodeJS.Timeout
-    const timeoutPromise = new Promise<{ success: boolean; message: string; timestamp: string }>((_, reject) => {
-      timeoutId = setTimeout(() => reject(new Error('Sync timed out after 10000ms')), 10000)
-    })
-
-    CurrencyService.syncPromise = Promise.race([
-      this.syncExchangeRates(),
-      timeoutPromise
-    ]).finally(() => {
-      clearTimeout(timeoutId)
-      CurrencyService.syncPromise = null
-    })
-
-    try {
-      const result = await CurrencyService.syncPromise
-      console.log('[CurrencySync] Auto-sync completed.')
-      return result
-    } catch (err: unknown) {
-      console.error('[CurrencySync] Auto-sync failed:', err)
-      throw err
-    }
-  }
-
-  /**
-   * Get exchange rate between two currencies
+   * Get exchange rate between two currencies (Strictly Read-Only, Zero Network I/O)
    */
   async getRate(from: CurrencyCode, to: CurrencyCode): Promise<number> {
     if (from !== 'EGP') {
       throw new Error('Base currency must be EGP')
     }
 
-    let rateData = await rateRegistry.getRate(to, this.repository)
-    if (!rateData) {
-      console.warn(`[CurrencyService] Exchange rate for ${to} not found. Triggering auto-sync...`)
-      try {
-        await this.syncExchangeRatesSingleFlight()
-      } catch (err: unknown) {
-        console.error('[CurrencyService] Auto-sync failed during rate lookup:', err)
-      }
-      rateData = await rateRegistry.getRate(to, this.repository)
+    if (to === 'EGP') {
+      return 1
     }
 
+    const rateData = await rateRegistry.getRate(to, this.repository)
     if (!rateData) {
       console.error(
-        `[CurrencyService] Conversion failed: Exchange rate from ${from} to ${to} is completely missing in database and cache after sync attempt. ` +
+        `[CurrencyService] Conversion failed: Exchange rate from ${from} to ${to} is completely missing in database and cache. ` +
         `Timestamp: ${new Date().toISOString()}`
       )
       throw new ExchangeRateUnavailableError(from, to, 'Rate missing in database and cache')
@@ -309,15 +360,8 @@ export class CurrencyService {
     if (targetCurrency === 'EGP') {
       return { rate: 1, timestamp: new Date().toISOString() }
     }
-    try {
-      const rate = await this.getRate('EGP', targetCurrency as CurrencyCode)
-      return { rate, timestamp: new Date().toISOString() }
-    } catch {
-      // If missing from cache, trigger live rate sync immediately
-      await this.syncExchangeRates()
-      const rate = await this.getRate('EGP', targetCurrency as CurrencyCode)
-      return { rate, timestamp: new Date().toISOString() }
-    }
+    const rate = await this.getRate('EGP', targetCurrency as CurrencyCode)
+    return { rate, timestamp: new Date().toISOString() }
   }
 
   /**

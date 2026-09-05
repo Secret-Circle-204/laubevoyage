@@ -3,6 +3,8 @@
 import { getApplicationServices } from '@/application/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import type { ConvertedPrice } from '@/domains/currency/types'
+import type { CommercialSnapshotBreakdown } from '@/domains/booking/types'
+import type { FormattedCommercialBreakdown } from '@/application/experience/dto-details'
 
 /**
  * Server Action to resolve the pricing view model on the server.
@@ -15,6 +17,9 @@ export async function resolvePricingAction(params: {
   startTime?: string
   adults: number
   children?: number
+  childAges?: number[]
+  childBeddingModes?: ('sharing_bed' | 'extra_bed')[]
+  requestedRooms?: number
   currency: string
   locale?: string
   pointsToRedeem?: number
@@ -29,6 +34,8 @@ export async function resolvePricingAction(params: {
     loyaltyDiscountPrice?: ConvertedPrice
     estimatedEarnPoints?: number
     remainingLoyaltyPoints?: number
+    commercialBreakdown?: CommercialSnapshotBreakdown
+    formattedBreakdown?: FormattedCommercialBreakdown
   }
   error?: string
   code?: string
@@ -88,6 +95,9 @@ export async function resolvePricingAction(params: {
         slotId: params.slotId,
         adultsCount: params.adults,
         childrenCount: effectiveChildren,
+        childAges: params.childAges,
+        childBeddingModes: params.childBeddingModes,
+        requestedRooms: params.requestedRooms,
         ctx,
         pointsToRedeem: params.pointsToRedeem,
         customerId,
@@ -104,6 +114,8 @@ export async function resolvePricingAction(params: {
           loyaltyDiscountPrice: result.loyaltyDiscountPrice,
           estimatedEarnPoints: result.estimatedEarnPoints,
           remainingLoyaltyPoints: result.remainingLoyaltyPoints,
+          commercialBreakdown: result.commercialBreakdown,
+          formattedBreakdown: result.formattedBreakdown,
         },
       }
     } else if (isFlexiblePackage) {
@@ -115,6 +127,9 @@ export async function resolvePricingAction(params: {
         startTime: '',
         adultsCount: params.adults,
         childrenCount: effectiveChildren,
+        childAges: params.childAges,
+        childBeddingModes: params.childBeddingModes,
+        requestedRooms: params.requestedRooms,
         ctx,
         pointsToRedeem: params.pointsToRedeem,
         customerId,
@@ -131,6 +146,8 @@ export async function resolvePricingAction(params: {
           loyaltyDiscountPrice: result.loyaltyDiscountPrice,
           estimatedEarnPoints: result.estimatedEarnPoints,
           remainingLoyaltyPoints: result.remainingLoyaltyPoints,
+          commercialBreakdown: result.commercialBreakdown,
+          formattedBreakdown: result.formattedBreakdown,
         },
       }
     } else if (isDailyTour) {
@@ -143,6 +160,9 @@ export async function resolvePricingAction(params: {
         startTime: params.startTime,
         adultsCount: params.adults,
         childrenCount: effectiveChildren,
+        childAges: params.childAges,
+        childBeddingModes: params.childBeddingModes,
+        requestedRooms: params.requestedRooms,
         ctx,
         pointsToRedeem: params.pointsToRedeem,
         customerId,
@@ -159,6 +179,8 @@ export async function resolvePricingAction(params: {
           loyaltyDiscountPrice: result.loyaltyDiscountPrice,
           estimatedEarnPoints: result.estimatedEarnPoints,
           remainingLoyaltyPoints: result.remainingLoyaltyPoints,
+          commercialBreakdown: result.commercialBreakdown,
+          formattedBreakdown: result.formattedBreakdown,
         },
       }
     } else {

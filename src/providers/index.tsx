@@ -10,6 +10,7 @@ import { SessionProvider, type CustomerSessionState } from './session-provider'
 export interface AppProvidersProps {
   children: React.ReactNode
   initialLocale?: string
+  initialDirection?: 'rtl' | 'ltr'
   initialCurrency?: string
   initialSession?: CustomerSessionState
 }
@@ -22,12 +23,13 @@ export interface AppProvidersProps {
 export function AppProviders({
   children,
   initialLocale = 'en',
+  initialDirection = 'ltr',
   initialCurrency = 'EGP',
   initialSession = { isAuthenticated: false },
 }: AppProvidersProps) {
   return (
     <ThemeProvider>
-      <LocaleProvider initialLocale={initialLocale}>
+      <LocaleProvider initialLocale={initialLocale} initialDirection={initialDirection}>
         <CurrencyProvider initialCurrency={initialCurrency}>
           <SessionProvider initialSession={initialSession}>
             <ToastProvider>{children}</ToastProvider>

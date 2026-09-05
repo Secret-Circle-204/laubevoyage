@@ -6,6 +6,9 @@ import { OutboxPublisherWorker } from './outbox-publisher'
  * Event Outbox Service
  * Guarantees transactional event recording via IOutboxRepository inside DB transactions.
  */
+const OUTBOX_ABORT_KEY = Symbol.for('laube.outbox.worker.abort')
+const OUTBOX_RUNNING_KEY = Symbol.for('laube.outbox.worker.running')
+
 export class EventOutboxService {
   private static instance: EventOutboxService
 
@@ -24,27 +27,69 @@ export class EventOutboxService {
    * Encapsulated Worker Lifecycle Control (Single Ownership Rule)
    */
   public startWorker(): void {
-    const symbol = Symbol.for('laube.outbox.worker.started')
-    if ((global as any)[symbol]) return
-    ;(global as any)[symbol] = true
+    const globalContext = globalThis as unknown as Record<symbol, any>
+    
+    // Cleanly abort any prior running loop
+    if (typeof globalContext[OUTBOX_ABORT_KEY] === 'function') {
+      globalContext[OUTBOX_ABORT_KEY]()
+      globalContext[OUTBOX_ABORT_KEY] = null
+    }
+
+    globalContext[OUTBOX_RUNNING_KEY] = true
 
     if (this.outboxRepository && 'findPending' in this.outboxRepository) {
       const worker = new OutboxPublisherWorker(this.outboxRepository)
       
-      // Resilient Sequential Polling Loop (No Overlapping Ticks)
+      // Resilient Sequential Polling Loop (No Overlapping Ticks & Interruptible Sleep)
       ;(async () => {
-        console.log('[EventOutboxService] 🔄 Resilient OutboxPublisherWorker loop started (Sequential 3s polling).')
-        while (true) {
+        if (process.env.ARCH_TRACE === 'true') {
+          console.log('[EventOutboxService] 🔄 Resilient OutboxPublisherWorker loop started (Sequential 3s polling).')
+        }
+        while (globalContext[OUTBOX_RUNNING_KEY]) {
           try {
             await worker.publishPendingEvents()
           } catch (err) {
             console.error('[OutboxPublisherWorker] Polling loop error:', err)
+          }
+
+          if (!globalContext[OUTBOX_RUNNING_KEY]) break
+
+          try {
+            await new Promise<void>((resolve, reject) => {
+              const timeout = setTimeout(resolve, 3000)
+              globalContext[OUTBOX_ABORT_KEY] = () => {
+                clearTimeout(timeout)
+                reject(new Error('ABORTED'))
+              }
+            })
+          } catch {
+            // Aborted immediately by stopWorker()
+            break
           } finally {
-            await new Promise((resolve) => setTimeout(resolve, 3000))
+            globalContext[OUTBOX_ABORT_KEY] = null
           }
         }
       })()
     }
+  }
+
+  public stopWorker(): void {
+    const globalContext = globalThis as unknown as Record<symbol, any>
+    globalContext[OUTBOX_RUNNING_KEY] = false
+
+    if (typeof globalContext[OUTBOX_ABORT_KEY] === 'function') {
+      globalContext[OUTBOX_ABORT_KEY]()
+      globalContext[OUTBOX_ABORT_KEY] = null
+    }
+
+    if (process.env.ARCH_TRACE === 'true') {
+      console.log('[EventOutboxService] OutboxPublisherWorker stopped successfully.')
+    }
+  }
+
+  public isRunning(): boolean {
+    const globalContext = globalThis as unknown as Record<symbol, any>
+    return Boolean(globalContext[OUTBOX_RUNNING_KEY])
   }
 
   /**

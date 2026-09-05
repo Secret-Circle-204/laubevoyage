@@ -25,13 +25,24 @@ export async function generateMetadata(props: { params: Promise<{ countrySlug: s
   }
 }
 
-export default async function Page(props: { params: Promise<{ countrySlug: string }> }) {
+export default async function Page(props: {
+  params: Promise<{ countrySlug: string }>
+  searchParams: Promise<{ page?: string }>
+}) {
   const params = await props.params
+  const searchParams = await props.searchParams
+  const currentPage = Number(searchParams.page) || 1
+
   const cookieStore = await cookies()
   const locale = cookieStore.get('laube-locale')?.value
   const currency = cookieStore.get('laube-currency')?.value
 
-  const data = await CountryLoader.loadBySlug(params.countrySlug, { locale, currency })
+  const data = await CountryLoader.loadBySlug(params.countrySlug, {
+    page: currentPage,
+    limit: 12,
+    locale,
+    currency,
+  })
 
   if (!data) {
     notFound()

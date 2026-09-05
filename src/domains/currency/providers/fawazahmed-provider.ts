@@ -21,7 +21,9 @@ export class FawazAhmedCurrencyProvider implements ExchangeRateProvider {
     const code = baseCurrency.toLowerCase()
     const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${code}.json`
 
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(5000),
+    })
     if (!response.ok) {
       throw new Error(`[FawazAhmedCurrencyProvider] HTTP error! status: ${response.status}`)
     }

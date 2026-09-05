@@ -10,26 +10,6 @@ export interface CompanionTravelerEntity {
   relationship: 'spouse' | 'child' | 'parent' | 'friend' | 'other'
 }
 
-export interface CustomerAddressEntity {
-  addressId: string
-  customerId: number
-  type: 'billing' | 'shipping' | 'home'
-  street: string
-  city: string
-  country: string
-  postalCode?: string
-  isDefault: boolean
-}
-
-export interface DeviceSessionEntity {
-  sessionId: string
-  customerId: number
-  deviceName: string
-  ipAddress: string
-  lastActiveAt: string
-  isRevoked: boolean
-}
-
 export interface GranularGDPRConsent {
   marketingConsent: boolean
   dataProcessingConsent: boolean

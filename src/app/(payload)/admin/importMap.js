@@ -27,6 +27,7 @@ import { BookingStatusField as BookingStatusField_cf146a4a2c9b6435470a488e2d7879
 import { CalendarDateCell as CalendarDateCell_792460ba378d690e0aef26d86be1a3b0 } from '@/components/admin/CalendarDateCell'
 import { OperationalCompletionCell as OperationalCompletionCell_105d161b8d42a752f14c357f9758c300 } from '@/components/admin/OperationalCompletionCell'
 import { OperationalCompletionField as OperationalCompletionField_a29e11e303c31188a365bf7983cf90cc } from '@/components/admin/OperationalCompletionField'
+import { SyncExchangeRatesButton as SyncExchangeRatesButton_76754489361d6da158e350b1f998e39c } from '@/components/admin/SyncExchangeRatesButton'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -60,5 +61,6 @@ export const importMap = {
   "@/components/admin/CalendarDateCell#CalendarDateCell": CalendarDateCell_792460ba378d690e0aef26d86be1a3b0,
   "@/components/admin/OperationalCompletionCell#OperationalCompletionCell": OperationalCompletionCell_105d161b8d42a752f14c357f9758c300,
   "@/components/admin/OperationalCompletionField#OperationalCompletionField": OperationalCompletionField_a29e11e303c31188a365bf7983cf90cc,
+  "@/components/admin/SyncExchangeRatesButton#SyncExchangeRatesButton": SyncExchangeRatesButton_76754489361d6da158e350b1f998e39c,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

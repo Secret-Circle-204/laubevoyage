@@ -1,5 +1,10 @@
 import type { PaginatedResponse, RequestContext } from '@/types'
-import type { BookingAggregate, CustomerTripSummary, BookingUserFilter } from './types'
+import type {
+  BookingAggregate,
+  CustomerTripSummary,
+  BookingUserFilter,
+  CustomerCompanionTravelerProjection,
+} from './types'
 import { BookingRepository } from './repository'
 
 /**
@@ -32,6 +37,13 @@ export class BookingQueries {
     filters?: BookingUserFilter,
   ): Promise<PaginatedResponse<BookingAggregate>> {
     return this.repository.findByUser(userId, page, limit, filters)
+  }
+
+  async getCustomerCompanionTravelers(
+    customerId: number,
+    options?: { page?: number; limit?: number },
+  ): Promise<PaginatedResponse<CustomerCompanionTravelerProjection>> {
+    return this.repository.findCompanionTravelersByCustomerId(customerId, options)
   }
 
   async getManyByIds(bookingIds: number[]): Promise<BookingAggregate[]> {

@@ -26,7 +26,6 @@ export class DashboardOverviewAggregator {
       tripSummary,
       activeConfig,
       actualBalance,
-      activeSessions,
       heldSummary,
     ] = await Promise.all([
       this.queryBus.customerQueries.getById(customerId),
@@ -34,7 +33,6 @@ export class DashboardOverviewAggregator {
       this.queryBus.bookingQueries.getCustomerTripSummary(customerId),
       this.queryBus.loyaltyQueries.getActiveProgramConfig(),
       this.queryBus.loyaltyQueries.getBalance(customerId),
-      this.queryBus.customerQueries.getActiveSessions(customerId),
       this.queryBus.bookingQueries.getActiveHeldPointsSummaryForCustomer(customerId),
     ])
 
@@ -88,7 +86,7 @@ export class DashboardOverviewAggregator {
       },
 
       security: {
-        activeDeviceCount: activeSessions.length,
+        activeDeviceCount: customer.lastLoginAt ? 1 : 0,
         lastLoginAt: customer.lastLoginAt,
       },
       metrics: DashboardMetrics.createMetrics(false, durationMs),
@@ -157,15 +155,12 @@ export class DashboardOverviewAggregator {
   }
 
   /**
-   * Targeted Slice: Security & Device Sessions (Live SSOT from customer_device_sessions)
+   * Targeted Slice: Security & Session Status
    */
   async calculateSecuritySlice(customerId: number): Promise<CustomerPortalProjection['security']> {
-    const [customer, activeSessions] = await Promise.all([
-      this.queryBus.customerQueries.getById(customerId),
-      this.queryBus.customerQueries.getActiveSessions(customerId),
-    ])
+    const customer = await this.queryBus.customerQueries.getById(customerId)
     return {
-      activeDeviceCount: activeSessions?.length || 0,
+      activeDeviceCount: customer?.lastLoginAt ? 1 : 0,
       lastLoginAt: customer?.lastLoginAt,
     }
   }

@@ -46,6 +46,46 @@ export interface DailyTourBookability {
   blackouts: Array<{ date: string; startTime?: string; reason?: string }>
 }
 
+export interface FormattedCommercialBreakdown {
+  adultBasePrice: ConvertedPrice
+  adultsTotalPrice: ConvertedPrice
+  occupancySupplementsTotalPrice: ConvertedPrice
+  childrenTotalPrice: ConvertedPrice
+  children: Array<{
+    age: number
+    category: 'infant' | 'child'
+    beddingMode: 'sharing_bed' | 'extra_bed'
+    appliedPercentage: number
+    price: ConvertedPrice
+  }>
+}
+
+export interface OccupancyOptionDTO {
+  occupancy: 'single' | 'double' | 'triple' | 'quad'
+  label: string
+  supplementEGP: number
+  supplementPrice?: ConvertedPrice
+  isDefault: boolean
+}
+
+export interface AccommodationStayDTO {
+  order: number
+  propertyName: string
+  propertyType: string
+  nights: number
+  roomCategory?: string
+  boardBasis?: string
+  occupancyOptions: OccupancyOptionDTO[]
+}
+
+export interface ChildPolicyDTO {
+  childrenAllowed: boolean
+  childSharingBedPercentage: number
+  childExtraBedPercentage: number
+  childSharingPrice?: ConvertedPrice
+  childExtraBedPrice?: ConvertedPrice
+}
+
 export interface BaseExperienceDetailsDTO {
   id: number
   slug: string
@@ -65,6 +105,8 @@ export interface BaseExperienceDetailsDTO {
   pricing: {
     unitPrice: ConvertedPrice
     totalPrice: ConvertedPrice
+    formattedBreakdown?: FormattedCommercialBreakdown
+    commercialBreakdown?: any
   } | null
 }
 
@@ -78,6 +120,8 @@ export interface FixedPackageDetailsDTO extends BaseExperienceDetailsDTO {
   departureSlots: DepartureSlotDTO[]
   defaultSlotId: number | null
   blackouts: Array<{ date: string; startTime?: string; reason?: string }>
+  accommodations?: AccommodationStayDTO[]
+  childPolicy?: ChildPolicyDTO
   schedules?: never
 }
 
@@ -91,6 +135,8 @@ export interface FlexiblePackageDetailsDTO extends BaseExperienceDetailsDTO {
   departureSlots: DepartureSlotDTO[] // empty array []
   defaultSlotId: null
   blackouts: Array<{ date: string; startTime?: string; reason?: string }>
+  accommodations?: AccommodationStayDTO[]
+  childPolicy?: ChildPolicyDTO
   schedules?: never
 }
 

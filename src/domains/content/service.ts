@@ -5,6 +5,9 @@ import { ContentCacheManager } from './cache-manager'
 import { ContentRepository } from './repository'
 import type { ContentPageEntity, SeoMetadataDTO, ContentSearchResult } from './types'
 import { JsonTranslationDictionary, type ITranslationDictionary } from '../translation/dictionary'
+import { EventOutboxService } from '../events/outbox'
+import type { NotificationService } from '../notification/service'
+import type { PayloadRequest } from 'payload'
 
 /**
  * Content Domain Service (Enterprise Thin Facade)
@@ -33,8 +36,8 @@ export class ContentService {
     return this.repository.findArticleBySlug(slug)
   }
 
-  async getFaqs() {
-    return this.repository.findFaqs()
+  async getFaqs(params?: { category?: string; page?: number; limit?: number }) {
+    return this.repository.findFaqs(params)
   }
 
   async getNavigationMenu(locale: string = 'en') {
@@ -87,5 +90,84 @@ export class ContentService {
 
   getRedirect(slug: string) {
     return ContentSlugService.getRedirect(slug)
+  }
+
+  getRepository(): ContentRepository {
+    return this.repository
+  }
+
+  /**
+   * Submit and persist contact request with transactional event recording and notification enqueue.
+   */
+  async submitContactRequest(
+    data: { name: string; email: string; subject: string; message: string },
+    notificationService: NotificationService,
+  ): Promise<{ success: boolean; error?: string }> {
+    // 1. Fail Fast validation
+    if (!data.name?.trim() || !data.email?.trim() || !data.subject?.trim() || !data.message?.trim()) {
+      return { success: false, error: 'All fields are required.' }
+    }
+
+    if (!data.email.includes('@')) {
+      return { success: false, error: 'Please enter a valid email address.' }
+    }
+
+    let transactionID: string | number | null = null
+
+    try {
+      // Start database transactional context via repository boundary
+      const activeTx = await this.repository.beginTransaction()
+      if (activeTx === null) {
+        throw new Error('[ContentService.submitContactRequest] Failed to start database transaction.')
+      }
+      transactionID = activeTx
+
+      const req = {
+        transactionID,
+      } as unknown as PayloadRequest
+
+      // 2. Persist in database via repository
+      const doc = await this.repository.createContactRequest(data, req)
+
+      // 3. Publish CONTACT_REQUEST_SUBMITTED event via Outbox
+      const outbox = EventOutboxService.getInstance()
+      await outbox.recordAndPublish({
+        type: 'CONTACT_REQUEST_SUBMITTED',
+        eventVersion: 1,
+        contactRequestId: Number(doc.id),
+        name: doc.name,
+        email: doc.email,
+        subject: doc.subject,
+        timestamp: new Date().toISOString(),
+      }, req)
+
+      // 4. Enqueue confirmation auto-response email via NotificationService
+      await notificationService.enqueueNotification({
+        referenceType: 'contact-requests',
+        referenceId: String(doc.id),
+        recipient: doc.email,
+        channel: 'email',
+        category: 'marketing',
+        templateId: 'welcome_email',
+        translationKey: 'welcome_email',
+        templateData: {
+          name: doc.name,
+        },
+      }, req)
+
+      // Commit the database transaction via repository boundary
+      await this.repository.commitTransaction(transactionID)
+
+      return { success: true }
+    } catch (error: unknown) {
+      console.error('[ContentService.submitContactRequest] Operation failed. Rolling back transaction.', error)
+      if (transactionID) {
+        await this.repository.rollbackTransaction(transactionID)
+      }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to submit contact request.',
+      }
+    }
   }
 }

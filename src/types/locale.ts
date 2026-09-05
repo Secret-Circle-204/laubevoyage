@@ -52,6 +52,12 @@ export interface LocaleContext {
   /** Calendar week start (0 = Sunday, 1 = Monday, 6 = Saturday) */
   weekStart: 0 | 1 | 6
 
+  /** Whether the active language is read Right-to-Left (authoritative from Languages collection) */
+  isRTL?: boolean
+
+  /** Text direction ('rtl' | 'ltr') */
+  direction?: 'rtl' | 'ltr'
+
   /** Unique identifier for tracing the request-scoped context */
   requestContextId?: string
 }
@@ -66,4 +72,6 @@ export const DEFAULT_LOCALE_CONTEXT: LocaleContext = {
   timezone: 'Africa/Cairo',
   measurement: MeasurementSystem.METRIC,
   weekStart: 6, // Saturday in Egypt
+  isRTL: false,
+  direction: 'ltr',
 }

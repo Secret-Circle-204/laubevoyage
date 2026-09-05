@@ -1,5 +1,12 @@
 import { BookingStatus } from '@/types'
-import type { Actor, BookingAggregate, PolicyResult } from './types'
+import type {
+  Actor,
+  BookingAggregate,
+  PolicyResult,
+  TravelerInput,
+  TravelerManifestFieldIssue,
+  ManifestDiagnostics,
+} from './types'
 import { validateTransition, isTransitionAllowed } from './state-machine'
 
 /**
@@ -400,6 +407,212 @@ export class BookingPolicy {
           code: 'IDEMPOTENCY_GATEWAY_MISMATCH',
           reason: `Existing booking payment method state does not match requested gateway (${requestedGateway}).`,
         }
+      }
+    }
+
+    return { allowed: true }
+  }
+
+  /**
+   * Authoritative Single Source of Truth for Traveler Manifest Diagnostics.
+   * Inspects every passenger in the manifest and returns detailed, actionable field-level issues.
+   *
+   * Invariants:
+   * 1. Total manifest count strictly equals expected adults + expected children.
+   * 2. travelers[0] (Lead Traveler): Non-empty firstName, lastName, valid email, non-empty phone.
+   * 3. Companion travelers (1..N): Non-empty firstName, lastName.
+   * 4. Children and infants: Non-empty firstName, lastName, and valid dateOfBirth.
+   */
+  static diagnoseTravelersManifest(
+    travelers: TravelerInput[],
+    expectedAdults: number,
+    expectedChildren: number = 0,
+  ): ManifestDiagnostics {
+    const totalExpected = expectedAdults + expectedChildren
+    const totalProvided = Array.isArray(travelers) ? travelers.length : 0
+    const issues: TravelerManifestFieldIssue[] = []
+    const travelerIssuesMap: Record<number, TravelerManifestFieldIssue[]> = {}
+
+    const addIssue = (
+      travelerIndex: number,
+      travelerType: 'adult' | 'child' | 'infant',
+      field: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth',
+      code: string,
+      message: string,
+    ) => {
+      const issue: TravelerManifestFieldIssue = {
+        travelerIndex,
+        travelerNumber: travelerIndex + 1,
+        travelerType,
+        field,
+        code,
+        message,
+      }
+      issues.push(issue)
+      if (!travelerIssuesMap[travelerIndex]) {
+        travelerIssuesMap[travelerIndex] = []
+      }
+      travelerIssuesMap[travelerIndex].push(issue)
+    }
+
+    if (!Array.isArray(travelers) || travelers.length !== totalExpected) {
+      return {
+        valid: false,
+        totalExpected,
+        totalProvided,
+        issues: [
+          {
+            travelerIndex: 0,
+            travelerNumber: 1,
+            travelerType: 'adult',
+            field: 'firstName',
+            code: 'INVALID_TRAVELER_COUNT',
+            message: `Passenger manifest count (${totalProvided}) does not match expected booking composition (${totalExpected} travelers: ${expectedAdults} adults + ${expectedChildren} children).`,
+          },
+        ],
+        travelerIssuesMap: {},
+      }
+    }
+
+    if (travelers.length === 0) {
+      return {
+        valid: false,
+        totalExpected,
+        totalProvided: 0,
+        issues: [
+          {
+            travelerIndex: 0,
+            travelerNumber: 1,
+            travelerType: 'adult',
+            field: 'firstName',
+            code: 'EMPTY_TRAVELER_MANIFEST',
+            message: 'Passenger manifest cannot be empty.',
+          },
+        ],
+        travelerIssuesMap: {},
+      }
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+    for (let i = 0; i < travelers.length; i++) {
+      const t = travelers[i]
+      const isLead = i === 0
+      const travelerType: 'adult' | 'child' | 'infant' =
+        t.type || (i < expectedAdults ? 'adult' : 'child')
+
+      // 1. Legal First Name
+      if (!t.firstName || !t.firstName.trim()) {
+        addIssue(
+          i,
+          travelerType,
+          'firstName',
+          isLead ? 'MISSING_LEAD_FIRST_NAME' : 'MISSING_COMPANION_FIRST_NAME',
+          "First name is required. Please enter the traveler's legal first name.",
+        )
+      }
+
+      // 2. Legal Last Name
+      if (!t.lastName || !t.lastName.trim()) {
+        addIssue(
+          i,
+          travelerType,
+          'lastName',
+          isLead ? 'MISSING_LEAD_LAST_NAME' : 'MISSING_COMPANION_LAST_NAME',
+          "Last name is required. Please enter the traveler's legal family / last name.",
+        )
+      }
+
+      // 3. Lead Traveler Contact (Email & Phone)
+      if (isLead) {
+        if (!t.email || !t.email.trim()) {
+          addIssue(
+            i,
+            travelerType,
+            'email',
+            'MISSING_LEAD_EMAIL',
+            'Booking contact email is required for tickets and itinerary updates.',
+          )
+        } else if (!emailRegex.test(t.email.trim())) {
+          addIssue(
+            i,
+            travelerType,
+            'email',
+            'INVALID_LEAD_EMAIL',
+            'Please provide a valid booking contact email address (e.g. name@example.com).',
+          )
+        }
+
+        if (!t.phone || !t.phone.trim()) {
+          addIssue(
+            i,
+            travelerType,
+            'phone',
+            'MISSING_LEAD_PHONE',
+            'Booking contact phone number is required for urgent journey alerts.',
+          )
+        } else {
+          const digitsOnly = t.phone.replace(/\D/g, '')
+          // International Telephony Standard (ITU-T E.164): 7 to 15 digits
+          const validPhoneChars = /^\+?[0-9\s\-().]{7,25}$/
+          if (!validPhoneChars.test(t.phone.trim()) || digitsOnly.length < 7 || digitsOnly.length > 15) {
+            addIssue(
+              i,
+              travelerType,
+              'phone',
+              'INVALID_LEAD_PHONE',
+              'Please provide a valid booking contact phone number with 7 to 15 digits (e.g. +20 100 123 4567).',
+            )
+          }
+        }
+      }
+
+      // 4. Children & Infants (Date of Birth for age verification)
+      if (travelerType === 'child' || travelerType === 'infant') {
+        if (!t.dateOfBirth || !t.dateOfBirth.trim()) {
+          addIssue(
+            i,
+            travelerType,
+            'dateOfBirth',
+            'MISSING_CHILD_DOB',
+            'Date of birth is required for child/infant age verification and accommodation eligibility.',
+          )
+        }
+      }
+    }
+
+    return {
+      valid: issues.length === 0,
+      totalExpected,
+      totalProvided,
+      issues,
+      travelerIssuesMap,
+    }
+  }
+
+  /**
+   * Validates the passenger manifest against the expected traveler composition.
+   * Delegates to diagnoseTravelersManifest to ensure single source of truth.
+   */
+  static validateTravelersManifest(
+    travelers: TravelerInput[],
+    expectedAdults: number,
+    expectedChildren: number = 0,
+  ): PolicyResult {
+    const diagnostics = BookingPolicy.diagnoseTravelersManifest(
+      travelers,
+      expectedAdults,
+      expectedChildren,
+    )
+
+    if (!diagnostics.valid) {
+      const firstIssue = diagnostics.issues[0]
+      return {
+        allowed: false,
+        code: firstIssue ? firstIssue.code : 'INVALID_TRAVELER_MANIFEST',
+        reason: firstIssue
+          ? `[BookingPolicy] Traveler #${firstIssue.travelerNumber}: ${firstIssue.message}`
+          : '[BookingPolicy] Passenger manifest validation failed.',
       }
     }
 

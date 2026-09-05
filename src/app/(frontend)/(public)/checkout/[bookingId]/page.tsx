@@ -44,6 +44,14 @@ export default async function Page(props: {
 
   const experienceId = searchParams.experienceId ? Number(searchParams.experienceId) : undefined
   const adults = searchParams.adults ? Number(searchParams.adults) : undefined
+  const children = searchParams.children ? Number(searchParams.children) : undefined
+  const childAges = typeof searchParams.childAges === 'string'
+    ? searchParams.childAges.split(',').map(Number).filter((n) => !isNaN(n))
+    : undefined
+  const childBeddingModes = typeof searchParams.childBeddingModes === 'string'
+    ? (searchParams.childBeddingModes.split(',') as ('sharing_bed' | 'extra_bed')[])
+    : undefined
+  const requestedRooms = searchParams.requestedRooms ? Number(searchParams.requestedRooms) : undefined
   const slotId = searchParams.slotId ? Number(searchParams.slotId) : undefined
   const date = typeof searchParams.date === 'string' ? searchParams.date : undefined
   const startTime = typeof searchParams.startTime === 'string' ? searchParams.startTime : undefined
@@ -53,6 +61,10 @@ export default async function Page(props: {
     currency,
     experienceId,
     adults,
+    children,
+    childAges,
+    childBeddingModes,
+    requestedRooms,
     slotId,
     date,
     startTime,

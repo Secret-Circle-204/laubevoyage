@@ -20,6 +20,7 @@ export interface PricingContext {
   bookingDate: string
   promoCode?: string
   isResident?: boolean
+  commercialBreakdown?: any
 }
 
 export interface PricingAuditStep {
@@ -145,6 +146,7 @@ export class PricingPipelineEngine {
       exchangeRate: rate,
       exchangeRateTimestamp: new Date().toISOString(),
       auditTrace,
+      commercialBreakdown: context.commercialBreakdown,
       calculatedAt: new Date().toISOString(),
     }
   }

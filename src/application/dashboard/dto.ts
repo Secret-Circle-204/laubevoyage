@@ -73,6 +73,8 @@ export interface CustomerSidebarDTO {
   customerId: number
   fullName: string
   currentTier: LoyaltyTier
+  navLinks: Array<{ label: string; href: string; icon: string }>
+  tierSuffix: string
 }
 
 export interface CustomerNotificationItemDTO {
@@ -129,10 +131,46 @@ export interface BookingLoyaltySummaryDTO {
   holdStatus: PointHoldStatus | 'none'
 }
 
+export interface BookingPickupLocationDTO {
+  label: string
+  address: string
+  latitude: number
+  longitude: number
+  instructions?: string
+  source?: string
+}
+
+export interface BookingTravelerDTO {
+  firstName: string
+  lastName: string
+  type: 'adult' | 'child' | 'infant'
+  isLead: boolean
+  email?: string
+  phone?: string
+  nationality?: string
+  passportMasked?: string
+}
+
+export interface BookingStaySnapshotDTO {
+  order: number
+  propertyName: string
+  nights: number
+  roomCategory?: string
+}
+
+export interface BookingRoomAllocationDTO {
+  roomIndex: number
+  occupancy: 'single' | 'double' | 'triple' | 'quad'
+  adults: number
+  children: number
+}
+
 export interface BookingDetailsDTO {
   bookingNumber: string
   experienceTitle: string
+  experienceType: 'package' | 'daily_tour'
   departureDate: string
+  endDate?: string
   passengersCount: number
   basePrice: ConvertedPrice
   totalCost: ConvertedPrice
@@ -145,4 +183,8 @@ export interface BookingDetailsDTO {
   rawOutstandingBalance: number
   rawTotalCost: number
   loyaltySummary: BookingLoyaltySummaryDTO
+  pickupLocation?: BookingPickupLocationDTO | null
+  travelers: BookingTravelerDTO[]
+  stays: BookingStaySnapshotDTO[]
+  roomAllocation: BookingRoomAllocationDTO[]
 }

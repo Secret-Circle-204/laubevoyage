@@ -14,6 +14,7 @@ import {
   registerLanguageCacheSubscriber,
   registerDestinationCacheSubscriber,
   registerContentCacheSubscriber,
+  registerTranslationCacheSubscriber,
 } from '../events/subscribers/cache-subscribers'
 import { registerPresentationSubscriber } from '../events/subscribers/presentation-subscriber'
 import type { PostgresAdapter } from '@payloadcms/db-postgres'
@@ -52,6 +53,20 @@ export class SystemIntegrationWorkflowEngine {
     options?.outboxService?.startWorker()
     options?.notificationService?.startWorker()
     CronDispatcher.startWorker()
+  }
+
+  public stopBackgroundWorkers(options?: SystemBootstrapOptions): void {
+    options?.outboxService?.stopWorker()
+    options?.notificationService?.stopWorker()
+    CronDispatcher.stopWorker()
+
+    const symbol = Symbol.for('laube.system.workers.started')
+    const globalContext = global as unknown as Record<symbol, boolean>
+    delete globalContext[symbol]
+
+    if (process.env.ARCH_TRACE === 'true') {
+      console.log('[SystemWorkflowEngine] All background infrastructure workers stopped cleanly.')
+    }
   }
 
   private async runBootstrapRecovery(): Promise<void> {
@@ -123,6 +138,7 @@ export class SystemIntegrationWorkflowEngine {
     registerLanguageCacheSubscriber()
     registerDestinationCacheSubscriber()
     registerContentCacheSubscriber()
+    registerTranslationCacheSubscriber()
 
     // Next.js Presentation Cache Revalidation Subscriber (Isolated to app server request process)
     let revalidatorsRegistered = 0
@@ -137,7 +153,11 @@ export class SystemIntegrationWorkflowEngine {
   async startBackgroundWorkers(options?: SystemBootstrapOptions): Promise<void> {
     const symbol = Symbol.for('laube.system.workers.started')
     const globalContext = global as unknown as Record<symbol, boolean>
-    if (globalContext[symbol]) return
+
+    // In development / HMR: Cleanly stop any existing worker handles before starting fresh ones
+    if (globalContext[symbol]) {
+      this.stopBackgroundWorkers(options)
+    }
     globalContext[symbol] = true
 
     // Run database-level bootstrap recovery routines

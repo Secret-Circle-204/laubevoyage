@@ -1,39 +1,33 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useDocumentInfo } from '@payloadcms/ui'
-import type { UIFieldClientComponent } from 'payload'
-import type { DepartureSlotStatus } from '@/domains/experience/types'
 import {
   getExperienceSlotsWithSummaryAction,
+  getHistoricalExperienceSlotsAction,
   createDepartureSlotDirectAction,
   updateDepartureSlotDirectAction,
   cancelDepartureSlotDirectAction,
+  deleteDepartureSlotDirectAction,
+  getDepartureSlotRelatedBookingsAction,
   type AdminDepartureSlotDTO,
+  type AdminRelatedBookingDTO,
   type DepartureSlotsSummaryDTO,
 } from '@/application/actions/slot-management-actions'
 
+import {
+  DepartureSlotsSummary,
+  DepartureSlotsAddForm,
+  DepartureSlotsEditForm,
+  DepartureSlotsTabs,
+  DepartureSlotsTable,
+  RelatedBookingsModal,
+  type NewSlotFormState,
+  type EditSlotFormState,
+  type DepartureSlotsTab,
+} from './DepartureSlotsEditor/index'
+
 import './DepartureSlotsEditor.css'
-
-interface NewSlotFormState {
-  date: string
-  startTime: string
-  priceOverrideEGP: string
-  capacityTotal: string
-  status: DepartureSlotStatus
-}
-
-interface EditSlotFormState {
-  slotId: number
-  date: string
-  startTime: string
-  priceOverrideEGP: string
-  capacityTotal: string
-  status: DepartureSlotStatus
-  version: number
-  reserved: number
-  sold: number
-}
 
 function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
   // State: Slots data & loading
@@ -53,8 +47,21 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
   const [errorAlert, setErrorAlert] = useState<string | null>(null)
   const [successAlert, setSuccessAlert] = useState<string | null>(null)
 
-  // State: Tab filtering
-  const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'started' | 'completed' | 'cancelled' | 'corrupted_invariant'>('all')
+  // State: Tab filtering (Default is 'upcoming' - bounded operational view)
+  const [activeTab, setActiveTab] = useState<DepartureSlotsTab>('upcoming')
+
+  // State: On-demand historical pagination
+  const [historicalSlots, setHistoricalSlots] = useState<AdminDepartureSlotDTO[]>([])
+  const [historicalPagination, setHistoricalPagination] = useState<{
+    totalDocs: number
+    limit: number
+    totalPages: number
+    page: number
+    hasPrevPage: boolean
+    hasNextPage: boolean
+  } | null>(null)
+  const [historicalPage, setHistoricalPage] = useState<number>(1)
+  const [loadingHistorical, setLoadingHistorical] = useState<boolean>(false)
 
   // State: Add form toggle & form state
   const [showAddForm, setShowAddForm] = useState(false)
@@ -71,10 +78,25 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
   const [editingSlot, setEditingSlot] = useState<EditSlotFormState | null>(null)
   const [submittingEdit, setSubmittingEdit] = useState(false)
 
-  // State: Cancelling slot ID
+  // State: Cancelling / Deleting slot ID
   const [cancellingId, setCancellingId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  // ─── Single Fetch Function via Authoritative Server Action ────────
+  // State: On-demand Related Bookings Modal
+  const [viewingBookingsSlot, setViewingBookingsSlot] = useState<AdminDepartureSlotDTO | null>(null)
+  const [relatedBookings, setRelatedBookings] = useState<AdminRelatedBookingDTO[]>([])
+  const [relatedPagination, setRelatedPagination] = useState<{
+    totalDocs: number
+    limit: number
+    totalPages: number
+    page: number
+    hasPrevPage: boolean
+    hasNextPage: boolean
+  } | null>(null)
+  const [loadingBookings, setLoadingBookings] = useState<boolean>(false)
+  const [bookingsPage, setBookingsPage] = useState<number>(1)
+
+  // ─── Operational Fetch (Bounded Candidate Set) ────────────────────
   const fetchSlots = useCallback(async (): Promise<void> => {
     if (!id) return
 
@@ -95,6 +117,32 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
     }
   }, [id])
 
+  // ─── Historical On-Demand Fetch (Paginated from Server) ───────────
+  const fetchHistoricalSlots = useCallback(
+    async (scope: 'completed' | 'cancelled' | 'all', page = 1) => {
+      if (!id) return
+      try {
+        setLoadingHistorical(true)
+        const res = await getHistoricalExperienceSlotsAction(Number(id), {
+          scope,
+          page,
+          limit: 20,
+        })
+        if (res.success && res.slots && res.pagination) {
+          setHistoricalSlots(res.slots)
+          setHistoricalPagination(res.pagination)
+        } else {
+          setErrorAlert(res.error || 'Failed to load historical departure slots.')
+        }
+      } catch (err: any) {
+        setErrorAlert(err?.message || 'Network error while loading historical departure slots.')
+      } finally {
+        setLoadingHistorical(false)
+      }
+    },
+    [id],
+  )
+
   useEffect(() => {
     if (!id) return
     let active = true
@@ -108,26 +156,44 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
     }
   }, [id, fetchSlots])
 
+  useEffect(() => {
+    if (activeTab === 'completed' || activeTab === 'cancelled' || activeTab === 'all') {
+      let active = true
+      Promise.resolve().then(() => {
+        if (active) {
+          void fetchHistoricalSlots(activeTab, historicalPage)
+        }
+      })
+      return () => {
+        active = false
+      }
+    }
+  }, [activeTab, historicalPage, fetchHistoricalSlots])
+
+  const handleTabChange = (newTab: DepartureSlotsTab) => {
+    setActiveTab(newTab)
+    setHistoricalPage(1)
+  }
+
   // ─── Authoritative Summary & Filtering via Server DTO ─────────────
   const summary: DepartureSlotsSummaryDTO = serverSummary
+  const isHistorical = activeTab === 'completed' || activeTab === 'cancelled' || activeTab === 'all'
 
   const filteredSlots = useMemo(() => {
+    if (isHistorical) {
+      return historicalSlots
+    }
     switch (activeTab) {
       case 'upcoming':
         return slots.filter((s) => s.lifecycleStatus === 'upcoming')
       case 'started':
         return slots.filter((s) => s.lifecycleStatus === 'started')
-      case 'completed':
-        return slots.filter((s) => s.lifecycleStatus === 'completed')
-      case 'cancelled':
-        return slots.filter((s) => s.lifecycleStatus === 'cancelled')
       case 'corrupted_invariant':
         return slots.filter((s) => s.isCorrupted === true)
-      case 'all':
       default:
         return slots
     }
-  }, [slots, activeTab])
+  }, [slots, historicalSlots, activeTab, isHistorical])
 
   // ─── Handlers: Add Slot ───────────────────────────────────────────
   const handleAddSlot = async () => {
@@ -246,13 +312,41 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
     }
   }
 
+  // ─── Handlers: Related Bookings (On-Demand) ──────────────────────
+  const openRelatedBookings = async (slot: AdminDepartureSlotDTO, page = 1) => {
+    setViewingBookingsSlot(slot)
+    setBookingsPage(page)
+    setLoadingBookings(true)
+    try {
+      const res = await getDepartureSlotRelatedBookingsAction(slot.id, { page, limit: 10 })
+      if (res.success && res.bookings) {
+        setRelatedBookings(res.bookings)
+        setRelatedPagination(res.pagination || null)
+      } else {
+        setErrorAlert(res.error || 'Failed to load related bookings.')
+      }
+    } catch (err: any) {
+      setErrorAlert(err?.message || 'Error occurred while loading related bookings.')
+    } finally {
+      setLoadingBookings(false)
+    }
+  }
+
+  const closeRelatedBookings = () => {
+    setViewingBookingsSlot(null)
+    setRelatedBookings([])
+    setRelatedPagination(null)
+  }
+
   // ─── Handlers: Cancel Slot ────────────────────────────────────────
   const handleCancelSlot = async (slot: AdminDepartureSlotDTO) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to cancel departure slot on ${slot.date}? This will prevent future bookings.`,
-      )
-    ) {
+    const bookingsCount = slot.referencedBookingsCount || 0
+    const confirmMessage =
+      bookingsCount > 0
+        ? `⚠️ This departure has ${bookingsCount} existing booking(s).\n\nCancelling the departure will disable this slot from future public availability.\n\nExisting bookings will NOT be modified, cancelled, or refunded automatically. They will remain linked to this departure for administrative review.\n\nAre you sure you want to cancel this departure slot?`
+        : `Are you sure you want to cancel departure slot on ${slot.date}? This will disable future public bookings.`
+
+    if (!window.confirm(confirmMessage)) {
       return
     }
 
@@ -268,7 +362,11 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
 
       if (res.success) {
         setSuccessAlert(`Departure slot #${slot.departureId} cancelled successfully.`)
-        await fetchSlots()
+        if (isHistorical) {
+          await fetchHistoricalSlots(activeTab as any, historicalPage)
+        } else {
+          await fetchSlots()
+        }
       } else {
         setErrorAlert(res.error || 'Failed to cancel departure slot.')
       }
@@ -276,6 +374,43 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
       setErrorAlert(err?.message || 'Error occurred while cancelling departure slot.')
     } finally {
       setCancellingId(null)
+    }
+  }
+
+  // ─── Handlers: Delete Slot (Permanent Safe Removal) ───────────────
+  const handleDeleteSlot = async (slot: AdminDepartureSlotDTO) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to permanently delete departure slot on ${slot.date} (${slot.departureId})? This action is irreversible.`,
+      )
+    ) {
+      return
+    }
+
+    setDeletingId(slot.id)
+    setErrorAlert(null)
+    setSuccessAlert(null)
+
+    try {
+      const res = await deleteDepartureSlotDirectAction({
+        slotId: slot.id,
+        version: slot.version,
+      })
+
+      if (res.success) {
+        setSuccessAlert(`Departure slot #${slot.departureId} permanently deleted.`)
+        if (isHistorical) {
+          await fetchHistoricalSlots(activeTab as any, historicalPage)
+        } else {
+          await fetchSlots()
+        }
+      } else {
+        setErrorAlert(res.error || 'Failed to delete departure slot.')
+      }
+    } catch (err: any) {
+      setErrorAlert(err?.message || 'Error occurred while deleting departure slot.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -339,26 +474,7 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
       </div>
 
       {/* Summary Metrics */}
-      <div className="dse-summary-grid">
-        <div className="dse-stat-card">
-          <span className="dse-stat-label">Upcoming Slots</span>
-          <span className="dse-stat-val dse-stat-val--upcoming">{summary.upcomingCount}</span>
-        </div>
-        <div className="dse-stat-card">
-          <span className="dse-stat-label">Available Seats</span>
-          <span className="dse-stat-val dse-stat-val--available">
-            {summary.totalAvailableSeats}
-          </span>
-        </div>
-        <div className="dse-stat-card">
-          <span className="dse-stat-label">Sold Tickets</span>
-          <span className="dse-stat-val dse-stat-val--sold">{summary.totalSoldSeats}</span>
-        </div>
-        <div className="dse-stat-card">
-          <span className="dse-stat-label">Reserved Holds</span>
-          <span className="dse-stat-val dse-stat-val--reserved">{summary.totalReservedSeats}</span>
-        </div>
-      </div>
+      <DepartureSlotsSummary summary={summary} />
 
       {/* Alerts */}
       {errorAlert && (
@@ -387,401 +503,117 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
       )}
 
       {/* Add Slot Form */}
-      {showAddForm && (
-        <div className="dse-form-panel">
-          <h5 className="dse-form-title">Add New Departure Slot</h5>
-          <div className="dse-form-grid">
-            <div className="dse-form-group">
-              <label className="dse-label">Date *</label>
-              <input
-                type="date"
-                className="dse-input"
-                value={newSlot.date}
-                onChange={(e) => setNewSlot((prev) => ({ ...prev, date: e.target.value }))}
-              />
-            </div>
-            <div className="dse-form-group">
-              <label className="dse-label">Start Time (HH:mm)</label>
-              <input
-                type="text"
-                className="dse-input"
-                placeholder="e.g. 09:00"
-                value={newSlot.startTime}
-                onChange={(e) => setNewSlot((prev) => ({ ...prev, startTime: e.target.value }))}
-              />
-            </div>
-            <div className="dse-form-group">
-              <label className="dse-label">Price Override (EGP)</label>
-              <input
-                type="number"
-                className="dse-input"
-                placeholder="Inherits Experience.price"
-                value={newSlot.priceOverrideEGP}
-                min="0"
-                onChange={(e) =>
-                  setNewSlot((prev) => ({ ...prev, priceOverrideEGP: e.target.value }))
-                }
-              />
-            </div>
-            <div className="dse-form-group">
-              <label className="dse-label">Capacity Total *</label>
-              <input
-                type="number"
-                className="dse-input"
-                placeholder="e.g. 20"
-                value={newSlot.capacityTotal}
-                min="1"
-                onChange={(e) => setNewSlot((prev) => ({ ...prev, capacityTotal: e.target.value }))}
-              />
-              {newSlot.capacityTotal && !isNaN(Number(newSlot.capacityTotal)) && (
-                <span className="dse-meta">
-                  Capacity Available: <strong>{Math.max(0, Number(newSlot.capacityTotal))}</strong>{' '}
-                  seats
-                </span>
-              )}
-            </div>
-            <div className="dse-form-group">
-              <label className="dse-label">Status</label>
-              <select
-                className="dse-select"
-                value={newSlot.status}
-                onChange={(e) =>
-                  setNewSlot((prev) => ({ ...prev, status: e.target.value as DepartureSlotStatus }))
-                }
-              >
-                <option value="available">Available</option>
-                <option value="blacked_out">Blacked Out</option>
-              </select>
-            </div>
-          </div>
-          <div className="dse-form-actions">
-            <button
-              type="button"
-              className="dse-btn dse-btn--save"
-              disabled={submittingAdd || !newSlot.date || !newSlot.capacityTotal}
-              onClick={handleAddSlot}
-            >
-              {submittingAdd ? 'Creating Slot...' : '✓ Create Departure Slot'}
-            </button>
-            <button
-              type="button"
-              className="dse-btn dse-btn--secondary"
-              onClick={() => setShowAddForm(false)}
-            >
-              Discard
-            </button>
-          </div>
-        </div>
-      )}
+      <DepartureSlotsAddForm
+        show={showAddForm}
+        submitting={submittingAdd}
+        newSlot={newSlot}
+        setNewSlot={setNewSlot}
+        onAdd={handleAddSlot}
+        onClose={() => setShowAddForm(false)}
+      />
 
       {/* Edit Slot Form (when active) */}
-      {editingSlot && (
-        <div className="dse-form-panel">
-          <h5 className="dse-form-title">
-            Edit Departure Slot #{String(editingSlot.slotId)} (Version: v
-            {String(editingSlot.version)})
-          </h5>
-          <div className="dse-form-grid">
-            <div className="dse-form-group">
-              <label className="dse-label">Date *</label>
-              <input
-                type="date"
-                className="dse-input"
-                value={editingSlot.date}
-                onChange={(e) =>
-                  setEditingSlot((prev) => (prev ? { ...prev, date: e.target.value } : null))
-                }
-              />
-            </div>
-            <div className="dse-form-group">
-              <label className="dse-label">Start Time (HH:mm)</label>
-              <input
-                type="text"
-                className="dse-input"
-                value={editingSlot.startTime}
-                onChange={(e) =>
-                  setEditingSlot((prev) => (prev ? { ...prev, startTime: e.target.value } : null))
-                }
-              />
-            </div>
-            <div className="dse-form-group">
-              <label className="dse-label">Price Override (EGP)</label>
-              <input
-                type="number"
-                className="dse-input"
-                placeholder="Inherits Experience.price"
-                value={editingSlot.priceOverrideEGP}
-                min="0"
-                onChange={(e) =>
-                  setEditingSlot((prev) =>
-                    prev ? { ...prev, priceOverrideEGP: e.target.value } : null,
-                  )
-                }
-              />
-            </div>
-            <div className="dse-form-group">
-              <label className="dse-label">Capacity Total *</label>
-              <input
-                type="number"
-                className="dse-input"
-                value={editingSlot.capacityTotal}
-                min={editingSlot.reserved + editingSlot.sold}
-                onChange={(e) =>
-                  setEditingSlot((prev) =>
-                    prev ? { ...prev, capacityTotal: e.target.value } : null,
-                  )
-                }
-              />
-              <span className="dse-meta">
-                Capacity Available:{' '}
-                <strong>
-                  {Math.max(
-                    0,
-                    Number(editingSlot.capacityTotal || 0) -
-                      editingSlot.reserved -
-                      editingSlot.sold,
-                  )}
-                </strong>{' '}
-                seats | Reserved: {String(editingSlot.reserved)} | Sold: {String(editingSlot.sold)}{' '}
-                (Min Total: {String(editingSlot.reserved + editingSlot.sold)})
-              </span>
-            </div>
-            <div className="dse-form-group">
-              <label className="dse-label">Status</label>
-              <select
-                className="dse-select"
-                value={editingSlot.status}
-                onChange={(e) =>
-                  setEditingSlot((prev) =>
-                    prev ? { ...prev, status: e.target.value as DepartureSlotStatus } : null,
-                  )
-                }
-              >
-                <option value="available">Available</option>
-                <option value="blacked_out">Blacked Out</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-          </div>
-          <div className="dse-form-actions">
-            <button
-              type="button"
-              className="dse-btn dse-btn--save"
-              disabled={submittingEdit || !editingSlot.date || !editingSlot.capacityTotal}
-              onClick={handleSaveEdit}
-            >
-              {submittingEdit ? 'Saving Changes...' : '✓ Save Slot Updates'}
-            </button>
-            <button type="button" className="dse-btn dse-btn--secondary" onClick={cancelEdit}>
-              Cancel
-            </button>
-          </div>
+      <DepartureSlotsEditForm
+        editingSlot={editingSlot}
+        submitting={submittingEdit}
+        setEditingSlot={setEditingSlot}
+        onSave={handleSaveEdit}
+        onCancel={cancelEdit}
+      />
+
+      {/* Filter Tabs & Refresh */}
+      <DepartureSlotsTabs
+        activeTab={activeTab}
+        summary={summary}
+        loading={loading}
+        loadingHistorical={loadingHistorical}
+        onTabChange={handleTabChange}
+        onRefresh={() => {
+          if (isHistorical) {
+            void fetchHistoricalSlots(activeTab as any, historicalPage)
+          } else {
+            void fetchSlots()
+          }
+        }}
+      />
+
+      {/* Loading state */}
+      {(loading || loadingHistorical) && (
+        <div
+          className="dse-loading"
+          style={{ padding: '16px', textAlign: 'center', color: '#a0aec0' }}
+        >
+          {loadingHistorical
+            ? 'Loading historical departure slots from database...'
+            : 'Loading departure slots from database...'}
         </div>
       )}
 
-      {/* Filter Tabs */}
-      <div className="dse-controls">
-        <div className="dse-tabs">
-          <button
-            type="button"
-            className={`dse-tab ${activeTab === 'all' ? 'dse-tab--active' : ''}`}
-            onClick={() => setActiveTab('all')}
-          >
-            All ({summary.totalCount})
-          </button>
-          <button
-            type="button"
-            className={`dse-tab ${activeTab === 'upcoming' ? 'dse-tab--active' : ''}`}
-            onClick={() => setActiveTab('upcoming')}
-          >
-            Upcoming ({summary.upcomingCount})
-          </button>
-          <button
-            type="button"
-            className={`dse-tab ${activeTab === 'started' ? 'dse-tab--active' : ''}`}
-            onClick={() => setActiveTab('started')}
-          >
-            Started ({summary.startedCount})
-          </button>
-          <button
-            type="button"
-            className={`dse-tab ${activeTab === 'completed' ? 'dse-tab--active' : ''}`}
-            onClick={() => setActiveTab('completed')}
-          >
-            Completed ({summary.completedCount})
-          </button>
-          <button
-            type="button"
-            className={`dse-tab ${activeTab === 'cancelled' ? 'dse-tab--active' : ''}`}
-            onClick={() => setActiveTab('cancelled')}
-          >
-            Cancelled ({summary.cancelledCount})
-          </button>
-          {summary.corruptedCount > 0 && (
-            <button
-              type="button"
-              className={`dse-tab ${activeTab === 'corrupted_invariant' ? 'dse-tab--active' : ''}`}
-              style={{ color: '#ef4444', fontWeight: 600 }}
-              onClick={() => setActiveTab('corrupted_invariant')}
-            >
-              ⚠️ Corrupted ({summary.corruptedCount})
-            </button>
-          )}
-        </div>
-
-        <button
-          type="button"
-          className="dse-btn dse-btn--secondary"
-          onClick={() => fetchSlots()}
-          disabled={loading}
-        >
-          {loading ? 'Refreshing...' : '↻ Refresh Slots'}
-        </button>
-      </div>
-
-      {/* Loading state */}
-      {loading && <div className="dse-loading">Loading departure slots from database...</div>}
-
       {/* Data Table */}
-      {!loading && filteredSlots.length > 0 && (
-        <div className="dse-table-wrap">
-          <table className="dse-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Time & Timezone</th>
-                <th>Price</th>
-                <th>Total Cap</th>
-                <th>Reserved</th>
-                <th>Sold</th>
-                <th>Capacity Available</th>
-                <th>Lifecycle Status</th>
-                <th>Version / ID</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSlots.map((slot) => {
-                const isCorrupted = !!slot.isCorrupted
-                const isCancelled = slot.lifecycleStatus === 'cancelled' || slot.status === 'cancelled'
-                const isStarted = slot.lifecycleStatus === 'started'
-                const isCompleted = slot.lifecycleStatus === 'completed'
-                const isEditing = editingSlot?.slotId === slot.id
+      {!loading && !loadingHistorical && filteredSlots.length > 0 && (
+        <>
+          <DepartureSlotsTable
+            slots={filteredSlots}
+            editingSlotId={editingSlot?.slotId}
+            cancellingId={cancellingId}
+            deletingId={deletingId}
+            onStartEdit={startEdit}
+            onCancelSlot={handleCancelSlot}
+            onDeleteSlot={handleDeleteSlot}
+            onOpenBookings={(slot: AdminDepartureSlotDTO) => openRelatedBookings(slot, 1)}
+            formatDate={formatDate}
+          />
 
-                return (
-                  <tr
-                    key={slot.id}
-                    className={`${isCorrupted ? 'dse-row--corrupted' : isCancelled ? 'dse-row--cancelled' : ''} ${isCompleted ? 'dse-row--past' : ''} ${isEditing ? 'dse-row--edit-active' : ''}`}
-                    style={isCorrupted ? { backgroundColor: 'rgba(239, 68, 68, 0.08)' } : undefined}
-                  >
-                    <td>
-                      <strong>{formatDate(slot.date)}</strong>
-                    </td>
-                    <td>
-                      <span>{slot.formattedTime || slot.startTime || '—'}</span>
-                      {slot.destinationTimezone && (
-                        <span className="dse-meta" style={{ display: 'block', fontSize: '10px' }}>
-                          {slot.destinationTimezone}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <span>
-                        {slot.priceOverrideEGP !== undefined
-                          ? `${slot.priceOverrideEGP.toLocaleString()} EGP`
-                          : 'Base Price'}
-                      </span>
-                      {slot.priceOverrideEGP !== undefined && (
-                        <span className="dse-tag dse-tag--override">Override</span>
-                      )}
-                    </td>
-                    <td>{slot.capacityTotal}</td>
-                    <td>{slot.capacityReserved}</td>
-                    <td>{slot.capacitySold}</td>
-                    <td>
-                      <span
-                        className={`dse-badge ${slot.capacityAvailable > 0 ? 'dse-badge--available' : 'dse-badge--sold_out'}`}
-                      >
-                        {slot.capacityAvailable} Available
-                      </span>
-                    </td>
-                    <td>
-                      {isCorrupted ? (
-                        <span
-                          className="dse-badge"
-                          style={{ backgroundColor: '#ef4444', color: '#fff' }}
-                          title={slot.corruptionReason}
-                        >
-                          Corrupted • Invalid
-                        </span>
-                      ) : isCancelled ? (
-                        <span className="dse-badge dse-badge--cancelled">Cancelled</span>
-                      ) : isStarted ? (
-                        <span className="dse-badge dse-badge--override">Started</span>
-                      ) : isCompleted ? (
-                        <span className="dse-badge dse-badge--sold_out">Completed</span>
-                      ) : slot.capacityAvailable > 0 ? (
-                        <span className="dse-badge dse-badge--available">Upcoming • Available</span>
-                      ) : (
-                        <span className="dse-badge dse-badge--sold_out">Upcoming • Sold Out</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className="dse-meta">
-                        v{slot.version} • {slot.departureId}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="dse-actions-cell">
-                        <button
-                          type="button"
-                          className="dse-btn dse-btn--edit"
-                          onClick={() => startEdit(slot)}
-                          disabled={isCancelled}
-                        >
-                          Edit
-                        </button>
-                        <a
-                          href={`/admin/collections/departure-slots/${slot.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="dse-btn dse-btn--open"
-                        >
-                          Open ↗
-                        </a>
-                        {!isCancelled && (
-                          <button
-                            type="button"
-                            className="dse-btn dse-btn--cancel"
-                            onClick={() => handleCancelSlot(slot)}
-                            disabled={cancellingId === slot.id || slot.capacitySold > 0}
-                            title={
-                              slot.capacitySold > 0
-                                ? 'Cannot cancel slot with sold tickets'
-                                : 'Cancel departure slot'
-                            }
-                          >
-                            {cancellingId === slot.id ? 'Cancelling...' : 'Cancel'}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+          {/* Real Server-Side Pagination for Historical Tabs */}
+          {isHistorical && historicalPagination && historicalPagination.totalPages > 1 && (
+            <div className="dse-pagination">
+              <span className="dse-pagination-info">
+                Showing page <strong>{historicalPagination.page}</strong> of{' '}
+                <strong>{historicalPagination.totalPages}</strong> ({historicalPagination.totalDocs}{' '}
+                total records)
+              </span>
+              <div className="dse-pagination-actions">
+                <button
+                  type="button"
+                  className="dse-btn dse-btn--secondary"
+                  disabled={!historicalPagination.hasPrevPage || loadingHistorical}
+                  onClick={() => setHistoricalPage((prev) => Math.max(1, prev - 1))}
+                >
+                  ← Previous
+                </button>
+                <button
+                  type="button"
+                  className="dse-btn dse-btn--secondary"
+                  disabled={!historicalPagination.hasNextPage || loadingHistorical}
+                  onClick={() => setHistoricalPage((prev) => prev + 1)}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Empty State */}
-      {!loading && filteredSlots.length === 0 && (
+      {!loading && !loadingHistorical && filteredSlots.length === 0 && (
         <div className="dse-empty">
           {activeTab === 'all'
             ? 'No departure slots configured for this experience yet. Click "+ Add Departure Slot" to create the first slot.'
             : `No departure slots found under "${activeTab}" filter.`}
         </div>
       )}
+
+      {/* Related Bookings Modal */}
+      <RelatedBookingsModal
+        slot={viewingBookingsSlot}
+        bookings={relatedBookings}
+        pagination={relatedPagination}
+        loading={loadingBookings}
+        currentPage={bookingsPage}
+        onPageChange={openRelatedBookings}
+        onClose={closeRelatedBookings}
+      />
     </div>
   )
 }

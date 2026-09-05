@@ -39,14 +39,16 @@ export class AvailabilityPolicy {
   }
 
   /**
-   * Validate if a departure slot can be cancelled.
+   * Validate if a departure slot can be operationally cancelled.
+   * Cancelling a departure slot disables it from public availability and future reservations,
+   * while preserving the slot and all existing referenced bookings for administrative review.
    */
   static canCancelDeparture(slot: DepartureSlotEntity): AvailabilityPolicyResult {
-    if (slot.capacitySold > 0) {
+    if (slot.status === 'cancelled') {
       return {
         allowed: false,
-        code: 'HAS_SOLD_SEATS',
-        reason: `Cannot cancel departure slot with ${slot.capacitySold} sold tickets. Must process refunds first.`,
+        code: 'SLOT_ALREADY_CANCELLED',
+        reason: `Departure slot #${slot.id || slot.departureId} is already cancelled.`,
       }
     }
 

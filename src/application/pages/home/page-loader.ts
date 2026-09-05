@@ -28,9 +28,19 @@ export class HomePageLoader {
 
       const todayStr = getBusinessDateString(ctx.timezone)
 
+      const featuredExpIds: number[] = (overview.featuredExperiences || [])
+        .map((doc: any) => Number(doc.id))
+        .filter((id: number): id is number => typeof id === 'number' && id > 0)
+      const featuredAggregates =
+        featuredExpIds.length > 0 ? await experience.getManyByIds(featuredExpIds) : []
+      const expMap = new Map(featuredAggregates.map((e) => [e.id, e]))
+
       const featuredExperiences = await Promise.all(
         (overview.featuredExperiences || []).map(async (doc: any) => {
-          const basePriceEGP = await experience.resolveStartingPrice(Number(doc.id), todayStr)
+          const expEntity = expMap.get(Number(doc.id))
+          const basePriceEGP = expEntity
+            ? await experience.resolveStartingPrice(expEntity, todayStr)
+            : await experience.resolveStartingPrice(Number(doc.id), todayStr)
           const pricingResult = await localization.formatPrice(basePriceEGP, ctx)
           const translatedTitle = doc.title ? (translatedTexts[textIdx++] || String(doc.title)) : ''
           const translatedSubtitle = doc.subtitle ? (translatedTexts[textIdx++] || String(doc.subtitle)) : ''
@@ -80,6 +90,25 @@ export class HomePageLoader {
       })
 
 
+      const [countriesRes, citiesRes] = await Promise.all([
+        destination.getCountries({ limit: 100 }),
+        destination.getAllActiveCities({ limit: 200 }),
+      ])
+
+      const heroCountries = (countriesRes.docs || []).map((c: any) => ({
+        id: Number(c.id),
+        name: String(c.name),
+        slug: String(c.slug),
+      }))
+
+      const heroCities = (citiesRes.docs || []).map((c: any) => ({
+        id: Number(c.id),
+        name: String(c.name),
+        slug: String(c.slug),
+        countryId: c.country ? (typeof c.country === 'object' ? Number(c.country.id) : Number(c.country)) : 0,
+        countryName: c.country && typeof c.country === 'object' ? String(c.country.name) : '',
+      }))
+
       return {
         hero: {
           title: localization.translateUiKey('hero.title', ctx),
@@ -87,6 +116,10 @@ export class HomePageLoader {
           ctaExploreText: localization.translateUiKey('hero.cta.primary', ctx),
           ctaDiscoverText: localization.translateUiKey('hero.cta.secondary', ctx),
           backgroundImageUrl: '',
+          destinations: {
+            countries: heroCountries,
+            cities: heroCities,
+          },
         },
         featuredExperiences,
         topDestinations,
@@ -97,6 +130,7 @@ export class HomePageLoader {
           satisfactionRate: 99,
         },
       }
+
     } catch (err: unknown) {
       console.error('[HomePageLoader] Failure loading home page overview:', err)
       throw err

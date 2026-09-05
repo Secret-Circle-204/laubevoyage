@@ -21,6 +21,10 @@ export class SystemIntegrationService {
     return this.workflowEngine.startBackgroundWorkers(options)
   }
 
+  public stopBackgroundWorkers(options?: SystemBootstrapOptions): void {
+    return this.workflowEngine.stopBackgroundWorkers(options)
+  }
+
   async getSystemHealth(): Promise<SystemHealthReportDTO> {
     return this.workflowEngine.getSystemHealth()
   }

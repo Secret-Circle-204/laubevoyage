@@ -21,8 +21,24 @@ export class DestinationService {
     return this.repository.findCountryBySlug(slug, options)
   }
 
-  async getCitiesByCountry(countryId: number, options?: DestinationQueryOptions) {
+  async getCitiesByCountry(countryId: number, options?: { page?: number; limit?: number } & DestinationQueryOptions) {
     return this.repository.findCitiesByCountry(countryId, options)
+  }
+
+  async getCitiesCountGroupedByCountry(countryIds: number[]) {
+    return this.repository.getCitiesCountGroupedByCountry(countryIds)
+  }
+
+  async getFeaturedCities(limit: number = 8, options?: DestinationQueryOptions) {
+    return this.repository.findFeaturedCities(limit, options)
+  }
+
+  async getCitiesByCountryIds(countryIds: number[], options?: { page?: number; limit?: number }) {
+    return this.repository.findCitiesByCountryIds(countryIds, options)
+  }
+
+  async getAllActiveCities(options?: { page?: number; limit?: number } & DestinationQueryOptions) {
+    return this.repository.findAllActiveCities(options)
   }
 
   async getCity(slug: string, options?: DestinationQueryOptions) {
@@ -67,4 +83,9 @@ export class DestinationService {
       topCountries: countriesRes.docs || [],
     }
   }
+
+  async getCanonicalCity(query: string) {
+    return this.repository.findCanonicalCity(query)
+  }
 }
+

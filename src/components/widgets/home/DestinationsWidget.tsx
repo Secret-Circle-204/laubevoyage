@@ -15,16 +15,30 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
       className={`py-20 ${isDark ? 'bg-[#1a1718]' : 'bg-white'} transition-colors duration-500 border-b border-white/5`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="text-xs uppercase tracking-[0.25em] font-medium text-[#00aeef] block mb-2">
-            Geographical Exploration
-          </span>
-          <h2
-            className={`text-3xl sm:text-4xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}
-          >
-            Top Travel Destinations
-          </h2>
-          <div className="h-1 w-16 bg-[#f58220] mx-auto mt-3" />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+          <div>
+            <span className="text-xs uppercase tracking-[0.25em] font-medium text-[#00aeef] block mb-2">
+              Geographical Exploration
+            </span>
+            <h2
+              className={`text-3xl sm:text-4xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}
+            >
+              Top Travel Destinations
+            </h2>
+            <div className="h-1 w-16 bg-[#f58220] mt-3" />
+          </div>
+
+          <Link href="/destinations">
+            <button
+              className={`px-8 py-3 text-xs tracking-[0.2em] uppercase font-medium border transition-all duration-500 ${
+                isDark
+                  ? 'border-[#00aeef]/50 text-[#00aeef] hover:bg-[#00aeef] hover:text-white'
+                  : 'border-[#2e3192]/50 text-[#2e3192] hover:bg-[#2e3192] hover:text-white'
+              }`}
+            >
+              View All Destinations →
+            </button>
+          </Link>
         </div>
 
         {/* Destinations Grid */}
@@ -38,7 +52,7 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
               {dest.imageUrl ? (
                 <Image
                   src={dest.imageUrl}
-                  alt={dest.cityName}
+                  alt={dest.countryName || dest.cityName}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                   className="object-cover transition-transform duration-1000 group-hover:scale-110"
@@ -53,14 +67,14 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
               {/* Content */}
               <div className="absolute bottom-0 left-0 right-0 p-6">
                 <span className="text-[#00aeef] text-xs tracking-widest uppercase mb-1 block font-semibold">
-                  {dest.countryName}
+                  Featured Country
                 </span>
                 <h3 className="text-2xl font-serif font-light text-white mb-2 group-hover:text-[#f58220] transition-colors duration-300">
-                  {dest.cityName}
+                  {dest.countryName}
                 </h3>
 
-                <div className="flex items-center gap-2 text-white/80 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span>Explore {dest.experiencesCount} Journeys</span>
+                <div className="flex items-center gap-2 text-white/90 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-medium">
+                  <span>Explore Destination</span>
                   <svg
                     className="w-4 h-4 text-[#f58220]"
                     fill="none"
@@ -80,6 +94,7 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
           ))}
         </div>
       </div>
+
     </section>
   )
 }

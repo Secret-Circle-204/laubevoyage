@@ -5,6 +5,12 @@ import deDict from '../../dictionaries/de.json'
 import esDict from '../../dictionaries/es.json'
 import itDict from '../../dictionaries/it.json'
 import ruDict from '../../dictionaries/ru.json'
+import zhDict from '../../dictionaries/zh.json'
+import jaDict from '../../dictionaries/ja.json'
+import ptDict from '../../dictionaries/pt.json'
+import nlDict from '../../dictionaries/nl.json'
+import plDict from '../../dictionaries/pl.json'
+import fiDict from '../../dictionaries/fi.json'
 
 /**
  * Interface abstraction for UI Translation Dictionary (Dependency Inversion Principle).
@@ -22,6 +28,12 @@ const DICTIONARIES: Record<string, any> = {
   es: esDict,
   it: itDict,
   ru: ruDict,
+  zh: zhDict,
+  ja: jaDict,
+  pt: ptDict,
+  nl: nlDict,
+  pl: plDict,
+  fi: fiDict,
 }
 
 /**
@@ -29,6 +41,21 @@ const DICTIONARIES: Record<string, any> = {
  * Loads structured dot-notation keys (e.g., 'hero.title', 'layout.nav.home') synchronously with zero DB queries.
  */
 export class JsonTranslationDictionary implements ITranslationDictionary {
+  /**
+   * Strict retrieval of a localized key from the specified locale ONLY.
+   * Returns undefined if the key does not exist in the specified locale dictionary (NO English fallback masking).
+   */
+  getStrict(locale: string, key: string): string | undefined {
+    const normLocale = (locale || 'en').toLowerCase()
+    const dict = DICTIONARIES[normLocale]
+    if (!dict) return undefined
+    return this.getNestedValue(dict, key)
+  }
+
+  hasKey(locale: string, key: string): boolean {
+    return this.getStrict(locale, key) !== undefined
+  }
+
   get(locale: string, key: string): string {
     const normLocale = (locale || 'en').toLowerCase()
     const dict = DICTIONARIES[normLocale] || DICTIONARIES['en']

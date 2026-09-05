@@ -6,6 +6,7 @@ import { catalogRegistry } from '@/domains/currency/catalog-registry'
 import { countryCatalogRegistry } from '@/domains/destination/country-registry'
 import { ContentCacheManager } from '@/domains/content/cache-manager'
 import { LanguageRepository } from '@/domains/languages/repository'
+import { TranslationRepository } from '@/domains/translation/repository'
 
 import type {
   SystemSettingsUpdatedEvent,
@@ -19,7 +20,8 @@ import type {
   SlotInventoryMutatedEvent,
   ContentPageMutatedEvent,
   BlogPostMutatedEvent,
-  FaqMutatedEvent
+  FaqMutatedEvent,
+  TranslationCacheMutatedEvent
 } from '../cache-events'
 
 /**
@@ -106,6 +108,19 @@ export function registerContentCacheSubscriber(): void {
     (event) => {
       console.log(`[ContentCacheSubscriber] CONTENT_PAGE_MUTATED Event received for ${event.slug}. Invalidating ContentCacheManager cache.`)
       ContentCacheManager.invalidateAndRevalidate(event.slug)
+    }
+  )
+}
+
+export function registerTranslationCacheSubscriber(): void {
+  const eventBus = EventBus.getInstance()
+
+  eventBus.subscribe<TranslationCacheMutatedEvent>(
+    'TRANSLATION_CACHE_MUTATED',
+    'TranslationCacheSubscriber.invalidateKey',
+    (event) => {
+      console.log(`[TranslationCacheSubscriber] TRANSLATION_CACHE_MUTATED Event received for [${event.originalHash}] (${event.language}). Evicting local RAM.`)
+      TranslationRepository.evictAll(event.originalHash, event.language)
     }
   )
 }

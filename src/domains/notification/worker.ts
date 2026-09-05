@@ -14,6 +14,7 @@ export class NotificationWorker {
   private dispatcher: NotificationDispatcher
   private repository: NotificationRepository
   private isRecovering = false
+  private isProcessing = false
   private workerId = `worker_${process.pid || 'main'}_${Math.random().toString(36).substring(2, 7)}`
 
   constructor(queue: NotificationQueue, dispatcher: NotificationDispatcher, repository: NotificationRepository) {
@@ -41,22 +42,25 @@ export class NotificationWorker {
   }
 
   async processNextJob(): Promise<boolean> {
-    let job = this.queue.dequeue()
-    if (!job) {
-      // DB-backed recovery: Pull unfulfilled/orphaned jobs from notification-logs
-      const recoveredCount = await this.recoverJobsFromDatabase()
-      if (recoveredCount > 0) {
-        console.log(`[NotificationWorker] Recovered ${recoveredCount} jobs from database queue.`);
-        job = this.queue.dequeue()
+    if (this.isProcessing) return false
+    this.isProcessing = true
+    try {
+      let job = this.queue.dequeue()
+      if (!job) {
+        // DB-backed recovery: Pull unfulfilled/orphaned jobs from notification-logs
+        const recoveredCount = await this.recoverJobsFromDatabase()
+        if (recoveredCount > 0) {
+          console.log(`[NotificationWorker] Recovered ${recoveredCount} jobs from database queue.`);
+          job = this.queue.dequeue()
+        }
       }
-    }
-    if (!job) return false
+      if (!job) return false
 
-    const payload = this.repository.payloadInstance
-    if (!payload) {
-      console.warn('[NotificationWorker] Cannot process job without initialized Payload instance.')
-      return false
-    }
+      const payload = this.repository.payloadInstance
+      if (!payload) {
+        console.warn('[NotificationWorker] Cannot process job without initialized Payload instance.')
+        return false
+      }
 
     // 1. Acquire distributed process-independent lease for this specific job ID
     const acquired = await MaintenanceLeaseService.acquireLease(payload, `notification_job_${job.jobId}`, this.workerId, 60000) // 1 minute lease
@@ -191,6 +195,9 @@ export class NotificationWorker {
       } catch (releaseErr) {
         console.error(`[NotificationWorker] Failed to release lease for job ${job.jobId}:`, releaseErr)
       }
+    }
+    } finally {
+      this.isProcessing = false
     }
   }
 }

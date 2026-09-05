@@ -348,6 +348,47 @@ export class LoyaltyRepository {
   }
 
   /**
+   * Retrieve full point ledger history with server-side pagination.
+   */
+  async getLedgerHistoryPaginated(
+    customerId: number,
+    options?: { page?: number; limit?: number },
+    context?: RequestContext,
+  ): Promise<{
+    docs: PointLedgerRecord[]
+    totalDocs: number
+    totalPages: number
+    page: number
+    limit: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }> {
+    const page = options?.page || 1
+    const limit = options?.limit || 20
+    const req = this.mapContextToReq(context)
+    const result = await this.payload.find({
+      collection: 'point-ledger',
+      where: {
+        user: { equals: customerId },
+      },
+      sort: '-createdAt',
+      page,
+      limit,
+      req,
+    })
+
+    return {
+      docs: result.docs.map((doc) => this.mapDocToLedgerRecord(doc)),
+      totalDocs: result.totalDocs,
+      totalPages: result.totalPages || 1,
+      page: result.page || 1,
+      limit: result.limit || 20,
+      hasNextPage: result.hasNextPage || false,
+      hasPrevPage: result.hasPrevPage || false,
+    }
+  }
+
+  /**
    * Retrieve point ledger transactions linked to a specific booking.
    */
   async getBookingLedgerEntries(

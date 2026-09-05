@@ -13,17 +13,47 @@ export class ExperiencesCatalogLoader {
     const limit = 12
 
     try {
-      const { experience, localization } = await getDomainServices()
+      const { experience, localization, destination } = await getDomainServices()
       const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
         cookieCurrency: options?.currency,
       })
 
+      // Fetch lightweight real database countries and cities for DiscoverySearchBar
+      const [countriesResult, citiesResult] = await Promise.all([
+        destination.getCountries({ limit: 100 }),
+        destination.getAllActiveCities({ limit: 200 }),
+      ])
+
+      const destinationCountries = (countriesResult.docs || []).map((c: any) => ({
+        id: Number(c.id),
+        name: String(c.name),
+        slug: String(c.slug),
+      }))
+
+      const destinationCities = (citiesResult.docs || []).map((c: any) => ({
+        id: Number(c.id),
+        name: String(c.name),
+        slug: String(c.slug),
+        countryId: c.country ? (typeof c.country === 'object' ? Number(c.country.id) : Number(c.country)) : 0,
+        countryName: c.country && typeof c.country === 'object' ? String(c.country.name) : '',
+      }))
+
       const catalog = await experience.getCatalog({
+        keyword: filters.query,
+        countryId: filters.countryId,
+        cityId: filters.cityId,
         minPriceEGP: filters.minPrice,
         maxPriceEGP: filters.maxPrice,
-        type: filters.type as any,
+        minDurationDays: filters.duration,
+        departureDate: filters.date,
+        type: filters.type,
+        page,
+        limit,
       })
+
+
+
 
       const rawTexts: string[] = []
       for (const exp of catalog.experiences || []) {
@@ -36,6 +66,8 @@ export class ExperiencesCatalogLoader {
       }
 
       const translated = await localization.translateBatch(rawTexts, ctx)
+      const todayStr = getBusinessDateString(ctx.timezone)
+      const startingPricesMap = await experience.resolveStartingPricesBatch(catalog.experiences, todayStr)
 
       const experiences = await Promise.all(
         (catalog.experiences || []).map(async (exp, index) => {
@@ -45,8 +77,7 @@ export class ExperiencesCatalogLoader {
             : (item.cityName || item.countryName || '')
           const translatedTitle = translated[index * 2] || item.title || ''
           const translatedLocation = translated[index * 2 + 1] || rawLocation
-          const todayStr = getBusinessDateString(ctx.timezone)
-          const basePriceEGP = await experience.resolveStartingPrice(Number(item.id), todayStr)
+          const basePriceEGP = startingPricesMap.get(item.id) ?? (item.price || 0)
           const priceResult = await localization.formatPrice(basePriceEGP, ctx)
 
           return {
@@ -66,6 +97,7 @@ export class ExperiencesCatalogLoader {
       )
 
 
+
       const labels = {
         badge: localization.translateUiKey('catalog.badge', ctx),
         title: localization.translateUiKey('catalog.title', ctx),
@@ -81,17 +113,22 @@ export class ExperiencesCatalogLoader {
       return {
         filters,
         experiences,
+        destinations: {
+          countries: destinationCountries,
+          cities: destinationCities,
+        },
         facets: catalog.facets,
         pagination: {
-          page,
-          limit,
-          totalPages: catalog.totalItems > 0 ? Math.ceil(catalog.totalItems / limit) : 0,
+          page: catalog.page,
+          limit: catalog.limit,
+          totalPages: catalog.totalPages,
           totalItems: catalog.totalItems,
-          hasNextPage: page < Math.ceil(catalog.totalItems / limit),
-          hasPrevPage: page > 1,
+          hasNextPage: catalog.hasNextPage,
+          hasPrevPage: catalog.hasPrevPage,
         },
         labels,
       }
+
     } catch (err: unknown) {
       console.error('[ExperiencesCatalogLoader] Error loading catalog:', err)
       throw err

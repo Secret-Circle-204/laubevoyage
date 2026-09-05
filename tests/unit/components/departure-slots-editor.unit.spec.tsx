@@ -13,6 +13,7 @@ vi.mock('@payloadcms/ui', () => ({
 
 vi.mock('@/application/actions/slot-management-actions', () => ({
   getExperienceSlotsWithSummaryAction: vi.fn(),
+  getHistoricalExperienceSlotsAction: vi.fn(),
   createDepartureSlotDirectAction: vi.fn(),
   updateDepartureSlotDirectAction: vi.fn(),
   cancelDepartureSlotDirectAction: vi.fn(),
@@ -99,6 +100,27 @@ describe('BATCH 17F — DepartureSlotsEditor Control Surface Component Verificat
       slots: mockSlots,
       summary: mockSummary,
     })
+    vi.mocked(slotActions.getHistoricalExperienceSlotsAction).mockImplementation(async (_id, options) => {
+      const filtered =
+        options.scope === 'cancelled'
+          ? mockSlots.filter((s) => s.status === 'cancelled')
+          : options.scope === 'completed'
+            ? mockSlots.filter((s) => s.lifecycleStatus === 'completed')
+            : mockSlots
+
+      return {
+        success: true,
+        slots: filtered,
+        pagination: {
+          totalDocs: filtered.length,
+          limit: 20,
+          totalPages: 1,
+          page: 1,
+          hasPrevPage: false,
+          hasNextPage: false,
+        },
+      }
+    })
   })
 
   afterEach(() => {
@@ -122,8 +144,8 @@ describe('BATCH 17F — DepartureSlotsEditor Control Surface Component Verificat
     expect(screen.getByText('1,500 EGP')).toBeDefined()
     expect(screen.getByText('14 Available')).toBeDefined()
     expect(screen.getByText('Upcoming • Available')).toBeDefined()
-    expect(screen.getByText('Completed')).toBeDefined()
-    expect(screen.getByText('Cancelled')).toBeDefined()
+    expect(screen.getByText('Completed (1)')).toBeDefined()
+    expect(screen.getByText('Cancelled (1)')).toBeDefined()
   })
 
   it('filters slots by tab correctly', async () => {
@@ -137,7 +159,9 @@ describe('BATCH 17F — DepartureSlotsEditor Control Surface Component Verificat
     const cancelledTab = screen.getByRole('button', { name: /Cancelled/i })
     fireEvent.click(cancelledTab)
 
-    expect(screen.getByText(/DEP-10-2026-12-01-0900/i)).toBeDefined()
+    await waitFor(() => {
+      expect(screen.getByText(/DEP-10-2026-12-01-0900/i)).toBeDefined()
+    })
     expect(screen.queryByText(/DEP-10-2026-11-01-0900/i)).toBeNull()
   })
 

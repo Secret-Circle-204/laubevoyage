@@ -219,7 +219,7 @@ export function CheckoutSuccessClient({
                   className="w-full"
                 >
                   <Button variant="accent" size="lg" className="w-full font-bold">
-                    View Booking Voucher →
+                    View Reservation Details →
                   </Button>
                 </Link>
               </div>

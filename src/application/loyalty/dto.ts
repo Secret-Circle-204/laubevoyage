@@ -55,4 +55,33 @@ export interface CustomerLoyaltyPortalDTO {
   availablePoints: number
   formattedAvailablePoints: string
   history: LoyaltyLedgerRecordDTO[]
+  uiLabels: {
+    pageTitle: string
+    pageSubtitle: string
+    tierMemberSuffix: string
+    availableBalance: string
+    pointsUnit: string
+    cashValuePrefix: string
+    cashValueSuffix: string
+    heldPointsNotice: string
+    totalQualifyingSpend: string
+    instantCheckoutDiscount: string
+    officialRate: string
+    yourPointsValue: string
+    transactionHistoryTitle: string
+    noTransactions: string
+    dateCol: string
+    referenceCol: string
+    typeCol: string
+    reasonCol: string
+    pointsCol: string
+  }
+  pagination?: {
+    page: number
+    limit: number
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
 }

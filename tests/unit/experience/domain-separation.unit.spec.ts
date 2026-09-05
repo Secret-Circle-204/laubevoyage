@@ -499,7 +499,7 @@ describe('BATCH 20: Clean Domain Separation & Invariants', () => {
       ]
 
       const flexDeparture = {
-        date: '2026-09-01',
+        date: '2026-10-01',
         startTime: '',
         effectiveBasePrice: 500,
         experienceId: 201,
@@ -508,12 +508,12 @@ describe('BATCH 20: Clean Domain Separation & Invariants', () => {
         status: 'available' as const,
       }
 
-      // startDate: 2026-09-01, duration: 5 days -> endDate: 2026-09-05
+      // startDate: 2026-10-01, duration: 5 days -> endDate: 2026-10-05
       const draft = await creator.createDraft({
         userId: 9,
         departure: flexDeparture as any,
         travelers,
-        endDate: '2026-09-05',
+        endDate: '2026-10-05',
         currency: 'EGP' as any,
         source: 'website',
       })
@@ -522,8 +522,8 @@ describe('BATCH 20: Clean Domain Separation & Invariants', () => {
         expect.objectContaining({
           experience: 201,
           departureSlot: null, // Flexible Package MUST NOT have a slot
-          startDate: '2026-09-01',
-          endDate: '2026-09-05',
+          startDate: '2026-10-01',
+          endDate: '2026-10-05',
           pricingSnapshot: expect.objectContaining({
             totalAmountEGP: 2000, // 4 × 500 = 2,000 EGP
           }),

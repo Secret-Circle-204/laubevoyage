@@ -11,13 +11,15 @@ console.log('[RevalidationService VERSION] REMOTE-BOUNDARY-V2')
 export class RevalidationService {
   private static async executeRevalidation(
     payload: {
-      type: 'dashboard' | 'experience' | 'destination' | 'layout' | 'content'
+      type: 'dashboard' | 'experience' | 'destination' | 'layout' | 'content' | 'translation' | 'currencies'
       customerId?: number
       slices?: ('loyalty' | 'trips' | 'customer' | 'security')[]
       experienceSlug?: string
       countrySlug?: string
       citySlug?: string
       pageSlug?: string
+      originalHash?: string
+      language?: string
     },
     localActions: () => void,
     options?: { forceLocal?: boolean }
@@ -67,6 +69,13 @@ export class RevalidationService {
     } catch (fetchErr) {
       console.error(`[RevalidationService] Failed dispatching remote revalidation fetch:`, fetchErr)
     }
+  }
+
+  public static async purgeCurrencies(options?: { forceLocal?: boolean }): Promise<void> {
+    console.log('[RevalidationService] Purging targeted currencies cache tag (currencies)')
+    await this.executeRevalidation({ type: 'currencies' }, () => {
+      revalidateTag('currencies', {})
+    }, options)
   }
 
   public static async purgeLayout(options?: { forceLocal?: boolean }): Promise<void> {
@@ -190,6 +199,13 @@ export class RevalidationService {
       revalidateTag(`post-${slug}`, {})
       revalidatePath('/blog')
       revalidatePath(`/blog/${slug}`)
+    }, options)
+  }
+
+  public static async purgeTranslation(originalHash: string, language: string, options?: { forceLocal?: boolean }): Promise<void> {
+    console.log(`[RevalidationService] Purging targeted translation: [${originalHash}] (${language})`)
+    await this.executeRevalidation({ type: 'translation', originalHash, language }, () => {
+      // Local revalidation can purge tags if applicable
     }, options)
   }
 }

@@ -7,8 +7,8 @@ import { Card, Badge, Button, CurrencyDisplay } from '@/components/ui'
 import { BookingDetailsLoader } from '@/application/dashboard/loaders'
 
 export const metadata: Metadata = {
-  title: "Booking Confirmation & Voucher | L'Aube Voyage",
-  description: "View your official L'Aube Voyage booking confirmation, download your e-voucher, and manage trip details.",
+  title: "Booking Confirmation | L'Aube Voyage",
+  description: "View your official L'Aube Voyage booking confirmation and manage trip details.",
 }
 
 export default async function BookingConfirmationPage(props: { params: Promise<{ id: string }> }) {
@@ -24,6 +24,15 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
     notFound()
   }
 
+  const { getDomainServices } = await import('@/domains/factory')
+  const { localization } = await getDomainServices()
+  const ctx = await localization.buildContext({ cookieLocale: locale, cookieCurrency: currency })
+
+  const thankYou = localization.translateUiKey('bookingConfirmation.thankYou', ctx)
+  const refSubtitle = localization.translateUiKey('bookingConfirmation.refSubtitle', ctx)
+  const statusLabel = localization.translateUiKey('bookingConfirmation.statusLabel', ctx)
+  const totalPriceLabel = localization.translateUiKey('bookingConfirmation.totalPriceLabel', ctx)
+
   return (
     <div className="py-16 bg-slate-50 dark:bg-slate-950 min-h-screen">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -37,17 +46,17 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
               BOOKING {data.status.toUpperCase()}
             </Badge>
             <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Thank You For Your Order!
+              {thankYou}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Your reservation reference number is{' '}
+              {refSubtitle}{' '}
               <strong className="font-mono text-[#00aeef]">#LV-{data.bookingNumber.padStart(5, '0')}</strong>
             </p>
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-left space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-500">Status:</span>
+              <span className="text-slate-500">{statusLabel}</span>
               <span className="font-bold text-emerald-600 uppercase">
                 {data.status === 'confirmed'
                   ? data.rawOutstandingBalance > 0
@@ -57,7 +66,7 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Total Price:</span>
+              <span className="text-slate-500">{totalPriceLabel}</span>
               <CurrencyDisplay price={data.totalCost} size="sm" />
             </div>
             {data.rawPaidAmount > 0 && (
@@ -76,7 +85,44 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
               <span className="text-slate-500">Loyalty Points Earned:</span>
               <span className="font-bold text-[#f58220]">+{data.pointsEarned} Points</span>
             </div>
+
+            {data.pickupLocation && (
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-lg">📍</span>
+                    <div>
+                      <span className="text-xs text-slate-500 font-semibold block uppercase tracking-wider">
+                        Pickup / Meeting Location
+                      </span>
+                      <span className="font-bold text-slate-900 dark:text-white block mt-0.5">
+                        {data.pickupLocation.label}
+                      </span>
+                      <span className="text-xs text-slate-600 dark:text-slate-400 block mt-0.5">
+                        {data.pickupLocation.address}
+                      </span>
+                      {data.pickupLocation.instructions && (
+                        <span className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded inline-block mt-1.5 border border-amber-200/50 dark:border-amber-800/40">
+                          <strong>Driver Note:</strong> {data.pickupLocation.instructions}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {data.pickupLocation.latitude && data.pickupLocation.longitude && (
+                    <a
+                      href={`https://www.google.com/maps?q=${data.pickupLocation.latitude},${data.pickupLocation.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-bold text-[#00aeef] hover:underline whitespace-nowrap pt-1"
+                    >
+                      View on Map ↗
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
             <Link href="/dashboard/bookings" className="w-full sm:w-auto">

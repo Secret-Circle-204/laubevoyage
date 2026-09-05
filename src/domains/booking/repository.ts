@@ -10,6 +10,7 @@ import type {
   CustomerTimelineEntry,
   SystemAuditEntry,
   PricingSnapshotData,
+  CustomerCompanionTravelerProjection,
 } from './types'
 import type { Booking } from '@/payload-types'
 import { validateTransition } from './state-machine'
@@ -98,6 +99,125 @@ export class BookingRepository {
     })
 
     return result.docs.map((doc) => this.mapDocToAggregate(doc))
+  }
+
+  /**
+   * Authoritative summary of booking references for a set of departure slots.
+   * Executes a native PostgreSQL COUNT + FILTER aggregation in a single query.
+   * Eliminates memory bloat, document loading, and unbounded array iteration.
+   */
+  async getSlotBookingSummaries(
+    slotIds: number[],
+    context?: RequestContext,
+  ): Promise<Map<number, { referencedCount: number; hasActiveBookings: boolean }>> {
+    const summaryMap = new Map<number, { referencedCount: number; hasActiveBookings: boolean }>()
+    if (slotIds.length === 0) return summaryMap
+
+    // Initialize all queried slot IDs with 0 references
+    for (const id of slotIds) {
+      summaryMap.set(id, { referencedCount: 0, hasActiveBookings: false })
+    }
+
+    const drizzle = (this.payload.db as any)?.drizzle
+    if (drizzle && typeof drizzle.execute === 'function') {
+      try {
+        const query = sql`
+          SELECT 
+            "departure_slot_id"::integer AS slot_id,
+            COUNT(id)::integer AS total_count,
+            COUNT(id) FILTER (WHERE "status" IN ('paid', 'confirmed', 'pending_payment', 'completed', 'pending_admin_review'))::integer AS active_count
+          FROM "bookings"
+          WHERE "departure_slot_id" IN ${slotIds}
+          GROUP BY "departure_slot_id"
+        `
+        const result = await drizzle.execute(query)
+        const rows = result?.rows || result || []
+        for (const row of rows) {
+          const slotId = Number(row.slot_id)
+          const totalCount = Number(row.total_count || 0)
+          const activeCount = Number(row.active_count || 0)
+          summaryMap.set(slotId, {
+            referencedCount: totalCount,
+            hasActiveBookings: activeCount > 0,
+          })
+        }
+        return summaryMap
+      } catch (err) {
+        console.warn('[BookingRepository] SQL aggregate for slots failed, using projected fallback:', err)
+      }
+    }
+
+    // Pure Aggregation Fallback: Zero document loading, native database SELECT COUNT(*)
+    const req = this.mapContextToReq(context)
+    const activeStatuses = [
+      'paid',
+      'confirmed',
+      'pending_payment',
+      'completed',
+      'pending_admin_review',
+    ]
+
+    await Promise.all(
+      slotIds.map(async (slotId) => {
+        const [totalCountRes, activeCountRes] = await Promise.all([
+          this.payload.count({
+            collection: 'bookings',
+            where: {
+              departureSlot: { equals: slotId },
+            },
+            req,
+          }),
+          this.payload.count({
+            collection: 'bookings',
+            where: {
+              and: [
+                { departureSlot: { equals: slotId } },
+                { status: { in: activeStatuses } },
+              ],
+            },
+            req,
+          }),
+        ])
+
+        summaryMap.set(slotId, {
+          referencedCount: totalCountRes.totalDocs,
+          hasActiveBookings: activeCountRes.totalDocs > 0,
+        })
+      }),
+    )
+
+    return summaryMap
+  }
+
+  /**
+   * Find paginated bookings for a single departure slot ID.
+   */
+  async findBookingsByDepartureSlotIdPaginated(
+    slotId: number,
+    page: number = 1,
+    limit: number = 20,
+    context?: RequestContext,
+  ): Promise<PaginatedResponse<BookingAggregate>> {
+    const req = this.mapContextToReq(context)
+    const result = await this.payload.find({
+      collection: 'bookings',
+      where: {
+        departureSlot: { equals: slotId },
+      },
+      depth: 1,
+      page,
+      limit,
+      sort: '-createdAt',
+      req,
+    })
+
+    return {
+      data: result.docs.map((doc) => this.mapDocToAggregate(doc)),
+      total: result.totalDocs,
+      page: result.page || 1,
+      limit: result.limit || limit,
+      totalPages: result.totalPages || 1,
+    }
   }
 
   /**
@@ -463,6 +583,77 @@ export class BookingRepository {
   }
 
   /**
+   * Read-only server-side paginated projection for companion travelers from authoritative booking manifests.
+   * Paginates and counts directly at the companion traveler level (bookings_travelers where _order > 1).
+   * Guaranteed O(limit) memory footprint with deterministic ordering and zero dataset truncation.
+   * Fail-fast: Throws explicit error on DB failure (No Fallback).
+   */
+  async findCompanionTravelersByCustomerId(
+    customerId: number,
+    options?: { page?: number; limit?: number },
+  ): Promise<PaginatedResponse<CustomerCompanionTravelerProjection>> {
+    const page = Math.max(1, options?.page || 1)
+    const limit = Math.max(1, options?.limit || 20)
+    const offset = (page - 1) * limit
+
+    const drizzle = (this.payload.db as any)?.drizzle
+    if (!drizzle || typeof drizzle.execute !== 'function') {
+      throw new Error('[BookingRepository] PostgreSQL Drizzle client is required for authoritative companion traveler queries.')
+    }
+
+    const [countResult, rowsResult] = await Promise.all([
+      drizzle.execute(sql`
+        SELECT COUNT(bt.id)::integer AS total_count
+        FROM "bookings_travelers" bt
+        JOIN "bookings" b ON b.id = bt._parent_id
+        WHERE b.user_id = ${customerId} AND bt._order > 1;
+      `),
+      drizzle.execute(sql`
+        SELECT 
+          bt.id AS traveler_id,
+          bt._parent_id AS booking_id,
+          b.booking_number,
+          bt.first_name,
+          bt.last_name,
+          bt.date_of_birth,
+          bt.passport_number
+        FROM "bookings_travelers" bt
+        JOIN "bookings" b ON b.id = bt._parent_id
+        WHERE b.user_id = ${customerId} AND bt._order > 1
+        ORDER BY b.created_at DESC, b.id DESC, bt._order ASC, bt.id ASC
+        LIMIT ${limit} OFFSET ${offset};
+      `),
+    ])
+
+    const countRow = countResult?.rows?.[0] || countResult?.[0]
+    const total = Number(countRow?.total_count || 0)
+    const rows = rowsResult?.rows || rowsResult || []
+
+    const data: CustomerCompanionTravelerProjection[] = rows.map((r: any) => {
+      if (!r.booking_number) {
+        throw new Error(`[BookingRepository] Invariant Violation: Booking #${r.booking_id} is missing required bookingNumber.`)
+      }
+      return {
+        id: `tr_${r.traveler_id}`,
+        bookingId: Number(r.booking_id),
+        bookingNumber: String(r.booking_number),
+        firstName: String(r.first_name).trim(),
+        lastName: String(r.last_name).trim(),
+        dateOfBirth: r.date_of_birth ? new Date(r.date_of_birth).toISOString() : undefined,
+        passportNumber: r.passport_number || undefined,
+      }
+    })
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    }
+  }
+
+  /**
    * Delete a booking document by ID.
    */
   async delete(id: number, context?: RequestContext): Promise<void> {
@@ -549,10 +740,12 @@ export class BookingRepository {
     const travelers = (b.travelers || []).map((t) => ({
       firstName: t.firstName,
       lastName: t.lastName,
-      email: t.email,
-      phone: t.phone,
+      email: t.email || undefined,
+      phone: t.phone || undefined,
       dateOfBirth: t.dateOfBirth || undefined,
       passportNumber: t.passportNumber || undefined,
+      nationality: (t as any).nationality || undefined,
+      type: ((t as any).type as 'adult' | 'child' | 'infant') || 'adult',
     }))
 
     const capacityHold =
@@ -597,6 +790,19 @@ export class BookingRepository {
         ? docSlot
         : undefined
 
+    const pickupLoc = (b as any).pickupLocation
+    const pickupLocation =
+      pickupLoc && typeof pickupLoc === 'object' && pickupLoc.label && pickupLoc.address
+        ? {
+            label: String(pickupLoc.label),
+            address: String(pickupLoc.address),
+            latitude: Number(pickupLoc.latitude || 0),
+            longitude: Number(pickupLoc.longitude || 0),
+            source: pickupLoc.source || undefined,
+            instructions: pickupLoc.instructions || undefined,
+          }
+        : null
+
     return {
       id: Number(doc.id),
       bookingNumber: b.bookingNumber || '',
@@ -612,6 +818,7 @@ export class BookingRepository {
       completionAt: b.completionAt ? (typeof b.completionAt === 'string' ? b.completionAt : new Date(b.completionAt).toISOString()) : '',
       destinationTimezone: b.destinationTimezone || undefined,
       paymentWindowExpiresAt,
+      pickupLocation,
       pricingSnapshot,
       capacityHold,
       pointHold,

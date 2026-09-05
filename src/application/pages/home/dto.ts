@@ -1,4 +1,5 @@
 import type { ConvertedPrice } from '@/domains/currency/types'
+import type { DestinationOptionDTO } from '@/application/experience/dto'
 
 export interface HomeHeroDTO {
   title: string
@@ -6,7 +7,9 @@ export interface HomeHeroDTO {
   backgroundImageUrl: string
   ctaExploreText?: string
   ctaDiscoverText?: string
+  destinations?: DestinationOptionDTO
 }
+
 
 export interface HomeFeaturedExperienceDTO {
   id: number

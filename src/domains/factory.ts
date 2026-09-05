@@ -16,10 +16,10 @@ import { BookingService } from './booking/service'
 
 import { CustomerRepository } from './customer/repository'
 import { CustomerService } from './customer/service'
-import { DeviceSessionRepository } from './customer/repositories/session-repository'
 
 import { DashboardProjectionRepository } from './dashboard/repository'
 import { DashboardQueryBus } from './dashboard/query-bus'
+import { DashboardOverviewAggregator } from './dashboard/overview-aggregator'
 import { DashboardService } from './dashboard/service'
 
 import { PaymentRepository } from './payment/repository'
@@ -40,9 +40,9 @@ import { LocalizationService } from './localization/service'
 import { PricingPipeline } from './currency/pipeline'
 import { PricingFacade } from './currency/facade'
 import { ExperienceWorkflowEngine } from './experience/workflow'
-import { SearchRepository } from './search/repository'
 import { SearchService } from './search/service'
 import { MaintenanceRepository } from './maintenance/repository'
+
 import { MaintenanceService } from './maintenance/service'
 import { LanguageRepository } from './languages/repository'
 import { LanguageService } from './languages/service'
@@ -66,15 +66,20 @@ let cachedDomainServicesPromise: Promise<DomainServices> | null = null
  * Singleton Memoized Container: Built exactly once per process lifecycle.
  * Instantiates Repositories with Payload and injects Repositories into Domain Services.
  */
-export async function getDomainServices(): Promise<DomainServices> {
-  if (!cachedDomainServicesPromise) {
-    cachedDomainServicesPromise = buildDomainServices()
+export async function getDomainServices(providedPayload?: any): Promise<DomainServices> {
+  if (providedPayload && cachedDomainServicesPromise) {
+    const existing = await cachedDomainServicesPromise
+    if (existing && existing.payload !== providedPayload) {
+      cachedDomainServicesPromise = buildDomainServices(providedPayload)
+    }
+  } else if (!cachedDomainServicesPromise) {
+    cachedDomainServicesPromise = buildDomainServices(providedPayload)
   }
   return cachedDomainServicesPromise
 }
 
-async function buildDomainServices() {
-  const payload = await getPayload({ config })
+async function buildDomainServices(providedPayload?: any) {
+  const payload = providedPayload || (await getPayload({ config }))
 
   // 1. Instantiate Repositories & Providers
   const outboxRepository = new PayloadOutboxRepository(payload)
@@ -99,8 +104,8 @@ async function buildDomainServices() {
   const notificationRepository = new NotificationRepository(payload)
   const translationRepository = new TranslationRepository(payload)
   const maintenanceRepository = new MaintenanceRepository(payload)
-  const searchRepository = new SearchRepository(payload)
   const languageRepository = new LanguageRepository(payload)
+
 
   // 2. Instantiate Base Services & Buses
   const translationService = new TranslationService(translationRepository)
@@ -133,31 +138,27 @@ async function buildDomainServices() {
   const customerDeletionDependencyChecker = {
     checkDependencies: async (customerId: number, req?: any) => {
       const [bookings, pointLedgers, reviews, payments, pendingEvents] = await Promise.all([
-        payload.find({
+        payload.count({
           collection: 'bookings',
           where: { user: { equals: customerId } },
-          limit: 0,
           req,
         }),
-        payload.find({
+        payload.count({
           collection: 'point-ledger',
           where: { user: { equals: customerId } },
-          limit: 0,
           req,
         }),
-        payload.find({
+        payload.count({
           collection: 'reviews',
           where: { customer: { equals: customerId } },
-          limit: 0,
           req,
         }),
-        payload.find({
+        payload.count({
           collection: 'payment-transactions',
           where: { customerId: { equals: customerId } },
-          limit: 0,
           req,
         }),
-        payload.find({
+        payload.count({
           collection: 'event-outbox',
           where: {
             and: [
@@ -171,7 +172,6 @@ async function buildDomainServices() {
               },
             ],
           },
-          limit: 0,
           req,
         }),
       ])
@@ -208,20 +208,40 @@ async function buildDomainServices() {
     experienceRepository,
     outboxRepository,
   )
-  const searchService = new SearchService(searchRepository)
-  const deviceSessionRepository = new DeviceSessionRepository(payload)
+  const searchService = new SearchService(experienceService)
+
   const dashboardQueryBus = new DashboardQueryBus(
     customerRepository,
     loyaltyRepository,
     bookingRepository,
-    deviceSessionRepository,
   )
+  const dashboardOverviewAggregator = new DashboardOverviewAggregator(dashboardQueryBus)
   const dashboardService = new DashboardService(dashboardRepository, dashboardQueryBus)
   const destinationService = new DestinationService(destinationRepository)
-  const maintenanceService = new MaintenanceService(maintenanceRepository, bookingService)
+  const maintenanceService = new MaintenanceService(
+    maintenanceRepository,
+    bookingService,
+    currencyService,
+    dashboardRepository,
+    dashboardOverviewAggregator,
+  )
   const systemIntegrationService = new SystemIntegrationService(payload)
 
-  // 3. Return Pure Injected Domain Services Container
+  // 3. Wire Master Event Bus Subscribers (Composition Root Bootstrap)
+  await systemIntegrationService.bootstrapSystem({
+    customerService,
+    loyaltyService,
+    notificationService,
+  })
+
+  // 4. Start Distributed Cache Coordination (PostgreSQL LISTEN)
+  try {
+    const { CacheInvalidationCoordinator } = await import('./events/coordination/cache-coordinator')
+    const coordinator = CacheInvalidationCoordinator.getInstance(payload)
+    await coordinator.start()
+  } catch {}
+
+  // 5. Return Pure Injected Domain Services Container
   return {
     payload,
     system: systemIntegrationService,

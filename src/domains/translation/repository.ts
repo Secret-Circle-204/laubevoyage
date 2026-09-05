@@ -22,38 +22,84 @@ function parseMaxEntries(customOption?: number): number {
  * Two-Tiered Data Persistence Layer (Bounded RAM LRU Cache + Persistent Payload DB Collection).
  * Language-agnostic persistence layer following Option B & Enterprise Architecture Contract.
  */
+const CACHE_MAP_KEY = Symbol.for('laube.translation.repository.cacheMap')
+
+function getGlobalCacheMap(): Map<string, TranslationRecordEntity> {
+  const g = globalThis as any
+  if (!g[CACHE_MAP_KEY]) {
+    g[CACHE_MAP_KEY] = new Map<string, TranslationRecordEntity>()
+  }
+  return g[CACHE_MAP_KEY]
+}
+
 export class TranslationRepository {
   private payload?: Payload
-  private cacheMap: Map<string, TranslationRecordEntity> = new Map()
   private readonly maxEntries: number
 
   constructor(payload?: Payload, options?: { maxEntries?: number }) {
     this.payload = payload
     this.maxEntries = parseMaxEntries(options?.maxEntries)
+    // console.log(`[FORENSIC-DIAG] [${new Date().toISOString()}] TranslationRepository CREATED: PID=${process.pid}, cacheMap.size=${getGlobalCacheMap().size}`) // [FORENSIC-DIAG]
+  }
+
+  /**
+   * Static method to evict a targeted translation key (or all keys during reconciliation) from the process-scoped shared translation cache.
+   */
+  static evictAll(originalHash?: string, language?: string): void {
+    const cacheMap = getGlobalCacheMap()
+    // console.log(`[FORENSIC-DIAG] [${new Date().toISOString()}] evictAll CALLED: PID=${process.pid}, hash=${originalHash}, lang=${language}, cacheMap.size=${cacheMap.size}`) // [FORENSIC-DIAG]
+    if (originalHash && language) {
+      const key = `${originalHash}_${language}`
+      const existed = cacheMap.has(key)
+      cacheMap.delete(key)
+      // console.log(`[FORENSIC-DIAG] [${new Date().toISOString()}] evictKey: PID=${process.pid}, key=${key}, existedBeforeDelete=${existed}, cacheMap.size=${cacheMap.size}`) // [FORENSIC-DIAG]
+    } else {
+      cacheMap.clear()
+    }
+  }
+
+  /**
+   * Targeted Invalidation: Evicts a single specific translation key from RAM LRU Hot Cache.
+   * Guarantees strict targeted invalidation contract (originalHash, language).
+   */
+  evictKey(originalHash: string, language: string): void {
+    const key = `${originalHash}_${language}`
+    const cacheMap = getGlobalCacheMap()
+    const existed = cacheMap.has(key)
+    cacheMap.delete(key)
+    // console.log(`[FORENSIC-DIAG] [${new Date().toISOString()}] evictKey: PID=${process.pid}, key=${key}, existedBeforeDelete=${existed}, cacheMap.size=${cacheMap.size}`) // [FORENSIC-DIAG]
   }
 
   // --- O(1) Native Map LRU Operations ---
   private getLru(key: string): TranslationRecordEntity | undefined {
-    const record = this.cacheMap.get(key)
+    const cacheMap = getGlobalCacheMap()
+    const record = cacheMap.get(key)
     if (record) {
+      // console.log(`[FORENSIC-DIAG] [${new Date().toISOString()}] getLru HIT: PID=${process.pid}, key=${key}, translatedText="${record.translatedText?.substring(0, 40)}", cacheMap.size=${cacheMap.size}`) // [FORENSIC-DIAG]
       // Refresh recency: re-inserting moves key to the end of Map iteration order (MRU)
-      this.cacheMap.delete(key)
-      this.cacheMap.set(key, record)
+      cacheMap.delete(key)
+      cacheMap.set(key, record)
+    } else {
+      // console.log(`[FORENSIC-DIAG] [${new Date().toISOString()}] getLru MISS: PID=${process.pid}, key=${key}, cacheMap.size=${cacheMap.size}`) // [FORENSIC-DIAG]
     }
     return record
   }
 
   private setLru(key: string, record: TranslationRecordEntity): void {
-    if (this.cacheMap.has(key)) {
-      this.cacheMap.delete(key)
-    } else if (this.cacheMap.size >= this.maxEntries) {
+    const cacheMap = getGlobalCacheMap()
+    const existed = cacheMap.has(key)
+    if (existed) {
+      cacheMap.delete(key)
+    } else if (cacheMap.size >= this.maxEntries) {
       // Evict oldest (Least Recently Used = first key in Map insertion iterator)
-      const oldestKey = this.cacheMap.keys().next().value
+      const oldestKey = cacheMap.keys().next().value
       if (oldestKey !== undefined) {
-        this.cacheMap.delete(oldestKey)
+        cacheMap.delete(oldestKey)
+        // console.log(`[FORENSIC-DIAG] [${new Date().toISOString()}] setLru EVICTED OLDEST: PID=${process.pid}, key=${oldestKey}`) // [FORENSIC-DIAG]
       }
     }
-    this.cacheMap.set(key, record)
+    cacheMap.set(key, record)
+    // console.log(`[FORENSIC-DIAG] [${new Date().toISOString()}] setLru POPULATED: PID=${process.pid}, key=${key}, existedBefore=${existed}, translatedText="${record.translatedText?.substring(0, 40)}", cacheMap.size=${cacheMap.size}`) // [FORENSIC-DIAG]
   }
 
   async findByKeyAndLocale(
@@ -184,9 +230,10 @@ export class TranslationRepository {
             sourceText: record.translationKey,
             language: record.locale,
             translatedText: record.translatedText,
-            provider: record.provider || 'google',
+            provider: record.provider || 'azure',
             version: 1,
           },
+          context: { isEngineWrite: true },
         })
       } catch (err: unknown) {
         const msg = String(err)
@@ -216,4 +263,3 @@ export class TranslationRepository {
     return records
   }
 }
-

@@ -177,7 +177,7 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
                   )}
                   <Link href={`/dashboard/bookings/${booking.id}`}>
                     <button className="mt-2 px-4 py-1.5 text-xs uppercase tracking-wider font-semibold border border-[#00aeef]/40 text-[#00aeef] hover:bg-[#00aeef] hover:text-white rounded-lg transition-colors">
-                      Voucher PDF
+                      View Details
                     </button>
                   </Link>
                 </div>

@@ -43,7 +43,15 @@ export class ExperienceQueries {
     return this.repository.getDepartureSlotByDate(experienceId, date, context)
   }
 
-  async findSlotsByExperienceId(experienceId: number): Promise<DepartureSlotEntity[]> {
-    return this.repository.findSlotsByExperienceId(experienceId)
+  async findSlotsByExperienceId(
+    experienceId: number,
+    options?: import('./repository/types').FindSlotsQueryOptions,
+    context?: RequestContext,
+  ): Promise<DepartureSlotEntity[]> {
+    return this.repository.findSlotsByExperienceId(experienceId, options, context as any)
+  }
+
+  async countDepartureSlots(experienceId: number, status?: string, context?: RequestContext): Promise<number> {
+    return this.repository.countDepartureSlots(experienceId, status, context)
   }
 }

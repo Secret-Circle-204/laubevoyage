@@ -73,6 +73,7 @@ export interface Config {
     media: Media;
     countries: Country;
     cities: City;
+    accommodations: Accommodation;
     experiences: Experience;
     bookings: Booking;
     'point-ledger': PointLedger;
@@ -80,8 +81,6 @@ export interface Config {
     currencies: Currency;
     'translation-cache': TranslationCache;
     'admin-audit-logs': AdminAuditLog;
-    'customer-addresses': CustomerAddress;
-    'customer-device-sessions': CustomerDeviceSession;
     'customer-notification-preferences': CustomerNotificationPreference;
     'customer-travelers': CustomerTraveler;
     'dashboard-projections': DashboardProjection;
@@ -113,6 +112,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     countries: CountriesSelect<false> | CountriesSelect<true>;
     cities: CitiesSelect<false> | CitiesSelect<true>;
+    accommodations: AccommodationsSelect<false> | AccommodationsSelect<true>;
     experiences: ExperiencesSelect<false> | ExperiencesSelect<true>;
     bookings: BookingsSelect<false> | BookingsSelect<true>;
     'point-ledger': PointLedgerSelect<false> | PointLedgerSelect<true>;
@@ -120,8 +120,6 @@ export interface Config {
     currencies: CurrenciesSelect<false> | CurrenciesSelect<true>;
     'translation-cache': TranslationCacheSelect<false> | TranslationCacheSelect<true>;
     'admin-audit-logs': AdminAuditLogsSelect<false> | AdminAuditLogsSelect<true>;
-    'customer-addresses': CustomerAddressesSelect<false> | CustomerAddressesSelect<true>;
-    'customer-device-sessions': CustomerDeviceSessionsSelect<false> | CustomerDeviceSessionsSelect<true>;
     'customer-notification-preferences': CustomerNotificationPreferencesSelect<false> | CustomerNotificationPreferencesSelect<true>;
     'customer-travelers': CustomerTravelersSelect<false> | CustomerTravelersSelect<true>;
     'dashboard-projections': DashboardProjectionsSelect<false> | DashboardProjectionsSelect<true>;
@@ -514,6 +512,67 @@ export interface City {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accommodations".
+ */
+export interface Accommodation {
+  id: number;
+  /**
+   * Physical establishment name (e.g. Four Seasons Hotel Cairo at Nile Plaza).
+   */
+  name: string;
+  /**
+   * Unique URL-safe identifier for this property.
+   */
+  slug: string;
+  /**
+   * Hospitality establishment classification.
+   */
+  type: 'hotel' | 'resort' | 'cruise' | 'lodge' | 'camp';
+  /**
+   * Authoritative geographical city location.
+   */
+  city: number | City;
+  /**
+   * Curated star classification (1 to 5).
+   */
+  rating?: number | null;
+  /**
+   * Primary showcase image of the property.
+   */
+  heroImage?: (number | null) | Media;
+  /**
+   * High-resolution photo gallery of rooms and amenities.
+   */
+  gallery?:
+    | {
+        image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Curated property overview, highlights, and atmosphere.
+   */
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "experiences".
  */
 export interface Experience {
@@ -584,6 +643,63 @@ export interface Experience {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Curated accommodation stays included in this multi-day Package.
+   */
+  accommodations?:
+    | {
+        /**
+         * Sequential order of this stay within the itinerary (1, 2, ...).
+         */
+        order: number;
+        /**
+         * Reusable Accommodation Property entity from catalog.
+         */
+        property: number | Accommodation;
+        /**
+         * Number of nights for this stay (must be >= 1).
+         */
+        nights: number;
+        /**
+         * Optional package-specific room category (e.g. Deluxe Nile View Room, Luxury Suite).
+         */
+        roomCategory?: string | null;
+        boardBasis?: ('bed_and_breakfast' | 'half_board' | 'full_board' | 'all_inclusive') | null;
+        /**
+         * Available occupancy configurations and supplements for this stay.
+         */
+        occupancyOptions: {
+          occupancy: 'single' | 'double' | 'triple' | 'quad';
+          /**
+           * Price adjustment in EGP relative to standard Double Occupancy base.
+           */
+          supplementEGP: number;
+          /**
+           * Set to true for the standard default occupancy (exactly one default required).
+           */
+          isDefault?: boolean | null;
+          id?: string | null;
+        }[];
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Commercial child and infant pricing configuration (controlled by Administration).
+   */
+  childPolicy?: {
+    /**
+     * Are children allowed on this package experience?
+     */
+    childrenAllowed?: boolean | null;
+    /**
+     * Price percentage for child (2-11 yrs) sharing parents bed (e.g. 50 = 50% of adult base price).
+     */
+    childSharingBedPercentage?: number | null;
+    /**
+     * Price percentage for child (2-11 yrs) requiring an extra rollaway bed (e.g. 75 = 75% of adult base price).
+     */
+    childExtraBedPercentage?: number | null;
+  };
   policies?: {
     root: {
       type: string;
@@ -688,10 +804,12 @@ export interface Booking {
   travelers: {
     firstName: string;
     lastName: string;
-    email: string;
-    phone: string;
+    email?: string | null;
+    phone?: string | null;
     dateOfBirth?: string | null;
     passportNumber?: string | null;
+    nationality?: string | null;
+    type?: ('adult' | 'child' | 'infant') | null;
     id?: string | null;
   }[];
   /**
@@ -740,6 +858,17 @@ export interface Booking {
    */
   pointsEarned?: number | null;
   paymentId?: string | null;
+  /**
+   * Frozen pickup or meeting point location snapshot for this booking
+   */
+  pickupLocation?: {
+    label?: string | null;
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    source?: ('map' | 'search' | 'current_location' | 'fixed_meeting_point') | null;
+    instructions?: string | null;
+  };
   notes?: string | null;
   source?: ('website' | 'admin' | 'api' | 'partner' | 'affiliate') | null;
   version?: number | null;
@@ -1005,37 +1134,6 @@ export interface AdminAuditLog {
     | boolean
     | null;
   executedAt: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customer-addresses".
- */
-export interface CustomerAddress {
-  id: number;
-  customer: number | Customer;
-  type: 'billing' | 'shipping' | 'home';
-  street: string;
-  city: string;
-  country: string;
-  postalCode?: string | null;
-  isDefault?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customer-device-sessions".
- */
-export interface CustomerDeviceSession {
-  id: number;
-  customer: number | Customer;
-  sessionId: string;
-  deviceName: string;
-  ipAddress: string;
-  lastActiveAt: string;
-  isRevoked?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1448,6 +1546,10 @@ export interface PayloadLockedDocument {
         value: number | City;
       } | null)
     | ({
+        relationTo: 'accommodations';
+        value: number | Accommodation;
+      } | null)
+    | ({
         relationTo: 'experiences';
         value: number | Experience;
       } | null)
@@ -1474,14 +1576,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'admin-audit-logs';
         value: number | AdminAuditLog;
-      } | null)
-    | ({
-        relationTo: 'customer-addresses';
-        value: number | CustomerAddress;
-      } | null)
-    | ({
-        relationTo: 'customer-device-sessions';
-        value: number | CustomerDeviceSession;
       } | null)
     | ({
         relationTo: 'customer-notification-preferences';
@@ -1776,6 +1870,28 @@ export interface CitiesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accommodations_select".
+ */
+export interface AccommodationsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  type?: T;
+  city?: T;
+  rating?: T;
+  heroImage?: T;
+  gallery?:
+    | T
+    | {
+        image?: T;
+        id?: T;
+      };
+  description?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "experiences_select".
  */
 export interface ExperiencesSelect<T extends boolean = true> {
@@ -1820,6 +1936,31 @@ export interface ExperiencesSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         id?: T;
+      };
+  accommodations?:
+    | T
+    | {
+        order?: T;
+        property?: T;
+        nights?: T;
+        roomCategory?: T;
+        boardBasis?: T;
+        occupancyOptions?:
+          | T
+          | {
+              occupancy?: T;
+              supplementEGP?: T;
+              isDefault?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  childPolicy?:
+    | T
+    | {
+        childrenAllowed?: T;
+        childSharingBedPercentage?: T;
+        childExtraBedPercentage?: T;
       };
   policies?: T;
   isActive?: T;
@@ -1879,6 +2020,8 @@ export interface BookingsSelect<T extends boolean = true> {
         phone?: T;
         dateOfBirth?: T;
         passportNumber?: T;
+        nationality?: T;
+        type?: T;
         id?: T;
       };
   startDate?: T;
@@ -1908,6 +2051,16 @@ export interface BookingsSelect<T extends boolean = true> {
       };
   pointsEarned?: T;
   paymentId?: T;
+  pickupLocation?:
+    | T
+    | {
+        label?: T;
+        address?: T;
+        latitude?: T;
+        longitude?: T;
+        source?: T;
+        instructions?: T;
+      };
   notes?: T;
   source?: T;
   version?: T;
@@ -2007,35 +2160,6 @@ export interface AdminAuditLogsSelect<T extends boolean = true> {
   reason?: T;
   metadata?: T;
   executedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customer-addresses_select".
- */
-export interface CustomerAddressesSelect<T extends boolean = true> {
-  customer?: T;
-  type?: T;
-  street?: T;
-  city?: T;
-  country?: T;
-  postalCode?: T;
-  isDefault?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customer-device-sessions_select".
- */
-export interface CustomerDeviceSessionsSelect<T extends boolean = true> {
-  customer?: T;
-  sessionId?: T;
-  deviceName?: T;
-  ipAddress?: T;
-  lastActiveAt?: T;
-  isRevoked?: T;
   updatedAt?: T;
   createdAt?: T;
 }

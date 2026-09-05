@@ -7,6 +7,17 @@ export type FormattableDurationInput =
   | { type: 'package'; durationDays: number; durationNights?: number }
   | { type: 'daily_tour'; durationMinutes: number }
 
+export interface DurationLabels {
+  daySingular?: string
+  dayPlural?: string
+  nightSingular?: string
+  nightPlural?: string
+  hourSingular?: string
+  hourPlural?: string
+  minSingular?: string
+  minPlural?: string
+}
+
 /**
  * Canonical Experience Duration Formatter (Fail-Fast, Zero Silent Fallbacks)
  * Converts authoritative domain duration representations into human-friendly strings.
@@ -24,10 +35,21 @@ export type FormattableDurationInput =
  *
  * @throws Error if the duration data violates domain invariants.
  */
-export function formatExperienceDuration(input: FormattableDurationInput): string {
+export function formatExperienceDuration(
+  input: FormattableDurationInput,
+  labels?: DurationLabels,
+): string {
   if (!input || typeof input !== 'object') {
     throw new Error('[ExperienceDurationFormatter] Duration input must be a valid object.')
   }
+
+  const daySingular = labels?.daySingular || 'Day'
+  const dayPlural = labels?.dayPlural || 'Days'
+  const nightSingular = labels?.nightSingular || 'Night'
+  const nightPlural = labels?.nightPlural || 'Nights'
+  const hourSingular = labels?.hourSingular || 'Hour'
+  const hourPlural = labels?.hourPlural || 'Hours'
+  const minPlural = labels?.minPlural || 'Mins'
 
   if (input.type === 'daily_tour') {
     let mins: unknown
@@ -45,14 +67,14 @@ export function formatExperienceDuration(input: FormattableDurationInput): strin
 
     if (mins % 60 === 0) {
       const hours = mins / 60
-      return hours === 1 ? '1 Hour' : `${hours} Hours`
+      return hours === 1 ? `1 ${hourSingular}` : `${hours} ${hourPlural}`
     }
 
     const hours = Math.floor(mins / 60)
     const remainingMinutes = mins % 60
 
     if (hours === 0) {
-      return `${remainingMinutes} Mins`
+      return `${remainingMinutes} ${minPlural}`
     }
 
     return `${hours}h ${remainingMinutes}m`
@@ -79,7 +101,7 @@ export function formatExperienceDuration(input: FormattableDurationInput): strin
       )
     }
 
-    const dayStr = days === 1 ? '1 Day' : `${days} Days`
+    const dayStr = days === 1 ? `1 ${daySingular}` : `${days} ${dayPlural}`
 
     if (nights !== undefined && nights !== null) {
       if (typeof nights !== 'number' || isNaN(nights) || !Number.isInteger(nights) || nights < 0) {
@@ -89,7 +111,7 @@ export function formatExperienceDuration(input: FormattableDurationInput): strin
       }
 
       if (nights > 0) {
-        const nightStr = nights === 1 ? '1 Night' : `${nights} Nights`
+        const nightStr = nights === 1 ? `1 ${nightSingular}` : `${nights} ${nightPlural}`
         return `${dayStr} / ${nightStr}`
       }
     }

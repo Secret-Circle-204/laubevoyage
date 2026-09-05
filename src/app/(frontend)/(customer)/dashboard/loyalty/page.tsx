@@ -5,51 +5,58 @@ import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
 import { CustomerLoyaltyLoader } from '@/application/loyalty/loaders'
 
+import Link from 'next/link'
+
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: "Loyalty Rewards & Tier | L'Aube Voyage Customer Portal" }
 }
 
-export default async function Page() {
+export default async function Page(props: {
+  searchParams: Promise<{ page?: string }>
+}) {
+  const searchParams = await props.searchParams
+  const currentPage = Math.max(1, parseInt(searchParams?.page || '1', 10) || 1)
+
   const session = await SessionResolver.resolve()
   if (!session.isAuthenticated || !session.customerId) {
     redirect('/login')
   }
 
-  const data = await CustomerLoyaltyLoader.load(session.customerId)
+  const data = await CustomerLoyaltyLoader.load(session.customerId, { page: currentPage, limit: 20 })
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Loyalty Rewards & Tier</h1>
-          <p className="text-sm text-slate-500 mt-1">Unlock exclusive benefits, instant checkout discounts, and luxury upgrades.</p>
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">{data.uiLabels.pageTitle}</h1>
+          <p className="text-sm text-slate-500 mt-1">{data.uiLabels.pageSubtitle}</p>
         </div>
-        <Badge variant="accent" className="uppercase font-bold text-xs">{data.translatedCurrentTier} Tier Member</Badge>
+        <Badge variant="accent" className="uppercase font-bold text-xs">{data.translatedCurrentTier} {data.uiLabels.tierMemberSuffix}</Badge>
       </div>
 
       {/* Main Loyalty Balance Card */}
       <Card variant="elevated" padding="lg" className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Available Loyalty Balance</span>
+            <span className="text-xs font-bold text-slate-400 uppercase block mb-1">{data.uiLabels.availableBalance}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-extrabold text-[#f58220]">{data.formattedAvailablePoints}</span>
-              <span className="text-lg font-bold text-[#f58220]">Points</span>
+              <span className="text-lg font-bold text-[#f58220]">{data.uiLabels.pointsUnit}</span>
             </div>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold block mt-1">
-              ≈ {data.pointsMonetaryValue.formatted} Cash Value
+              {data.uiLabels.cashValuePrefix} {data.pointsMonetaryValue.formatted} {data.uiLabels.cashValueSuffix}
             </span>
             {data.heldPoints > 0 && (
               <span className="text-xs text-amber-600 dark:text-amber-400 font-medium block mt-1">
-                ({data.heldPoints} pts actively held in pending reservations • Total ledger: {data.formattedPointsBalance} pts)
+                {data.uiLabels.heldPointsNotice}
               </span>
             )}
           </div>
 
           <div className="text-left sm:text-right">
-            <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Total Qualifying Spend</span>
+            <span className="text-xs font-bold text-slate-400 uppercase block mb-1">{data.uiLabels.totalQualifyingSpend}</span>
             <span className="text-xl font-bold text-slate-900 dark:text-white">{data.formattedTotalSpentEGP}</span>
           </div>
         </div>
@@ -85,7 +92,7 @@ export default async function Page() {
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               {data.pointsValueGuide.title}
             </h2>
-            <Badge variant="accent" size="sm">Instant Checkout Discount</Badge>
+            <Badge variant="accent" size="sm">{data.uiLabels.instantCheckoutDiscount}</Badge>
           </div>
           <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
             {data.pointsValueGuide.description}
@@ -94,14 +101,14 @@ export default async function Page() {
 
         <div className="flex flex-wrap items-center gap-4 self-stretch md:self-auto justify-between md:justify-end">
           <Badge variant="accent" size="md" className="py-2.5 px-4 rounded-xl flex flex-col items-center justify-center text-center">
-            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">Official Rate</span>
+            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">{data.uiLabels.officialRate}</span>
             <span className="text-sm font-bold">
               {data.pointsValueGuide.unitText}
             </span>
           </Badge>
 
           <Badge variant="success" size="md" className="py-2.5 px-4 rounded-xl flex flex-col items-center justify-center text-center">
-            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">Your Points Value</span>
+            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">{data.uiLabels.yourPointsValue}</span>
             <span className="text-sm font-extrabold">
               {data.pointsMonetaryValue.formatted}
             </span>
@@ -111,11 +118,11 @@ export default async function Page() {
 
       {/* Points History Section */}
       <div className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Points Transaction History</h2>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">{data.uiLabels.transactionHistoryTitle}</h2>
         
         {data.history.length === 0 ? (
           <Card variant="flat" padding="lg" className="text-center text-slate-500 py-12">
-            No loyalty transactions found yet. Earn points by booking experiences!
+            {data.uiLabels.noTransactions}
           </Card>
         ) : (
           <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
@@ -123,11 +130,11 @@ export default async function Page() {
               <table className="w-full text-sm text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs font-bold uppercase border-b border-slate-100 dark:border-slate-800">
-                    <th className="px-6 py-4">Date</th>
-                    <th className="px-6 py-4">Transaction Reference</th>
-                    <th className="px-6 py-4">Type</th>
-                    <th className="px-6 py-4">Reason</th>
-                    <th className="px-6 py-4 text-right">Points</th>
+                    <th className="px-6 py-4">{data.uiLabels.dateCol}</th>
+                    <th className="px-6 py-4">{data.uiLabels.referenceCol}</th>
+                    <th className="px-6 py-4">{data.uiLabels.typeCol}</th>
+                    <th className="px-6 py-4">{data.uiLabels.reasonCol}</th>
+                    <th className="px-6 py-4 text-right">{data.uiLabels.pointsCol}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -165,7 +172,7 @@ export default async function Page() {
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : 'text-rose-600 dark:text-rose-400'
                         }`}>
-                          {record.isPositive ? `+${record.points}` : record.points} Pts
+                          {record.isPositive ? `+${record.points}` : record.points} {data.uiLabels.pointsUnit}
                         </td>
                       </tr>
                     )
@@ -173,6 +180,41 @@ export default async function Page() {
                 </tbody>
               </table>
             </div>
+
+            {/* Server-Side Pagination Bar */}
+            {data.pagination && data.pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-6 py-4">
+                <span className="text-xs text-slate-500">
+                  Page {data.pagination.page} of {data.pagination.totalPages} ({data.pagination.totalDocs} total records)
+                </span>
+                <div className="flex items-center gap-2">
+                  {data.pagination.hasPrevPage ? (
+                    <Link
+                      href={`/dashboard/loyalty?page=${data.pagination.page - 1}`}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Previous
+                    </Link>
+                  ) : (
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-100 dark:border-slate-800 text-slate-400 cursor-not-allowed">
+                      Previous
+                    </span>
+                  )}
+                  {data.pagination.hasNextPage ? (
+                    <Link
+                      href={`/dashboard/loyalty?page=${data.pagination.page + 1}`}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Next
+                    </Link>
+                  ) : (
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-100 dark:border-slate-800 text-slate-400 cursor-not-allowed">
+                      Next
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

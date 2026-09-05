@@ -2,17 +2,27 @@
 
 import React, { useState } from 'react'
 import { Card, Input, Button } from '@/components/ui'
-import { useToast } from '@/providers'
+import { useToast, useLocale } from '@/providers'
 import { submitContactRequestAction } from '@/application/actions/contact-actions'
+import { JsonTranslationDictionary } from '@/domains/translation/dictionary'
+
+const dict = new JsonTranslationDictionary()
 
 export function ContactFormClient() {
   const { addToast } = useToast()
+  const { locale } = useLocale()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+
+  const nameLabel = dict.get(locale, 'contact.fullName')
+  const emailLabel = dict.get(locale, 'contact.emailLabel')
+  const subjectLabel = dict.get(locale, 'contact.subject')
+  const messageLabel = dict.get(locale, 'contact.message')
+  const sendButton = dict.get(locale, 'contact.sendMessage')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,7 +101,7 @@ export function ContactFormClient() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-              Your Name *
+              {nameLabel} *
             </label>
             <Input
               name="name"
@@ -103,7 +113,7 @@ export function ContactFormClient() {
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-              Email Address *
+              {emailLabel} *
             </label>
             <Input
               type="email"
@@ -118,7 +128,7 @@ export function ContactFormClient() {
 
         <div>
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-            Subject / Desired Destination *
+            {subjectLabel} *
           </label>
           <Input
             name="subject"
@@ -131,7 +141,7 @@ export function ContactFormClient() {
 
         <div>
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-            Message Details *
+            {messageLabel} *
           </label>
           <textarea
             name="message"
@@ -150,7 +160,7 @@ export function ContactFormClient() {
           className="w-full font-semibold"
           isLoading={isSubmitting}
         >
-          Send Concierge Message →
+          {sendButton} →
         </Button>
       </form>
     </Card>

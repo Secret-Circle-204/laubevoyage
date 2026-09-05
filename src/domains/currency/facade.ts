@@ -193,13 +193,37 @@ export class PricingFacade {
     childrenCount: number
     targetCurrency: string
     loyaltyDiscountEGP?: number
+    commercialBreakdown?: any
+    departureId?: string
+    experienceId?: number
+    bookingDate?: string
   }) {
-    const totalBaseEGP = params.basePricePerPersonEGP * params.adultsCount
-    const { snapshot } = await this.pricingPipeline.execute({
-      basePriceEGP: totalBaseEGP,
-      targetCurrency: params.targetCurrency.toUpperCase(),
-      loyaltyDiscount: params.loyaltyDiscountEGP,
-    })
+    const totalCommercialBaseEGP =
+      params.commercialBreakdown?.adultsTotalEGP !== undefined
+        ? params.commercialBreakdown.adultsTotalEGP +
+          (params.commercialBreakdown.occupancySupplementsTotalEGP || 0) +
+          (params.commercialBreakdown.childrenTotalEGP || 0)
+        : params.basePricePerPersonEGP * params.adultsCount
+
+    const context: any = {
+      departureId: params.departureId || 'dep_checkout',
+      experienceId: params.experienceId || 1,
+      displayCurrency: params.targetCurrency.toUpperCase(),
+      travelers: {
+        adults: params.adultsCount,
+        children: params.childrenCount,
+      },
+      bookingDate: params.bookingDate || new Date().toISOString(),
+      commercialBreakdown: params.commercialBreakdown,
+    }
+
+    const snapshot = await this.pricingPipeline.calculatePricingSnapshot(
+      totalCommercialBaseEGP,
+      context,
+      {
+        loyalty: params.loyaltyDiscountEGP,
+      },
+    )
     return snapshot
   }
 }

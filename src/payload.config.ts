@@ -28,51 +28,56 @@ if (typeof window === 'undefined') {
     fs.writeFileSync(logFilePath, `--- Log session started at ${new Date().toISOString()} ---\n`)
 
     const filterTags = [
-      '[Booking',
-      '[Payment',
+      // '[Booking',
+      // '[Payment',
       '[Cron',
-      '[Loyalty',
-      '[Point',
-      '[point',
-      '[Ledger',
-      '[ledger',
-      '[Hold',
-      '[hold',
-      '[Refund',
-      '[refund',
-      '[Reversal',
-      '[Reverse',
-      '[reverse',
-      '[Redemption',
-      '[Redeem',
-      '[redeem',
-      '[BNPL',
-      '[bnpl',
+      // '[Loyalty',
+      // '[Point',
+      // '[point',
+      // '[Ledger',
+      // '[ledger',
+      // '[Hold',
+      // '[hold',
+      // '[Refund',
+      // '[refund',
+      // '[Reversal',
+      // '[Reverse',
+      // '[reverse',
+      // '[Redemption',
+      // '[Redeem',
+      // '[redeem',
+      // '[BNPL',
+      // '[bnpl',
       '[Reconciliation',
       '[EventBus',
       '[Outbox',
-      '[Inbox',
-      '[Stripe',
-      '[CHECKOUT',
-      '[checkout',
-      '[CustomerLoyalty',
-      '[BookingDetails',
-      '[Dashboard',
-      'BOOKING_',
-      'PAYMENT_',
-      'LOYALTY_',
-      'REFUND_',
+      // '[Inbox',
+      // '[Stripe',
+      // '[CHECKOUT',
+      // '[checkout',
+      // '[CustomerLoyalty',
+      // '[BookingDetails',
+      // '[Dashboard',
+      // 'BOOKING_',
+      // 'PAYMENT_',
+      // 'LOYALTY_',
+      // 'REFUND_',
+      '[FORENSIC-DIAG',
+      '[Translation',
+      '[TRANSLATION_CACHE_MUTATED',
     ]
 
-    const ignoreTags = [
-      '[LoyaltyProgramRegistry.getProgram]',
-    ]
+    const ignoreTags = ['[LoyaltyProgramRegistry.getProgram]']
 
     const intercept = (original: typeof console.log, type: string) => {
       return (...args: any[]) => {
         original(...args)
         const formatted = args
-          .map((arg) => (typeof arg === 'object' && arg !== null ? util.inspect(arg, { depth: null, colors: false }) : String(arg)))
+          .map((arg) =>
+            typeof arg === 'object' && arg !== null
+              ? util.inspect(arg, { depth: null, colors: false })
+              : String(arg),
+          )
           .join(' ')
         const shouldIgnore = ignoreTags.some((tag) => formatted.includes(tag))
         if (!shouldIgnore && filterTags.some((tag) => formatted.includes(tag))) {
@@ -94,6 +99,7 @@ import { Customers } from './collections/Customers'
 import { Media } from './collections/Media'
 import { Countries } from './collections/Countries'
 import { Cities } from './collections/Cities'
+import { Accommodations } from './collections/Accommodations'
 import { Experiences } from './collections/Experiences'
 import { Bookings } from './collections/Bookings'
 import { PointLedger } from './collections/PointLedger'
@@ -101,8 +107,6 @@ import { ExchangeRates } from './collections/ExchangeRates'
 import { Currencies } from './collections/Currencies'
 import { TranslationCache } from './collections/TranslationCache'
 import { AdminAuditLogs } from './collections/AdminAuditLogs'
-import { CustomerAddresses } from './collections/CustomerAddresses'
-import { CustomerDeviceSessions } from './collections/CustomerDeviceSessions'
 import { CustomerNotificationPreferences } from './collections/CustomerNotificationPreferences'
 import { CustomerTravelers } from './collections/CustomerTravelers'
 import { DashboardProjections } from './collections/DashboardProjections'
@@ -141,6 +145,7 @@ export default buildConfig({
     Media,
     Countries,
     Cities,
+    Accommodations,
     Experiences,
     Bookings,
     PointLedger,
@@ -148,8 +153,6 @@ export default buildConfig({
     Currencies,
     TranslationCache,
     AdminAuditLogs,
-    CustomerAddresses,
-    CustomerDeviceSessions,
     CustomerNotificationPreferences,
     CustomerTravelers,
     DashboardProjections,
@@ -212,5 +215,9 @@ export default buildConfig({
       })
     },
   }),
+  onInit: async (payload) => {
+    const { bootstrapWebApplication } = await import('./domains/bootstrap')
+    await bootstrapWebApplication(payload)
+  },
   plugins: [],
 })

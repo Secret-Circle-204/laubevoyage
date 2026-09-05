@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "Experiencias de Lujo L'Aube Voyage",
-    "subtitle": "Creando Viajes desde 1996: Tu Pasaporte a Descubrimientos Únicos",
+    "subtitle": "Creando Viajes Desde 1996: Su Pasaporte a Descubrimientos Exclusivos",
     "cta": {
       "primary": "Explorar Experiencias →",
       "secondary": "Descubrir Destinos"
@@ -12,11 +12,28 @@
       "home": "Inicio",
       "destinations": "Destinos",
       "experiences": "Experiencias",
-      "about": "Sobre Nosotros"
+      "about": "Nosotros"
+    },
+    "header": {
+      "myAccount": "👤 Mi Cuenta",
+      "signOut": "Cerrar Sesión",
+      "logIn": "Iniciar Sesión",
+      "bookNow": "Reservar Ahora"
+    },
+    "sidebar": {
+      "overview": "Resumen",
+      "myBookings": "Mis Reservas",
+      "loyaltyRewards": "Puntos y Recompensas",
+      "profileCompanions": "Perfil y Acompañantes",
+      "invoicesReceipts": "Facturas y Recibos",
+      "notifications": "Notificaciones",
+      "settings": "Configuración",
+      "tierSuffix": "Nivel"
     },
     "footer": {
-      "rights": "Todos los Derechos Reservados © 2026 L'Aube Voyage",
-      "tagline": "Viajes Extraordinarios desde 1996.",
+      "rights": "Todos los derechos reservados © 2026 L'Aube Voyage",
+      "tagline": "Creando Viajes Extraordinarios Desde 1996.",
+      "brandDescription": "Descubra viajes de lujo extraordinarios, cruceros 5 estrellas por el Nilo y tours privados con egiptólogos para viajeros exigentes.",
       "explore": "Explorar",
       "allExperiences": "Todas las Experiencias",
       "destinations": "Destinos",
@@ -26,27 +43,78 @@
       "aboutUs": "Sobre Nosotros",
       "travelBlog": "Blog de Viajes",
       "faqs": "Preguntas Frecuentes",
-      "contactUs": "Contáctenos",
+      "contactUs": "Contacto",
       "legal": "Legal",
       "privacyPolicy": "Política de Privacidad",
       "termsOfService": "Términos del Servicio",
-      "customerPortal": "Portal del Cliente"
+      "customerPortal": "Portal de Clientes"
     }
   },
   "catalog": {
     "meta": {
-      "title": "Catálogo de Experiencias de Lujo y Paquetes | L'Aube Voyage",
-      "description": "Descubre paquetes de viaje de lujo, cruceros por el Nilo y tours privados en todo Egipto."
+      "title": "Catálogo de Experiencias y Paquetes de Lujo | L'Aube Voyage",
+      "description": "Explore paquetes de lujo, cruceros por el Nilo y tours privados en Egipto."
     },
     "badge": "Colección Exclusiva",
     "title": "Catálogo de Experiencias",
-    "description": "Descubre paquetes turísticos de lujo y tours privados de un día diseñados para viajeros exigentes.",
+    "description": "Descubra paquetes de lujo y tours privados diseñados para viajeros exigentes.",
     "filterAll": "Todas las Experiencias ({count})",
     "filterPackages": "Paquetes Turísticos",
-    "filterDailyTours": "Tours Privados Diarios",
+    "filterDailyTours": "Tours Diarios Privados",
     "viewItinerary": "Ver Itinerario",
     "packageLabel": "Paquete Turístico",
     "dailyTourLabel": "Tour Diario"
+  },
+  "checkout": {
+    "leadTravelerInfo": "Información del Viajero Principal",
+    "paymentMethod": "Método de Pago",
+    "applyLoyaltyPoints": "Canjear Puntos de Lealtad",
+    "orderSummary": "Resumen del Pedido",
+    "confirmAndPay": "Confirmar y Pagar Ahora",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "email": "Correo Electrónico",
+    "phone": "Teléfono"
+  },
+  "contact": {
+    "vipConciergeBadge": "Conserjería VIP 24/7",
+    "title": "Contacte con Nuestros Especialistas",
+    "description": "¿Preguntas sobre itinerarios a medida o cruceros privados? Envíenos un mensaje y responderemos en menos de 2 horas.",
+    "directContact": "Contacto Directo",
+    "cairoHeadOffice": "Oficina Central en El Cairo",
+    "vipHotline": "Línea VIP Directa",
+    "emailLabel": "Correo",
+    "sendMessage": "Enviar Mensaje",
+    "fullName": "Nombre Completo",
+    "subject": "Asunto",
+    "message": "Mensaje"
+  },
+  "auth": {
+    "customerPortal": "Portal de Clientes",
+    "welcomeBack": "Bienvenido de nuevo",
+    "signInSubtitle": "Inicie sesión para acceder a sus reservas y puntos.",
+    "dontHaveAccount": "¿No tiene cuenta de viajero?",
+    "createAccount": "Crear Cuenta de Viajero",
+    "createAccountTitle": "Crear Cuenta de Viajero",
+    "createAccountSubtitle": "Únase a L'Aube Voyage Rewards y disfrute de beneficios exclusivos.",
+    "alreadyHaveAccount": "¿Ya tiene una cuenta?",
+    "signInLink": "Iniciar Sesión"
+  },
+  "notFound": {
+    "badge": "Destino Inaccesible",
+    "title": "Página No Encontrada",
+    "description": "La experiencia o destino solicitado no existe o ha sido trasladado.",
+    "returnHome": "Volver a la Página Principal →"
+  },
+  "bookingConfirmation": {
+    "thankYou": "¡Gracias Por Su Reserva!",
+    "refSubtitle": "Su número de referencia de reserva es",
+    "statusLabel": "Estado:",
+    "totalPriceLabel": "Precio Total:",
+    "nextSteps": "Próximos Pasos",
+    "printConfirmation": "Imprimir confirmación de reserva",
+    "backToBookings": "Volver a todas las reservas",
+    "reservationDossier": "Confirmación de reserva"
   },
   "loyalty": {
     "tier": {
@@ -56,11 +124,164 @@
     },
     "progress": {
       "remainingToTier": "Faltan {amount} para alcanzar el nivel {tier}",
-      "maxTier": "¡Nivel de membresía más alto alcanzado!"
+      "maxTier": "¡Nivel Máximo de Membresía Alcanzado!"
     },
     "guide": {
       "title": "Guía de Valor de Puntos",
-      "description": "Usa tus puntos directamente al pagar — sin códigos ni complicaciones. Selecciona tu nivel y ahorra al instante."
+      "description": "Use sus puntos directamente en el pago — sin códigos ni complicaciones."
+    },
+    "portal": {
+      "pageTitle": "Recompensas y nivel de fidelidad",
+      "pageSubtitle": "Desbloquea beneficios exclusivos, descuentos instantáneos y mejoras de lujo.",
+      "tierMemberSuffix": "Miembro",
+      "availableBalance": "Saldo de puntos disponible",
+      "pointsUnit": "Puntos",
+      "cashValuePrefix": "≈",
+      "cashValueSuffix": "Valor monetario",
+      "heldPointsNotice": "({heldPoints} pts retenidos en reservas pendientes • Total registro: {totalPoints} pts)",
+      "totalQualifyingSpend": "Gasto total calificado",
+      "instantCheckoutDiscount": "Descuento instantáneo",
+      "officialRate": "Tarifa oficial",
+      "yourPointsValue": "Valor de sus puntos",
+      "transactionHistoryTitle": "Historial de transacciones de puntos",
+      "noTransactions": "No hay transacciones de fidelidad aún. ¡Gana puntos reservando experiencias!",
+      "dateCol": "Fecha",
+      "referenceCol": "Referencia de transacción",
+      "typeCol": "Tipo",
+      "reasonCol": "Motivo",
+      "pointsCol": "Puntos"
     }
+  },
+  "experience": {
+    "backToCatalog": "← Volver al Catálogo de Experiencias",
+    "fromPerAdult": "Desde (Por Adulto)",
+    "totalCost": "Costo Total",
+    "totalPrice": "Precio Total",
+    "selectDepartureSlot": "Seleccionar Turno de Salida",
+    "seatsLeft": "{count} Plazas Disponibles",
+    "seatLeftSingle": "1 Plaza Disponible",
+    "soldOut": "Agotado",
+    "unavailable": "No Disponible",
+    "closed": "Cerrado",
+    "noUpcomingDates": "No hay fechas de salida disponibles actualmente para este paquete.",
+    "selectStartDate": "Seleccionar Fecha de Inicio",
+    "blackoutDateNotice": "Esta fecha no está disponible (Fecha Bloqueada).",
+    "tripDuration": "Duración del Viaje:",
+    "returnDate": "Fecha de Regreso:",
+    "selectTourDate": "Seleccionar Fecha del Tour",
+    "blackoutDateTimeNotice": "Este horario no está disponible (Fecha Bloqueada).",
+    "selectDailyTimeSlot": "Seleccionar Horario",
+    "passed": "(Pasado)",
+    "timePassedNotice": "Este horario de salida ya ha pasado. Por favor seleccione un horario próximo.",
+    "whoIsTravelling": "¿Quién Viaja?",
+    "adults": "Adultos",
+    "adultSingular": "Adulto",
+    "adultPlural": "Adultos",
+    "adultsAgeHint": "Edad 12+ años",
+    "children": "Niños",
+    "childSingular": "Niño",
+    "childPlural": "Niños",
+    "childrenAgeHint": "Edad 0–11 años",
+    "childIndex": "Niño {index}",
+    "ageLabel": "Edad:",
+    "yearSingular": "año",
+    "yearPlural": "años",
+    "infantCategory": "(Bebé)",
+    "adultCategory": "(Adulto)",
+    "infantSharingNotice": "👶 Bebé (Menor de 2 años): Gratis • Compartiendo cama",
+    "beddingPreference": "Preferencia de Cama",
+    "sharingBed": "Cama Compartida",
+    "extraBed": "Cama Extra",
+    "percentOfBaseRate": "({percentage}% de la tarifa base)",
+    "adultRateNotice": "🧑 Edad 12+: Tarifa estándar de adulto",
+    "rooms": "Habitaciones",
+    "roomSingular": "Habitación",
+    "roomPlural": "Habitaciones",
+    "totalRequestedRooms": "Habitaciones solicitadas",
+    "minimumRoomsRequired": "Mínimo {min} habitaciones requeridas para {adults} {adultUnit}",
+    "yourRooms": "Sus Habitaciones",
+    "roomIndex": "Habitación {index}",
+    "priceBreakdown": "Desglose de Precio",
+    "commercialSsotBadge": "Tarificación Oficial",
+    "adultsCalculation": "Adultos ({count} × {price}):",
+    "childCalculation": "Niño {index} ({age} años, {mode}):",
+    "free": "Gratis",
+    "roomSupplements": "Suplementos de Habitación:",
+    "pricingErrorHint": "Intente aumentar el número de habitaciones o seleccionar otra fecha.",
+    "updatingCalculation": "Actualizando cálculo...",
+    "bookThisJourney": "Reservar este Viaje →",
+    "bookJourneyShort": "Reservar Viaje →",
+    "configureBooking": "Configurar Reserva",
+    "journeyOverview": "Resumen del Viaje",
+    "staysTitle": "Sus Alojamientos & Hoteles de Lujo",
+    "staysSubtitle": "Hoteles 5 estrellas y cruceros por el Nilo cuidadosamente seleccionados",
+    "stayHeader": "Estancia #{order} • {nights} {nightUnit}",
+    "nightSingular": "Noche",
+    "nightPlural": "Noches",
+    "daySingular": "Día",
+    "dayPlural": "Días",
+    "hourSingular": "Hora",
+    "hourPlural": "Horas",
+    "minSingular": "Min",
+    "minPlural": "Mins",
+    "roomLabel": "Habitación:",
+    "includedInItinerary": "Incluido en su itinerario",
+    "supportedOccupancyOptions": "Opciones de Ocupación",
+    "includedInBase": "Incluido en Tarifa Base",
+    "itineraryTitle": "Itinerario Detallado Día por Día",
+    "itineraryDay": "Día {day}",
+    "servicesTitle": "Lista de Servicios",
+    "whatsIncluded": "Qué Incluye",
+    "whatsExcluded": "Qué No Incluye",
+    "policiesTitle": "Políticas & Términos de Cancelación",
+    "empty": {
+      "noPackageSlots": "Este paquete no tiene fechas de salida disponibles actualmente.",
+      "noTourSchedules": "Este tour no tiene horarios disponibles actualmente.",
+      "unavailable": "Este viaje no está disponible para reservas actualmente.",
+      "exploreOther": "Explorar Otras Experiencias →"
+    },
+    "aria": {
+      "decreaseAdults": "Disminuir adultos",
+      "increaseAdults": "Aumentar adultos",
+      "decreaseChildren": "Disminuir niños",
+      "increaseChildren": "Aumentar niños",
+      "decreaseRooms": "Disminuir habitaciones",
+      "increaseRooms": "Aumentar habitaciones"
+    },
+    "occupancy": {
+      "single": "Ocupación Individual (1 Viajero)",
+      "double": "Ocupación Doble (2 Viajeros)",
+      "triple": "Ocupación Triple (3 Viajeros)",
+      "quad": "Ocupación Cuádruple (4 Viajeros)",
+      "singleRoom": "Habitación Individual",
+      "doubleRoom": "Habitación Doble",
+      "tripleRoom": "Habitación Triple",
+      "quadRoom": "Habitación Cuádruple"
+    },
+    "boardBasis": {
+      "bed_and_breakfast": "Alojamiento y Desayuno",
+      "half_board": "Media Pensión",
+      "full_board": "Pensión Completa",
+      "all_inclusive": "Todo Incluido"
+    }
+  },
+  "search": {
+    "badge": "Motor de Búsqueda Global",
+    "title": "Resultados de Búsqueda",
+    "resultsForQuery": "Se encontraron {count} resultados para \"{query}\"",
+    "resultsAll": "Se encontraron {count} resultados en viajes y destinos.",
+    "placeholder": "Buscar experiencias, destinos, cruceros por el Nilo...",
+    "searchButton": "Buscar",
+    "filterAll": "Todas las Experiencias",
+    "filterPackages": "Paquetes de Viaje",
+    "filterDailyTours": "Tours Diarios",
+    "emptyTitle": "No se Encontraron Resultados",
+    "emptyDescription": "No pudimos encontrar experiencias o destinos que coincidan con \"{query}\". Intente con palabras clave diferentes o explore nuestros destinos de lujo.",
+    "emptyAction": "Ver Todas las Experiencias",
+    "exploreItem": "Explorar Experiencia →",
+    "previousPage": "← Anterior",
+    "nextPage": "Siguiente →",
+    "pageOf": "Página {page} de {totalPages}",
+    "showingCount": "Mostrando página {page} de {totalPages} ({total} en total)"
   }
 }

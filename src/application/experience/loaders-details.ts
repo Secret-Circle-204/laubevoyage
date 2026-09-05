@@ -1,6 +1,7 @@
 import { getApplicationServices } from '@/application/factory'
 import { getBusinessDateString } from '@/lib/date'
-import type { ExperienceDetailsDTO, DepartureSlotDTO, ItineraryDayDTO } from './dto-details'
+import type { ExperienceDetailsDTO, DepartureSlotDTO, ItineraryDayDTO, FormattedCommercialBreakdown } from './dto-details'
+import type { DepartureSlotStatus } from '@/domains/experience/types'
 import type { ConvertedPrice } from '@/domains/currency/types'
 import { formatExperienceDuration } from '@/domains/experience/duration-formatter'
 import { ExperiencePolicy } from '@/domains/experience/policy'
@@ -58,20 +59,6 @@ export class ExperienceDetailsLoader {
 
     const isSlotLess = exp.type === 'daily_tour' || (exp.type === 'package' && exp.packageMode === 'flexible_date')
     const dbSlots = isSlotLess ? [] : await experience.findSlotsByExperienceId(exp.id)
-    const departureSlots: DepartureSlotDTO[] = dbSlots.map((s) => {
-      if (!s.id) {
-        throw new Error(`[ExperienceDetailsLoader] Departure slot ${s.departureId} is missing canonical ID.`)
-      }
-      return {
-        id: s.id,
-        departureId: s.departureId,
-        departureDate: s.date,
-        startTime: s.startTime || undefined,
-        availableSeats: s.capacityAvailable,
-        priceOverrideEGP: s.priceOverrideEGP,
-        status: s.status,
-      }
-    })
 
     // Dynamic translation for description
     const rawDescription = exp.descriptionHtml || ''
@@ -139,41 +126,67 @@ export class ExperienceDetailsLoader {
     // 1. FIXED PACKAGE
     // =========================================================================
     if (exp.type === 'package' && exp.packageMode === 'fixed_date') {
-      const bookableSlots = dbSlots.filter((s) => {
-        if (s.status !== 'available' || s.capacityAvailable <= 0) return false
-        const check = ExperiencePolicy.isFixedPackageSlotBookable({
-          date: s.date,
-          startTime: s.startTime || undefined,
-          slotStatus: s.status,
-          capacityAvailable: s.capacityAvailable,
-          timezone: destinationTimezone,
-        })
-        return check.allowed
+      const now = new Date()
+      const todayInTimezone = getBusinessDateString(destinationTimezone, now)
+
+      // Filter upcoming slots (exclude past calendar dates)
+      const upcomingSlots = dbSlots.filter((s) => {
+        if (!s.date) return false
+        if (s.date < todayInTimezone) return false
+        return true
       })
 
-      const isBookable = exp.availability === 'available' && bookableSlots.length > 0
-      let defaultSlot: DepartureSlotDTO | null = null
-      let pricing: { unitPrice: ConvertedPrice; totalPrice: ConvertedPrice } | null = null
-
-      const mappedBookableSlots: DepartureSlotDTO[] = bookableSlots
+      // Map upcoming slots with their authoritative status
+      const mappedSlots: DepartureSlotDTO[] = upcomingSlots
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .map((s) => {
           if (!s.id) {
             throw new Error(`[ExperienceDetailsLoader] Departure slot ${s.departureId} is missing canonical ID.`)
           }
+          // Determine authoritative status according to capacity and cutoff rules
+          const bookableCheck = ExperiencePolicy.isFixedPackageSlotBookable(
+            {
+              date: s.date,
+              startTime: s.startTime || undefined,
+              slotStatus: s.status,
+              capacityAvailable: s.capacityAvailable,
+              timezone: destinationTimezone,
+            },
+            now,
+          )
+
+          let status: DepartureSlotStatus = s.status
+          if (s.status === 'available') {
+            if (s.capacityAvailable <= 0) {
+              status = 'sold_out'
+            } else if (!bookableCheck.allowed && bookableCheck.code === 'DEPARTURE_IN_PAST') {
+              status = 'past'
+            }
+          }
+
           return {
             id: s.id,
             departureId: s.departureId,
             departureDate: s.date,
             startTime: s.startTime || undefined,
-            availableSeats: s.capacityAvailable,
+            availableSeats: Math.max(0, s.capacityAvailable),
             priceOverrideEGP: s.priceOverrideEGP,
-            status: s.status,
+            status,
           }
         })
+        .filter((s) => s.status !== 'past')
 
-      if (isBookable && mappedBookableSlots.length > 0) {
-        defaultSlot = mappedBookableSlots[0]
+      // Find the first genuinely bookable slot for default selection
+      const bookableSlots = mappedSlots.filter(
+        (s) => s.status === 'available' && s.availableSeats > 0,
+      )
+
+      const isBookable = exp.availability === 'available' && bookableSlots.length > 0
+      let defaultSlot: DepartureSlotDTO | null = null
+      let pricing: { unitPrice: ConvertedPrice; totalPrice: ConvertedPrice; formattedBreakdown?: FormattedCommercialBreakdown; commercialBreakdown?: any } | null = null
+
+      if (isBookable && bookableSlots.length > 0) {
+        defaultSlot = bookableSlots[0]
 
         if (defaultSlot) {
           const pricingRes = await bookingPricingUseCase.calculate({
@@ -186,15 +199,83 @@ export class ExperienceDetailsLoader {
           pricing = {
             unitPrice: pricingRes.unitPrice,
             totalPrice: pricingRes.totalCost,
+            formattedBreakdown: pricingRes.formattedBreakdown,
+            commercialBreakdown: pricingRes.commercialBreakdown,
           }
         }
       }
 
-      const formattedDuration = formatExperienceDuration({
-        type: 'package',
-        days: exp.durationDays,
-        nights: exp.durationNights,
-      })
+      const durationLabels = {
+        daySingular: localization.translateUiKey('experience.daySingular', ctx),
+        dayPlural: localization.translateUiKey('experience.dayPlural', ctx),
+        nightSingular: localization.translateUiKey('experience.nightSingular', ctx),
+        nightPlural: localization.translateUiKey('experience.nightPlural', ctx),
+        hourSingular: localization.translateUiKey('experience.hourSingular', ctx),
+        hourPlural: localization.translateUiKey('experience.hourPlural', ctx),
+        minSingular: localization.translateUiKey('experience.minSingular', ctx),
+        minPlural: localization.translateUiKey('experience.minPlural', ctx),
+      }
+
+      const formattedDuration = formatExperienceDuration(
+        {
+          type: 'package',
+          days: exp.durationDays,
+          nights: exp.durationNights,
+        },
+        durationLabels,
+      )
+
+      const OCCUPANCY_KEY_MAP: Record<string, string> = {
+        single: 'experience.occupancy.single',
+        double: 'experience.occupancy.double',
+        triple: 'experience.occupancy.triple',
+        quad: 'experience.occupancy.quad',
+      }
+
+      const accommodationsDTO =
+        Array.isArray((exp as any).accommodations) && (exp as any).accommodations.length > 0
+          ? await Promise.all(
+              (exp as any).accommodations.map(async (stay: any) => ({
+                order: stay.order,
+                propertyName: stay.property?.name || `Accommodation #${stay.order}`,
+                propertyType: stay.property?.type || 'hotel',
+                nights: stay.nights,
+                roomCategory: stay.roomCategory || undefined,
+                boardBasis: stay.boardBasis || undefined,
+                occupancyOptions: await Promise.all(
+                  (stay.occupancyOptions || []).map(async (opt: any) => ({
+                    occupancy: opt.occupancy,
+                    label: OCCUPANCY_KEY_MAP[opt.occupancy]
+                      ? localization.translateUiKey(OCCUPANCY_KEY_MAP[opt.occupancy], ctx)
+                      : opt.occupancy,
+                    supplementEGP: opt.supplementEGP || 0,
+                    supplementPrice: await localization.formatPrice(opt.supplementEGP || 0, ctx),
+                    isDefault: opt.isDefault || false,
+                  })),
+                ),
+              })),
+            )
+          : undefined
+
+      const baseAdultPriceEGP = (pricing?.unitPrice?.baseAmountEGP ?? exp.price) || 0
+      const sharingPct = (exp as any).childPolicy?.childSharingBedPercentage ?? 50
+      const extraBedPct = (exp as any).childPolicy?.childExtraBedPercentage ?? 75
+
+      const childPolicyDTO = (exp as any).childPolicy
+        ? {
+            childrenAllowed: (exp as any).childPolicy.childrenAllowed !== false,
+            childSharingBedPercentage: sharingPct,
+            childExtraBedPercentage: extraBedPct,
+            childSharingPrice: await localization.formatPrice(
+              Math.round(baseAdultPriceEGP * (sharingPct / 100)),
+              ctx,
+            ),
+            childExtraBedPrice: await localization.formatPrice(
+              Math.round(baseAdultPriceEGP * (extraBedPct / 100)),
+              ctx,
+            ),
+          }
+        : undefined
 
       return {
         ...baseDTO,
@@ -203,15 +284,17 @@ export class ExperienceDetailsLoader {
         bookability: {
           model: 'fixed_package' as const,
           isBookable,
-          departureSlots: mappedBookableSlots,
+          departureSlots: mappedSlots,
           defaultSlotId: defaultSlot?.id || null,
         },
         durationDays: exp.durationDays,
         durationNights: exp.durationNights,
         formattedDuration,
-        departureSlots: mappedBookableSlots,
+        departureSlots: mappedSlots,
         defaultSlotId: defaultSlot?.id || null,
         blackouts,
+        accommodations: accommodationsDTO,
+        childPolicy: childPolicyDTO,
         pricing,
       }
     }
@@ -230,7 +313,7 @@ export class ExperienceDetailsLoader {
       const initialStartDate = firstStartDate || todayStr
       const minStartDate = firstStartDate || todayStr
 
-      let pricing: { unitPrice: ConvertedPrice; totalPrice: ConvertedPrice } | null = null
+      let pricing: { unitPrice: ConvertedPrice; totalPrice: ConvertedPrice; formattedBreakdown?: FormattedCommercialBreakdown; commercialBreakdown?: any } | null = null
       if (isBookable && firstStartDate) {
         const pricingRes = await bookingPricingUseCase.calculatePreview({
           experienceId: exp.id,
@@ -243,14 +326,82 @@ export class ExperienceDetailsLoader {
         pricing = {
           unitPrice: pricingRes.unitPrice,
           totalPrice: pricingRes.totalCost,
+          formattedBreakdown: pricingRes.formattedBreakdown,
+          commercialBreakdown: pricingRes.commercialBreakdown,
         }
       }
 
-      const formattedDuration = formatExperienceDuration({
-        type: 'package',
-        days: exp.durationDays,
-        nights: exp.durationNights,
-      })
+      const durationLabels = {
+        daySingular: localization.translateUiKey('experience.daySingular', ctx),
+        dayPlural: localization.translateUiKey('experience.dayPlural', ctx),
+        nightSingular: localization.translateUiKey('experience.nightSingular', ctx),
+        nightPlural: localization.translateUiKey('experience.nightPlural', ctx),
+        hourSingular: localization.translateUiKey('experience.hourSingular', ctx),
+        hourPlural: localization.translateUiKey('experience.hourPlural', ctx),
+        minSingular: localization.translateUiKey('experience.minSingular', ctx),
+        minPlural: localization.translateUiKey('experience.minPlural', ctx),
+      }
+
+      const formattedDuration = formatExperienceDuration(
+        {
+          type: 'package',
+          days: exp.durationDays,
+          nights: exp.durationNights,
+        },
+        durationLabels,
+      )
+
+      const OCCUPANCY_KEY_MAP: Record<string, string> = {
+        single: 'experience.occupancy.single',
+        double: 'experience.occupancy.double',
+        triple: 'experience.occupancy.triple',
+        quad: 'experience.occupancy.quad',
+      }
+
+      const accommodationsDTO =
+        Array.isArray((exp as any).accommodations) && (exp as any).accommodations.length > 0
+          ? await Promise.all(
+              (exp as any).accommodations.map(async (stay: any) => ({
+                order: stay.order,
+                propertyName: stay.property?.name || `Accommodation #${stay.order}`,
+                propertyType: stay.property?.type || 'hotel',
+                nights: stay.nights,
+                roomCategory: stay.roomCategory || undefined,
+                boardBasis: stay.boardBasis || undefined,
+                occupancyOptions: await Promise.all(
+                  (stay.occupancyOptions || []).map(async (opt: any) => ({
+                    occupancy: opt.occupancy,
+                    label: OCCUPANCY_KEY_MAP[opt.occupancy]
+                      ? localization.translateUiKey(OCCUPANCY_KEY_MAP[opt.occupancy], ctx)
+                      : opt.occupancy,
+                    supplementEGP: opt.supplementEGP || 0,
+                    supplementPrice: await localization.formatPrice(opt.supplementEGP || 0, ctx),
+                    isDefault: opt.isDefault || false,
+                  })),
+                ),
+              })),
+            )
+          : undefined
+
+      const baseAdultPriceEGP = (pricing?.unitPrice?.baseAmountEGP ?? exp.price) || 0
+      const sharingPct = (exp as any).childPolicy?.childSharingBedPercentage ?? 50
+      const extraBedPct = (exp as any).childPolicy?.childExtraBedPercentage ?? 75
+
+      const childPolicyDTO = (exp as any).childPolicy
+        ? {
+            childrenAllowed: (exp as any).childPolicy.childrenAllowed !== false,
+            childSharingBedPercentage: sharingPct,
+            childExtraBedPercentage: extraBedPct,
+            childSharingPrice: await localization.formatPrice(
+              Math.round(baseAdultPriceEGP * (sharingPct / 100)),
+              ctx,
+            ),
+            childExtraBedPrice: await localization.formatPrice(
+              Math.round(baseAdultPriceEGP * (extraBedPct / 100)),
+              ctx,
+            ),
+          }
+        : undefined
 
       return {
         ...baseDTO,
@@ -271,6 +422,8 @@ export class ExperienceDetailsLoader {
         departureSlots: [],
         defaultSlotId: null,
         blackouts,
+        accommodations: accommodationsDTO,
+        childPolicy: childPolicyDTO,
         pricing,
       }
     }
@@ -288,7 +441,7 @@ export class ExperienceDetailsLoader {
     })
 
     const isBookable = exp.availability === 'available' && firstDeparture !== null
-    let pricing: { unitPrice: ConvertedPrice; totalPrice: ConvertedPrice } | null = null
+    let pricing: { unitPrice: ConvertedPrice; totalPrice: ConvertedPrice; formattedBreakdown?: FormattedCommercialBreakdown; commercialBreakdown?: any } | null = null
 
     if (isBookable && firstDeparture) {
       const pricingRes = await bookingPricingUseCase.calculatePreview({
@@ -302,13 +455,29 @@ export class ExperienceDetailsLoader {
       pricing = {
         unitPrice: pricingRes.unitPrice,
         totalPrice: pricingRes.totalCost,
+        formattedBreakdown: pricingRes.formattedBreakdown,
+        commercialBreakdown: pricingRes.commercialBreakdown,
       }
     }
 
-    const formattedDuration = formatExperienceDuration({
-      type: 'daily_tour',
-      durationMinutes: tourDurationMinutes,
-    })
+    const durationLabels = {
+      daySingular: localization.translateUiKey('experience.daySingular', ctx),
+      dayPlural: localization.translateUiKey('experience.dayPlural', ctx),
+      nightSingular: localization.translateUiKey('experience.nightSingular', ctx),
+      nightPlural: localization.translateUiKey('experience.nightPlural', ctx),
+      hourSingular: localization.translateUiKey('experience.hourSingular', ctx),
+      hourPlural: localization.translateUiKey('experience.hourPlural', ctx),
+      minSingular: localization.translateUiKey('experience.minSingular', ctx),
+      minPlural: localization.translateUiKey('experience.minPlural', ctx),
+    }
+
+    const formattedDuration = formatExperienceDuration(
+      {
+        type: 'daily_tour',
+        durationMinutes: tourDurationMinutes,
+      },
+      durationLabels,
+    )
 
     return {
       ...baseDTO,

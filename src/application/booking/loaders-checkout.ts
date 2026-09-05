@@ -11,13 +11,16 @@ export class CheckoutPageLoader {
       experienceId?: number
       adults?: number
       children?: number
+      childAges?: number[]
+      childBeddingModes?: ('sharing_bed' | 'extra_bed')[]
+      requestedRooms?: number
       slotId?: number
       date?: string
       startTime?: string
     },
   ): Promise<CheckoutPageDTO | null> {
     try {
-      const { booking, experience, payment, localization, pricingFacade, bookingPricingUseCase, loyalty } = await getApplicationServices()
+      const { booking, experience, payment, localization, bookingPricingUseCase, loyalty, destination } = await getApplicationServices()
 
       const ctx = await localization.buildContext({
         cookieLocale: options?.locale,
@@ -83,13 +86,26 @@ export class CheckoutPageLoader {
             )
           : undefined
 
+        const [translatedExpTitle] = await localization.translateBatch([expDoc.title], ctx)
         const imageUrl = expDoc.heroUrl || ''
+
+        let destinationCityName: string | undefined
+        let destinationCountryName: string | undefined
+        if (expDoc.cityId) {
+          const cityDoc = await destination.getCityById(expDoc.cityId)
+          if (cityDoc) {
+            destinationCityName = cityDoc.name
+            if (cityDoc.country && typeof cityDoc.country === 'object') {
+              destinationCountryName = (cityDoc.country as any).name
+            }
+          }
+        }
 
         return {
           bookingId: bookingDoc.bookingNumber,
           experienceId: expDoc.id,
           slotId: bookingDoc.departureSlot || undefined,
-          experienceTitle: expDoc.title,
+          experienceTitle: translatedExpTitle || expDoc.title,
           experienceType: expDoc.type === 'daily_tour' ? 'daily_tour' : 'package',
           imageUrl,
           departureDate: bookingDoc.startDate,
@@ -107,7 +123,10 @@ export class CheckoutPageLoader {
           loyaltyDiscountPrice,
           gateways,
           leadTraveler,
+          destinationCityName,
+          destinationCountryName,
         }
+
       }
 
       // Handle new draft checkout
@@ -144,6 +163,9 @@ export class CheckoutPageLoader {
           slotId: options.slotId,
           adultsCount,
           childrenCount,
+          childAges: options.childAges,
+          childBeddingModes: options.childBeddingModes,
+          requestedRooms: options.requestedRooms,
           ctx,
         })
       } else if (isFlexiblePackage && options.date) {
@@ -153,6 +175,9 @@ export class CheckoutPageLoader {
           startTime: '',
           adultsCount,
           childrenCount,
+          childAges: options.childAges,
+          childBeddingModes: options.childBeddingModes,
+          requestedRooms: options.requestedRooms,
           ctx,
         })
       } else if (isDailyTour && options.date && options.startTime) {
@@ -162,6 +187,9 @@ export class CheckoutPageLoader {
           startTime: options.startTime,
           adultsCount,
           childrenCount,
+          childAges: options.childAges,
+          childBeddingModes: options.childBeddingModes,
+          requestedRooms: options.requestedRooms,
           ctx,
         })
       } else {
@@ -184,11 +212,25 @@ export class CheckoutPageLoader {
           }
         : undefined
 
+      let destinationCityName: string | undefined
+      let destinationCountryName: string | undefined
+      if (expDoc.cityId) {
+        const cityDoc = await destination.getCityById(expDoc.cityId)
+        if (cityDoc) {
+          destinationCityName = cityDoc.name
+          if (cityDoc.country && typeof cityDoc.country === 'object') {
+            destinationCountryName = (cityDoc.country as any).name
+          }
+        }
+      }
+
+      const [translatedDraftTitle] = await localization.translateBatch([departure.experienceTitle], ctx)
+
       return {
         bookingId: 'new',
         experienceId: expId,
         slotId: isFixedPackage ? (options.slotId || departure.id) : undefined,
-        experienceTitle: departure.experienceTitle,
+        experienceTitle: translatedDraftTitle || departure.experienceTitle,
         experienceType: departure.experienceType === 'daily_tour' ? 'daily_tour' : 'package',
         imageUrl,
         departureDate: departure.date,
@@ -207,7 +249,12 @@ export class CheckoutPageLoader {
         estimatedEarnPoints: calculatedPricing.estimatedEarnPoints,
         loyaltyDiscountPrice: calculatedPricing.loyaltyDiscountPrice,
         gateways,
+        childAges: options.childAges,
+        childBeddingModes: options.childBeddingModes,
+        requestedRooms: options.requestedRooms,
         leadTraveler,
+        destinationCityName,
+        destinationCountryName,
       }
     } catch (err) {
       console.error(`[CheckoutPageLoader] Failed loading checkout page for booking #${bookingId}:`, err)

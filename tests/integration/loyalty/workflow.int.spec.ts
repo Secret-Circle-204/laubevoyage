@@ -5,7 +5,6 @@ import { loyaltyProgramRegistry } from '@/domains/loyalty/program-registry'
 import { DashboardOverviewAggregator } from '@/domains/dashboard/overview-aggregator'
 import { DashboardQueryBus } from '@/domains/dashboard/query-bus'
 import { CustomerRepository } from '@/domains/customer/repositories/customer-repository'
-import { DeviceSessionRepository } from '@/domains/customer/repositories/session-repository'
 import { LoyaltyRepository } from '@/domains/loyalty/repository'
 import { BookingRepository } from '@/domains/booking/repository'
 import { LocalizationService } from '@/domains/localization/service'
@@ -314,8 +313,7 @@ describe('Loyalty Domain: LoyaltyWorkflowEngine Integration Tests', () => {
     const customerRepo = new CustomerRepository(mockPayload)
     const loyaltyRepo = new LoyaltyRepository(mockPayload)
     const bookingRepo = new BookingRepository(mockPayload)
-    const sessionRepo = new DeviceSessionRepository(mockPayload)
-    const queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo, sessionRepo)
+    const queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo)
     const aggregator = new DashboardOverviewAggregator(queryBus)
     
     const projection = await aggregator.aggregatePortalOverview(73)

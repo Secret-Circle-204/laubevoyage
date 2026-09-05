@@ -5,8 +5,6 @@ import type { CustomerAggregate } from './aggregate'
 import type { Customer } from '@/payload-types'
 import {
   type CompanionTravelerEntity,
-  type CustomerAddressEntity,
-  type DeviceSessionEntity,
   type CustomerPreferencesInput,
   type CustomerDeletionDependencyChecker,
   CustomerDeletionNotAllowedException,
@@ -185,20 +183,6 @@ export class CustomerService {
     traveler: Omit<CompanionTravelerEntity, 'travelerId'>,
   ): Promise<CompanionTravelerEntity> {
     return this.workflowEngine.profileManager.addTraveler(traveler)
-  }
-
-  async getAddresses(customerId: number): Promise<CustomerAddressEntity[]> {
-    return this.workflowEngine.profileManager.getAddresses(customerId)
-  }
-
-  async addAddress(
-    address: Omit<CustomerAddressEntity, 'addressId'>,
-  ): Promise<CustomerAddressEntity> {
-    return this.workflowEngine.profileManager.addAddress(address)
-  }
-
-  async getActiveDeviceSessions(customerId: number): Promise<DeviceSessionEntity[]> {
-    return this.workflowEngine.sessionManager.getActiveSessions(customerId)
   }
 
   async handleFailedLogin(email: string): Promise<void> {

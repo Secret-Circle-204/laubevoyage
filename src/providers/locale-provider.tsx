@@ -19,19 +19,20 @@ const LocaleContext = createContext<LocaleContextType | undefined>(undefined)
 export function LocaleProvider({
   children,
   initialLocale = 'en',
+  initialDirection = 'ltr',
 }: {
   children: React.ReactNode
   initialLocale?: Locale
+  initialDirection?: Direction
 }) {
   const router = useRouter()
 
-  const direction: Direction = initialLocale === 'ar' ? 'rtl' : 'ltr'
+  const direction: Direction = initialDirection
 
   useEffect(() => {
-    const dir = initialLocale === 'ar' ? 'rtl' : 'ltr'
     document.documentElement.setAttribute('lang', initialLocale)
-    document.documentElement.setAttribute('dir', dir)
-  }, [initialLocale])
+    document.documentElement.setAttribute('dir', initialDirection)
+  }, [initialLocale, initialDirection])
 
   const setLocale = async (newLocale: Locale) => {
     localStorage.setItem('laube-locale', newLocale)

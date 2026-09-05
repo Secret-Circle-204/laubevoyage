@@ -984,3 +984,303 @@ Elite
 لا تلمس الكود قبل عرض Findings + Root Cause + Proposed Change + Exact Files + Ownership + سبب وضع التعديل في ذلك المكان والحصول على إذن صريح.
 أثناء التحقيق: Read/Inspect/Search only. No Code Changes.
 نجاح الاختبارات وحده لا يُعتبر إثباتًا لصحة السلوك؛ يجب التحقق من السلوك الفعلي عبر Domain → DB → Admin → Customer.
+
+
+
+DATA RETRIEVAL & SCALABILITY CONTRACT
+
+All potentially-large or unbounded datasets MUST use bounded, server-side, demand-driven data retrieval.
+
+Collections MUST be treated as potentially large regardless of their current record count.
+
+The application MUST NOT load an entire collection into application memory merely to display, search, filter, sort, or paginate a subset of records.
+
+The database query MUST retrieve only the records required for the current operation, using server-side filtering, sorting, and bounded pagination or another bounded retrieval strategy appropriate to the use case.
+
+The bound applies to each individual retrieval operation, not to the total dataset.
+
+The existence of a limit MUST NOT be used as an arbitrary maximum dataset size that causes remaining records to become inaccessible.
+
+If the dataset contains more records than the current page, the remaining records MUST remain accessible through subsequent server-side retrieval operations.
+
+No implementation may use pagination: false, unbounded collection reads, or equivalent mechanisms for potentially-large collections unless an explicit architectural audit proves that the dataset is permanently bounded and the unbounded read is safe.
+
+Never replace pagination with an arbitrary hardcoded limit such as 100, 500, or 1000.
+
+The system MUST preserve complete dataset accessibility while preventing unnecessary database, network, and application-memory consumption.
+
+
+
+Before implementing any new Collection → Backend → UI data flow, the agent MUST determine whether the dataset can grow beyond a small bounded size. If it can, the agent MUST NOT design the retrieval layer around loading the entire dataset. The agent MUST first identify the existing pagination/bounded-retrieval abstraction in the project and extend/reuse it rather than creating a parallel mechanism.
+
+Every individual retrieval must be bounded. Page size must be determined by the legitimate use case/UI contract or existing architectural convention, not by an arbitrary global hardcoded maximum.
+
+
+إذن عندما تريد شرحها لوكيل جديد، قل له باختصار:
+
+We use Bounded, Server-Side, Demand-Driven Data Retrieval.
+
+Never load potentially-large collections in full.
+
+Bound each database read, not the dataset itself.
+
+Use server-side filtering/sorting and pagination (or an appropriate bounded retrieval strategy) so the UI receives only the records required for the current view.
+
+Subsequent records must remain accessible through subsequent requests.
+
+Never use an arbitrary hardcoded limit as a substitute for pagination.
+
+Never use pagination: false for potentially-large collections unless an architectural audit explicitly proves the dataset is permanently bounded and the unbounded read is safe.
+
+The goal is not to show only the first N records. The goal is to make the entire dataset accessible without loading the entire dataset at once.
+
+Before implementing a new data flow, inspect the existing project architecture and reuse/extend its established bounded-retrieval/pagination mechanism. Do not create a parallel abstraction.
+
+-----------------
+Server-Side Pagination
+
+أو:
+
+Paginated Data Retrieval
+
+أي:
+
+جلب البيانات على صفحات من الخادم، وليس جلب المجموعة كاملة دفعة واحدة.
+
+لكن في حالتك أنت تريد شيئًا أوسع قليلًا من مجرد Pagination.
+
+المبدأ الكامل الذي تريد اعتماده هو:
+
+Bounded, Server-Side, Demand-Driven Data Retrieval
+
+أي:
+4
+جلب بيانات محدود الحجم، من جهة الخادم، حسب الطلب، مع Pagination، دون تحميل المجموعة كاملة إلى الذاكرة.
+
+وهذا أدق بكثير لما تريد تحقيقه.
+
+الفرق المهم جدًا
+
+أنت لا تقول:
+
+"ضع limit: 50 لكل شيء."
+
+هذا ليس المبدأ.
+
+لأن 50 مجرد رقم اعتباطي وقد يكون 20 أو 30 أو 100 حسب الـUI والـuse case.
+
+أنت تقول:
+
+لا تفترض أن حجم الـdataset صغير. تعامل دائمًا مع الـcollection على أنها potentially large/unbounded، ولذلك لا يجوز تحميل المجموعة كاملة عندما تكون قابلة للتصفح أو العرض الجزئي.
+
+ثم:
+
+Database
+   │
+   │ requested page
+   ▼
+Page 1 → 20 records
+   │
+   ▼
+User asks next
+   │
+   ▼
+Page 2 → next 20
+   │
+   ▼
+User asks next
+   │
+   ▼
+Page 3 → next 20
+
+وليس:
+
+Database
+   │
+   ▼
+10,000 records
+   │
+   ▼
+Node.js
+   │
+   ▼
+UI
+وهناك مصطلح آخر مهم: Bounded Reads
+
+الجزء الذي كنا نصلحه في Gate 3.2 تحديدًا يسمى:
+
+Bounded Data Access / Bounded Reads
+
+أي أن كل عملية قراءة لها حد معروف.
+
+مثلاً:
+
+limit: 20
+
+أو:
+
+limit: 50
+
+أو:
+
+limit: 1
+
+بحسب الغرض.
+
+ولهذا كان:
+
+pagination: false
+
+مشكلة معمارية عندما تكون collection قابلة لأن تصبح كبيرة.
+
+لأنه يحول القراءة إلى:
+
+Unbounded Read
+
+بينما القاعدة التي تريدها هي:
+
+No Unbounded Collection Reads.
+
+
+لكن هناك شيء أعمق
+
+أنت لا تريد فقط Pagination.
+
+أنت تريد أن تقول:
+
+البيانات قد تكون 10
+
+أو:
+
+10,000
+
+أو:
+
+10,000,000
+
+والـUI لا يجب أن يتغير تصميمها أو يفشل بسبب حجم البيانات.
+
+لذلك:
+Dataset
+    ↓
+Query
+    ↓
+Filtering
+    ↓
+Sorting
+    ↓
+Pagination / Bounded Retrieval
+    ↓
+Requested Slice
+    ↓
+UI
+
+وليس:
+
+Dataset
+    ↓
+Load Everything
+    ↓
+Filter in Node
+    ↓
+Take first 50
+    ↓
+UI
+
+والفرق هنا هندسي ضخم.
+"Use bounded, server-side, demand-driven data retrieval with server-side pagination. Never load an entire potentially-large collection merely to display a subset."
+
+ثم أضف:
+
+"The dataset must be treated as potentially unbounded. The UI requests only the page/slice required for the current view. Subsequent pages are fetched independently on demand. Do not impose arbitrary hardcoded dataset limits such as limit: 100 as a substitute for pagination."
+
+وهذه الجملة الأخيرة مهمة جدًا.
+
+لأن:
+
+limit: 100
+
+ليست Pagination حقيقية إذا كانت تعني:
+
+"هات أول 100 وانتهينا."
+
+والأهم: لا نريد Data Truncation
+
+وهذا بالضبط الشيء الذي كنت أسألك عنه في الرد السابق.
+
+القاعدة يجب أن تكون:
+
+Bound the individual read, not the dataset.
+
+أي:
+
+نحدد حجم القراءة الواحدة، وليس حجم البيانات الموجودة في النظام.
+
+مثلاً عندك:
+
+50,000 slots
+
+نحن لا نقول:
+
+LIMIT 100
+
+ثم نعرض أول 100 ونختفي الباقي.
+
+بل:
+
+Total dataset = 50,000
+
+Page size = 20
+
+Page 1 → 1–20
+Page 2 → 21–40
+Page 3 → 41–60
+...
+Page 2,500 → 49,981–50,000
+
+إذن:
+
+لا توجد بيانات مختزلة.
+
+كل البيانات متاحة.
+
+لكن لا يتم تحميلها كلها في نفس اللحظة.
+
+وهذه بالضبط الفكرة التي تبحث عنها.
+
+والأفضل تقنيًا: Cursor Pagination عندما يكون الحجم كبيرًا جدًا
+
+هناك مستويان:
+
+Offset/Page Pagination
+page=1
+limit=20
+
+page=2
+limit=20
+
+page=3
+limit=20
+
+وهي مناسبة جدًا للواجهات التقليدية.
+
+Cursor-Based Pagination
+
+مثل:
+
+cursor = lastSeenId
+limit = 20
+
+ثم:
+
+nextCursor
+
+وهذه غالبًا أفضل عندما تصبح datasets ضخمة جدًا، لأنها تتجنب مشاكل OFFSET الكبيرة.
+
+لكن لا أريد أن نسجل الآن أن المشروع يجب أن يستخدم Cursor Pagination في كل مكان.
+
+لأن هذا سيكون تحويلًا من قاعدة صحيحة إلى Implementation Rule غير مبررة.
+
+القاعدة المعمارية الأفضل هي:
+
+Server-side bounded pagination is mandatory for potentially-large collections; the pagination strategy (page/offset or cursor) must be selected according to the query/use case and existing project architecture.

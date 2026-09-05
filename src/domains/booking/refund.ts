@@ -58,8 +58,10 @@ export class BookingRefund {
           await this.experienceService.releaseCapacity(departureId, booking.capacityHold.seats, context)
           console.log(`[BookingRefund] Released uncommitted slot capacity: Slot ID ${departureId}, ${booking.capacityHold.seats} seats.`)
         }
-      } catch (err: any) {
-        console.error(`[BookingRefund] Failed to release slot capacity:`, err)
+      } catch (err: unknown) {
+        const errorObj = err instanceof Error ? err : new Error(String(err))
+        console.error(`[BookingRefund] Failed to release slot capacity:`, errorObj)
+        throw new Error(`[BookingRefund] Capacity release failed for Booking #${booking.id}: ${errorObj.message}`, { cause: errorObj })
       }
     } else if (booking.status === BookingStatus.CONFIRMED || booking.status === BookingStatus.PAID) {
       try {
@@ -73,8 +75,10 @@ export class BookingRefund {
           await this.experienceService.releaseCommittedCapacity(departureId, seats, context)
           console.log(`[BookingRefund] Released committed sold capacity: Slot ID ${departureId}, ${seats} seats.`)
         }
-      } catch (err: any) {
-        console.error(`[BookingRefund] Failed to release committed capacity:`, err)
+      } catch (err: unknown) {
+        const errorObj = err instanceof Error ? err : new Error(String(err))
+        console.error(`[BookingRefund] Failed to release committed capacity:`, errorObj)
+        throw new Error(`[BookingRefund] Committed capacity release failed for Booking #${booking.id}: ${errorObj.message}`, { cause: errorObj })
       }
     }
 

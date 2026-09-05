@@ -76,7 +76,7 @@ export function SettingsFormClient({ initialData }: SettingsFormClientProps) {
             />
             <div>
               <span className="font-semibold block">SMS Alerts</span>
-              <span className="text-xs text-slate-500 block">Get instant text alerts for flight delay checkouts or voucher confirmations.</span>
+              <span className="text-xs text-slate-500 block">Get instant text alerts for flight delay checkouts or trip confirmations.</span>
             </div>
           </label>
 
@@ -103,55 +103,6 @@ export function SettingsFormClient({ initialData }: SettingsFormClientProps) {
         >
           Save Settings
         </Button>
-      </Card>
-
-      {/* Active Device Sessions Presentation Section */}
-      <Card variant="flat" padding="lg" className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Active Device Sessions</h2>
-            <p className="text-xs text-slate-500 mt-1">Manage and audit devices authorized to access your customer account.</p>
-          </div>
-          <Badge variant="primary" size="sm">
-            {initialData.activeSessions?.length || 0} Active
-          </Badge>
-        </div>
-
-        {(!initialData.activeSessions || initialData.activeSessions.length === 0) ? (
-          <div className="text-center py-8 px-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-            <span className="text-3xl mb-2 block">🔒</span>
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No secondary device sessions recorded</p>
-            <p className="text-xs text-slate-500 mt-1">Your current browser session is actively authenticated and secured.</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {initialData.activeSessions.map((session) => (
-              <div
-                key={session.sessionId}
-                className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">💻</span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-slate-900 dark:text-white">
-                        {session.deviceName || 'Web Browser'}
-                      </span>
-                      <Badge variant="success" size="sm" className="text-[10px]">
-                        Active
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                      <span>IP: {session.ipAddress ? `${session.ipAddress.split('.').slice(0, 2).join('.')}.•.•` : 'Protected'}</span>
-                      <span>•</span>
-                      <span>Last Active: {new Date(session.lastActiveAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </Card>
     </div>
   )

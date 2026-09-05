@@ -2,6 +2,9 @@ import { MaintenanceWorkflowEngine } from './workflow'
 import { MaintenanceRepository } from './repository'
 import type { MaintenanceJobName } from './types'
 import type { BookingService } from '../booking/service'
+import type { CurrencyService } from '../currency/service'
+import type { DashboardProjectionRepository } from '../dashboard/repository'
+import type { DashboardOverviewAggregator } from '../dashboard/overview-aggregator'
 
 /**
  * Maintenance Domain Service (Enterprise Thin Facade)
@@ -11,9 +14,21 @@ export class MaintenanceService {
   private repository: MaintenanceRepository
   private workflowEngine: MaintenanceWorkflowEngine
 
-  constructor(repository: MaintenanceRepository, bookingService: BookingService) {
+  constructor(
+    repository: MaintenanceRepository,
+    bookingService: BookingService,
+    currencyService?: CurrencyService,
+    dashboardRepo?: DashboardProjectionRepository,
+    overviewAggregator?: DashboardOverviewAggregator,
+  ) {
     this.repository = repository
-    this.workflowEngine = new MaintenanceWorkflowEngine(repository, bookingService)
+    this.workflowEngine = new MaintenanceWorkflowEngine(
+      repository,
+      bookingService,
+      currencyService,
+      dashboardRepo,
+      overviewAggregator,
+    )
   }
 
   async triggerJob(

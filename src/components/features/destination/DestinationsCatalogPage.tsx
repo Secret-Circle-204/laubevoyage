@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useTheme } from '@/providers/theme-provider'
-import { Card, Badge } from '@/components/ui'
+import { Card, Badge, Button } from '@/components/ui'
 import type { DestinationsCatalogDTO } from '@/application/destination/dto'
 
 export function DestinationsCatalogPage({ data }: { data: DestinationsCatalogDTO }) {
@@ -63,13 +63,24 @@ export function DestinationsCatalogPage({ data }: { data: DestinationsCatalogDTO
           </div>
         </div>
 
-        {/* Featured Cities Grid */}
-        <div>
-          <h2 className={`text-2xl font-serif font-light mb-6 ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
-            Popular Cities
-          </h2>
+        {/* Cities Directory (Server-Side Paginated: 12 cities per page) */}
+        <div id="cities" className="scroll-mt-12">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-4 border-b border-neutral-200 dark:border-neutral-800">
+            <div>
+              <h2 className={`text-2xl font-serif font-light ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
+                Cities
+              </h2>
+              <p className={`text-sm mt-1 ${isDark ? 'text-[#a7aaac]' : 'text-[#666666]'}`}>
+                Explore every active city across our global network ({data.pagination.totalDocs} total destinations).
+              </p>
+            </div>
+            <div className="mt-4 sm:mt-0 text-sm font-medium text-[#f58220]">
+              Showing {(data.pagination.page - 1) * data.pagination.limit + 1}–{Math.min(data.pagination.page * data.pagination.limit, data.pagination.totalDocs)} of {data.pagination.totalDocs} Cities
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {data.featuredCities.map((city) => (
+            {data.cities.map((city) => (
               <Link
                 key={city.id}
                 href={`/destinations/${city.countrySlug}/${city.slug}`}
@@ -88,8 +99,8 @@ export function DestinationsCatalogPage({ data }: { data: DestinationsCatalogDTO
                   <div className="absolute bottom-6 left-6 right-6 text-white flex flex-col gap-1">
                     <span className="text-xs uppercase font-semibold tracking-widest text-[#00aeef]">{city.countryName}</span>
                     <h4 className="text-2xl font-serif font-light group-hover:text-[#f58220] transition-colors">{city.name}</h4>
-                    <div className="flex items-center gap-2 text-white/80 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1">
-                      <span>{city.experiencesCount} Experiences</span>
+                    <div className="flex items-center gap-2 text-white/90 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1">
+                      <span>Explore City</span>
                       <svg className="w-4 h-4 text-[#f58220]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
@@ -99,8 +110,56 @@ export function DestinationsCatalogPage({ data }: { data: DestinationsCatalogDTO
               </Link>
             ))}
           </div>
+
+          {/* Server-Side Pagination Bar */}
+          {data.pagination.totalPages > 1 && (
+            <div className="mt-12 flex items-center justify-center gap-4">
+              {data.pagination.hasPrevPage ? (
+                <Link
+                  href={`/destinations?page=${data.pagination.page - 1}#cities`}
+                  className="px-5 py-2.5 rounded-lg border border-[#f58220] text-[#f58220] hover:bg-[#f58220] hover:text-white transition-colors duration-200 text-sm font-medium flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span>Previous</span>
+                </Link>
+              ) : (
+                <span className="px-5 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-neutral-400 dark:text-neutral-600 text-sm font-medium cursor-not-allowed flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span>Previous</span>
+                </span>
+              )}
+
+              <span className={`text-sm font-medium ${isDark ? 'text-neutral-300' : 'text-neutral-700'}`}>
+                Page {data.pagination.page} of {data.pagination.totalPages}
+              </span>
+
+              {data.pagination.hasNextPage ? (
+                <Link
+                  href={`/destinations?page=${data.pagination.page + 1}#cities`}
+                  className="px-5 py-2.5 rounded-lg border border-[#f58220] text-[#f58220] hover:bg-[#f58220] hover:text-white transition-colors duration-200 text-sm font-medium flex items-center gap-2"
+                >
+                  <span>Next</span>
+                  <svg className="w-4 h-4 fill-none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              ) : (
+                <span className="px-5 py-2.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-neutral-400 dark:text-neutral-600 text-sm font-medium cursor-not-allowed flex items-center gap-2">
+                  <span>Next</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
+

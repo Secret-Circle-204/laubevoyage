@@ -22,6 +22,9 @@ export const Experiences: CollectionConfig = {
     beforeChange: [
       ({ data }) => {
         if (data && data.type === 'daily_tour') {
+          if (Array.isArray((data as any).accommodations) && (data as any).accommodations.length > 0) {
+            throw new Error('[Experiences] Daily Tours cannot contain accommodation stays.')
+          }
           if (data.duration) {
             delete (data.duration as any).days
             delete (data.duration as any).nights
@@ -298,6 +301,138 @@ export const Experiences: CollectionConfig = {
         },
       ],
     } as Field,
+    {
+      name: 'accommodations',
+      type: 'array',
+      admin: {
+        description: 'Curated accommodation stays included in this multi-day Package.',
+        condition: (data: Partial<Experience>) => data?.type === 'package',
+      },
+      fields: [
+        {
+          name: 'order',
+          type: 'number',
+          required: true,
+          min: 1,
+          admin: {
+            description: 'Sequential order of this stay within the itinerary (1, 2, ...).',
+          },
+        },
+        {
+          name: 'property',
+          type: 'relationship',
+          relationTo: 'accommodations',
+          required: true,
+          admin: {
+            description: 'Reusable Accommodation Property entity from catalog.',
+          },
+        },
+        {
+          name: 'nights',
+          type: 'number',
+          required: true,
+          min: 1,
+          admin: {
+            description: 'Number of nights for this stay (must be >= 1).',
+          },
+        },
+        {
+          name: 'roomCategory',
+          type: 'text',
+          admin: {
+            description: 'Optional package-specific room category (e.g. Deluxe Nile View Room, Luxury Suite).',
+          },
+        },
+        {
+          name: 'boardBasis',
+          type: 'select',
+          options: [
+            { label: 'Bed & Breakfast (BB)', value: 'bed_and_breakfast' },
+            { label: 'Half Board (HB)', value: 'half_board' },
+            { label: 'Full Board (FB)', value: 'full_board' },
+            { label: 'All Inclusive (AI)', value: 'all_inclusive' },
+          ],
+        },
+        {
+          name: 'occupancyOptions',
+          type: 'array',
+          required: true,
+          minRows: 1,
+          admin: {
+            description: 'Available occupancy configurations and supplements for this stay.',
+          },
+          fields: [
+            {
+              name: 'occupancy',
+              type: 'select',
+              required: true,
+              options: [
+                { label: 'Single Occupancy', value: 'single' },
+                { label: 'Double Occupancy', value: 'double' },
+                { label: 'Triple Occupancy', value: 'triple' },
+                { label: 'Quad Occupancy', value: 'quad' },
+              ],
+            },
+            {
+              name: 'supplementEGP',
+              type: 'number',
+              required: true,
+              min: 0,
+              defaultValue: 0,
+              admin: {
+                description: 'Price adjustment in EGP relative to standard Double Occupancy base.',
+              },
+            },
+            {
+              name: 'isDefault',
+              type: 'checkbox',
+              defaultValue: false,
+              admin: {
+                description: 'Set to true for the standard default occupancy (exactly one default required).',
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'childPolicy',
+      type: 'group',
+      admin: {
+        description: 'Commercial child and infant pricing configuration (controlled by Administration).',
+        condition: (data) => data?.type === 'package',
+      },
+      fields: [
+        {
+          name: 'childrenAllowed',
+          type: 'checkbox',
+          defaultValue: true,
+          admin: {
+            description: 'Are children allowed on this package experience?',
+          },
+        },
+        {
+          name: 'childSharingBedPercentage',
+          type: 'number',
+          min: 0,
+          max: 100,
+          defaultValue: 50,
+          admin: {
+            description: 'Price percentage for child (2-11 yrs) sharing parents bed (e.g. 50 = 50% of adult base price).',
+          },
+        },
+        {
+          name: 'childExtraBedPercentage',
+          type: 'number',
+          min: 0,
+          max: 100,
+          defaultValue: 75,
+          admin: {
+            description: 'Price percentage for child (2-11 yrs) requiring an extra rollaway bed (e.g. 75 = 75% of adult base price).',
+          },
+        },
+      ],
+    },
     {
       name: 'policies',
       type: 'richText',

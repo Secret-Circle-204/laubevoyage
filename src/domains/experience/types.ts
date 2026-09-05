@@ -21,6 +21,67 @@ export type ExperienceAvailabilityStatus = 'available' | 'sold_out' | 'coming_so
 
 export type DepartureSlotStatus = 'available' | 'sold_out' | 'blacked_out' | 'cancelled' | 'past'
 
+export type AccommodationType = 'hotel' | 'resort' | 'cruise' | 'lodge' | 'camp'
+
+export type BoardBasis = 'bed_and_breakfast' | 'half_board' | 'full_board' | 'all_inclusive'
+
+export type OccupancyType = 'single' | 'double' | 'triple' | 'quad'
+
+export interface OccupancyOptionEntity {
+  occupancy: OccupancyType
+  guestCount: number
+  supplementEGP: number
+  isDefault: boolean
+}
+
+export interface AccommodationPropertyEntity {
+  id: number
+  name: string
+  slug: string
+  type: AccommodationType
+  cityId: number
+  rating?: number
+  heroUrl?: string
+  descriptionHtml?: string
+  isActive: boolean
+}
+
+export interface ExperienceChildPolicy {
+  childrenAllowed: boolean
+  childSharingBedPercentage: number
+  childExtraBedPercentage: number
+}
+
+export interface AccommodationStayEntity {
+  order: number
+  propertyId: number
+  property?: AccommodationPropertyEntity
+  nights: number
+  roomCategory?: string
+  boardBasis?: BoardBasis
+  occupancyOptions: OccupancyOptionEntity[]
+}
+
+/**
+ * Lightweight operational projection used for slot scheduling, capacity checks,
+ * and operational administration without hydrating heavy sub-models.
+ */
+export interface ExperienceOperationalMetadata {
+  id: number
+  title: string
+  slug: string
+  cityId: number
+  type: ExperienceType
+  packageMode?: PackageMode
+  durationDays: number
+  durationMinutes?: number
+  price: number
+  availability: ExperienceAvailabilityStatus
+  schedules?: ScheduleConfig[]
+  version: number
+  isActive: boolean
+}
+
 export interface PriceOverrideEntry {
   date: string // YYYY-MM-DD
   startTime?: string // HH:mm (optional)
@@ -79,14 +140,23 @@ export interface AvailabilityPolicyResult {
 }
 
 export interface ExperienceSearchQueryParams {
+  keyword?: string
+  ids?: number[]
   countryId?: number
   cityId?: number
   type?: ExperienceType
   tags?: string[]
   minDurationDays?: number
   maxDurationDays?: number
+  minDurationMinutes?: number
+  maxDurationMinutes?: number
   minPriceEGP?: number
   maxPriceEGP?: number
   departureDate?: string
   availability?: ExperienceAvailabilityStatus
+  isActive?: boolean
+  page?: number
+  limit?: number
+  sort?: string
 }
+

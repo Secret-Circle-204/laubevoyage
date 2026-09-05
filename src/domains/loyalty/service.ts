@@ -73,7 +73,14 @@ export class LoyaltyService {
   }
 
   async earn(params: { customerId: number; points: number; sourceEvent: string; referenceId: string }, config?: LoyaltyProgramConfig, context?: RequestContext): Promise<PointLedgerRecord> {
-    return this.workflowEngine.earnPointsForBooking(params.customerId, Number(params.referenceId) || 1, params.points * 10, undefined, config, context)
+    const bookingId = Number(params.referenceId)
+    if (!bookingId || Number.isNaN(bookingId) || bookingId <= 0) {
+      throw new Error(`[LoyaltyService] Invalid referenceId "${params.referenceId}". Expected positive numeric booking ID.`)
+    }
+    if (typeof params.points !== 'number' || params.points <= 0) {
+      throw new Error(`[LoyaltyService] Invalid points amount "${params.points}". Expected positive number.`)
+    }
+    return this.workflowEngine.earnPointsForBooking(params.customerId, bookingId, params.points, undefined, config, context)
   }
 
   async evaluateTier(customerId: number, config?: LoyaltyProgramConfig, context?: RequestContext): Promise<LoyaltyTier> {
@@ -231,6 +238,17 @@ export class LoyaltyService {
    */
   async getCustomerLedgerHistory(userId: number, limit = 50, context?: RequestContext): Promise<PointLedgerRecord[]> {
     return this.workflowEngine.getCustomerLedgerHistory(userId, limit, context)
+  }
+
+  /**
+   * Fetch paginated customer point ledger transaction history.
+   */
+  async getCustomerLedgerHistoryPaginated(
+    userId: number,
+    options?: { page?: number; limit?: number },
+    context?: RequestContext,
+  ) {
+    return this.workflowEngine.repository.getLedgerHistoryPaginated(userId, options, context)
   }
 
   /**

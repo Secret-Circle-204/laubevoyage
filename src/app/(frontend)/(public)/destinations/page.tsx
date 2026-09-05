@@ -14,11 +14,21 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function Page() {
+export default async function Page(props: {
+  searchParams: Promise<{ page?: string }>
+}) {
+  const searchParams = await props.searchParams
+  const currentPage = Number(searchParams.page) || 1
   const cookieStore = await cookies()
   const locale = cookieStore.get('laube-locale')?.value
   const currency = cookieStore.get('laube-currency')?.value
 
-  const data = await DestinationsCatalogLoader.load({ locale, currency })
+  const data = await DestinationsCatalogLoader.load({
+    page: currentPage,
+    limit: 12,
+    locale,
+    currency,
+  })
   return <DestinationsCatalogPage data={data} />
 }
+

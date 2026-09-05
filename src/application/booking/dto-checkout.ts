@@ -30,12 +30,18 @@ export interface CheckoutPageDTO {
   estimatedEarnPoints?: number
   loyaltyDiscountPrice?: ConvertedPrice
   gateways: PaymentGatewayDTO[]
+  childAges?: number[]
+  childBeddingModes?: ('sharing_bed' | 'extra_bed')[]
+  requestedRooms?: number
   leadTraveler?: {
     firstName: string
     lastName: string
     email: string
     phone: string
   }
+  destinationCityName?: string
+  destinationCountryName?: string
 }
+
 
 

@@ -3,7 +3,7 @@ import { RevalidationService } from '@/domains/shared/revalidation-service'
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, type, customerId, slices, experienceSlug, countrySlug, citySlug, pageSlug } = await req.json()
+    const { token, type, customerId, slices, experienceSlug, countrySlug, citySlug, pageSlug, originalHash, language } = await req.json()
 
     const secret = process.env.INTERNAL_REVALIDATION_TOKEN
     const isProduction = process.env.NODE_ENV === 'production'
@@ -44,6 +44,9 @@ export async function POST(req: NextRequest) {
       } else {
         await RevalidationService.purgeCitySlug(countrySlug, citySlug, { forceLocal: true })
       }
+    } else if (type === 'currencies') {
+      console.log('[API Revalidate] Purging currencies')
+      await RevalidationService.purgeCurrencies({ forceLocal: true })
     } else if (type === 'layout') {
       console.log('[API Revalidate] Purging layout')
       await RevalidationService.purgeLayout({ forceLocal: true })
@@ -56,6 +59,13 @@ export async function POST(req: NextRequest) {
       } else {
         await RevalidationService.purgeContent(pageSlug, { forceLocal: true })
       }
+    } else if (type === 'translation') {
+      if (!originalHash || !language) {
+        return NextResponse.json({ success: false, error: 'Missing originalHash or language' }, { status: 400 })
+      }
+      console.log(`[API Revalidate] Evicting targeted translation RAM key across active instances: [${originalHash}] (${language})`)
+      const { TranslationRepository } = await import('@/domains/translation/repository')
+      TranslationRepository.evictAll(originalHash, language)
     } else {
       return NextResponse.json({ success: false, error: `Invalid revalidation type: ${type}` }, { status: 400 })
     }

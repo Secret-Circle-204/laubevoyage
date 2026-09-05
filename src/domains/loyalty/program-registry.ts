@@ -8,8 +8,9 @@ import type { RequestContext } from '@/types'
  * Decoupled from Payload CMS imports and mapping responsibilities.
  * Follows Single Responsibility Principle (SRP) and matches systemSettingsRegistry pattern.
  */
+const LOYALTY_PROGRAM_GLOBAL_KEY = Symbol.for('laube.loyalty.program.registry.instance')
+
 export class LoyaltyProgramRegistry {
-  private static instance: LoyaltyProgramRegistry
   private cache: LoyaltyProgramConfig | null = null
   public readonly id = Math.random().toString(36).substring(2, 9)
 
@@ -20,10 +21,11 @@ export class LoyaltyProgramRegistry {
   }
 
   public static getInstance(): LoyaltyProgramRegistry {
-    if (!LoyaltyProgramRegistry.instance) {
-      LoyaltyProgramRegistry.instance = new LoyaltyProgramRegistry()
+    const globalContext = globalThis as unknown as Record<typeof LOYALTY_PROGRAM_GLOBAL_KEY, LoyaltyProgramRegistry>
+    if (!globalContext[LOYALTY_PROGRAM_GLOBAL_KEY]) {
+      globalContext[LOYALTY_PROGRAM_GLOBAL_KEY] = new LoyaltyProgramRegistry()
     }
-    return LoyaltyProgramRegistry.instance
+    return globalContext[LOYALTY_PROGRAM_GLOBAL_KEY]
   }
 
   /**
@@ -36,38 +38,19 @@ export class LoyaltyProgramRegistry {
     pinnedConfig?: LoyaltyProgramConfig,
     context?: RequestContext,
   ): Promise<LoyaltyProgramConfig> {
-    console.log(
-      `[LoyaltyProgramRegistry.getProgram] Instance ID: ${this.id}, PinnedConfig passed: ${!!pinnedConfig}, PID: ${process.pid}`,
-    )
     if (pinnedConfig) return pinnedConfig
 
     if (this.cache) {
-      console.log(
-        `[LoyaltyProgramRegistry.getProgram] Returning CACHED config from instance: ${this.id}. Cache data:`,
-        {
-          baseEarnRate: this.cache.baseEarnRate,
-          redemptionPointsUnit: this.cache.redemptionPointsUnit,
-          redemptionValueEGP: this.cache.redemptionValueEGP,
-        },
-      )
       return this.cache
     }
 
     const config = await repository.getActiveProgramConfig(undefined, context)
-    console.log(
-      `[LoyaltyProgramRegistry.getProgram] Cache MISS. Fetched fresh from DB. Storing in instance: ${this.id}. Data:`,
-      {
-        baseEarnRate: config.baseEarnRate,
-        redemptionPointsUnit: config.redemptionPointsUnit,
-        redemptionValueEGP: config.redemptionValueEGP,
-      },
-    )
     this.cache = config
     return this.cache
   }
 
   /**
-   * Event-driven cache invalidation (triggered by Payload afterChange hook).
+   * Event-driven cache invalidation (triggered by Payload afterChange hook or PG NOTIFY).
    */
   public invalidate(): void {
     console.log(

@@ -115,20 +115,37 @@ export const Bookings: CollectionConfig = {
         {
           name: 'email',
           type: 'email',
-          required: true,
+          required: false,
         },
         {
           name: 'phone',
           type: 'text',
-          required: true,
+          required: false,
         },
         {
           name: 'dateOfBirth',
           type: 'date',
+          required: false,
         },
         {
           name: 'passportNumber',
           type: 'text',
+          required: false,
+        },
+        {
+          name: 'nationality',
+          type: 'text',
+          required: false,
+        },
+        {
+          name: 'type',
+          type: 'select',
+          defaultValue: 'adult',
+          options: [
+            { label: 'Adult', value: 'adult' },
+            { label: 'Child', value: 'child' },
+            { label: 'Infant', value: 'infant' },
+          ],
         },
       ],
     },
@@ -251,6 +268,30 @@ export const Bookings: CollectionConfig = {
         position: 'sidebar',
         readOnly: true,
       },
+    },
+    {
+      name: 'pickupLocation',
+      type: 'group',
+      admin: {
+        description: 'Frozen pickup or meeting point location snapshot for this booking',
+      },
+      fields: [
+        { name: 'label', type: 'text' },
+        { name: 'address', type: 'text' },
+        { name: 'latitude', type: 'number' },
+        { name: 'longitude', type: 'number' },
+        {
+          name: 'source',
+          type: 'select',
+          options: [
+            { label: 'Map', value: 'map' },
+            { label: 'Search', value: 'search' },
+            { label: 'Current Location', value: 'current_location' },
+            { label: 'Fixed Meeting Point', value: 'fixed_meeting_point' },
+          ],
+        },
+        { name: 'instructions', type: 'textarea' },
+      ],
     },
     {
       name: 'notes',

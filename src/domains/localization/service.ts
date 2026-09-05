@@ -95,6 +95,16 @@ export class LocalizationService {
         ? inputs.requestContextId
         : `req-${Math.random().toString(36).substring(2, 9)}`
 
+    let isRTL = language === 'ar'
+    if (this.languageService && typeof this.languageService.isRtlLanguage === 'function') {
+      try {
+        isRTL = await this.languageService.isRtlLanguage(language)
+      } catch {
+        isRTL = language === 'ar'
+      }
+    }
+    const direction: 'rtl' | 'ltr' = isRTL ? 'rtl' : 'ltr'
+
     return this.assembleContext(
       {
         language,
@@ -103,6 +113,8 @@ export class LocalizationService {
         timezone,
         measurement,
         weekStart,
+        isRTL,
+        direction,
       },
       requestContextId,
     )
@@ -194,6 +206,8 @@ export class LocalizationService {
       timezone: string
       measurement: MeasurementSystem
       weekStart: 0 | 1 | 6
+      isRTL: boolean
+      direction: 'rtl' | 'ltr'
     },
     requestContextId?: string,
   ): LocaleContext {
@@ -204,6 +218,8 @@ export class LocalizationService {
       timezone: resolved.timezone,
       measurement: resolved.measurement,
       weekStart: resolved.weekStart,
+      isRTL: resolved.isRTL,
+      direction: resolved.direction,
       requestContextId,
     }
   }

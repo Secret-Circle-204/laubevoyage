@@ -13,7 +13,15 @@ export class ExperienceSearchService {
     this.repository = repository
   }
 
-  async searchExperiences(params: ExperienceSearchQueryParams): Promise<ExperienceAggregate[]> {
+  async searchExperiences(params: ExperienceSearchQueryParams): Promise<{
+    docs: ExperienceAggregate[]
+    totalDocs: number
+    totalPages: number
+    page: number
+    limit: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }> {
     try {
       return await this.repository.findFiltered(params)
     } catch (err) {

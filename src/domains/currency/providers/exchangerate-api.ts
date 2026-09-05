@@ -20,7 +20,9 @@ export class ExchangeRateApiProvider implements ExchangeRateProvider {
   async fetchRates(baseCurrency = 'EGP'): Promise<ExchangeRateProviderResult> {
     const url = `https://open.er-api.com/v6/latest/${baseCurrency}`
 
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(5000),
+    })
     if (!response.ok) {
       throw new Error(`[ExchangeRateApiProvider] HTTP error! status: ${response.status}`)
     }

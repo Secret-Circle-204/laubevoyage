@@ -6,6 +6,8 @@ import type {
   PriceOverrideEntry,
   PackageDuration,
   DailyTourDuration,
+  AccommodationStayEntity,
+  ExperienceChildPolicy,
 } from './types'
 import type { BlackoutEntry } from './blackout-policy'
 
@@ -42,7 +44,7 @@ export interface BaseExperienceAggregate {
 
 /**
  * Package Experience Aggregate
- * Multi-day package with days/nights duration and optional departure slots.
+ * Multi-day package with days/nights duration, optional departure slots, and optional accommodation stays.
  */
 export interface PackageExperienceAggregate extends BaseExperienceAggregate {
   type: 'package'
@@ -51,6 +53,8 @@ export interface PackageExperienceAggregate extends BaseExperienceAggregate {
   durationDays: number
   durationNights?: number
   durationMinutes?: never
+  accommodations?: AccommodationStayEntity[]
+  childPolicy?: ExperienceChildPolicy
 }
 
 /**
@@ -64,6 +68,8 @@ export interface DailyTourExperienceAggregate extends BaseExperienceAggregate {
   durationMinutes: number
   durationDays?: never
   durationNights?: never
+  accommodations?: never
+  childPolicy?: never
 }
 
 /**

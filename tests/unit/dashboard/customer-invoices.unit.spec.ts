@@ -150,32 +150,40 @@ describe('Customer Invoices & Financial Documents Loader (Comprehensive Unit Tes
       totalPages: 1,
     })
 
-    const getDepartureSlotByIdMock = vi.fn().mockResolvedValue(mockSlot)
-    const getCityByIdMock = vi.fn().mockResolvedValue({
-      id: 101,
-      name: 'Aswan',
-      country: { name: 'Egypt' },
-    })
+    const getDepartureSlotsByIdsMock = vi.fn().mockResolvedValue([mockSlot])
+    const getCitiesByIdsMock = vi.fn().mockResolvedValue([
+      {
+        id: 101,
+        name: 'Aswan',
+        country: { name: 'Egypt' },
+      },
+    ])
 
     ;(getDomainServices as any).mockResolvedValue({
       localization: mockLocalization,
       destination: {
-        getCityById: getCityByIdMock,
+        getCitiesByIds: getCitiesByIdsMock,
+        getCityById: vi.fn().mockResolvedValue({
+          id: 101,
+          name: 'Aswan',
+          country: { name: 'Egypt' },
+        }),
       },
       booking: {
         getUserBookings: getUserBookingsMock,
       },
       experience: {
         getManyByIds: vi.fn().mockResolvedValue(mockExperiences),
-        getDepartureSlotById: getDepartureSlotByIdMock,
+        getDepartureSlotsByIds: getDepartureSlotsByIdsMock,
+        getDepartureSlotById: vi.fn().mockResolvedValue(mockSlot),
       },
     })
 
     const portal = await CustomerInvoicesLoader.load(500, { locale: 'en', currency: 'USD' })
 
     expect(getUserBookingsMock).toHaveBeenCalledWith(500, 1, 10, undefined)
-    expect(getDepartureSlotByIdMock).toHaveBeenCalledWith(88)
-    expect(getCityByIdMock).toHaveBeenCalledWith(101)
+    expect(getDepartureSlotsByIdsMock).toHaveBeenCalledWith([88])
+    expect(getCitiesByIdsMock).toHaveBeenCalledWith([101])
 
     const doc = portal.invoices[0]
     expect(doc.productType).toBe('package')

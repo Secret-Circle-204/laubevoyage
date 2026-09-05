@@ -6,12 +6,12 @@ import Image from 'next/image'
 import type { LayoutDTO } from '@/application/layout/dto'
 
 export interface FooterProps {
-  data?: LayoutDTO
+  data: LayoutDTO
 }
 
 export function Footer({ data }: FooterProps) {
   const currentYear = new Date().getFullYear()
-  const columns = data?.footerNavigation || []
+  const columns = data.footerNavigation
 
   return (
     <footer className="bg-[#231F20] text-slate-300 border-t border-white/10 pt-16 pb-12">
@@ -31,7 +31,7 @@ export function Footer({ data }: FooterProps) {
               </div>
             </Link>
             <p className="text-sm leading-relaxed text-slate-400 max-w-sm">
-              Discover extraordinary luxury journeys, 5-star Nile cruises, and bespoke Egyptologist tours tailored for discerning travelers seeking historic perfection.
+              {data.uiLabels.brandDescription}
             </p>
           </div>
 

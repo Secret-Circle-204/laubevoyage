@@ -12,8 +12,9 @@ export interface CountryConfiguration {
   isActive: boolean
 }
 
+const COUNTRY_REGISTRY_GLOBAL_KEY = Symbol.for('laube.destination.countryCatalogRegistry.instance')
+
 export class CountryCatalogRegistry {
-  private static instance: CountryCatalogRegistry
   private cache: Map<string, CountryConfiguration> = new Map()
   private initialized = false
   private repository?: DestinationRepository
@@ -21,10 +22,11 @@ export class CountryCatalogRegistry {
   private constructor() {}
 
   public static getInstance(): CountryCatalogRegistry {
-    if (!CountryCatalogRegistry.instance) {
-      CountryCatalogRegistry.instance = new CountryCatalogRegistry()
+    const globalContext = globalThis as unknown as Record<typeof COUNTRY_REGISTRY_GLOBAL_KEY, CountryCatalogRegistry>
+    if (!globalContext[COUNTRY_REGISTRY_GLOBAL_KEY]) {
+      globalContext[COUNTRY_REGISTRY_GLOBAL_KEY] = new CountryCatalogRegistry()
     }
-    return CountryCatalogRegistry.instance
+    return globalContext[COUNTRY_REGISTRY_GLOBAL_KEY]
   }
 
   public setRepository(repository: DestinationRepository): void {

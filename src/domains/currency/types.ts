@@ -26,6 +26,7 @@ export interface PricingCalculationResult {
   exchangeRate: number
   exchangeRateTimestamp: string
   auditTrace?: Array<{ stepName: string; amountChangeEGP: number; reason: string; resultingSubtotalEGP: number }>
+  commercialBreakdown?: any
   calculatedAt: string
 }
 

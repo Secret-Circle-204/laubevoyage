@@ -19,14 +19,36 @@ export interface GlobalSearchResultItemDTO {
   title: string
   subtitle: string
   type: 'experience' | 'destination' | 'article'
+  experienceType?: 'package' | 'daily_tour'
   url: string
   imageUrl: string
   price?: ConvertedPrice
   rating?: number
 }
 
+export interface GlobalSearchLabelsDTO {
+  badge: string
+  title: string
+  resultsForQuery: string
+  resultsAll: string
+  placeholder: string
+  searchButton: string
+  filterAll: string
+  filterPackages: string
+  filterDailyTours: string
+  emptyTitle: string
+  emptyDescription: string
+  emptyAction: string
+  exploreItem: string
+  previousPage: string
+  nextPage: string
+  pageOf: string
+  showingCount: string
+}
+
 export interface GlobalSearchPageDTO {
   query: string
+  activeCategory?: string
   totalResults: number
   items: GlobalSearchResultItemDTO[]
   facets: {
@@ -35,4 +57,6 @@ export interface GlobalSearchPageDTO {
     maxPrice: number
   }
   pagination: PaginationDTO
+  labels: GlobalSearchLabelsDTO
 }
+

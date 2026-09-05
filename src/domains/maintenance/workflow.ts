@@ -9,6 +9,9 @@ import { MaintenancePolicy } from './policy'
 import { MaintenanceScheduler } from './scheduler'
 import type { MaintenanceJobName, MaintenanceLogEntity } from './types'
 import type { BookingService } from '../booking/service'
+import type { CurrencyService } from '../currency/service'
+import type { DashboardProjectionRepository } from '../dashboard/repository'
+import type { DashboardOverviewAggregator } from '../dashboard/overview-aggregator'
 
 /**
  * Maintenance Workflow Engine
@@ -19,18 +22,26 @@ export class MaintenanceWorkflowEngine {
   public reconciliationService: FinancialReconciliationService
   public dlqRecoveryService: DLQRecoveryService
   public retentionService: DataRetentionService
+  public currencyService?: CurrencyService
   public repository: MaintenanceRepository
 
-  constructor(repository: MaintenanceRepository | Payload, bookingService: BookingService) {
+  constructor(
+    repository: MaintenanceRepository | Payload,
+    bookingService: BookingService,
+    currencyService?: CurrencyService,
+    dashboardRepo?: DashboardProjectionRepository,
+    overviewAggregator?: DashboardOverviewAggregator,
+  ) {
     if (repository && 'saveLog' in repository) {
       this.repository = repository as MaintenanceRepository
     } else {
       this.repository = new MaintenanceRepository(repository as Payload)
     }
-    this.engine = new MaintenanceEngine(this.repository, bookingService)
+    this.engine = new MaintenanceEngine(this.repository, bookingService, dashboardRepo, overviewAggregator)
     this.reconciliationService = new FinancialReconciliationService()
     this.dlqRecoveryService = new DLQRecoveryService()
     this.retentionService = new DataRetentionService(this.repository.payloadInstance)
+    this.currencyService = currencyService
   }
 
   async executeJobWorkflow(
@@ -92,6 +103,17 @@ export class MaintenanceWorkflowEngine {
       } else if (jobName === 'reconcile_dashboard_projections') {
         const res = await this.engine.reconcileDashboardProjections(50)
         itemsProcessed = res.processedCount
+      } else if (jobName === 'currency_rate_refresh') {
+        const { CurrencyRepository } = await import('../currency/repository')
+        const { CurrencyService } = await import('../currency/service')
+        const service = this.currencyService || new CurrencyService(new CurrencyRepository(payload))
+        const forceSync = startedBy === 'manual_admin'
+        const res = await service.syncExchangeRates(forceSync)
+        itemsProcessed = res.success ? 1 : 0
+        if (!res.success && res.message && !res.skipped) {
+          status = 'failed'
+          errorDetails = res.message
+        }
       }
     } catch (err: unknown) {
       status = 'failed'

@@ -25,11 +25,39 @@ export interface Actor {
 export interface TravelerInput {
   firstName: string
   lastName: string
-  email: string
-  phone: string
+  email?: string
+  phone?: string
   dateOfBirth?: string
   passportNumber?: string
+  nationality?: string
   type?: 'adult' | 'child' | 'infant'
+}
+
+export interface TravelerManifestFieldIssue {
+  travelerIndex: number
+  travelerNumber: number
+  travelerType: 'adult' | 'child' | 'infant'
+  field: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth'
+  code: string
+  message: string
+}
+
+export interface CustomerCompanionTravelerProjection {
+  id: string
+  bookingId: number
+  bookingNumber: string
+  firstName: string
+  lastName: string
+  dateOfBirth?: string
+  passportNumber?: string
+}
+
+export interface ManifestDiagnostics {
+  valid: boolean
+  totalExpected: number
+  totalProvided: number
+  issues: TravelerManifestFieldIssue[]
+  travelerIssuesMap: Record<number, TravelerManifestFieldIssue[]>
 }
 
 export interface CapacityHoldEntity {
@@ -95,6 +123,44 @@ export interface BookingDocumentReferences {
   confirmationPdfUrl?: string
 }
 
+export interface CommercialSnapshotBreakdown {
+  adultsCount: number
+  adultBasePriceEGP: number
+  adultsTotalEGP: number
+
+  requestedRooms?: number
+  effectiveRoomCount?: number
+  minimumRequiredRooms?: number
+  roomAllocation: Array<{
+    roomIndex: number
+    occupancy: 'single' | 'double' | 'triple' | 'quad'
+    adults: number
+    children: number
+  }>
+  roomCount: number
+  autoAdjusted?: boolean
+  adjustmentMessage?: string
+  occupancySupplementsTotalEGP: number
+
+  children?: Array<{
+    age: number
+    category: 'infant' | 'child'
+    beddingMode: 'sharing_bed' | 'extra_bed'
+    appliedPercentage: number
+    priceEGP: number
+  }>
+  childrenTotalEGP: number
+
+  staysBreakdown?: Array<{
+    order: number
+    propertyId: number
+    propertyName: string
+    nights: number
+    roomCategory?: string
+    supplementEGP: number
+  }>
+}
+
 export interface PricingSnapshotData {
   version: number
   pricingVersion: number
@@ -113,6 +179,16 @@ export interface PricingSnapshotData {
   exchangeRateTimestamp?: string
   roundingStrategy?: string
   currencyDecimals?: number
+  commercialBreakdown?: CommercialSnapshotBreakdown
+}
+
+export interface BookingPickupLocation {
+  label: string
+  address: string
+  latitude: number
+  longitude: number
+  instructions?: string
+  source?: 'map' | 'search' | 'current_location' | 'fixed_meeting_point'
 }
 
 export interface BookingAggregate {
@@ -130,6 +206,7 @@ export interface BookingAggregate {
   completionAt: string
   paymentWindowExpiresAt: string
   destinationTimezone?: string
+  pickupLocation?: BookingPickupLocation | null
   
   pricingSnapshot: PricingSnapshotData
   capacityHold: CapacityHoldEntity | null
@@ -164,6 +241,10 @@ export interface CreateBookingParams {
   source: BookingSource
   actor?: Actor
   idempotencyKey?: string
+  pricingSnapshot?: PricingSnapshotData
+  commercialBreakdown?: CommercialSnapshotBreakdown
+  requestedRooms?: number
+  pickupLocation?: BookingPickupLocation | null
 }
 
 

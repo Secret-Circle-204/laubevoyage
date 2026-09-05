@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 import { Badge } from '@/components/ui'
 import { BlogCard } from './BlogCard'
 import type { BlogCatalogDTO } from '@/application/blog/dto'
@@ -27,6 +28,43 @@ export function BlogCatalogPage({ data }: { data: BlogCatalogDTO }) {
             <BlogCard key={article.id} article={article} />
           ))}
         </div>
+
+        {/* Server-Side Pagination Bar */}
+        {data.pagination && data.pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between pt-12 mt-12 border-t border-slate-200 dark:border-slate-800">
+            <span className="text-sm font-medium text-slate-500">
+              Page {data.pagination.page} of {data.pagination.totalPages} ({data.pagination.totalItems} total)
+            </span>
+
+            <div className="flex items-center gap-3">
+              {data.pagination.hasPrevPage ? (
+                <Link
+                  href={`/blog?page=${data.pagination.page - 1}`}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  ← Previous
+                </Link>
+              ) : (
+                <span className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed">
+                  ← Previous
+                </span>
+              )}
+
+              {data.pagination.hasNextPage ? (
+                <Link
+                  href={`/blog?page=${data.pagination.page + 1}`}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  Next →
+                </Link>
+              ) : (
+                <span className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed">
+                  Next →
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

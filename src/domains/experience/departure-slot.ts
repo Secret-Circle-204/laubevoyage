@@ -131,12 +131,18 @@ export class DepartureSlotHelper {
     // 4. Status Transition Invariant
     if (update.status !== undefined && update.status !== current.status) {
       if (update.status === 'cancelled') {
+        if (current.capacitySold > 0) {
+          throw new Error(
+            `[DepartureSlotHelper] Cannot cancel departure slot with ${current.capacitySold} sold tickets.`,
+          )
+        }
         const cancelPolicy = AvailabilityPolicy.canCancelDeparture(current)
         if (!cancelPolicy.allowed) {
           throw new Error(`[DepartureSlotHelper] Cannot transition slot to cancelled: ${cancelPolicy.reason}`)
         }
       }
     }
+
 
     // 5. Price Override Invariant
     if (update.priceOverrideEGP !== undefined && update.priceOverrideEGP !== null) {

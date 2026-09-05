@@ -24,6 +24,10 @@ export class ExperienceService {
     this.workflowEngine = workflowEngine
   }
 
+  getRepository(): ExperienceRepository {
+    return this.repository
+  }
+
   /**
    * Calculate frozen pricing snapshot with dynamic rules, promotions, taxes, and currency conversion.
    */
@@ -69,7 +73,15 @@ export class ExperienceService {
   /**
    * Multi-faceted search for experiences.
    */
-  async search(params: ExperienceSearchQueryParams): Promise<ExperienceAggregate[]> {
+  async search(params: ExperienceSearchQueryParams): Promise<{
+    docs: ExperienceAggregate[]
+    totalDocs: number
+    totalPages: number
+    page: number
+    limit: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }> {
     return this.workflowEngine.searchService.searchExperiences(params)
   }
 
@@ -77,7 +89,8 @@ export class ExperienceService {
    * Get catalog with pre-computed domain facets.
    */
   async getCatalog(params: ExperienceSearchQueryParams) {
-    const results = await this.search(params)
+    const paginatedResult = await this.search(params)
+    const results = paginatedResult.docs
     const prices = results.map((e) => e.price).filter((p): p is number => p !== null && p !== undefined)
     const minPrice = prices.length > 0 ? Math.min(...prices) : 0
     const maxPrice = prices.length > 0 ? Math.max(...prices) : 0
@@ -86,7 +99,12 @@ export class ExperienceService {
     return {
       experiences: results,
       facets: { minPrice, maxPrice, categories },
-      totalItems: results.length,
+      totalItems: paginatedResult.totalDocs,
+      page: paginatedResult.page,
+      limit: paginatedResult.limit,
+      totalPages: paginatedResult.totalPages,
+      hasNextPage: paginatedResult.hasNextPage,
+      hasPrevPage: paginatedResult.hasPrevPage,
     }
   }
 
@@ -127,33 +145,165 @@ export class ExperienceService {
   /**
    * Resolves the "Starting From" price for an experience.
    * Business rules:
-   * 1. If active slots exist in the future, returns the minimum resolved price among them.
+   * 1. If active slots exist in the future, passes candidate slots to PriceResolver.
    * 2. If no future slots exist, falls back to the experience catalog price.
+   * Database contract: Bounded Indexed Lookup (returns 1-3 candidate slot entities).
    */
-  async resolveStartingPrice(experienceId: number, todayStr: string): Promise<number> {
-    const experience = await this.getById(experienceId)
+  async resolveStartingPrice(
+    experienceOrId: number | ExperienceAggregate,
+    todayStr: string,
+  ): Promise<number> {
+    const experience =
+      typeof experienceOrId === 'number'
+        ? await this.getById(experienceOrId)
+        : experienceOrId
+
     if (!experience) {
-      throw new Error(`[ExperienceService] Experience with ID ${experienceId} not found.`)
+      throw new Error(`[ExperienceService] Experience not found for starting price calculation.`)
     }
 
-    const slots = await this.findSlotsByExperienceId(experienceId)
-    const availableSlots = slots.filter((s) => s.status === 'available' && s.date >= todayStr)
+    // 1. Collect future discounted dates from experience.priceOverrides that are cheaper than catalog base price
+    const basePrice = experience.price ?? Number.POSITIVE_INFINITY
+    const cheaperOverrideDates: string[] = []
+    if (experience.priceOverrides && Array.isArray(experience.priceOverrides)) {
+      for (const override of experience.priceOverrides) {
+        const oDate = override.date ? override.date.split('T')[0] : ''
+        if (oDate >= todayStr && typeof override.priceEGP === 'number' && override.priceEGP < basePrice) {
+          if (!cheaperOverrideDates.includes(oDate)) {
+            cheaperOverrideDates.push(oDate)
+          }
+        }
+      }
+    }
 
+    // 2. Retrieve candidate departure slots (bounded query: returns at most 2-3 slot entities)
+    const candidateSlots = await this.repository.findStartingPriceCandidateSlots(
+      experience.id,
+      todayStr,
+      cheaperOverrideDates,
+    )
+
+    if (candidateSlots.length === 0) {
+      if (experience.price === undefined || experience.price === null) {
+        throw new Error(
+          `[ExperienceService] Experience ${experience.id} has no available slots and no catalog price fallback.`,
+        )
+      }
+      return experience.price
+    }
+
+    // 3. Authoritative Domain Calculation: Resolve effective price for each candidate slot using PriceResolver
     let minPrice = Number.POSITIVE_INFINITY
-
-    for (const slot of availableSlots) {
+    for (const slot of candidateSlots) {
       const price = this.workflowEngine.priceResolver.resolve(experience, slot)
       minPrice = Math.min(minPrice, price)
     }
 
     if (minPrice === Number.POSITIVE_INFINITY) {
       if (experience.price === undefined || experience.price === null) {
-        throw new Error(`[ExperienceService] Experience ${experienceId} has no available slots and no catalog price fallback.`)
+        throw new Error(
+          `[ExperienceService] Experience ${experience.id} has no available slots and no catalog price fallback.`,
+        )
       }
       return experience.price
     }
 
     return minPrice
+  }
+
+  /**
+   * Resolves the "Starting From" price for a batch of experiences in a single constant O(1) DB operation.
+   * Eliminates N+1 query amplification while maintaining 100% semantic equivalence with PriceResolver.
+   *
+   * Rules:
+   * 1. Daily Tours: Computed in-memory from experience.price and experience.priceOverrides (0 DB queries).
+   * 2. Packages: Fetches minimal candidate slots (<= 2 per package) via single batch DB query.
+   * 3. Resolves effective price using BasePriceResolver.
+   */
+  async resolveStartingPricesBatch(
+    experiences: ExperienceAggregate[],
+    todayStr: string,
+  ): Promise<Map<number, number>> {
+    const priceMap = new Map<number, number>()
+    if (!experiences || experiences.length === 0) {
+      return priceMap
+    }
+
+    const packageExperiences: ExperienceAggregate[] = []
+
+    for (const exp of experiences) {
+      if (exp.type === 'daily_tour') {
+        const basePrice = exp.price ?? Number.POSITIVE_INFINITY
+        let minDailyPrice = basePrice
+
+        if (exp.priceOverrides && Array.isArray(exp.priceOverrides)) {
+          for (const override of exp.priceOverrides) {
+            const oDate = override.date ? override.date.split('T')[0] : ''
+            if (oDate >= todayStr && typeof override.priceEGP === 'number' && override.priceEGP >= 0) {
+              minDailyPrice = Math.min(minDailyPrice, override.priceEGP)
+            }
+          }
+        }
+
+        if (minDailyPrice === Number.POSITIVE_INFINITY) {
+          throw new Error(`[ExperienceService] Daily Tour #${exp.id} has no valid base price.`)
+        }
+
+        priceMap.set(exp.id, minDailyPrice)
+      } else if (exp.type === 'package') {
+        packageExperiences.push(exp)
+      }
+    }
+
+    if (packageExperiences.length > 0) {
+      const packageIds = packageExperiences.map((p) => p.id)
+      const candidateSlotsMap = await this.repository.findStartingPriceCandidateSlotsBatch(
+        packageIds,
+        todayStr,
+      )
+
+      for (const pkg of packageExperiences) {
+        const slots = candidateSlotsMap.get(pkg.id) || []
+        if (slots.length === 0) {
+          if (pkg.price === undefined || pkg.price === null) {
+            throw new Error(
+              `[ExperienceService] Package #${pkg.id} has no available departure slots and no catalog price fallback.`,
+            )
+          }
+          priceMap.set(pkg.id, pkg.price)
+        } else {
+          let minPkgPrice = Number.POSITIVE_INFINITY
+          for (const slot of slots) {
+            const price = this.workflowEngine.priceResolver.resolve(pkg, slot)
+            minPkgPrice = Math.min(minPkgPrice, price)
+          }
+          if (minPkgPrice === Number.POSITIVE_INFINITY) {
+            if (pkg.price === undefined || pkg.price === null) {
+              throw new Error(
+                `[ExperienceService] Package #${pkg.id} has no valid starting price from candidate slots.`,
+              )
+            }
+            minPkgPrice = pkg.price
+          }
+          priceMap.set(pkg.id, minPkgPrice)
+        }
+      }
+    }
+
+    return priceMap
+  }
+
+  /**
+   * Get related experiences based on same city or type.
+   * Bounded showcase contract (limit: 3).
+   */
+  async getRelatedExperiences(
+    experienceId: number,
+    cityId: number,
+    type: string,
+    limit: number = 3,
+  ): Promise<ExperienceAggregate[]> {
+    return this.repository.findRelated(experienceId, cityId, type, limit)
   }
 
 
@@ -199,10 +349,23 @@ export class ExperienceService {
     return this.workflowEngine.queries.getDepartureSlotByDate(experienceId, date, context)
   }
 
-  async findSlotsByExperienceId(experienceId: number): Promise<DepartureSlotEntity[]> {
+  async findSlotsByExperienceId(
+    experienceId: number,
+    options?: import('./repository/types').FindSlotsQueryOptions,
+    context?: RequestContext,
+  ): Promise<DepartureSlotEntity[]> {
     const experience = await this.getById(experienceId)
-    if (!experience) return []
-    return this.workflowEngine.queries.findSlotsByExperienceId(experienceId)
+    if (!experience) {
+      throw new Error(`[ExperienceService] Experience with ID ${experienceId} not found.`)
+    }
+    return this.workflowEngine.queries.findSlotsByExperienceId(experienceId, options, context)
+  }
+
+  /**
+   * Count departure slots for an experience with optional status filter.
+   */
+  async countDepartureSlots(experienceId: number, status?: string, context?: RequestContext): Promise<number> {
+    return this.workflowEngine.queries.countDepartureSlots(experienceId, status, context)
   }
 
   /**

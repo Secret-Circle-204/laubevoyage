@@ -6,6 +6,8 @@ import { Card, Badge } from '@/components/ui'
 import { LoginForm } from './LoginForm'
 import { CustomerLoyaltyLoader } from '@/application/loyalty/loaders'
 import { SessionResolver } from '@/application/auth/session-resolver'
+import { getLocaleContext } from '@/lib/get-locale-context'
+import { getDomainServices } from '@/domains/factory'
 
 export const metadata: Metadata = {
   title: "Customer Sign In | L'Aube Voyage",
@@ -18,22 +20,31 @@ export default async function LoginPage() {
     redirect('/dashboard')
   }
 
+  const ctx = await getLocaleContext()
+  const { localization } = await getDomainServices()
+
   const loyaltyConfig = await CustomerLoyaltyLoader.loadPublicConfig()
   const welcomeBonus = loyaltyConfig.welcomeBonus
   const hasBonus = typeof welcomeBonus === 'number' && welcomeBonus > 0
+
+  const customerPortal = localization.translateUiKey('auth.customerPortal', ctx)
+  const welcomeBack = localization.translateUiKey('auth.welcomeBack', ctx)
+  const signInSubtitle = localization.translateUiKey('auth.signInSubtitle', ctx)
+  const dontHaveAccount = localization.translateUiKey('auth.dontHaveAccount', ctx)
+  const createAccount = localization.translateUiKey('auth.createAccount', ctx)
 
   return (
     <div className="py-20 bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center justify-center px-4">
       <Card variant="flat" padding="lg" className="w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-800">
         <div className="text-center mb-8">
           <Badge variant="primary" size="sm" className="mb-3">
-            Customer Portal
+            {customerPortal}
           </Badge>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Welcome Back
+            {welcomeBack}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-            Sign in to access your luxury travel bookings and loyalty ledger.
+            {signInSubtitle}
           </p>
         </div>
 
@@ -42,9 +53,9 @@ export default async function LoginPage() {
         </Suspense>
 
         <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
-          Don&apos;t have a traveler account?{' '}
+          {dontHaveAccount}{' '}
           <Link href="/register" className="font-bold text-[#2e3192] dark:text-[#00aeef] hover:underline">
-            {hasBonus ? `Register & Get ${welcomeBonus} Welcome Points` : 'Create a Traveler Account'}
+            {hasBonus ? `Register & Get ${welcomeBonus} Welcome Points` : createAccount}
           </Link>
         </div>
       </Card>

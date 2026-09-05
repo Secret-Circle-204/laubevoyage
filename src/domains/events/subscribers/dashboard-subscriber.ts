@@ -21,7 +21,6 @@ import { DashboardWorkflowEngine } from '../../dashboard/workflow'
 import { DashboardProjectionRepository } from '../../dashboard/repository'
 import { DashboardQueryBus } from '../../dashboard/query-bus'
 import { CustomerRepository } from '../../customer/repositories/customer-repository'
-import { DeviceSessionRepository } from '../../customer/repositories/session-repository'
 import { LoyaltyRepository } from '../../loyalty/repository'
 import { BookingRepository } from '../../booking/repository'
 import { PayloadInboxRepository } from '../repositories/payload-inbox-repository'
@@ -38,12 +37,11 @@ export function registerDashboardProjectionSubscribers(payload: Payload): void {
   const eventBus = EventBus.getInstance()
   const dashboardRepo = new DashboardProjectionRepository(payload)
   const customerRepo = new CustomerRepository(payload)
-  const sessionRepo = new DeviceSessionRepository(payload)
   const loyaltyRepo = new LoyaltyRepository(payload)
   const bookingRepo = new BookingRepository(payload)
   const inboxRepo = new PayloadInboxRepository(payload)
 
-  const queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo, sessionRepo)
+  const queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo)
   const workflowEngine = new DashboardWorkflowEngine(dashboardRepo, queryBus)
 
   // ==========================================

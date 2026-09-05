@@ -19,16 +19,18 @@ export async function generateMetadata(props: {
 }
 
 export default async function Page(props: {
-  searchParams: Promise<{ q?: string; category?: string; minPrice?: string; maxPrice?: string }>
+  searchParams: Promise<{ q?: string; category?: string; minPrice?: string; maxPrice?: string; page?: string }>
 }) {
   const searchParams = await props.searchParams
   const localeCtx = await getLocaleContext()
+  const pageNum = searchParams.page ? Math.max(1, parseInt(searchParams.page, 10)) : 1
 
   const data = await GlobalSearchLoader.load({
     query: searchParams.q,
     category: searchParams.category,
     minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
     maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined,
+    page: !isNaN(pageNum) ? pageNum : 1,
     locale: localeCtx.language,
     currency: localeCtx.currency,
   })

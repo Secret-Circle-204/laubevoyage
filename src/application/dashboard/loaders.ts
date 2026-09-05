@@ -9,6 +9,9 @@ import type {
   CustomerSidebarDTO,
   CustomerBookingsHistoryDTO,
   BookingDetailsDTO,
+  BookingTravelerDTO,
+  BookingStaySnapshotDTO,
+  BookingRoomAllocationDTO,
 } from './dto'
 import { BookingLoyaltySummaryAssembler } from '@/application/loyalty/booking-summary-assembler'
 import { LoyaltyTier, BookingStatus } from '@/types'
@@ -16,9 +19,10 @@ import { TierPolicy } from '@/domains/loyalty/tier-policy'
 import { LoyaltyProgressDTOFactory } from '@/application/loyalty/progress-factory'
 
 export class CustomerPortalLoader {
-  static async loadSidebar(customerId: number): Promise<CustomerSidebarDTO> {
+  static async loadSidebar(customerId: number, locale?: string): Promise<CustomerSidebarDTO> {
     try {
-      const { customer, dashboard } = await getDomainServices()
+      const { customer, dashboard, localization } = await getDomainServices()
+      const ctx = await localization.buildContext({ cookieLocale: locale })
       const [customerDoc, projection] = await Promise.all([
         customer.getById(customerId),
         dashboard.getPortalOverview(customerId),
@@ -31,10 +35,24 @@ export class CustomerPortalLoader {
         ''
       ).toLowerCase() as LoyaltyTier
 
+      const navLinks = [
+        { label: localization.translateUiKey('layout.sidebar.overview', ctx), href: '/dashboard', icon: '📊' },
+        { label: localization.translateUiKey('layout.sidebar.myBookings', ctx), href: '/dashboard/bookings', icon: '🧳' },
+        { label: localization.translateUiKey('layout.sidebar.loyaltyRewards', ctx), href: '/dashboard/loyalty', icon: '👑' },
+        { label: localization.translateUiKey('layout.sidebar.profileCompanions', ctx), href: '/dashboard/profile', icon: '👤' },
+        { label: localization.translateUiKey('layout.sidebar.invoicesReceipts', ctx), href: '/dashboard/invoices', icon: '🧾' },
+        { label: localization.translateUiKey('layout.sidebar.notifications', ctx), href: '/dashboard/notifications', icon: '🔔' },
+        { label: localization.translateUiKey('layout.sidebar.settings', ctx), href: '/dashboard/settings', icon: '⚙️' },
+      ]
+
+      const tierSuffix = localization.translateUiKey('layout.sidebar.tierSuffix', ctx)
+
       return {
         customerId,
         fullName,
         currentTier,
+        navLinks,
+        tierSuffix,
       }
     } catch (err) {
       console.error(
@@ -82,10 +100,24 @@ export class CustomerPortalLoader {
       const userBookings = bookingsResult.data || []
 
       // Batch resolution of experiences (Single Query - Eliminates N+1)
-      const uniqueExperienceIds = Array.from(new Set(userBookings.map((b) => b.experienceId)))
+      const uniqueExperienceIds: number[] = Array.from(new Set(userBookings.map((b) => b.experienceId)))
       const experiences =
         uniqueExperienceIds.length > 0 ? await experience.getManyByIds(uniqueExperienceIds) : []
       const experiencesMap = new Map(experiences.map((e) => [e.id, e]))
+
+      // Batch translate recent bookings experience titles
+      const rawExpTitles: string[] = Array.from(
+        new Set(
+          userBookings
+            .map((b) => experiencesMap.get(b.experienceId)?.title)
+            .filter((t): t is string => Boolean(t)),
+        ),
+      )
+      const translatedExpTitles = await localization.translateBatch(rawExpTitles, ctx)
+      const expTitleMap = new Map<string, string>()
+      rawExpTitles.forEach((raw, idx) => {
+        expTitleMap.set(raw, translatedExpTitles[idx] || raw)
+      })
 
       const recentBookings = await Promise.all(
         userBookings.map(async (b: BookingAggregate) => {
@@ -132,7 +164,8 @@ export class CustomerPortalLoader {
           }
 
           const exp = experiencesMap.get(b.experienceId)
-          const experienceTitle = exp?.title || `Trip #${b.bookingNumber}`
+          const rawTitle = exp?.title
+          const experienceTitle = rawTitle ? (expTitleMap.get(rawTitle) || rawTitle) : `Trip #${b.bookingNumber}`
           const experienceImage =
             (exp as any)?.heroUrl || (exp as any)?.featuredImage?.url || '/images/hero-bg.jpg'
 
@@ -332,6 +365,33 @@ export class CustomerPortalLoader {
         uniqueCityIds.length > 0 ? await destination.getCitiesByIds(uniqueCityIds) : []
       const citiesMap = new Map(citiesList.map((c: any) => [Number(c.id), c]))
 
+      // Batch translate all dynamic texts for bookings page (Single translation pass)
+      const rawExpTitles = Array.from(
+        new Set(
+          userBookings
+            .map((b) => experiencesMap.get(b.experienceId)?.title)
+            .filter((t): t is string => Boolean(t)),
+        ),
+      )
+      const rawGeoNames: string[] = []
+      for (const cityDoc of Array.from(citiesMap.values())) {
+        if (cityDoc.name) rawGeoNames.push(String(cityDoc.name))
+        const countryObj = cityDoc.country
+        if (countryObj && typeof countryObj === 'object' && 'name' in countryObj && countryObj.name) {
+          rawGeoNames.push(String(countryObj.name))
+        }
+      }
+      const uniqueGeoNames = Array.from(new Set(rawGeoNames.filter(Boolean)))
+      const allDynamicTexts = [...rawExpTitles, ...uniqueGeoNames]
+      const translatedDynamicTexts =
+        typeof localization.translateBatch === 'function'
+          ? await localization.translateBatch(allDynamicTexts, ctx)
+          : allDynamicTexts
+      const dynamicTextMap = new Map<string, string>()
+      allDynamicTexts.forEach((text, i) => {
+        dynamicTextMap.set(text, translatedDynamicTexts[i] || text)
+      })
+
       const bookings = await Promise.all(
         userBookings.map(async (b: BookingAggregate) => {
           const snapshot = b.pricingSnapshot
@@ -354,12 +414,14 @@ export class CustomerPortalLoader {
           if (exp?.cityId && citiesMap.has(exp.cityId)) {
             const cityDoc = citiesMap.get(exp.cityId)
             if (cityDoc) {
-              const cityName = String(cityDoc.name || '')
+              const rawCityName = String(cityDoc.name || '')
+              const cityName = dynamicTextMap.get(rawCityName) || rawCityName
               const countryObj = cityDoc.country
-              const countryName =
+              const rawCountryName =
                 countryObj && typeof countryObj === 'object' && 'name' in countryObj && countryObj.name
                   ? String(countryObj.name)
                   : ''
+              const countryName = dynamicTextMap.get(rawCountryName) || rawCountryName
               destinationCity =
                 cityName && countryName ? `${cityName}, ${countryName}` : (cityName || countryName || undefined)
             }
@@ -455,7 +517,8 @@ export class CustomerPortalLoader {
             formattedOutstanding = await localization.formatPrice(outstandingEGP, ctx)
           }
 
-          const experienceTitle = exp?.title || `Trip #${b.bookingNumber}`
+          const rawTitle = exp?.title
+          const experienceTitle = rawTitle ? (dynamicTextMap.get(rawTitle) || rawTitle) : `Trip #${b.bookingNumber}`
           const experienceImage = exp?.heroUrl || '/images/hero-bg.jpg'
 
           return {
@@ -744,10 +807,65 @@ export class BookingDetailsLoader {
         formattedOutstanding = await localization.formatPrice(outstandingEGP, ctx)
       }
 
+      const pickupLocation =
+        bookingDoc.pickupLocation &&
+        bookingDoc.pickupLocation.label &&
+        bookingDoc.pickupLocation.address
+          ? {
+              label: bookingDoc.pickupLocation.label,
+              address: bookingDoc.pickupLocation.address,
+              latitude: Number(bookingDoc.pickupLocation.latitude || 0),
+              longitude: Number(bookingDoc.pickupLocation.longitude || 0),
+              instructions: bookingDoc.pickupLocation.instructions || undefined,
+              source: bookingDoc.pickupLocation.source || undefined,
+            }
+          : null
+
+      const rawTravelers = Array.isArray(bookingDoc.travelers) ? bookingDoc.travelers : []
+      const travelers: BookingTravelerDTO[] = rawTravelers.map((t, idx) => {
+        let passportMasked: string | undefined = undefined
+        if (t.passportNumber && t.passportNumber.trim()) {
+          const p = t.passportNumber.trim()
+          passportMasked = p.length > 4 ? `${p.slice(0, 2)}••••${p.slice(-2)}` : '••••'
+        }
+        return {
+          firstName: t.firstName || '',
+          lastName: t.lastName || '',
+          type: t.type === 'child' ? 'child' : t.type === 'infant' ? 'infant' : 'adult',
+          isLead: idx === 0,
+          email: idx === 0 ? t.email || undefined : undefined,
+          phone: idx === 0 ? t.phone || undefined : undefined,
+          nationality: t.nationality || undefined,
+          passportMasked,
+        }
+      })
+
+      const rawStays = snapshot.commercialBreakdown?.staysBreakdown
+      const stays: BookingStaySnapshotDTO[] = Array.isArray(rawStays)
+        ? rawStays.map((s) => ({
+            order: s.order || 1,
+            propertyName: s.propertyName || 'Hotel Accommodation',
+            nights: s.nights || 1,
+            roomCategory: s.roomCategory || undefined,
+          }))
+        : []
+
+      const rawRooms = snapshot.commercialBreakdown?.roomAllocation
+      const roomAllocation: BookingRoomAllocationDTO[] = Array.isArray(rawRooms)
+        ? rawRooms.map((r) => ({
+            roomIndex: r.roomIndex,
+            occupancy: r.occupancy,
+            adults: r.adults,
+            children: r.children,
+          }))
+        : []
+
       return {
         bookingNumber: bookingDoc.bookingNumber,
         experienceTitle,
+        experienceType: exp?.type === 'daily_tour' ? 'daily_tour' : 'package',
         departureDate: bookingDoc.startDate,
+        endDate: bookingDoc.endDate && bookingDoc.endDate !== bookingDoc.startDate ? bookingDoc.endDate : undefined,
         passengersCount: bookingDoc.travelers?.length || 1,
         basePrice: formattedBasePrice,
         totalCost: formattedTotal,
@@ -760,6 +878,10 @@ export class BookingDetailsLoader {
         rawOutstandingBalance: outstandingEGP,
         rawTotalCost: totalEGP,
         loyaltySummary,
+        pickupLocation,
+        travelers,
+        stays,
+        roomAllocation,
       }
     } catch (err) {
       console.error(`[BookingDetailsLoader] Error loading booking #${bookingNumber}:`, err)

@@ -1,10 +1,10 @@
 {
   "hero": {
     "title": "Esperienze di Lusso L'Aube Voyage",
-    "subtitle": "Creiamo Viaggi dal 1996: Il Tuo Passaporto per Scoperte Uniche",
+    "subtitle": "Creiamo Viaggi dal 1996: Il Vostro Passaporto per Scoperte Esclusive",
     "cta": {
-      "primary": "Esplora Esperienze →",
-      "secondary": "Scopri Destinazioni"
+      "primary": "Esplora le Esperienze →",
+      "secondary": "Scopri le Destinazioni"
     }
   },
   "layout": {
@@ -14,9 +14,26 @@
       "experiences": "Esperienze",
       "about": "Chi Siamo"
     },
+    "header": {
+      "myAccount": "👤 Il Mio Account",
+      "signOut": "Esci",
+      "logIn": "Accedi",
+      "bookNow": "Prenota Ora"
+    },
+    "sidebar": {
+      "overview": "Panoramica",
+      "myBookings": "Le Mie Prenotazioni",
+      "loyaltyRewards": "Programma Fedeltà",
+      "profileCompanions": "Profilo & Compagni di Viaggio",
+      "invoicesReceipts": "Fatture & Ricevute",
+      "notifications": "Notifiche",
+      "settings": "Impostazioni",
+      "tierSuffix": "Livello"
+    },
     "footer": {
-      "rights": "Tutti i Diritti Riservati © 2026 L'Aube Voyage",
-      "tagline": "Viaggi Straordinari dal 1996.",
+      "rights": "Tutti i diritti riservati © 2026 L'Aube Voyage",
+      "tagline": "Creiamo Viaggi Straordinari dal 1996.",
+      "brandDescription": "Scoprite viaggi di lusso straordinari, crociere 5 stelle sul Nilo e tour privati con egittologi per viaggiatori esigenti.",
       "explore": "Esplora",
       "allExperiences": "Tutte le Esperienze",
       "destinations": "Destinazioni",
@@ -35,32 +52,236 @@
   },
   "catalog": {
     "meta": {
-      "title": "Catalogo Esperienze di Lusso e Pacchetti Viaggio | L'Aube Voyage",
-      "description": "Scopri pacchetti viaggio esclusivi, crociere sul Nilo e tour privati giornalieri in Egitto."
+      "title": "Catalogo Esperienze & Pacchetti di Lusso | L'Aube Voyage",
+      "description": "Pacchetti di lusso, crociere sul Nilo e tour privati in Egitto."
     },
     "badge": "Collezione Esclusiva",
     "title": "Catalogo Esperienze",
-    "description": "Scopri pacchetti di viaggio di lusso e tour privati giornalieri creati su misura per viaggiatori esigenti.",
+    "description": "Scoprite pacchetti di lusso e tour privati creati per viaggiatori esclusivi.",
     "filterAll": "Tutte le Esperienze ({count})",
     "filterPackages": "Pacchetti Viaggio",
-    "filterDailyTours": "Tour Privati Giornalieri",
+    "filterDailyTours": "Tour Giornalieri Privati",
     "viewItinerary": "Visualizza Itinerario",
     "packageLabel": "Pacchetto Viaggio",
     "dailyTourLabel": "Tour Giornaliero"
   },
+  "checkout": {
+    "leadTravelerInfo": "Dati del Viaggiatore Principale",
+    "paymentMethod": "Metodo di Pagamento",
+    "applyLoyaltyPoints": "Utilizza Punti Fedeltà",
+    "orderSummary": "Riepilogo Ordine",
+    "confirmAndPay": "Conferma e Paga Ora",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "email": "Indirizzo Email",
+    "phone": "Numero di Telefono"
+  },
+  "contact": {
+    "vipConciergeBadge": "Concierge VIP 24/7",
+    "title": "Contatta i Nostri Specialisti di Viaggio",
+    "description": "Domande su itinerari su misura o crociere private? Inviaci un messaggio e risponderemo entro 2 ore.",
+    "directContact": "Contatto Diretto",
+    "cairoHeadOffice": "Sede Centrale del Cairo",
+    "vipHotline": "Linea Diretta VIP",
+    "emailLabel": "Email",
+    "sendMessage": "Invia Messaggio",
+    "fullName": "Nome Completo",
+    "subject": "Oggetto",
+    "message": "Messaggio"
+  },
+  "auth": {
+    "customerPortal": "Portale Clienti",
+    "welcomeBack": "Bentornato",
+    "signInSubtitle": "Accedi per gestire prenotazioni e punti fedeltà.",
+    "dontHaveAccount": "Non hai ancora un account viaggiatore?",
+    "createAccount": "Crea Account Viaggiatore",
+    "createAccountTitle": "Crea Account Viaggiatore",
+    "createAccountSubtitle": "Iscriviti a L'Aube Voyage Rewards e ottieni vantaggi immediati.",
+    "alreadyHaveAccount": "Hai già un account?",
+    "signInLink": "Accedi"
+  },
+  "notFound": {
+    "badge": "Destinazione Non Raggiungibile",
+    "title": "Pagina Non Trovata",
+    "description": "L'esperienza o destinazione cercata non esiste o è stata spostata.",
+    "returnHome": "Torna alla Home Page →"
+  },
+  "bookingConfirmation": {
+    "thankYou": "Grazie Per Il Vostro Ordine!",
+    "refSubtitle": "Il vostro numero di riferimento prenotazione è",
+    "statusLabel": "Stato:",
+    "totalPriceLabel": "Prezzo Totale:",
+    "nextSteps": "Prossimi Passi",
+    "printConfirmation": "Stampa conferma di prenotazione",
+    "backToBookings": "Torna a tutte le prenotazioni",
+    "reservationDossier": "Conferma di prenotazione"
+  },
   "loyalty": {
     "tier": {
-      "explorer": "Esploratore",
-      "voyager": "Viaggiatore",
+      "explorer": "Explorer",
+      "voyager": "Voyager",
       "elite": "Elite"
     },
     "progress": {
       "remainingToTier": "Mancano {amount} per raggiungere il livello {tier}",
-      "maxTier": "Livello massimo di iscrizione raggiunto!"
+      "maxTier": "Livello Massimo di Iscrizione Raggiunto!"
     },
     "guide": {
       "title": "Guida al Valore dei Punti",
-      "description": "Usa i tuoi punti direttamente al checkout — senza codici, senza pensieri. Seleziona il tuo livello e risparmia all'istante."
+      "description": "Utilizzate i vostri punti direttamente al checkout — senza codici, senza complicazioni."
+    },
+    "portal": {
+      "pageTitle": "Premi fedeltà e livello",
+      "pageSubtitle": "Sblocca vantaggi esclusivi, sconti immediati al checkout e upgrade di lusso.",
+      "tierMemberSuffix": "Membro",
+      "availableBalance": "Saldo punti fedeltà disponibile",
+      "pointsUnit": "Punti",
+      "cashValuePrefix": "≈",
+      "cashValueSuffix": "Valore monetario",
+      "heldPointsNotice": "({heldPoints} punti trattenuti per prenotazioni in sospeso • Totale registro: {totalPoints} punti)",
+      "totalQualifyingSpend": "Spesa totale qualificata",
+      "instantCheckoutDiscount": "Sconto immediato al checkout",
+      "officialRate": "Tasso ufficiale",
+      "yourPointsValue": "Valore dei vostri punti",
+      "transactionHistoryTitle": "Cronologia delle transazioni punti",
+      "noTransactions": "Nessuna transazione fedeltà ancora presente. Guadagna punti prenotando esperienze!",
+      "dateCol": "Data",
+      "referenceCol": "Riferimento transazione",
+      "typeCol": "Tipo",
+      "reasonCol": "Causale",
+      "pointsCol": "Punti"
     }
+  },
+  "experience": {
+    "backToCatalog": "← Torna al Catalogo delle Esperienze",
+    "fromPerAdult": "Da (Per Adulto)",
+    "totalCost": "Costo Totale",
+    "totalPrice": "Prezzo Totale",
+    "selectDepartureSlot": "Seleziona Data di Partenza",
+    "seatsLeft": "{count} Posti Disponibili",
+    "seatLeftSingle": "1 Posto Disponibile",
+    "soldOut": "Esaurito",
+    "unavailable": "Non Disponibile",
+    "closed": "Chiuso",
+    "noUpcomingDates": "Nessuna data di partenza disponibile per questo pacchetto al momento.",
+    "selectStartDate": "Seleziona Data di Inizio",
+    "blackoutDateNotice": "Questa data non è disponibile (Data Bloccata).",
+    "tripDuration": "Durata del Viaggio:",
+    "returnDate": "Data di Ritorno:",
+    "selectTourDate": "Seleziona Data del Tour",
+    "blackoutDateTimeNotice": "Questo orario non è disponibile (Data Bloccata).",
+    "selectDailyTimeSlot": "Seleziona Fascia Oraria",
+    "passed": "(Passato)",
+    "timePassedNotice": "Questo orario di partenza è già passato. Seleziona un orario futuro.",
+    "whoIsTravelling": "Chi Viaggia?",
+    "adults": "Adulti",
+    "adultSingular": "Adulto",
+    "adultPlural": "Adulti",
+    "adultsAgeHint": "Età 12+ anni",
+    "children": "Bambini",
+    "childSingular": "Bambino",
+    "childPlural": "Bambini",
+    "childrenAgeHint": "Età 0–11 anni",
+    "childIndex": "Bambino {index}",
+    "ageLabel": "Età:",
+    "yearSingular": "anno",
+    "yearPlural": "anni",
+    "infantCategory": "(Neonato)",
+    "adultCategory": "(Adulto)",
+    "infantSharingNotice": "👶 Neonato (Sotto i 2 anni): Gratis • Nel letto dei genitori",
+    "beddingPreference": "Preferenza Letti",
+    "sharingBed": "Letto Condiviso",
+    "extraBed": "Letto Aggiuntivo",
+    "percentOfBaseRate": "({percentage}% della tariffa base)",
+    "adultRateNotice": "🧑 Età 12+: Tariffa adulto standard",
+    "rooms": "Camere",
+    "roomSingular": "Camera",
+    "roomPlural": "Camere",
+    "totalRequestedRooms": "Totale camere richieste",
+    "minimumRoomsRequired": "Minimo {min} camere richieste per {adults} {adultUnit}",
+    "yourRooms": "Le Tue Camere",
+    "roomIndex": "Camera {index}",
+    "priceBreakdown": "Dettaglio Prezzo",
+    "commercialSsotBadge": "Tariffazione Ufficiale",
+    "adultsCalculation": "Adulti ({count} × {price}):",
+    "childCalculation": "Bambino {index} ({age} anni, {mode}):",
+    "free": "Gratis",
+    "roomSupplements": "Supplementi Camera:",
+    "pricingErrorHint": "Prova ad aumentare il numero di camere o a selezionare un'altra data.",
+    "updatingCalculation": "Aggiornamento calcolo in corso...",
+    "bookThisJourney": "Prenota Questo Viaggio →",
+    "bookJourneyShort": "Prenota Viaggio →",
+    "configureBooking": "Configura Prenotazione",
+    "journeyOverview": "Panoramica del Viaggio",
+    "staysTitle": "I Tuoi Soggiorni & Alloggi di Lusso",
+    "staysSubtitle": "Hotel a 5 stelle e navi da crociera sul Nilo selezionati con cura",
+    "stayHeader": "Soggiorno #{order} • {nights} {nightUnit}",
+    "nightSingular": "Notte",
+    "nightPlural": "Notti",
+    "daySingular": "Giorno",
+    "dayPlural": "Giorni",
+    "hourSingular": "Ora",
+    "hourPlural": "Ore",
+    "minSingular": "Min",
+    "minPlural": "Minuti",
+    "roomLabel": "Camera:",
+    "includedInItinerary": "Incluso nel tuo itinerario",
+    "supportedOccupancyOptions": "Opzioni di Occupazione Camera",
+    "includedInBase": "Incluso nella Tariffa Base",
+    "itineraryTitle": "Itinerario Dettagliato Giorno per Giorno",
+    "itineraryDay": "Giorno {day}",
+    "servicesTitle": "Riepilogo Servizi",
+    "whatsIncluded": "Cosa è Incluso",
+    "whatsExcluded": "Cosa è Escluso",
+    "policiesTitle": "Termini & Politiche di Cancellazione",
+    "empty": {
+      "noPackageSlots": "Questo pacchetto non ha partenze disponibili al momento.",
+      "noTourSchedules": "Questo tour non ha orari disponibili al momento.",
+      "unavailable": "Questo viaggio non è attualmente prenotabile.",
+      "exploreOther": "Esplora Altre Esperienze →"
+    },
+    "aria": {
+      "decreaseAdults": "Riduci adulti",
+      "increaseAdults": "Aumenta adulti",
+      "decreaseChildren": "Riduci bambini",
+      "increaseChildren": "Aumenta bambini",
+      "decreaseRooms": "Riduci camere",
+      "increaseRooms": "Aumenta camere"
+    },
+    "occupancy": {
+      "single": "Occupazione Singola (1 Ospite)",
+      "double": "Occupazione Doppia (2 Ospiti)",
+      "triple": "Occupazione Tripla (3 Ospiti)",
+      "quad": "Occupazione Quadrupla (4 Ospiti)",
+      "singleRoom": "Camera Singola",
+      "doubleRoom": "Camera Doppia",
+      "tripleRoom": "Camera Tripla",
+      "quadRoom": "Camera Quadrupla"
+    },
+    "boardBasis": {
+      "bed_and_breakfast": "Pernottamento e Prima Colazione",
+      "half_board": "Mezza Pensione",
+      "full_board": "Pensione Completa",
+      "all_inclusive": "All Inclusive"
+    }
+  },
+  "search": {
+    "badge": "Motore di Ricerca Globale",
+    "title": "Risultati della Ricerca",
+    "resultsForQuery": "Trovati {count} risultati per \"{query}\"",
+    "resultsAll": "Trovati {count} risultati tra viaggi e destinazioni.",
+    "placeholder": "Cerca esperienze, destinazioni, crociere sul Nilo...",
+    "searchButton": "Cerca",
+    "filterAll": "Tutte le Esperienze",
+    "filterPackages": "Pacchetti Viaggio",
+    "filterDailyTours": "Tour Giornalieri",
+    "emptyTitle": "Nessun Risultato Trovato",
+    "emptyDescription": "Impossibile trovare esperienze o destinazioni corrispondenti a \"{query}\". Prova con parole chiave diverse o esplora le nostre destinazioni di lusso.",
+    "emptyAction": "Sfoglia Tutte le Esperienze",
+    "exploreItem": "Esplora Esperienza →",
+    "previousPage": "← Precedente",
+    "nextPage": "Successivo →",
+    "pageOf": "Pagina {page} di {totalPages}",
+    "showingCount": "Visualizzazione pagina {page} di {totalPages} ({total} totali)"
   }
 }

@@ -1,6 +1,8 @@
 import { getDomainServices } from '@/domains/factory'
 import { MaintenanceLeaseService } from '@/domains/maintenance/lease-service'
 
+const CRON_TIMERS_KEY = Symbol.for('laube.cron.dispatcher.timers')
+
 /**
  * Pure Cron Dispatcher
  * Zero Business Logic in Cron Jobs.
@@ -18,22 +20,17 @@ export class CronDispatcher {
 
     const { maintenance, currency, payload } = await getDomainServices()
 
-    // Task 1: Refresh Live Exchange Rate Catalog Cache (Independent Lease)
+    // Task 1: Refresh Live Exchange Rate Catalog Cache
     try {
-      const acquired = await MaintenanceLeaseService.acquireLease(payload, 'currency_rate_refresh', CronDispatcher.workerId, 300000) // 5 minutes TTL
-      if (acquired) {
-        try {
-          await currency.refreshRateCatalog()
-          executedTasks.push('currency_rate_refresh')
-        } finally {
-          await MaintenanceLeaseService.releaseLease(payload, 'currency_rate_refresh', CronDispatcher.workerId)
-        }
+      const res = await maintenance.triggerJob('currency_rate_refresh', 'scheduler', CronDispatcher.workerId)
+      if (res.success) {
+        executedTasks.push('currency_rate_refresh')
       } else {
-        executedTasks.push('currency_rate_refresh_skipped_lease_held')
+        executedTasks.push('currency_rate_refresh_skipped_or_locked')
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err)
-      console.error('[CronDispatcher] Failed refreshRateCatalog:', errMsg)
+      console.error('[CronDispatcher] Failed currency_rate_refresh job:', errMsg)
       executedTasks.push('currency_rate_refresh_failed')
     }
 
@@ -73,10 +70,14 @@ export class CronDispatcher {
   }
 
   public static startWorker(): void {
-    const symbol = Symbol.for('laube.cron.dispatcher.started')
-    const globalContext = global as unknown as Record<symbol, boolean>
-    if (globalContext[symbol]) return
-    globalContext[symbol] = true
+    const globalContext = globalThis as unknown as Record<typeof CRON_TIMERS_KEY, NodeJS.Timeout[]>
+    const existingHandles = globalContext[CRON_TIMERS_KEY] || []
+
+    // Cleanly cancel all prior timers
+    for (const handle of existingHandles) {
+      clearInterval(handle)
+    }
+    globalContext[CRON_TIMERS_KEY] = []
 
     // 0. Immediate Startup Recovery Sweep (Complete Finished Bookings)
     getDomainServices()
@@ -94,7 +95,7 @@ export class CronDispatcher {
       })
 
     // 1. 5-Minute Scheduled Tasks (Trip Completion Lifecycle Sweep)
-    setInterval(() => {
+    const timer5m = setInterval(() => {
       getDomainServices()
         .then(({ maintenance }) => {
           maintenance
@@ -109,9 +110,10 @@ export class CronDispatcher {
           console.error('[CronDispatcher] Failed resolving domain services for periodic completion sweep:', errMsg)
         })
     }, 5 * 60 * 1000)
+    globalContext[CRON_TIMERS_KEY].push(timer5m)
 
     // 2. 1-Minute Scheduled Tasks (Hold Expiration Reaper)
-    setInterval(() => {
+    const timer1m = setInterval(() => {
       getDomainServices()
         .then(({ maintenance }) => {
           maintenance
@@ -126,17 +128,38 @@ export class CronDispatcher {
           console.error('[CronDispatcher] Failed resolving domain services for hold expiration reaper:', errMsg)
         })
     }, 60 * 1000)
+    globalContext[CRON_TIMERS_KEY].push(timer1m)
 
     // 3. Hourly Scheduled Tasks (Exchange Rates, Reconciliation, Retention Purge)
-    setInterval(() => {
+    const timer1h = setInterval(() => {
       CronDispatcher.runHourlyJob().catch((err: unknown) => {
         const errMsg = err instanceof Error ? err.message : String(err)
         console.error('[CronDispatcher] Hourly job execution error:', errMsg)
       })
     }, 60 * 60 * 1000)
+    globalContext[CRON_TIMERS_KEY].push(timer1h)
 
     if (process.env.ARCH_TRACE === 'true') {
       console.log(`[CronDispatcher] Schedulers (Startup + 5m completions, 1m holds, 1h maintenance) started successfully with worker ID: ${CronDispatcher.workerId}`)
     }
+  }
+
+  public static stopWorker(): void {
+    const globalContext = globalThis as unknown as Record<typeof CRON_TIMERS_KEY, NodeJS.Timeout[]>
+    const existingHandles = globalContext[CRON_TIMERS_KEY] || []
+
+    for (const handle of existingHandles) {
+      clearInterval(handle)
+    }
+    globalContext[CRON_TIMERS_KEY] = []
+
+    if (process.env.ARCH_TRACE === 'true') {
+      console.log('[CronDispatcher] Schedulers stopped successfully.')
+    }
+  }
+
+  public static isRunning(): boolean {
+    const globalContext = globalThis as unknown as Record<typeof CRON_TIMERS_KEY, NodeJS.Timeout[]>
+    return Array.isArray(globalContext[CRON_TIMERS_KEY]) && globalContext[CRON_TIMERS_KEY].length > 0
   }
 }

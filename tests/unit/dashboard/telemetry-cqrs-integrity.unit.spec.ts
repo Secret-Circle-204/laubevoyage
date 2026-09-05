@@ -5,7 +5,6 @@ import { DashboardProjectionRepository } from '@/domains/dashboard/repository'
 import { registerDashboardProjectionSubscribers } from '@/domains/events/subscribers/dashboard-subscriber'
 import { EventBus } from '@/domains/events/event-bus'
 import { CustomerRepository } from '@/domains/customer/repositories/customer-repository'
-import { DeviceSessionRepository } from '@/domains/customer/repositories/session-repository'
 import { LoyaltyRepository } from '@/domains/loyalty/repository'
 import { BookingRepository } from '@/domains/booking/repository'
 import type { CustomerUpdatedEvent } from '@/domains/events/customer-events'
@@ -13,7 +12,6 @@ import type { CustomerUpdatedEvent } from '@/domains/events/customer-events'
 describe('Dashboard Telemetry & CQRS Invalidation Integrity', () => {
   let mockPayload: any
   let customerRepo: CustomerRepository
-  let sessionRepo: DeviceSessionRepository
   let loyaltyRepo: LoyaltyRepository
   let bookingRepo: BookingRepository
   let queryBus: DashboardQueryBus
@@ -51,59 +49,23 @@ describe('Dashboard Telemetry & CQRS Invalidation Integrity', () => {
     }
 
     customerRepo = new CustomerRepository(mockPayload)
-    sessionRepo = new DeviceSessionRepository(mockPayload)
     loyaltyRepo = new LoyaltyRepository(mockPayload)
     bookingRepo = new BookingRepository(mockPayload)
 
-    queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo, sessionRepo)
+    queryBus = new DashboardQueryBus(customerRepo, loyaltyRepo, bookingRepo)
     aggregator = new DashboardOverviewAggregator(queryBus)
   })
 
-  describe('Invariant 4: Device Session Telemetry Dynamic Cardinality', () => {
-    it('MUST return activeDeviceCount: 0 when customer has no active sessions', async () => {
-      mockPayload.find = vi.fn().mockResolvedValue({ docs: [] })
-
+  describe('Invariant 4: Security Telemetry Aggregation', () => {
+    it('MUST aggregate customer security metadata cleanly', async () => {
       const projection = await aggregator.aggregatePortalOverview(101)
 
-      expect(projection.security.activeDeviceCount).toBe(0)
-    })
-
-    it('MUST return activeDeviceCount: 3 when customer has 3 active unrevoked sessions', async () => {
-      mockPayload.find = vi.fn().mockImplementation(async ({ collection }) => {
-        if (collection === 'customer-device-sessions') {
-          return {
-            docs: [
-              { id: 1, sessionId: 'sess_1', customer: 101, isRevoked: false },
-              { id: 2, sessionId: 'sess_2', customer: 101, isRevoked: false },
-              { id: 3, sessionId: 'sess_3', customer: 101, isRevoked: false },
-            ],
-          }
-        }
-        return { docs: [] }
-      })
-
-      const projection = await aggregator.aggregatePortalOverview(101)
-
-      expect(projection.security.activeDeviceCount).toBe(3)
-    })
-
-    it('MUST strictly query customer-device-sessions with customer isolation and isRevoked: false', async () => {
-      const findSpy = vi.fn().mockResolvedValue({ docs: [] })
-      mockPayload.find = findSpy
-
-      await aggregator.aggregatePortalOverview(101)
-
-      expect(findSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          collection: 'customer-device-sessions',
-          where: {
-            customer: { equals: 101 },
-            isRevoked: { equals: false },
-          },
-        }),
-      )
+      expect(projection.security).toBeDefined()
+      expect(projection.security.lastLoginAt).toBe('2026-08-19T02:00:00.000Z')
     })
   })
+
+
 
   describe('Invariant 5: CQRS Single Canonical Invalidation on CUSTOMER_UPDATED', () => {
     it('MUST rebuild and save projection when CUSTOMER_UPDATED event is published', async () => {

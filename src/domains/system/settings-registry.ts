@@ -24,8 +24,9 @@ export interface SystemSettingsData {
   emailSenderSettings: EmailSenderSettingsData
 }
 
-class SystemSettingsRegistry {
-  private static instance: SystemSettingsRegistry
+const SYSTEM_SETTINGS_GLOBAL_KEY = Symbol.for('laube.system.settings.registry.instance')
+
+export class SystemSettingsRegistry {
   private cache: SystemSettingsData | null = null
   private initialized = false
   private repository?: SystemRepository
@@ -33,10 +34,11 @@ class SystemSettingsRegistry {
   private constructor() {}
 
   public static getInstance(): SystemSettingsRegistry {
-    if (!SystemSettingsRegistry.instance) {
-      SystemSettingsRegistry.instance = new SystemSettingsRegistry()
+    const globalContext = globalThis as unknown as Record<typeof SYSTEM_SETTINGS_GLOBAL_KEY, SystemSettingsRegistry>
+    if (!globalContext[SYSTEM_SETTINGS_GLOBAL_KEY]) {
+      globalContext[SYSTEM_SETTINGS_GLOBAL_KEY] = new SystemSettingsRegistry()
     }
-    return SystemSettingsRegistry.instance
+    return globalContext[SYSTEM_SETTINGS_GLOBAL_KEY]
   }
 
   public setRepository(repository: SystemRepository): void {

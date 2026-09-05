@@ -1,5 +1,13 @@
-import type { RequestContext, BookingStatus } from '@/types'
-import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt, CustomerTripSummary, BookingUserFilter } from './types'
+import type { RequestContext, BookingStatus, PaginatedResponse } from '@/types'
+import type {
+  Actor,
+  BookingAggregate,
+  CreateBookingParams,
+  PaymentAttempt,
+  CustomerTripSummary,
+  BookingUserFilter,
+  CustomerCompanionTravelerProjection,
+} from './types'
 import { BookingWorkflowEngine } from './workflow'
 import { BookingRepository } from './repository'
 import type { CustomerRepository } from '../customer/repository'
@@ -86,6 +94,29 @@ export class BookingService {
     paymentAttempts?: PaymentAttempt[],
   ): Promise<BookingAggregate> {
     return this.workflowEngine.executeConfirmationWorkflow(bookingId, actor, context, paymentAttempts)
+  }
+
+  /**
+   * Authoritative summary of booking references for a set of departure slots.
+   * Executes a native PostgreSQL COUNT + FILTER aggregation in a single query.
+   */
+  async getSlotBookingSummaries(
+    slotIds: number[],
+    context?: RequestContext,
+  ): Promise<Map<number, { referencedCount: number; hasActiveBookings: boolean }>> {
+    return this.repository.getSlotBookingSummaries(slotIds, context)
+  }
+
+  /**
+   * Find paginated bookings for a single departure slot ID.
+   */
+  async getBookingsByDepartureSlotIdPaginated(
+    slotId: number,
+    page: number = 1,
+    limit: number = 20,
+    context?: RequestContext,
+  ): Promise<import('@/types').PaginatedResponse<BookingAggregate>> {
+    return this.repository.findBookingsByDepartureSlotIdPaginated(slotId, page, limit, context)
   }
 
   /**
@@ -180,6 +211,16 @@ export class BookingService {
     filters?: BookingUserFilter,
   ) {
     return this.workflowEngine.queries.getUserBookings(userId, page, limit, filters)
+  }
+
+  /**
+   * Retrieve customer companion travelers projection from authoritative booking manifests.
+   */
+  async getCustomerCompanionTravelers(
+    customerId: number,
+    options?: { page?: number; limit?: number },
+  ): Promise<PaginatedResponse<CustomerCompanionTravelerProjection>> {
+    return this.workflowEngine.queries.getCustomerCompanionTravelers(customerId, options)
   }
 
   /**

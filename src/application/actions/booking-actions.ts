@@ -1,6 +1,7 @@
 'use server'
 
 import { getDomainServices } from '@/domains/factory'
+import { getApplicationServices } from '@/application/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import type { CurrencyCode, RequestContext } from '@/types'
 import type { BookableDeparture } from '@/domains/experience/bookable-departure'
@@ -8,6 +9,7 @@ import { cookies } from 'next/headers'
 import { BookingPolicy } from '@/domains/booking/policy'
 import { PaymentAttemptsService } from '@/domains/booking/payment-attempts'
 import { addDaysToDateString } from '@/lib/date'
+import type { TravelerInput, BookingPickupLocation } from '@/domains/booking/types'
 
 /**
  * Orchestrator Server Action to process the checkout submit flow.
@@ -21,10 +23,15 @@ export async function confirmCheckoutAction(params: {
   date?: string
   startTime?: string
   adults: number
-  travelers: Array<{ firstName: string; lastName: string; email: string; phone: string }>
+  childrenCount?: number
+  childAges?: number[]
+  childBeddingModes?: ('sharing_bed' | 'extra_bed')[]
+  requestedRooms?: number
+  travelers: TravelerInput[]
   gatewayId: string
   idempotencyKey?: string
   pointsToRedeem?: number
+  pickupLocation?: BookingPickupLocation | null
 }) {
   console.log('[CHECKOUT ACTION] START:', {
     bookingId: params.bookingId,
@@ -40,7 +47,14 @@ export async function confirmCheckoutAction(params: {
   })
   try {
     const session = await SessionResolver.resolve()
-    if (!session.isAuthenticated || !session.customerId) {
+    if (!session.isAuthenticated || !session.customerId || session.role !== 'customer') {
+      if (session.isAuthenticated && (session.role === 'admin' || session.role === 'super_admin')) {
+        return {
+          success: false,
+          error:
+            'Staff accounts cannot create customer reservations. Please sign in with a traveler account.',
+        }
+      }
       return { success: false, error: 'Authentication required. Please sign in to check out.' }
     }
     const userId = session.customerId
@@ -65,7 +79,8 @@ export async function confirmCheckoutAction(params: {
         ? params.pointsToRedeem
         : undefined
 
-    const { booking, experience, payment, localization, payload } = await getDomainServices()
+    const { booking, experience, payment, localization, payload, bookingPricingUseCase } =
+      await getApplicationServices()
 
     let cookieLocale: string | undefined
     let cookieCurrency: string | undefined
@@ -83,7 +98,9 @@ export async function confirmCheckoutAction(params: {
       cookieCurrency,
     })
     if (!localeCtx.currency) {
-      throw new Error('[confirmCheckoutAction] LocalizationDomain failed to resolve target currency.')
+      throw new Error(
+        '[confirmCheckoutAction] LocalizationDomain failed to resolve target currency.',
+      )
     }
     const serverCurrency: CurrencyCode = localeCtx.currency
 
@@ -98,8 +115,12 @@ export async function confirmCheckoutAction(params: {
         return { success: false, error: 'Experience not found' }
       }
 
-      const isFixedPackage = expDoc.type === 'package' && ((expDoc as any).packageMode === 'fixed_date' || (!(expDoc as any).packageMode && params.slotId))
-      const isFlexiblePackage = expDoc.type === 'package' && (expDoc as any).packageMode === 'flexible_date'
+      const isFixedPackage =
+        expDoc.type === 'package' &&
+        ((expDoc as any).packageMode === 'fixed_date' ||
+          (!(expDoc as any).packageMode && params.slotId))
+      const isFlexiblePackage =
+        expDoc.type === 'package' && (expDoc as any).packageMode === 'flexible_date'
       const isDailyTour = expDoc.type === 'daily_tour'
 
       if (isDailyTour) {
@@ -109,15 +130,26 @@ export async function confirmCheckoutAction(params: {
         if (!params.startTime) {
           return { success: false, error: 'Start time is required for daily tour checkout' }
         }
-        departure = await experience.resolvePreviewDepartureByDate(params.experienceId, params.date, params.startTime)
+        departure = await experience.resolvePreviewDepartureByDate(
+          params.experienceId,
+          params.date,
+          params.startTime,
+        )
         if (!departure) {
-          return { success: false, error: `Departure on date ${params.date} at ${params.startTime} not found` }
+          return {
+            success: false,
+            error: `Departure on date ${params.date} at ${params.startTime} not found`,
+          }
         }
       } else if (isFlexiblePackage) {
         if (!params.date) {
           return { success: false, error: 'Start date is required for flexible package checkout' }
         }
-        departure = await experience.resolvePreviewDepartureByDate(params.experienceId, params.date, '')
+        departure = await experience.resolvePreviewDepartureByDate(
+          params.experienceId,
+          params.date,
+          '',
+        )
         if (!departure) {
           return { success: false, error: `Departure on date ${params.date} not found` }
         }
@@ -125,7 +157,10 @@ export async function confirmCheckoutAction(params: {
         if (!params.slotId) {
           return { success: false, error: 'Departure slot is required for fixed package checkout' }
         }
-        departure = await experience.resolveBookableDepartureBySlot(params.experienceId, params.slotId)
+        departure = await experience.resolveBookableDepartureBySlot(
+          params.experienceId,
+          params.slotId,
+        )
         if (!departure) {
           return { success: false, error: `Departure slot #${params.slotId} not found` }
         }
@@ -134,11 +169,19 @@ export async function confirmCheckoutAction(params: {
       }
 
       if (departure.status === 'past') {
-        return { success: false, error: 'The selected departure has already passed and cannot be booked.', code: 'DEPARTURE_IN_PAST' }
+        return {
+          success: false,
+          error: 'The selected departure has already passed and cannot be booked.',
+          code: 'DEPARTURE_IN_PAST',
+        }
       }
 
       if (departure.status === 'blacked_out') {
-        return { success: false, error: 'The selected date is currently unavailable for booking.', code: 'BLACKED_OUT' }
+        return {
+          success: false,
+          error: 'The selected date is currently unavailable for booking.',
+          code: 'BLACKED_OUT',
+        }
       }
 
       // 0. Idempotency Key Fast Path check (before transaction)
@@ -151,14 +194,16 @@ export async function confirmCheckoutAction(params: {
             params.experienceId,
             departure.date,
             serverCurrency,
-            params.gatewayId
+            params.gatewayId,
           )
-          
+
           if (policyRes.allowed) {
-            console.log(`[confirmCheckoutAction] Fast Path: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`)
+            console.log(
+              `[confirmCheckoutAction] Fast Path: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`,
+            )
             targetBookingId = existing.id
             bookingNumber = existing.bookingNumber
-            
+
             if (existing.status === 'draft') {
               if (params.gatewayId === 'bnpl') {
                 await booking.moveToPendingAdminReview(existing.id)
@@ -167,21 +212,132 @@ export async function confirmCheckoutAction(params: {
               }
             }
           } else {
-            if (policyRes.code === 'BOOKING_EXPIRED' || policyRes.code === 'BOOKING_CANCELLED' || policyRes.code === 'BOOKING_RESOLVED') {
+            if (
+              policyRes.code === 'BOOKING_EXPIRED' ||
+              policyRes.code === 'BOOKING_CANCELLED' ||
+              policyRes.code === 'BOOKING_RESOLVED'
+            ) {
               return { success: false, error: policyRes.reason, code: policyRes.code }
             }
-            return { success: false, error: `Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but details do not match. Details: ${policyRes.reason}`, code: 'IDEMPOTENCY_CONFLICT' }
+            return {
+              success: false,
+              error: `Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but details do not match. Details: ${policyRes.reason}`,
+              code: 'IDEMPOTENCY_CONFLICT',
+            }
           }
         }
       }
 
       if (!targetBookingId) {
+        // 1. Intent Validation: Consistency checks on manifest vs submitted numbers
+        const submittedAdults = params.adults
+        const submittedChildren = params.childrenCount ?? 0
+        const submittedChildAges = params.childAges || []
+        const submittedChildBeddingModes = params.childBeddingModes || []
+        const submittedTravelers: TravelerInput[] = (params.travelers || []).map((t) => ({
+          ...t,
+          firstName: t.firstName?.trim() || '',
+          lastName: t.lastName?.trim() || '',
+          email: t.email && t.email.trim() !== '' ? t.email.trim() : undefined,
+          phone: t.phone && t.phone.trim() !== '' ? t.phone.trim() : undefined,
+          dateOfBirth: t.dateOfBirth && t.dateOfBirth.trim() !== '' ? t.dateOfBirth.trim() : undefined,
+          passportNumber: t.passportNumber && t.passportNumber.trim() !== '' ? t.passportNumber.trim() : undefined,
+          nationality: t.nationality && t.nationality.trim() !== '' ? t.nationality.trim() : undefined,
+        }))
+
+        if (submittedTravelers.length > 0) {
+          const adultTravelers = submittedTravelers.filter((t) => !t.type || t.type === 'adult').length
+          const childTravelers = submittedTravelers.filter((t) => t.type === 'child').length
+          const infantTravelers = submittedTravelers.filter((t) => t.type === 'infant').length
+          const totalManifestChildren = childTravelers + infantTravelers
+
+          if (submittedTravelers.length !== submittedAdults + submittedChildren) {
+            return {
+              success: false,
+              error: `Traveler manifest count (${submittedTravelers.length}) does not match submitted totals (Adults: ${submittedAdults}, Children: ${submittedChildren}).`,
+              code: 'MANIFEST_COUNT_MISMATCH',
+            }
+          }
+          if (adultTravelers !== submittedAdults || totalManifestChildren !== submittedChildren) {
+            return {
+              success: false,
+              error: `Passenger type breakdown mismatch. Expected ${submittedAdults} adults and ${submittedChildren} children, but manifest has ${adultTravelers} adults and ${totalManifestChildren} children/infants.`,
+              code: 'PASSENGER_TYPE_MISMATCH',
+            }
+          }
+        }
+
+        if (submittedChildren > 0) {
+          if (submittedChildAges.length !== submittedChildren) {
+            return {
+              success: false,
+              error: `Submitted ${submittedChildren} children but received ${submittedChildAges.length} child ages.`,
+              code: 'CHILD_AGES_MISMATCH',
+            }
+          }
+        }
+
+        // 2. Authoritative Pricing SSOT Calculation (BookingPricingUseCase is the ONLY authority)
+        let pricingResult
+        if (isFixedPackage) {
+          pricingResult = await bookingPricingUseCase.calculate({
+            experienceId: params.experienceId,
+            slotId: departure.id,
+            adultsCount: submittedAdults,
+            childrenCount: submittedChildren,
+            childAges: submittedChildAges,
+            childBeddingModes: submittedChildBeddingModes,
+            requestedRooms: params.requestedRooms,
+            ctx: localeCtx,
+            pointsToRedeem,
+            customerId: userId,
+          })
+        } else {
+          pricingResult = await bookingPricingUseCase.calculatePreview({
+            experienceId: params.experienceId,
+            date: params.date,
+            startTime: params.startTime || '',
+            adultsCount: submittedAdults,
+            childrenCount: submittedChildren,
+            childAges: submittedChildAges,
+            childBeddingModes: submittedChildBeddingModes,
+            requestedRooms: params.requestedRooms,
+            ctx: localeCtx,
+            pointsToRedeem,
+            customerId: userId,
+          })
+        }
+
+        const authoritativePricingSnapshot = pricingResult.snapshot
+
         // 3. Compute endDate strictly via calendar arithmetic
         let endDateStr = departure.date
         if (expDoc.type === 'package' && expDoc.durationDays && expDoc.durationDays > 0) {
           endDateStr = addDaysToDateString(departure.date, expDoc.durationDays - 1)
         }
 
+        // Validate optional pickup location if submitted
+        let validatedPickupLocation: BookingPickupLocation | null = null
+        if (params.pickupLocation) {
+          const { label, address, latitude, longitude, instructions, source } = params.pickupLocation
+          if (!label || typeof label !== 'string' || !label.trim()) {
+            return { success: false, error: 'Please provide a valid location name for pickup.' }
+          }
+          if (!address || typeof address !== 'string' || !address.trim()) {
+            return { success: false, error: 'Please provide a valid address for pickup.' }
+          }
+          if (typeof latitude !== 'number' || isNaN(latitude) || typeof longitude !== 'number' || isNaN(longitude)) {
+            return { success: false, error: 'Please select a valid geographical location on the map.' }
+          }
+          validatedPickupLocation = {
+            label: label.trim().slice(0, 200),
+            address: address.trim().slice(0, 500),
+            latitude: Number(latitude),
+            longitude: Number(longitude),
+            instructions: instructions ? instructions.trim().slice(0, 500) : undefined,
+            source: source || 'map',
+          }
+        }
 
         // Start database transaction
         const activeTx = await payload.db.beginTransaction()
@@ -192,17 +348,23 @@ export async function confirmCheckoutAction(params: {
         const context: RequestContext = { transactionId: transactionID }
 
         try {
-          // 4. Create booking draft inside transaction
-          targetBookingId = await booking.create({
-            userId,
-            departure,
-            travelers: params.travelers,
-            endDate: endDateStr,
-            currency: serverCurrency,
-            source: 'website',
-            idempotencyKey: params.idempotencyKey,
-            pointsToRedeem,
-          }, context)
+          // 4. Create booking draft inside transaction with authoritative pricing snapshot
+          targetBookingId = await booking.create(
+            {
+              userId,
+              departure,
+              travelers: submittedTravelers,
+              endDate: endDateStr,
+              currency: serverCurrency,
+              source: 'website',
+              idempotencyKey: params.idempotencyKey,
+              pointsToRedeem,
+              pricingSnapshot: authoritativePricingSnapshot as any,
+              requestedRooms: params.requestedRooms,
+              pickupLocation: validatedPickupLocation,
+            },
+            context,
+          )
 
           // 5. Move draft booking to next state inside transaction
           if (params.gatewayId === 'bnpl') {
@@ -223,7 +385,9 @@ export async function confirmCheckoutAction(params: {
 
           // Concurrency Recovery: Lookup booking by exact idempotencyKey outside the rolled back transaction context
           if (params.idempotencyKey) {
-            console.log(`[confirmCheckoutAction] Checking recovery for idempotency key: ${params.idempotencyKey}`)
+            console.log(
+              `[confirmCheckoutAction] Checking recovery for idempotency key: ${params.idempotencyKey}`,
+            )
             const existing = await booking.getByIdempotencyKey(params.idempotencyKey)
             if (existing) {
               const policyRes = BookingPolicy.canReuseForCheckout(
@@ -232,14 +396,16 @@ export async function confirmCheckoutAction(params: {
                 params.experienceId,
                 departure.date,
                 serverCurrency,
-                params.gatewayId
+                params.gatewayId,
               )
-              
+
               if (policyRes.allowed) {
-                console.log(`[confirmCheckoutAction] Concurrency Recovered: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`)
+                console.log(
+                  `[confirmCheckoutAction] Concurrency Recovered: Found existing booking by idempotency key: ${params.idempotencyKey}. Reusing Booking #${existing.id}`,
+                )
                 targetBookingId = existing.id
                 bookingNumber = existing.bookingNumber
-                
+
                 if (existing.status === 'draft') {
                   // Run status transition outside the dead transaction context
                   if (params.gatewayId === 'bnpl') {
@@ -249,10 +415,16 @@ export async function confirmCheckoutAction(params: {
                   }
                 }
               } else {
-                if (policyRes.code === 'BOOKING_EXPIRED' || policyRes.code === 'BOOKING_CANCELLED' || policyRes.code === 'BOOKING_RESOLVED') {
+                if (
+                  policyRes.code === 'BOOKING_EXPIRED' ||
+                  policyRes.code === 'BOOKING_CANCELLED' ||
+                  policyRes.code === 'BOOKING_RESOLVED'
+                ) {
                   return { success: false, error: policyRes.reason, code: policyRes.code }
                 }
-                throw new Error(`[confirmCheckoutAction] Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but details do not match. Details: ${policyRes.reason}`)
+                throw new Error(
+                  `[confirmCheckoutAction] Idempotency Conflict: Existing booking #${existing.id} found for key "${params.idempotencyKey}" but details do not match. Details: ${policyRes.reason}`,
+                )
               }
             } else {
               throw err
@@ -316,13 +488,28 @@ export async function confirmCheckoutAction(params: {
     return {
       ...paymentRes,
       bookingNumber,
+      failureStage: paymentRes.success ? undefined : ('payment' as const),
     }
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : 'Checkout processing failed'
     console.error('[CHECKOUT ACTION] Error:', errorMsg)
+
+    // Sanitize internal database / driver errors so raw SQL is not leaked to the customer
+    const isDatabaseError =
+      errorMsg.includes('Failed query') ||
+      errorMsg.includes('syntax for type') ||
+      errorMsg.includes('PostgreSQL') ||
+      errorMsg.includes('pg_') ||
+      errorMsg.includes('insert into')
+
+    const customerMessage = isDatabaseError
+      ? 'An unexpected error occurred while saving your reservation details. Please check your traveler information and try again.'
+      : errorMsg
+
     return {
       success: false,
-      error: errorMsg,
+      error: customerMessage,
+      failureStage: 'booking' as const,
     }
   }
 }
@@ -331,7 +518,10 @@ export async function confirmCheckoutAction(params: {
  * Read-only Server Action to poll booking confirmation status.
  * Used exclusively by the /checkout/success checkpoint page (One-Writer Rule).
  */
-export async function checkBookingStatusAction(params: { transactionId?: string; bookingNumber?: string }) {
+export async function checkBookingStatusAction(params: {
+  transactionId?: string
+  bookingNumber?: string
+}) {
   try {
     const session = await SessionResolver.resolve()
     if (!session.isAuthenticated || !session.customerId) {
@@ -353,7 +543,9 @@ export async function checkBookingStatusAction(params: { transactionId?: string;
         const bookingDoc = await booking.getById(tx.bookingId)
         if (bookingDoc && bookingDoc.customerId === session.customerId) {
           const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
-          const earnEntry = ledgerEntries.find((e) => e.bookingId === bookingDoc.id && e.type === 'earn')
+          const earnEntry = ledgerEntries.find(
+            (e: any) => e.bookingId === bookingDoc.id && e.type === 'earn',
+          )
           const earnedPoints = earnEntry ? earnEntry.points : undefined
 
           const snap = bookingDoc.pricingSnapshot
@@ -365,14 +557,11 @@ export async function checkBookingStatusAction(params: { transactionId?: string;
                 snap.basePriceEGP,
                 snap.displayCurrency,
                 snap.exchangeRate || 1,
-                ctx
+                ctx,
               )
               formattedTotalPrice = formattedPriceDto.formatted
             } else {
-              const formattedPriceDto = await localization.formatPrice(
-                snap.totalAmountEGP || snap.basePriceEGP,
-                ctx
-              )
+              const formattedPriceDto = await localization.formatPrice(snap.totalAmountEGP, ctx)
               formattedTotalPrice = formattedPriceDto.formatted
             }
           }
@@ -394,7 +583,9 @@ export async function checkBookingStatusAction(params: { transactionId?: string;
       const bookingDoc = await booking.getByBookingNumber(params.bookingNumber)
       if (bookingDoc && bookingDoc.customerId === session.customerId) {
         const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
-        const earnEntry = ledgerEntries.find((e) => e.bookingId === bookingDoc.id && e.type === 'earn')
+        const earnEntry = ledgerEntries.find(
+          (e: any) => e.bookingId === bookingDoc.id && e.type === 'earn',
+        )
         const earnedPoints = earnEntry ? earnEntry.points : undefined
 
         const snap = bookingDoc.pricingSnapshot
@@ -406,13 +597,13 @@ export async function checkBookingStatusAction(params: { transactionId?: string;
               snap.basePriceEGP,
               snap.displayCurrency,
               snap.exchangeRate || 1,
-              ctx
+              ctx,
             )
             formattedTotalPrice = formattedPriceDto.formatted
           } else {
             const formattedPriceDto = await localization.formatPrice(
               snap.totalAmountEGP || snap.basePriceEGP,
-              ctx
+              ctx,
             )
             formattedTotalPrice = formattedPriceDto.formatted
           }
@@ -451,7 +642,11 @@ export async function confirmAdminBookingAction(params: {
 }) {
   try {
     const session = await SessionResolver.resolve()
-    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
+    if (
+      !session.isAuthenticated ||
+      (session.role !== 'admin' && session.role !== 'super_admin') ||
+      !session.userId
+    ) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
@@ -469,21 +664,29 @@ export async function confirmAdminBookingAction(params: {
       // 1. Fetch fresh booking inside transaction
       const bookingDoc = await repository.findById(params.bookingId, context)
       if (bookingDoc.status !== 'pending_admin_review') {
-        throw new Error(`Booking is not in pending_admin_review status. Current status: ${bookingDoc.status}`)
+        throw new Error(
+          `Booking is not in pending_admin_review status. Current status: ${bookingDoc.status}`,
+        )
       }
 
       // 2. Validate deposit amount against fresh state
       const pricingSnapshot = bookingDoc.pricingSnapshot
       if (!pricingSnapshot) {
-        throw new Error(`[confirmAdminBookingAction] Missing required pricingSnapshot for Booking #${bookingDoc.id}`)
+        throw new Error(
+          `[confirmAdminBookingAction] Missing required pricingSnapshot for Booking #${bookingDoc.id}`,
+        )
       }
       const totalAmount = pricingSnapshot.totalAmountEGP
       if (totalAmount === undefined || totalAmount === null || totalAmount < 0) {
-        throw new Error(`[confirmAdminBookingAction] Invalid totalAmountEGP in pricingSnapshot for Booking #${bookingDoc.id}`)
+        throw new Error(
+          `[confirmAdminBookingAction] Invalid totalAmountEGP in pricingSnapshot for Booking #${bookingDoc.id}`,
+        )
       }
       const amountPaid = bookingDoc.amountPaid
       if (amountPaid === undefined || amountPaid === null || amountPaid < 0) {
-        throw new Error(`[confirmAdminBookingAction] Invalid amountPaid for Booking #${bookingDoc.id}`)
+        throw new Error(
+          `[confirmAdminBookingAction] Invalid amountPaid for Booking #${bookingDoc.id}`,
+        )
       }
       const outstandingBalance = totalAmount - amountPaid
 
@@ -508,9 +711,9 @@ export async function confirmAdminBookingAction(params: {
       // 4. Confirm booking inside transaction
       const confirmedBooking = await booking.confirm(
         params.bookingId,
-        { id: session.customerId.toString(), type: 'admin', name: 'Admin Panel' },
+        { id: session.userId.toString(), type: 'admin', name: 'Admin Panel' },
         context,
-        updatedAttempts
+        updatedAttempts,
       )
 
       // 5. Commit transaction
@@ -533,13 +736,14 @@ export async function confirmAdminBookingAction(params: {
  * Server Action: Admin Cancel Booking.
  * Requires admin/super_admin privileges and runs inside a single database transaction.
  */
-export async function cancelAdminBookingAction(params: {
-  bookingId: number
-  reason?: string
-}) {
+export async function cancelAdminBookingAction(params: { bookingId: number; reason?: string }) {
   try {
     const session = await SessionResolver.resolve()
-    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
+    if (
+      !session.isAuthenticated ||
+      (session.role !== 'admin' && session.role !== 'super_admin') ||
+      !session.userId
+    ) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
@@ -563,8 +767,8 @@ export async function cancelAdminBookingAction(params: {
       await booking.cancel(
         params.bookingId,
         params.reason || 'Cancelled by admin review',
-        { id: session.customerId.toString(), type: 'admin', name: 'Admin Panel' },
-        context
+        { id: session.userId.toString(), type: 'admin', name: 'Admin Panel' },
+        context,
       )
 
       await repository.commitTransaction(transactionId)
@@ -585,12 +789,14 @@ export async function cancelAdminBookingAction(params: {
  * Server Action: Submit booking draft for admin review.
  * Requires admin/super_admin privileges and runs inside a single database transaction.
  */
-export async function moveToPendingAdminReviewAction(params: {
-  bookingId: number
-}) {
+export async function moveToPendingAdminReviewAction(params: { bookingId: number }) {
   try {
     const session = await SessionResolver.resolve()
-    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
+    if (
+      !session.isAuthenticated ||
+      (session.role !== 'admin' && session.role !== 'super_admin') ||
+      !session.userId
+    ) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
@@ -632,7 +838,11 @@ export async function recordSubsequentPaymentAction(params: {
 }) {
   try {
     const session = await SessionResolver.resolve()
-    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
+    if (
+      !session.isAuthenticated ||
+      (session.role !== 'admin' && session.role !== 'super_admin') ||
+      !session.userId
+    ) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
@@ -648,7 +858,9 @@ export async function recordSubsequentPaymentAction(params: {
     try {
       const bookingDoc = await repository.findById(params.bookingId, context)
       if (bookingDoc.status !== 'confirmed') {
-        throw new Error(`Subsequent payment can only be recorded for confirmed bookings. Current status: ${bookingDoc.status}`)
+        throw new Error(
+          `Subsequent payment can only be recorded for confirmed bookings. Current status: ${bookingDoc.status}`,
+        )
       }
 
       const outstanding = bookingDoc.outstandingBalance || 0
@@ -658,11 +870,15 @@ export async function recordSubsequentPaymentAction(params: {
 
       const pricingSnapshot = bookingDoc.pricingSnapshot
       if (!pricingSnapshot) {
-        throw new Error(`[recordSubsequentPaymentAction] Missing required pricingSnapshot for Booking #${bookingDoc.id}`)
+        throw new Error(
+          `[recordSubsequentPaymentAction] Missing required pricingSnapshot for Booking #${bookingDoc.id}`,
+        )
       }
       const totalAmountEGP = pricingSnapshot.totalAmountEGP
       if (totalAmountEGP === undefined || totalAmountEGP === null || totalAmountEGP < 0) {
-        throw new Error(`[recordSubsequentPaymentAction] Invalid totalAmountEGP in pricingSnapshot for Booking #${bookingDoc.id}`)
+        throw new Error(
+          `[recordSubsequentPaymentAction] Invalid totalAmountEGP in pricingSnapshot for Booking #${bookingDoc.id}`,
+        )
       }
 
       const ref = `manual_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
@@ -675,14 +891,21 @@ export async function recordSubsequentPaymentAction(params: {
       })
 
       const paid = PaymentAttemptsService.getPaidAmount(updatedAttempts)
-      const newOutstanding = PaymentAttemptsService.getOutstandingBalance(totalAmountEGP, updatedAttempts)
+      const newOutstanding = PaymentAttemptsService.getOutstandingBalance(
+        totalAmountEGP,
+        updatedAttempts,
+      )
 
-      await repository.update(params.bookingId, {
-        paymentAttempts: updatedAttempts,
-        amountPaid: paid,
-        outstandingBalance: newOutstanding,
-        paymentStatus: newOutstanding === 0 ? 'paid' : (paid > 0 ? 'partially_paid' : 'unpaid'),
-      }, context)
+      await repository.update(
+        params.bookingId,
+        {
+          paymentAttempts: updatedAttempts,
+          amountPaid: paid,
+          outstandingBalance: newOutstanding,
+          paymentStatus: newOutstanding === 0 ? 'paid' : paid > 0 ? 'partially_paid' : 'unpaid',
+        },
+        context,
+      )
 
       // Atomic Loyalty Earning on newly verified payment delta
       if (params.amount > 0) {
@@ -696,7 +919,12 @@ export async function recordSubsequentPaymentAction(params: {
           context,
           `sub_${ref}`,
         )
-        await loyalty.evaluateAndUpgradeTier(bookingDoc.customerId, params.amount, undefined, context)
+        await loyalty.evaluateAndUpgradeTier(
+          bookingDoc.customerId,
+          params.amount,
+          undefined,
+          context,
+        )
       }
 
       await repository.commitTransaction(transactionId)
@@ -713,19 +941,18 @@ export async function recordSubsequentPaymentAction(params: {
   }
 }
 
-
-
 /**
  * Server Action: Admin Issue Refund.
  * Requires admin/super_admin privileges and runs inside a transaction.
  */
-export async function refundAdminBookingAction(params: {
-  bookingId: number
-  reason?: string
-}) {
+export async function refundAdminBookingAction(params: { bookingId: number; reason?: string }) {
   try {
     const session = await SessionResolver.resolve()
-    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin') || !session.customerId) {
+    if (
+      !session.isAuthenticated ||
+      (session.role !== 'admin' && session.role !== 'super_admin') ||
+      !session.userId
+    ) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
@@ -741,9 +968,9 @@ export async function refundAdminBookingAction(params: {
     try {
       await booking.refund(
         params.bookingId,
-        { id: session.customerId.toString(), type: 'admin', name: 'Admin Panel' },
+        { id: session.userId.toString(), type: 'admin', name: 'Admin Panel' },
         context,
-        params.reason
+        params.reason,
       )
 
       await repository.commitTransaction(transactionId)
@@ -759,5 +986,3 @@ export async function refundAdminBookingAction(params: {
     }
   }
 }
-
-

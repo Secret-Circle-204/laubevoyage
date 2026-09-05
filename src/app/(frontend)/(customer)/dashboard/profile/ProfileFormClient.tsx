@@ -125,7 +125,7 @@ export function ProfileFormClient({ initialData }: ProfileFormClientProps) {
           <p className="text-xs text-slate-500 mt-1">Family members and companions registered with your customer account.</p>
         </div>
         <Badge variant="primary" size="sm">
-          {initialData.travelers?.length || 0} Saved
+          {initialData.totalCompanions ?? initialData.travelers?.length ?? 0} Saved
         </Badge>
       </div>
 
@@ -158,55 +158,6 @@ export function ProfileFormClient({ initialData }: ProfileFormClientProps) {
                 {traveler.passportNumber && (
                   <span>🛂 Passport: {traveler.passportNumber.slice(0, 2)}••••{traveler.passportNumber.slice(-2)}</span>
                 )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-
-    {/* Saved Addresses Presentation Section */}
-    <Card variant="flat" padding="lg" className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Saved Addresses</h2>
-          <p className="text-xs text-slate-500 mt-1">Billing and residential addresses associated with your account.</p>
-        </div>
-        <Badge variant="primary" size="sm">
-          {initialData.addresses?.length || 0} Saved
-        </Badge>
-      </div>
-
-      {(!initialData.addresses || initialData.addresses.length === 0) ? (
-        <div className="text-center py-8 px-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-          <span className="text-3xl mb-2 block">📍</span>
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No saved addresses on file</p>
-          <p className="text-xs text-slate-500 mt-1">Addresses added during checkout or billing will appear here for one-click reuse.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {initialData.addresses.map((address) => (
-            <div
-              key={address.id}
-              className="flex flex-col gap-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-slate-900 dark:text-white capitalize">
-                  {address.type} Address
-                </span>
-                <div className="flex items-center gap-2">
-                  {address.isDefault && (
-                    <Badge variant="success" size="sm" className="text-[10px]">Default</Badge>
-                  )}
-                  <Badge variant="accent" size="sm" className="capitalize text-[10px]">
-                    {address.type}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                <p className="font-medium">{address.street}</p>
-                <p>{address.city}, {address.country} {address.postalCode ? `• ${address.postalCode}` : ''}</p>
               </div>
             </div>
           ))}

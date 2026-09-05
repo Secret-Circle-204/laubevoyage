@@ -4,30 +4,19 @@ import type { CustomerProfileDataDTO, CustomerSettingsDataDTO } from './dto'
 export class CustomerProfileLoader {
   static async load(customerId: number): Promise<CustomerProfileDataDTO> {
     try {
-      const { customer } = await getApplicationServices()
-      const [customerDoc, travelersList, addressesList] = await Promise.all([
+      const { customer, booking } = await getApplicationServices()
+      const [customerDoc, companionResult] = await Promise.all([
         customer.getById(customerId),
-        customer.getTravelers(customerId),
-        customer.getAddresses(customerId),
+        booking.getCustomerCompanionTravelers(customerId, { page: 1, limit: 20 }),
       ])
 
-      const travelers = (travelersList || []).map((t) => ({
-        id: t.travelerId,
+      const travelers = (companionResult.data || []).map((t) => ({
+        id: t.id,
         firstName: t.firstName,
         lastName: t.lastName,
-        relationship: t.relationship,
+        relationship: 'Companion',
         dateOfBirth: t.dateOfBirth,
         passportNumber: t.passportNumber,
-      }))
-
-      const addresses = (addressesList || []).map((a) => ({
-        id: a.addressId,
-        type: a.type,
-        street: a.street,
-        city: a.city,
-        country: a.country,
-        postalCode: a.postalCode,
-        isDefault: a.isDefault,
       }))
 
       return {
@@ -38,7 +27,7 @@ export class CustomerProfileLoader {
         passportNumber: customerDoc.passportNumber || undefined,
         nationality: customerDoc.nationality || undefined,
         travelers,
-        addresses,
+        totalCompanions: companionResult.total,
       }
     } catch (err) {
       console.error(`[CustomerProfileLoader] Failed loading profile for customer #${customerId}:`, err)
@@ -51,10 +40,7 @@ export class CustomerSettingsLoader {
   static async load(customerId: number): Promise<CustomerSettingsDataDTO> {
     try {
       const { customer } = await getApplicationServices()
-      const [customerDoc, sessionsList] = await Promise.all([
-        customer.getById(customerId),
-        customer.getActiveDeviceSessions(customerId),
-      ])
+      const customerDoc = await customer.getById(customerId)
 
       const prefs = customerDoc.notifications || {
         email: true,
@@ -62,19 +48,10 @@ export class CustomerSettingsLoader {
         push: true,
       }
 
-      const activeSessions = (sessionsList || []).map((s) => ({
-        sessionId: s.sessionId,
-        deviceName: s.deviceName,
-        ipAddress: s.ipAddress,
-        lastActiveAt: s.lastActiveAt,
-        isRevoked: s.isRevoked,
-      }))
-
       return {
         email: !!prefs.email,
         sms: !!prefs.sms,
         push: !!prefs.push,
-        activeSessions,
       }
     } catch (err) {
       console.error(`[CustomerSettingsLoader] Failed loading settings for customer #${customerId}:`, err)

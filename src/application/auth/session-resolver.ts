@@ -6,6 +6,7 @@ import { getDomainServices } from '@/domains/factory'
 
 export interface ResolvedSession {
   isAuthenticated: boolean
+  userId?: number
   customerId?: number
   email?: string
   firstName?: string
@@ -50,7 +51,8 @@ export class SessionResolver {
           email: user.email,
           firstName: (user as any).firstName,
           lastName: (user as any).lastName,
-          customerId: Number(user.id),
+          userId: Number(user.id),
+          customerId: undefined,
         }
       }
 

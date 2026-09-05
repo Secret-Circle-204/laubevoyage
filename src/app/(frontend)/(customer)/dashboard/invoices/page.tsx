@@ -171,7 +171,7 @@ export default async function Page({ searchParams }: PageProps) {
                 <div className="flex items-center gap-2 shrink-0">
                   <Link href={`/dashboard/bookings/${inv.bookingNumber}`}>
                     <Button variant="accent" size="sm">
-                      View Reservation & Voucher →
+                      View Reservation Details →
                     </Button>
                   </Link>
                 </div>

@@ -14,7 +14,8 @@ import type {
   DashboardProjectionRebuiltEvent,
   ContentPageMutatedEvent,
   BlogPostMutatedEvent,
-  FaqMutatedEvent
+  FaqMutatedEvent,
+  TranslationCacheMutatedEvent
 } from '../cache-events'
 
 /**
@@ -46,10 +47,10 @@ export function registerPresentationSubscriber(): void {
 
   eventBus.subscribe<CurrencyCatalogUpdatedEvent>(
     'CURRENCY_CATALOG_UPDATED',
-    'PresentationSubscriber.purgeLayoutOnCurrencyCatalog',
+    'PresentationSubscriber.purgeCurrenciesOnCurrencyCatalog',
     async (event) => {
-      console.log('[PresentationSubscriber] CURRENCY_CATALOG_UPDATED Event received. Purging Next.js layout cache.')
-      await RevalidationService.purgeLayout()
+      console.log('[PresentationSubscriber] CURRENCY_CATALOG_UPDATED Event received. Purging Next.js currencies cache tag.')
+      await RevalidationService.purgeCurrencies()
     }
   )
 
@@ -64,10 +65,9 @@ export function registerPresentationSubscriber(): void {
 
   eventBus.subscribe<CurrencyRatesUpdatedEvent>(
     'CURRENCY_RATES_UPDATED',
-    'PresentationSubscriber.purgeLayoutOnRates',
+    'PresentationSubscriber.purgePriceArtifactsOnRates',
     async (event) => {
-      console.log('[PresentationSubscriber] CURRENCY_RATES_UPDATED Event received. Purging Next.js layout and product prices cache.')
-      await RevalidationService.purgeLayout()
+      console.log('[PresentationSubscriber] CURRENCY_RATES_UPDATED Event received. Purging Next.js price-dependent experiences cache.')
       await RevalidationService.purgeExperiences() // Re-cache experience card prices
     }
   )
@@ -160,6 +160,15 @@ export function registerPresentationSubscriber(): void {
     async (event) => {
       console.log('[PresentationSubscriber] FAQ_MUTATED Event received. Purging FAQ view.')
       await RevalidationService.purgeContent('faq')
+    }
+  )
+
+  eventBus.subscribe<TranslationCacheMutatedEvent>(
+    'TRANSLATION_CACHE_MUTATED',
+    'PresentationSubscriber.purgeTranslation',
+    async (event) => {
+      console.log(`[PresentationSubscriber] TRANSLATION_CACHE_MUTATED Event received for [${event.originalHash}] (${event.language}). Purging translation cache.`)
+      await RevalidationService.purgeTranslation(event.originalHash, event.language)
     }
   )
 }

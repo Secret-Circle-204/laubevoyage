@@ -1,50 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDomainServices } from '@/domains/factory'
-import { ExperienceType } from '@/types'
+import type { ExperienceType } from '@/domains/experience/types'
 
 /**
  * GET /api/destinations/experiences
- * Search or list experiences
+ * Search or list experiences with server-side pagination via Experience Domain SSOT.
  */
 export async function GET(request: NextRequest) {
   try {
     const services = await getDomainServices()
 
     const searchParams = request.nextUrl.searchParams
-    const query = searchParams.get('q')
-    const cityId = searchParams.get('cityId')
-    const type = searchParams.get('type') as ExperienceType | null
+    const query = searchParams.get('q') || undefined
+    const cityId = searchParams.get('cityId') ? Number(searchParams.get('cityId')) : undefined
+    const type = (searchParams.get('type') as ExperienceType) || undefined
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    // Search
-    if (query) {
-      const results = await services.destination.searchExperiences(query, {
-        type: type || undefined,
-        page,
-        limit,
-      })
-      return NextResponse.json(results)
-    }
-
-    // List by city
-    if (cityId) {
-      const results = await services.destination.getExperiencesByCity(Number(cityId), {
-        type: type || undefined,
-        page,
-        limit,
-      })
-      return NextResponse.json(results)
-    }
-
-    // Featured experiences
-    const featured = await services.destination.getFeaturedExperiences({
+    const results = await services.experience.search({
+      keyword: query,
+      cityId,
+      type,
+      page,
       limit,
+      sort: '-createdAt',
     })
 
-    return NextResponse.json({ docs: featured, total: featured.length })
+    return NextResponse.json(results)
   } catch (error) {
-    console.error('Error fetching experiences:', error)
+    console.error('[API /api/destinations/experiences] Error fetching experiences:', error)
     return NextResponse.json({ error: 'Failed to fetch experiences' }, { status: 500 })
   }
 }
+

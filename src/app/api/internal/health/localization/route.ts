@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
     }
 
     details.activeCurrencies = Array.from(seenCurrencies)
-    details.activeLanguages = activeLanguagesDocs.docs.map(l => l.code)
+    details.activeLanguages = activeLanguagesDocs.docs.map((l: any) => l.code)
     details.cascadeTracing = trackingChain
     details.verifiedConversions = verifiedConversions
 

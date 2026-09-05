@@ -65,6 +65,14 @@ export class LayoutLoader {
       }
     }
 
+    const uiLabels = {
+      myAccount: localization.translateUiKey('layout.header.myAccount', ctx),
+      signOut: localization.translateUiKey('layout.header.signOut', ctx),
+      logIn: localization.translateUiKey('layout.header.logIn', ctx),
+      bookNow: localization.translateUiKey('layout.header.bookNow', ctx),
+      brandDescription: localization.translateUiKey('layout.footer.brandDescription', ctx),
+    }
+
     return {
       navigationMenu,
       footerNavigation,
@@ -74,6 +82,7 @@ export class LayoutLoader {
       supportedLocales,
       userSession,
       unreadNotificationsCount,
+      uiLabels,
     }
   }
 }

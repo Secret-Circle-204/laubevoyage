@@ -8,6 +8,12 @@ import type { ConvertedPrice } from '@/domains/currency/types'
 import type { LocaleContext } from '@/types/locale'
 import type { BookableDeparture } from '@/domains/experience/bookable-departure'
 import type { PricingSnapshotData } from '@/domains/currency/pipeline'
+import type { CommercialSnapshotBreakdown } from '@/domains/booking/types'
+import type { PackageExperienceAggregate } from '@/domains/experience/aggregate'
+import type { OccupancyType } from '@/domains/experience/types'
+import { ChildPolicy, type ChildBeddingMode } from '@/domains/experience/child-policy'
+import { RoomAllocationPolicy } from '@/domains/experience/room-allocation-policy'
+import type { FormattedCommercialBreakdown } from '@/application/experience/dto-details'
 
 export interface BookingPricingResult {
   snapshot: PricingSnapshotData
@@ -19,11 +25,29 @@ export interface BookingPricingResult {
   loyaltyDiscountPrice?: ConvertedPrice
   estimatedEarnPoints?: number
   remainingLoyaltyPoints?: number
+  commercialBreakdown?: CommercialSnapshotBreakdown
+  formattedBreakdown?: FormattedCommercialBreakdown
+}
+
+export interface CalculatePricingParams {
+  experienceId: number
+  slotId?: number
+  date?: string
+  startTime?: string
+  adultsCount: number
+  childrenCount?: number
+  childAges?: number[]
+  childBeddingModes?: ChildBeddingMode[]
+  requestedRooms?: number
+  ctx: LocaleContext
+  pointsToRedeem?: number
+  customerId?: number
 }
 
 /**
  * Application Use Case to coordinate dynamic checkout and preview pricing.
- * Ensures the entire price flow sequence (Experience slot resolution -> Pricing math -> Currency conversion & Formatting)
+ * Ensures the entire price flow sequence:
+ * (Experience slot resolution -> Child & Room Policy Verification -> Commercial Calculation -> Pricing SSOT Pipeline -> Currency Conversion & Formatting)
  * exists in exactly one reusable location, preventing duplication across loaders, actions, and API routes.
  */
 export class BookingPricingUseCase {
@@ -37,184 +61,313 @@ export class BookingPricingUseCase {
 
   /**
    * Calculate and generate pricing snapshot + formatted prices for a given experience slot and passenger configuration.
-   * Encapsulates the entire domain coordination (Experience -> Pricing -> Currency -> Formatting -> Loyalty).
    */
-  async calculate({
-    experienceId,
-    slotId,
-    adultsCount,
-    childrenCount = 0,
-    ctx,
-    pointsToRedeem,
-    customerId,
-  }: {
-    experienceId: number
-    slotId: number
-    adultsCount: number
-    childrenCount?: number
-    ctx: LocaleContext
-    pointsToRedeem?: number
-    customerId?: number
-  }): Promise<BookingPricingResult> {
-    if (!slotId) {
+  async calculate(params: CalculatePricingParams): Promise<BookingPricingResult> {
+    if (!params.slotId) {
       throw new Error(`[BookingPricingUseCase] slotId is required to calculate checkout pricing.`)
     }
 
-    const departure = await this.experienceService.resolveBookableDepartureBySlot(experienceId, slotId)
+    const departure = await this.experienceService.resolveBookableDepartureBySlot(
+      params.experienceId,
+      params.slotId,
+    )
     if (!departure) {
-      throw new Error(`[BookingPricingUseCase] Departure slot #${slotId} not found for experience #${experienceId}`)
+      throw new Error(
+        `[BookingPricingUseCase] Departure slot #${params.slotId} not found for experience #${params.experienceId}`,
+      )
     }
     if (departure.status === 'blacked_out') {
-      throw new Error(`[BookingPricingUseCase] Departure slot #${slotId} on ${departure.date} is unavailable due to blackout.`)
+      throw new Error(
+        `[BookingPricingUseCase] Departure slot #${params.slotId} on ${departure.date} is unavailable due to blackout.`,
+      )
     }
     if (departure.status === 'past') {
-      throw new Error(`[BookingPricingUseCase] Departure slot #${slotId} on ${departure.date} is in the past and cannot be booked.`)
+      throw new Error(
+        `[BookingPricingUseCase] Departure slot #${params.slotId} on ${departure.date} is in the past and cannot be booked.`,
+      )
     }
 
-    const effectiveAdults = Math.max(1, adultsCount)
-    const effectiveChildren = Math.max(0, childrenCount)
-    const totalBasePriceEGP = departure.effectiveBasePrice * (effectiveAdults + effectiveChildren)
-
-    // 1. Process Loyalty Points Intent via Domain Validation & Valuation (Fail-Fast)
-    let pointsValueEGP = 0
-    let remainingLoyaltyPoints: number | undefined = undefined
-
-    if (this.loyaltyService && pointsToRedeem && pointsToRedeem > 0) {
-      const activeConfig = await this.loyaltyService.getActiveConfig()
-
-      if (customerId) {
-        const settledBalance = await this.loyaltyService.getCustomerBalance(customerId)
-        const activeHeldPoints = this.bookingService
-          ? await this.bookingService.getActiveHeldPointsForCustomer(customerId)
-          : 0
-        const availableToRedeem = Math.max(0, settledBalance - activeHeldPoints)
-
-        const validation = PointsCalculator.validateRedemptionAmount(
-          pointsToRedeem,
-          availableToRedeem,
-          totalBasePriceEGP,
-          activeConfig,
-        )
-        if (!validation.allowed) {
-          throw new Error(`[PointsCalculator] ${validation.reason}`)
-        }
-        remainingLoyaltyPoints = Math.max(0, availableToRedeem - pointsToRedeem)
-      }
-
-      pointsValueEGP = await this.loyaltyService.calculatePointValueInEGP(pointsToRedeem, activeConfig)
-    }
-
-    // 2. Delegate Checkout pricing snapshot calculation to pricingFacade (Pricing Domain)
-    const snapshot = await this.pricingFacade.calculateCheckoutSnapshot({
-      basePricePerPersonEGP: departure.effectiveBasePrice,
-      adultsCount: effectiveAdults,
-      childrenCount: effectiveChildren,
-      targetCurrency: ctx.currency,
-      loyaltyDiscountEGP: pointsValueEGP > 0 ? pointsValueEGP : undefined,
-    })
-
-    // 3. Format dynamic prices via localizationService (Currency & Translation Domains)
-    const subtotalPrice = await this.localizationService.formatPrice(snapshot.subtotalEGP, ctx)
-    const totalCost = await this.localizationService.formatPrice(snapshot.totalAmountEGP, ctx)
-    const unitPrice = await this.localizationService.formatPrice(departure.effectiveBasePrice, ctx)
-    const originalPrice = await this.localizationService.formatPrice(snapshot.basePriceEGP, ctx)
-    const loyaltyDiscountPrice = pointsValueEGP > 0 ? await this.localizationService.formatPrice(pointsValueEGP, ctx) : undefined
-
-    // 4. Calculate estimated points earned on net paid amount
-    const estimatedEarnPoints = this.loyaltyService
-      ? await this.loyaltyService.calculateEarnedPoints(snapshot.totalAmountEGP)
-      : undefined
-
-    return {
-      snapshot,
-      subtotalPrice,
-      totalCost,
-      unitPrice,
-      departure,
-      originalPrice,
-      loyaltyDiscountPrice,
-      estimatedEarnPoints,
-      remainingLoyaltyPoints,
-    }
+    return this.executeCommercialPricing(departure, params)
   }
 
   /**
-   * Preview Pricing for arbitrary date and startTime combinations (Daily Tours or package slot preview).
+   * Preview Pricing for arbitrary date and startTime combinations (Daily Tours or flexible packages).
    */
-  async calculatePreview({
-    experienceId,
-    date,
-    startTime,
-    adultsCount,
-    childrenCount = 0,
-    ctx,
-    pointsToRedeem,
-    customerId,
-  }: {
-    experienceId: number
-    date: string
-    startTime: string
-    adultsCount: number
-    childrenCount?: number
-    ctx: LocaleContext
-    pointsToRedeem?: number
-    customerId?: number
-  }): Promise<BookingPricingResult> {
-    const departure = await this.experienceService.resolvePreviewDepartureByDate(experienceId, date, startTime)
+  async calculatePreview(params: CalculatePricingParams): Promise<BookingPricingResult> {
+    if (!params.date) {
+      throw new Error(`[BookingPricingUseCase] date is required for preview pricing.`)
+    }
+
+    const departure = await this.experienceService.resolvePreviewDepartureByDate(
+      params.experienceId,
+      params.date,
+      params.startTime || '',
+    )
     if (departure.status === 'blacked_out') {
-      throw new Error(`[BookingPricingUseCase] Date ${date}${startTime ? ' at ' + startTime : ''} is unavailable due to blackout.`)
+      throw new Error(
+        `[BookingPricingUseCase] Date ${params.date}${params.startTime ? ' at ' + params.startTime : ''} is unavailable due to blackout.`,
+      )
     }
     if (departure.status === 'past') {
-      throw new Error(`[BookingPricingUseCase] Date ${date}${startTime ? ' at ' + startTime : ''} has already passed and cannot be booked.`)
+      throw new Error(
+        `[BookingPricingUseCase] Date ${params.date}${params.startTime ? ' at ' + params.startTime : ''} has already passed and cannot be booked.`,
+      )
     }
 
-    const effectiveAdults = Math.max(1, adultsCount)
-    const effectiveChildren = Math.max(0, childrenCount)
-    const totalBasePriceEGP = departure.effectiveBasePrice * (effectiveAdults + effectiveChildren)
+    return this.executeCommercialPricing(departure, params)
+  }
 
-    // 1. Process Loyalty Points Intent via Domain Validation & Valuation (Fail-Fast)
+  /**
+   * Core Commercial Pricing Execution (SSOT).
+   * Validates pure domain rules and constructs authoritative CommercialSnapshotBreakdown.
+   */
+  private async executeCommercialPricing(
+    departure: BookableDeparture,
+    params: CalculatePricingParams,
+  ): Promise<BookingPricingResult> {
+    const experienceDoc =
+      typeof this.experienceService?.getById === 'function'
+        ? await this.experienceService.getById(params.experienceId).catch(() => null)
+        : null
+
+    const expType = experienceDoc?.type || departure.experienceType || 'daily_tour'
+
+    const effectiveAdults = Math.max(1, params.adultsCount)
+    const childAges = params.childAges || []
+    const effectiveChildren = Math.max(params.childrenCount || 0, childAges.length)
+    const childBeddingModes = params.childBeddingModes || []
+    const adultBasePriceEGP = departure.effectiveBasePrice
+    const adultsTotalEGP = effectiveAdults * adultBasePriceEGP
+
+    let commercialBreakdown: CommercialSnapshotBreakdown
+
+    if (expType === 'package') {
+      const pkg = experienceDoc as PackageExperienceAggregate
+      const childrenAllowed = pkg?.childPolicy?.childrenAllowed ?? true
+
+      // 1. Pure Domain Rule: Validate Child Eligibility & Ages
+      if (effectiveChildren > 0) {
+        const childValidation = ChildPolicy.validate({
+          childrenAllowed,
+          childAges,
+          childBeddingModes,
+        })
+        if (!childValidation.valid) {
+          throw new Error(childValidation.errors.join('; '))
+        }
+      }
+
+      // 2. Pure Domain Rule: Resolve Supported Room Occupancies
+      const supportedOccupanciesSet = new Set<OccupancyType>()
+      if (Array.isArray(pkg?.accommodations) && pkg.accommodations.length > 0) {
+        // Collect occupancies supported across stays
+        pkg.accommodations.forEach((stay) => {
+          stay.occupancyOptions.forEach((opt) => supportedOccupanciesSet.add(opt.occupancy))
+        })
+      } else {
+        // Default package occupancies if no specific stays configured
+        supportedOccupanciesSet.add('single')
+        supportedOccupanciesSet.add('double')
+        supportedOccupanciesSet.add('triple')
+        supportedOccupanciesSet.add('quad')
+      }
+
+      const supportedOccupancies = Array.from(supportedOccupanciesSet)
+
+      // 3. Pure Domain Rule: Resolve Room Allocation (Smart Assistant Pattern)
+      const allocationResult = RoomAllocationPolicy.resolveSmartAllocation({
+        adultsCount: effectiveAdults,
+        childrenCount: effectiveChildren,
+        requestedRooms: params.requestedRooms,
+        supportedOccupancies,
+      })
+
+      if (!allocationResult.valid) {
+        throw new Error(allocationResult.errors.join('; '))
+      }
+
+      const roomAllocation = allocationResult.allocation || []
+
+      // 4. Calculate Occupancy Supplements across Stays (Admin-controlled values)
+      let occupancySupplementsTotalEGP = 0
+      const staysBreakdown: CommercialSnapshotBreakdown['staysBreakdown'] = []
+
+      if (Array.isArray(pkg?.accommodations) && pkg.accommodations.length > 0) {
+        for (const stay of pkg.accommodations) {
+          let staySupplementEGP = 0
+          for (const room of roomAllocation) {
+            if (room.occupancy === 'double') {
+              // Double occupancy is the zero-supplement baseline
+              continue
+            }
+            const opt = stay.occupancyOptions.find((o) => o.occupancy === room.occupancy)
+            if (opt && opt.supplementEGP) {
+              staySupplementEGP += opt.supplementEGP
+            }
+          }
+          occupancySupplementsTotalEGP += staySupplementEGP
+          staysBreakdown.push({
+            order: stay.order,
+            propertyId: stay.propertyId,
+            propertyName: stay.property?.name || `Accommodation Stay #${stay.order}`,
+            nights: stay.nights,
+            roomCategory: stay.roomCategory,
+            supplementEGP: staySupplementEGP,
+          })
+        }
+      }
+
+      // 5. Calculate Child Pricing from Admin-configured percentages
+      const childrenDetails: NonNullable<CommercialSnapshotBreakdown['children']> = []
+      let childrenTotalEGP = 0
+
+      for (let i = 0; i < effectiveChildren; i++) {
+        const age = childAges[i] !== undefined ? childAges[i] : 6 // fallback age 6 if count specified without ages
+        const category = ChildPolicy.classifyAge(age)
+
+        if (category === 'infant') {
+          childrenDetails.push({
+            age,
+            category: 'infant',
+            beddingMode: 'sharing_bed',
+            appliedPercentage: 0,
+            priceEGP: 0,
+          })
+        } else if (category === 'child') {
+          const mode = childBeddingModes[i] || 'sharing_bed'
+          const pct =
+            mode === 'extra_bed'
+              ? pkg?.childPolicy?.childExtraBedPercentage ?? 75
+              : pkg?.childPolicy?.childSharingBedPercentage ?? 50
+          const childPriceEGP = Math.round((adultBasePriceEGP * pct) / 100)
+          childrenDetails.push({
+            age,
+            category: 'child',
+            beddingMode: mode,
+            appliedPercentage: pct,
+            priceEGP: childPriceEGP,
+          })
+          childrenTotalEGP += childPriceEGP
+        } else {
+          // Age 12+ booked as full adult
+          childrenDetails.push({
+            age,
+            category: 'child',
+            beddingMode: 'extra_bed',
+            appliedPercentage: 100,
+            priceEGP: adultBasePriceEGP,
+          })
+          childrenTotalEGP += adultBasePriceEGP
+        }
+      }
+
+      commercialBreakdown = {
+        adultsCount: effectiveAdults,
+        adultBasePriceEGP,
+        adultsTotalEGP,
+        requestedRooms: params.requestedRooms || 1,
+        effectiveRoomCount: roomAllocation.length,
+        minimumRequiredRooms: allocationResult.minimumRequiredRooms || 1,
+        roomAllocation,
+        roomCount: roomAllocation.length,
+        autoAdjusted: allocationResult.autoAdjusted,
+        adjustmentMessage: allocationResult.adjustmentReason,
+        occupancySupplementsTotalEGP,
+        children: childrenDetails,
+        childrenTotalEGP,
+        staysBreakdown,
+      }
+    } else {
+      // Daily Tour Pricing
+      commercialBreakdown = {
+        adultsCount: effectiveAdults,
+        adultBasePriceEGP,
+        adultsTotalEGP,
+        roomAllocation: [],
+        roomCount: 0,
+        occupancySupplementsTotalEGP: 0,
+        children: [],
+        childrenTotalEGP: effectiveChildren * adultBasePriceEGP,
+      }
+    }
+
+    const totalCalculatedBaseEGP =
+      commercialBreakdown.adultsTotalEGP +
+      commercialBreakdown.occupancySupplementsTotalEGP +
+      commercialBreakdown.childrenTotalEGP
+
+    // 6. Process Loyalty Points Intent via Domain Validation & Valuation (Fail-Fast)
     let pointsValueEGP = 0
     let remainingLoyaltyPoints: number | undefined = undefined
 
-    if (this.loyaltyService && pointsToRedeem && pointsToRedeem > 0) {
+    if (this.loyaltyService && params.pointsToRedeem && params.pointsToRedeem > 0) {
       const activeConfig = await this.loyaltyService.getActiveConfig()
 
-      if (customerId) {
-        const settledBalance = await this.loyaltyService.getCustomerBalance(customerId)
+      if (params.customerId) {
+        const settledBalance = await this.loyaltyService.getCustomerBalance(params.customerId)
         const activeHeldPoints = this.bookingService
-          ? await this.bookingService.getActiveHeldPointsForCustomer(customerId)
+          ? await this.bookingService.getActiveHeldPointsForCustomer(params.customerId)
           : 0
         const availableToRedeem = Math.max(0, settledBalance - activeHeldPoints)
 
         const validation = PointsCalculator.validateRedemptionAmount(
-          pointsToRedeem,
+          params.pointsToRedeem,
           availableToRedeem,
-          totalBasePriceEGP,
+          totalCalculatedBaseEGP,
           activeConfig,
         )
         if (!validation.allowed) {
           throw new Error(`[PointsCalculator] ${validation.reason}`)
         }
-        remainingLoyaltyPoints = Math.max(0, availableToRedeem - pointsToRedeem)
+        remainingLoyaltyPoints = Math.max(0, availableToRedeem - params.pointsToRedeem)
       }
 
-      pointsValueEGP = await this.loyaltyService.calculatePointValueInEGP(pointsToRedeem, activeConfig)
+      pointsValueEGP = await this.loyaltyService.calculatePointValueInEGP(
+        params.pointsToRedeem,
+        activeConfig,
+      )
     }
 
+    // 7. Delegate to Pricing Domain (Single Financial Pricing SSOT Pipeline)
     const snapshot = await this.pricingFacade.calculateCheckoutSnapshot({
       basePricePerPersonEGP: departure.effectiveBasePrice,
       adultsCount: effectiveAdults,
       childrenCount: effectiveChildren,
-      targetCurrency: ctx.currency,
+      targetCurrency: params.ctx.currency,
       loyaltyDiscountEGP: pointsValueEGP > 0 ? pointsValueEGP : undefined,
+      commercialBreakdown,
+      departureId: departure.departureId,
+      experienceId: params.experienceId,
+      bookingDate: departure.date,
     })
 
-    const subtotalPrice = await this.localizationService.formatPrice(snapshot.subtotalEGP, ctx)
-    const totalCost = await this.localizationService.formatPrice(snapshot.totalAmountEGP, ctx)
-    const unitPrice = await this.localizationService.formatPrice(departure.effectiveBasePrice, ctx)
-    const originalPrice = await this.localizationService.formatPrice(snapshot.basePriceEGP, ctx)
-    const loyaltyDiscountPrice = pointsValueEGP > 0 ? await this.localizationService.formatPrice(pointsValueEGP, ctx) : undefined
+    // 8. Format dynamic prices via localizationService
+    const subtotalPrice = await this.localizationService.formatPrice(snapshot.subtotalEGP, params.ctx)
+    const totalCost = await this.localizationService.formatPrice(snapshot.totalAmountEGP, params.ctx)
+    const unitPrice = await this.localizationService.formatPrice(departure.effectiveBasePrice, params.ctx)
+    const originalPrice = await this.localizationService.formatPrice(snapshot.basePriceEGP, params.ctx)
+    const loyaltyDiscountPrice =
+      pointsValueEGP > 0
+        ? await this.localizationService.formatPrice(pointsValueEGP, params.ctx)
+        : undefined
 
+    const formattedBreakdown: FormattedCommercialBreakdown = {
+      adultBasePrice: await this.localizationService.formatPrice(commercialBreakdown.adultBasePriceEGP, params.ctx),
+      adultsTotalPrice: await this.localizationService.formatPrice(commercialBreakdown.adultsTotalEGP, params.ctx),
+      occupancySupplementsTotalPrice: await this.localizationService.formatPrice(commercialBreakdown.occupancySupplementsTotalEGP, params.ctx),
+      childrenTotalPrice: await this.localizationService.formatPrice(commercialBreakdown.childrenTotalEGP, params.ctx),
+      children: await Promise.all(
+        (commercialBreakdown.children || []).map(async (ch) => ({
+          age: ch.age,
+          category: ch.category,
+          beddingMode: ch.beddingMode,
+          appliedPercentage: ch.appliedPercentage,
+          price: await this.localizationService.formatPrice(ch.priceEGP, params.ctx),
+        }))
+      ),
+    }
+
+    // 9. Calculate estimated points earned on net paid amount
     const estimatedEarnPoints = this.loyaltyService
       ? await this.loyaltyService.calculateEarnedPoints(snapshot.totalAmountEGP)
       : undefined
@@ -229,6 +382,8 @@ export class BookingPricingUseCase {
       loyaltyDiscountPrice,
       estimatedEarnPoints,
       remainingLoyaltyPoints,
+      commercialBreakdown,
+      formattedBreakdown,
     }
   }
 }

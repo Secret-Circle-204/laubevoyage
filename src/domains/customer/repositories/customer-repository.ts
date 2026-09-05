@@ -298,8 +298,6 @@ export class CustomerRepository {
     const where = { customer: { equals: customerId } }
     const collections = [
       'customer-travelers',
-      'customer-addresses',
-      'customer-device-sessions',
       'customer-notification-preferences',
       'dashboard-projections',
     ]

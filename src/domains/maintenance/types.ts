@@ -7,6 +7,7 @@ export type MaintenanceJobName =
   | 'dlq_recovery'
   | 'data_retention_purge'
   | 'reconcile_dashboard_projections'
+  | 'currency_rate_refresh'
 
 export type ReconciliationStatus =
   | 'matched'

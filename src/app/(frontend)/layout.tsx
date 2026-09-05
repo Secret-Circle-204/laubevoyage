@@ -68,7 +68,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
 
   const initialLocale = ctx.language
   const initialCurrency = ctx.currency
-  const dir = initialLocale === 'ar' ? 'rtl' : 'ltr'
+  const dir = ctx.direction || (ctx.isRTL ? 'rtl' : 'ltr')
 
   return (
     <html lang={initialLocale} dir={dir} className="scroll-smooth dark" data-scroll-behavior="smooth" suppressHydrationWarning>
@@ -95,7 +95,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         className={`${inter.variable} ${playfair.variable} ${hornbill.variable} antialiased bg-[#231F20] text-slate-100 min-h-screen transition-colors duration-300`}
         suppressHydrationWarning
       >
-        <AppProviders initialLocale={initialLocale} initialCurrency={initialCurrency} initialSession={session}>
+        <AppProviders initialLocale={initialLocale} initialDirection={dir} initialCurrency={initialCurrency} initialSession={session}>
           {children}
         </AppProviders>
       </body>
