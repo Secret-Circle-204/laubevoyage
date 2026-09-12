@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useId } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { useLoadingNavigation } from '@/application/loading/use-loading-navigation'
 import { useLocale, useCurrency, useSession } from '@/providers'
 import { useTheme } from '@/providers/theme-provider'
 import { Button, Badge } from '@/components/ui'
@@ -19,6 +19,8 @@ export interface HeaderProps {
 
 export function Header({ data }: HeaderProps) {
   const router = useRouter()
+  const loadingNav = useLoadingNavigation()
+  const pathname = usePathname()
   const { locale, setLocale } = useLocale()
   const { currency, setCurrency } = useCurrency()
   const { session, logout } = useSession()
@@ -26,260 +28,477 @@ export function Header({ data }: HeaderProps) {
 
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMenuClosing, setIsMenuClosing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null)
+  const mobileCloseBtnRef = useRef<HTMLButtonElement>(null)
+
+  const isDark = theme === 'dark'
+  const isHomePage = pathname === '/'
+  const isHeaderSolid = isScrolled || !isHomePage
+
+  const closeMobileMenu = useCallback(() => {
+    setIsMenuClosing(true)
+    setTimeout(() => {
+      setIsMobileMenuOpen(false)
+      setIsMenuClosing(false)
+      mobileMenuTriggerRef.current?.focus()
+    }, 220)
+  }, [])
+
+  const toggleMobileMenu = useCallback(() => {
+    if (isMobileMenuOpen) {
+      closeMobileMenu()
+    } else {
+      setIsMobileMenuOpen(true)
+    }
+  }, [isMobileMenuOpen, closeMobileMenu])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!searchQuery.trim()) return
-    router.push(`/experiences?q=${encodeURIComponent(searchQuery.trim())}`)
-    setIsMobileMenuOpen(false)
+    loadingNav.push(`/experiences?q=${encodeURIComponent(searchQuery.trim())}`)
+    closeMobileMenu()
   }
 
+  // Keyboard shortcut for search (⌘K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+      if (e.key === 'Escape' && isMobileMenuOpen) {
+        closeMobileMenu()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isMobileMenuOpen, closeMobileMenu])
 
+  // Scroll listener for sticky header styling
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 40)
+      setIsScrolled(window.scrollY > 30)
     }
-    window.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const navLinks = data.navigationMenu
-  const availableCurrencies = data.supportedCurrencies
-  const availableLocales = data.supportedLocales
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow
+      document.body.style.overflow = 'hidden'
+      // Focus close button on open
+      setTimeout(() => {
+        mobileCloseBtnRef.current?.focus()
+      }, 50)
+      return () => {
+        document.body.style.overflow = originalStyle
+      }
+    }
+  }, [isMobileMenuOpen])
 
-  const isDark = theme === 'dark'
+  const navLinks = data.navigationMenu || []
+  const availableCurrencies = data.supportedCurrencies || []
+  const availableLocales = data.supportedLocales || []
+
+  const isLinkActive = (href: string) => {
+    if (href === '/') return pathname === '/'
+    return pathname.startsWith(href)
+  }
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled
-          ? isDark
-            ? 'bg-[#231F20]/95 backdrop-blur-md shadow-xl py-3 border-b border-white/10'
-            : 'bg-white/95 backdrop-blur-md shadow-md py-3 border-b border-slate-200/80'
-          : 'bg-transparent py-5'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        {/* Brand Logo */}
-        <Link href="/" className="group flex items-center">
-          <div className="relative h-9 w-36 sm:w-44 transition-transform duration-500 group-hover:scale-105">
-            <Image
-              src={
-                isDark
-                  ? '/logos/LAube-Voyage-logo-horizontal-colors-and-white.svg'
-                  : '/logos/LAube-Voyage-logo-horizontal -colors.svg'
-              }
-              alt="L'Aube Voyage"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-        </Link>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`text-sm font-semibold tracking-wide transition-colors ${
-                isDark
-                  ? 'text-slate-200 hover:text-[#00aeef]'
-                  : 'text-slate-700 hover:text-[#2e3192]'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Right Controls */}
-        <div className="hidden lg:flex items-center gap-4">
-          {/* Desktop Search Input */}
-          <form onSubmit={handleSearchSubmit} className="relative hidden xl:flex items-center">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search experiences..."
-              className={`pl-9 pr-4 py-1.5 text-xs rounded-full border transition-all duration-300 w-44 focus:w-60 focus:outline-none ${
-                isDark
-                  ? 'bg-white/10 border-white/20 text-white placeholder-white/50 focus:border-[#f58220]'
-                  : 'bg-slate-100 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#f58220]'
-              }`}
-            />
-            <svg className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </form>
-
-          {/* Theme Toggle */}
-          <ThemeToggle />
-
-          {/* Currency Switcher */}
-          {availableCurrencies.length > 0 && (
-            <CurrencySwitcher
-              currency={currency}
-              setCurrency={setCurrency}
-              availableCurrencies={availableCurrencies}
-              isDark={isDark}
-            />
-          )}
-
-          {/* Locale Switcher */}
-          {availableLocales.length > 0 && (
-            <LanguageSwitcher
-              locale={locale}
-              setLocale={setLocale}
-              availableLocales={availableLocales}
-              isDark={isDark}
-            />
-          )}
-
-          {/* User Auth Portal Link */}
-          {session.isAuthenticated ? (
-            <div className="flex items-center gap-3">
-              <Link href="/dashboard">
-                <Badge variant="accent" size="md" className="cursor-pointer hover:opacity-90">
-                  {data?.uiLabels?.myAccount}
-                </Badge>
-              </Link>
-              <Button variant="ghost" size="sm" onClick={logout}>
-                {data?.uiLabels?.signOut}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  {data?.uiLabels?.logIn}
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button variant="primary" size="sm">
-                  {data?.uiLabels?.bookNow}
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Hamburger Button */}
-        <div className="flex lg:hidden items-center gap-2">
-          <ThemeToggle />
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className={`p-2 rounded-lg ${
-              isDark ? 'text-white hover:bg-slate-800' : 'text-slate-900 hover:bg-slate-100'
-            }`}
-            aria-label="Toggle Navigation Menu"
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ease-out ${
+          isHeaderSolid
+            ? 'bg-background/90 backdrop-blur-md shadow-xs py-2.5 sm:py-3 border-b border-border/60'
+            : 'bg-transparent py-3.5 sm:py-4 border-b border-transparent'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4">
+          
+          {/* ================================================================= */}
+          {/* 1. BRAND LOGO */}
+          {/* ================================================================= */}
+          <Link
+            href="/"
+            className="group flex items-center flex-shrink-0 transition-transform duration-300 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary/60 rounded-lg p-0.5"
+            aria-label="L'Aube Voyage Home"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {isMobileMenuOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              )}
-            </svg>
-          </button>
-        </div>
-      </div>
+            <div className="relative h-8 w-32 sm:h-9 sm:w-40 md:w-44">
+              <Image
+                src={
+                  isDark
+                    ? '/logos/LAube-Voyage-logo-horizontal-colors-and-white.svg'
+                    : '/logos/LAube-Voyage-logo-horizontal -colors.svg'
+                }
+                alt="L'Aube Voyage"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+          </Link>
 
-      {/* Mobile Drawer Navigation */}
-      {isMobileMenuOpen && (
-        <div
-          className={`lg:hidden border-t px-4 pt-4 pb-6 space-y-4 shadow-2xl ${
-            isDark
-              ? 'bg-[#231F20] border-slate-800 text-white'
-              : 'bg-white border-slate-200 text-slate-900'
-          }`}
-        >
-          {/* Mobile Search Form */}
-          <form onSubmit={handleSearchSubmit} className="relative mb-3">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search experiences, destinations..."
-              className={`w-full pl-9 pr-20 py-2.5 text-sm rounded-lg border ${
-                isDark
-                  ? 'bg-white/10 border-white/20 text-white placeholder-white/50 focus:border-[#f58220]'
-                  : 'bg-slate-100 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#f58220]'
-              } focus:outline-none`}
-            />
-            <svg className="w-4 h-4 absolute left-3 top-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-[#f58220] hover:bg-[#2e3192] text-white text-xs font-semibold rounded-md transition-colors"
-            >
-              Search
-            </button>
-          </form>
+          {/* ================================================================= */}
+          {/* 2. DESKTOP LIVING NAVIGATION (Waypoint Beacon Architecture) */}
+          {/* ================================================================= */}
+          <nav
+            aria-label="Main Navigation"
+            className="hidden lg:flex items-center gap-6 xl:gap-8 flex-shrink-0"
+          >
+            {navLinks.map((link) => {
+              const active = isLinkActive(link.href)
 
-          <nav className="flex flex-col space-y-3">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-base font-semibold hover:text-[#00aeef]"
-              >
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`relative py-1.5 text-xs font-medium uppercase transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 rounded-sm ${
+                    active
+                      ? 'text-foreground font-bold'
+                      : 'text-foreground/70 hover:text-foreground group'
+                  }`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <span>{link.label}</span>
 
-                {link.label}
-              </Link>
-            ))}
+                  {/* Waypoint Active Beacon & Micro Runway Line */}
+                  {active ? (
+                    <span
+                      className="absolute -bottom-1 left-0 right-0 flex items-center justify-center pointer-events-none"
+                      aria-hidden="true"
+                    >
+                      <span className="h-[1.5px] w-full bg-gradient-to-r from-transparent via-secondary/70 to-transparent rounded-full" />
+                      <span className="absolute w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_8px_rgba(0,174,239,0.85)] ring-2 ring-secondary/20" />
+                    </span>
+                  ) : (
+                    <span
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-secondary/40 opacity-0 scale-0 transition-all duration-250 group-hover:opacity-100 group-hover:scale-100 pointer-events-none"
+                      aria-hidden="true"
+                    />
+                  )}
+                </Link>
+              )
+            })}
           </nav>
 
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {availableCurrencies.length > 0 && (
-                <CurrencySwitcher
-                  currency={currency}
-                  setCurrency={setCurrency}
-                  availableCurrencies={availableCurrencies}
-                  isDark={true}
-                />
+          {/* ================================================================= */}
+          {/* 3. DESKTOP RIGHT CONTROL SURFACE */}
+          {/* ================================================================= */}
+          <div className="hidden lg:flex items-center gap-2 xl:gap-3 flex-shrink-0">
+            {/* Travel Command Search (Keyboard & Intent Preserved) */}
+            <form onSubmit={handleSearchSubmit} className="relative flex items-center group">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search destinations..."
+                aria-label="Search destinations or experiences"
+                className="pl-8 pr-12 py-1.5 text-xs rounded-full border border-border/80 bg-card/60 hover:bg-card text-foreground placeholder:text-muted/60 transition-all duration-300 w-36 xl:w-52 focus:w-56 xl:focus:w-72 focus:outline-none focus:border-secondary/80 focus:ring-2 focus:ring-secondary/20 focus:bg-card shadow-xs"
+              />
+              <svg
+                className="w-3.5 h-3.5 absolute left-2.5 text-muted group-focus-within:text-secondary pointer-events-none transition-colors"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth={1.75}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 text-muted hover:text-foreground cursor-pointer p-0.5 rounded-full focus:outline-none"
+                  aria-label="Clear search input"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              ) : (
+                <kbd
+                  className="absolute right-2.5 hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-medium rounded border border-border/60 bg-border/20 text-muted/70 pointer-events-none"
+                  title="Press ⌘K or Ctrl+K to focus search"
+                >
+                  ⌘K
+                </kbd>
               )}
-              {availableLocales.length > 0 && (
-                <LanguageSwitcher
-                  locale={locale}
-                  setLocale={setLocale}
-                  availableLocales={availableLocales}
-                  isDark={true}
+            </form>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
+            {/* Currency Switcher (Continuous Adaptive Density) */}
+            {availableCurrencies.length > 0 && (
+              <CurrencySwitcher
+                currency={currency}
+                setCurrency={setCurrency}
+                availableCurrencies={availableCurrencies}
+                isDark={isDark}
+              />
+            )}
+
+            {/* Language Switcher (Continuous Adaptive Density) */}
+            {availableLocales.length > 0 && (
+              <LanguageSwitcher
+                locale={locale}
+                setLocale={setLocale}
+                availableLocales={availableLocales}
+                isDark={isDark}
+              />
+            )}
+
+            {/* User Session Auth / Portal Link */}
+            {session.isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <Link href="/dashboard">
+                  <Badge variant="accent" size="md" className="cursor-pointer hover:opacity-90">
+                    {data?.uiLabels?.myAccount || 'Dashboard'}
+                  </Badge>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={logout}>
+                  {data?.uiLabels?.signOut || 'Sign Out'}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link href="/login">
+                  <Button variant="ghost" size="sm">
+                    {data?.uiLabels?.logIn || 'Log In'}
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button variant="primary" size="sm">
+                    {data?.uiLabels?.bookNow || 'Book Now'}
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* ================================================================= */}
+          {/* 4. MOBILE TRAVEL BAR (Level-1 Direct Visibility for Essentials) */}
+          {/* ================================================================= */}
+          <div className="flex lg:hidden items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {/* Level-1 Currency Switcher on Mobile (Flag + Code) */}
+            {availableCurrencies.length > 0 && (
+              <CurrencySwitcher
+                currency={currency}
+                setCurrency={setCurrency}
+                availableCurrencies={availableCurrencies}
+                isDark={isDark}
+                compactOnly={true}
+              />
+            )}
+
+            {/* Level-1 Language Switcher on Mobile (Flag + Short Code) */}
+            {availableLocales.length > 0 && (
+              <LanguageSwitcher
+                locale={locale}
+                setLocale={setLocale}
+                availableLocales={availableLocales}
+                isDark={isDark}
+                compactOnly={true}
+              />
+            )}
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
+            {/* Mobile Travel Command Menu Trigger */}
+            <button
+              ref={mobileMenuTriggerRef}
+              onClick={toggleMobileMenu}
+              className="p-2 rounded-full border border-border/80 bg-card/60 hover:bg-card text-foreground transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 cursor-pointer shadow-xs active:scale-95"
+              aria-label="Open Travel Command Menu"
+              aria-expanded={isMobileMenuOpen}
+              aria-haspopup="dialog"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            </button>
+          </div>
+
+        </div>
+      </header>
+
+      {/* ================================================================= */}
+      {/* 5. MOBILE TRAVEL COMMAND SURFACE (Spatial Editorial Overlay) */}
+      {/* ================================================================= */}
+      {isMobileMenuOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Travel Command Menu"
+          className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end"
+        >
+          {/* Backdrop Scrim */}
+          <div
+            onClick={closeMobileMenu}
+            className={`fixed inset-0 bg-dark/70 backdrop-blur-xs transition-opacity duration-300 ease-out ${
+              isMenuClosing ? 'opacity-0' : 'opacity-100'
+            }`}
+            aria-hidden="true"
+          />
+
+          {/* Spatial Command Sheet */}
+          <div
+            className={`relative z-10 w-full max-h-[85vh] rounded-t-3xl border-t border-border/80 bg-card/95 backdrop-blur-xl shadow-2xl text-foreground flex flex-col overflow-hidden transition-all duration-300 ease-out ${
+              isMenuClosing ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+            }`}
+          >
+            {/* Sheet Handle */}
+            <div className="w-12 h-1 bg-border/80 rounded-full mx-auto mt-3 mb-1" aria-hidden="true" />
+
+            {/* Sheet Header */}
+            <div className="px-5 py-3 border-b border-border/40 flex items-center justify-between">
+              <div className="relative h-7 w-32">
+                <Image
+                  src={
+                    isDark
+                      ? '/logos/LAube-Voyage-logo-horizontal-colors-and-white.svg'
+                      : '/logos/LAube-Voyage-logo-horizontal -colors.svg'
+                  }
+                  alt="L'Aube Voyage"
+                  fill
+                  className="object-contain"
                 />
-              )}
+              </div>
+              <button
+                ref={mobileCloseBtnRef}
+                onClick={closeMobileMenu}
+                className="p-2 rounded-full text-muted hover:text-foreground hover:bg-border/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 cursor-pointer"
+                aria-label="Close Travel Command Menu"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            {session.isAuthenticated ? (
-              <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="accent" size="sm">
-                  {data?.uiLabels?.myAccount}
-                </Button>
-              </Link>
-            ) : (
-              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="primary" size="sm">
-                  {data?.uiLabels?.logIn}
-                </Button>
-              </Link>
-            )}
+            {/* Scrollable Content Container */}
+            <div className="px-5 py-4 space-y-6 overflow-y-auto overscroll-contain">
+              
+              {/* Travel Command Quick Search */}
+              <div>
+                <div className="text-[10px] uppercase font-bold text-muted mb-2 px-1 font-serif">
+                  Travel Command
+                </div>
+                <form onSubmit={handleSearchSubmit} className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search a destination or voyage..."
+                    aria-label="Search destinations in mobile menu"
+                    className="w-full pl-9 pr-24 py-2.5 text-sm rounded-xl border border-border bg-card text-foreground placeholder:text-muted/60 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/20 shadow-xs"
+                  />
+                  <svg
+                    className="w-4 h-4 absolute left-3 text-muted pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                  <Button
+                    type="submit"
+                    variant="accent"
+                    size="sm"
+                    className="absolute right-1.5 top-1.5 bottom-1.5 px-3 uppercase text-xs"
+                  >
+                    Search
+                  </Button>
+                </form>
+              </div>
+
+              {/* Editorial Collection Links */}
+              <div>
+                <div className="text-[10px] uppercase font-bold text-muted mb-2 px-1 font-serif">
+                  Explore The Collection
+                </div>
+                <nav className="flex flex-col space-y-1">
+                  {navLinks.map((link) => {
+                    const active = isLinkActive(link.href)
+
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={closeMobileMenu}
+                        className={`flex items-center justify-between px-4 py-3 rounded-xl text-base font-serif tracking-tight transition-all duration-200 ${
+                          active
+                            ? 'bg-secondary/10 text-secondary font-bold pl-5 border-l-2 border-secondary'
+                            : 'text-foreground/80 hover:text-foreground hover:bg-border/20'
+                        }`}
+                        aria-current={active ? 'page' : undefined}
+                      >
+                        <span>{link.label}</span>
+                        <svg
+                          className="w-4 h-4 text-muted/60 transition-transform group-hover:translate-x-1"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                          aria-hidden="true"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+
+              {/* Session Account Bar */}
+              <div className="pt-4 border-t border-border/60">
+                {session.isAuthenticated ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <Link
+                      href="/dashboard"
+                      onClick={closeMobileMenu}
+                      className="flex-1"
+                    >
+                      <Button variant="accent" size="md" className="w-full">
+                        {data?.uiLabels?.myAccount || 'My Dashboard'}
+                      </Button>
+                    </Link>
+                    <Button variant="ghost" size="md" onClick={logout}>
+                      {data?.uiLabels?.signOut || 'Sign Out'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Link href="/login" onClick={closeMobileMenu}>
+                      <Button variant="outline" size="md" className="w-full">
+                        {data?.uiLabels?.logIn || 'Log In'}
+                      </Button>
+                    </Link>
+                    <Link href="/register" onClick={closeMobileMenu}>
+                      <Button variant="primary" size="md" className="w-full">
+                        {data?.uiLabels?.bookNow || 'Book Now'}
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
         </div>
       )}
-    </header>
+    </>
   )
 }
+

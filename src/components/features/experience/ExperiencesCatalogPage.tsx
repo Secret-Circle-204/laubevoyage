@@ -4,13 +4,17 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useLoadingNavigation } from '@/application/loading/use-loading-navigation'
 import { useTheme } from '@/providers/theme-provider'
-import { Card, Badge, Button, CurrencyDisplay } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { DiscoverySearchBar } from '@/components/features/search/DiscoverySearchBar'
+import { ExperienceCard } from '@/components/features/experience/ExperienceCard'
+import { ExperienceSectionAtmosphere } from '@/components/features/experience/ExperienceSectionAtmosphere'
 import type { ExperienceCatalogDTO } from '@/application/experience/dto'
 
 export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO }) {
   const router = useRouter()
+  const loadingNav = useLoadingNavigation()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
 
@@ -31,11 +35,11 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
       params.set('duration', String(data.filters.duration))
 
     const qStr = params.toString()
-    router.push(qStr ? `/experiences?${qStr}` : '/experiences')
+    loadingNav.push(qStr ? `/experiences?${qStr}` : '/experiences')
   }
 
   const handleResetAll = () => {
-    router.push('/experiences')
+    loadingNav.push('/experiences')
   }
 
   const buildPaginationUrl = (targetPage: number) => {
@@ -52,6 +56,13 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
     const qStr = params.toString()
     return qStr ? `/experiences?${qStr}` : '/experiences'
   }
+
+  // Authentic scenic image URLs from current experiences
+  const bgImages = React.useMemo(() => {
+    return data.experiences
+      .map((e) => e.imageUrl)
+      .filter((url): url is string => Boolean(url && typeof url === 'string'))
+  }, [data.experiences])
 
   // Resolve active country/city names for chips
   const activeCountry = data.destinations?.countries.find((c) => c.id === data.filters.countryId)
@@ -70,277 +81,403 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
 
   return (
     <div
-      className={`py-24 ${isDark ? 'bg-[#231F20]' : 'bg-slate-50'} transition-colors duration-500 min-h-screen`}
+      className={`pt-20 sm:pt-24 pb-0 ${isDark ? 'bg-[#1a1718]' : 'bg-[#FAF8F5]'} transition-colors duration-500 min-h-screen flex flex-col`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Page Header */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <Badge variant="secondary" className="mb-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full mb-6">
+        {/* Editorial Page Header */}
+        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16 animate-editorial-reveal">
+          <span className="text-[11px] uppercase font-semibold text-secondary dark:text-secondary-light block mb-3">
             {data.labels.badge || 'Curated Collection'}
-          </Badge>
-          <h1
-            className={`text-4xl sm:text-5xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}
-          >
+          </span>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-hornbill font-light tracking-tight text-foreground">
             {data.labels.title || 'Discover Experiences'}
           </h1>
-          <div className="h-1 w-16 bg-[#f58220] mx-auto mt-3 mb-4" />
-          <p className={`text-base sm:text-lg ${isDark ? 'text-[#a7aaac]' : 'text-[#666666]'}`}>
+          <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
             {data.labels.description ||
-              'Explore our bespoke tour packages and daily private tours.'}
+              'Explore our bespoke tour packages and daily private tours, curated for discerning travelers.'}
           </p>
         </div>
 
-        {/* Unified Luxury Discovery Search Bar Component */}
-        <div className="mb-8">
+        {/* Unified Luxury Discovery Search Console */}
+        <div className="mb-10 relative z-30 animate-editorial-reveal stagger-1">
           <DiscoverySearchBar
-            variant="catalog"
+            variant="hero"
             destinations={data.destinations}
             initialFilters={data.filters}
+            budgetPresets={data.budgetPresets}
           />
         </div>
 
-        {/* Active Filter Chips */}
+        {/* Harmonized Active Filter Chips */}
         {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2 mb-8">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mr-2">
-              Active Filters:
+          <div className="flex flex-wrap items-center gap-2.5 mb-10 p-3.5 rounded-2xl bg-card/60 dark:bg-card/40 border border-border/70 backdrop-blur-sm relative z-10 animate-editorial-reveal stagger-2">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground mr-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
+              Active Criteria
             </span>
             {data.filters.query && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#f58220]/10 text-[#f58220] border border-[#f58220]/30">
-                Keyword: &quot;{data.filters.query}&quot;
-                <button onClick={() => handleClearFilter('q')} className="hover:text-red-500">
-                  ×
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
+                <span className="text-muted-foreground font-normal">Keyword:</span>
+                <span className="font-semibold">&quot;{data.filters.query}&quot;</span>
+                <button
+                  onClick={() => handleClearFilter('q')}
+                  aria-label="Remove keyword filter"
+                  className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </span>
             )}
             {activeCountry && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#f58220]/10 text-[#f58220] border border-[#f58220]/30">
-                Country: {activeCountry.name}
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
+                <span className="text-muted-foreground font-normal">Country:</span>
+                <span className="font-semibold">{activeCountry.name}</span>
                 <button
                   onClick={() => handleClearFilter('countryId')}
-                  className="hover:text-red-500"
+                  aria-label="Remove country filter"
+                  className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                 >
-                  ×
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </span>
             )}
             {activeCity && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-[#00aeef]/10 text-[#00aeef] border border-[#00aeef]/30">
-                City: {activeCity.name}
-                <button onClick={() => handleClearFilter('cityId')} className="hover:text-red-500">
-                  ×
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
+                <span className="text-muted-foreground font-normal">City:</span>
+                <span className="font-semibold">{activeCity.name}</span>
+                <button
+                  onClick={() => handleClearFilter('cityId')}
+                  aria-label="Remove city filter"
+                  className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </span>
             )}
             {data.filters.type && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-500 border border-indigo-500/30">
-                Type: {data.filters.type === 'package' ? 'Packages' : 'Daily Tours'}
-                <button onClick={() => handleClearFilter('type')} className="hover:text-red-500">
-                  ×
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
+                <span className="text-muted-foreground font-normal">Format:</span>
+                <span className="font-semibold">
+                  {data.filters.type === 'package' ? 'Packages' : 'Daily Tours'}
+                </span>
+                <button
+                  onClick={() => handleClearFilter('type')}
+                  aria-label="Remove journey format filter"
+                  className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </span>
             )}
             {data.filters.date && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/30">
-                Date: {data.filters.date}
-                <button onClick={() => handleClearFilter('date')} className="hover:text-red-500">
-                  ×
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
+                <span className="text-muted-foreground font-normal">Date:</span>
+                <span className="font-semibold">{data.filters.date}</span>
+                <button
+                  onClick={() => handleClearFilter('date')}
+                  aria-label="Remove date filter"
+                  className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </span>
             )}
-            {(data.filters.minPrice !== undefined || data.filters.maxPrice !== undefined) && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
-                Price: {data.filters.minPrice ?? 0} – {data.filters.maxPrice ?? '∞'} EGP
-                <button onClick={() => handleClearFilter('price')} className="hover:text-red-500">
-                  ×
-                </button>
-              </span>
-            )}
+            {(data.filters.minPrice !== undefined || data.filters.maxPrice !== undefined) &&
+              (() => {
+                const minPreset = data.budgetPresets?.minPresets.find(
+                  (p) => p.egpValue === data.filters.minPrice,
+                )
+                const maxPreset = data.budgetPresets?.maxPresets.find(
+                  (p) => p.egpValue === data.filters.maxPrice,
+                )
+                const label =
+                  minPreset && maxPreset
+                    ? `${minPreset.displayLabel} – ${maxPreset.displayLabel}`
+                    : minPreset
+                      ? minPreset.displayLabel
+                      : maxPreset
+                        ? maxPreset.displayLabel
+                        : `${data.filters.minPrice ?? 0} – ${data.filters.maxPrice ?? '∞'} ${data.budgetPresets?.currencyCode || 'EGP'}`
+
+                return (
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
+                    <span className="text-muted-foreground font-normal">Budget:</span>
+                    <span className="font-semibold">{label}</span>
+                    <button
+                      onClick={() => handleClearFilter('price')}
+                      aria-label="Remove budget filter"
+                      className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                    >
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </span>
+                )
+              })()}
             {data.filters.duration !== undefined && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-500 border border-purple-500/30">
-                Duration: {data.filters.duration}+ Days
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
+                <span className="text-muted-foreground font-normal">Duration:</span>
+                <span className="font-semibold">{data.filters.duration}+ Days</span>
                 <button
                   onClick={() => handleClearFilter('duration')}
-                  className="hover:text-red-500"
+                  aria-label="Remove duration filter"
+                  className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                 >
-                  ×
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </span>
             )}
             <button
               onClick={handleResetAll}
-              className="text-xs text-slate-400 hover:text-[#f58220] underline ml-2 transition-colors"
+              className="text-xs font-semibold text-muted-foreground hover:text-accent underline underline-offset-4 decoration-border hover:decoration-accent transition-colors ml-auto cursor-pointer"
             >
-              Clear All
+              Reset All
             </button>
           </div>
         )}
+      </div>
 
-        {/* Results Count Summary */}
-        <div className="flex items-center justify-between mb-6">
-          <p className={`text-sm ${isDark ? 'text-neutral-400' : 'text-slate-600'}`}>
-            Showing <strong className="text-[#f58220]">{data.experiences.length}</strong> of{' '}
-            <strong>{data.pagination?.totalItems ?? data.experiences.length}</strong> experiences
-          </p>
-        </div>
+      {/* Experiences Presentation Showcase Section: Full-Width Atmosphere (Edge-to-Edge) */}
+      <section
+        aria-label="Curated Experiences Showcase"
+        className="relative w-full py-16 sm:py-24 bg-[#0c0a0b] text-white transition-colors duration-500 overflow-hidden border-t border-b border-white/10 grow"
+      >
+        {/* Shared Reusable Scenic Atmosphere (Full-Width Edge-to-Edge, calibrated blur 18px) */}
+        <ExperienceSectionAtmosphere
+          images={bgImages}
+          blur="blur(18px)"
+          activeOpacityClassName="opacity-60 sm:opacity-70"
+        />
 
-        {/* Experiences Grid OR Empty State */}
-        {data.experiences.length === 0 ? (
-          <div
-            className={`p-16 text-center rounded-2xl border ${isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-slate-200'} shadow-sm`}
-          >
-            <div className="text-5xl mb-4">🔍</div>
-            <h3
-              className={`text-2xl font-serif font-light mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}
-            >
-              No Experiences Found
-            </h3>
-            <p
-              className={`text-sm max-w-md mx-auto mb-6 ${isDark ? 'text-neutral-400' : 'text-slate-500'}`}
-            >
-              We couldn&apos;t find any journeys matching your current search criteria. Try
-              selecting another destination or clearing your filters.
-            </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Button variant="outline" size="sm" onClick={handleResetAll}>
-                Reset All Filters
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {data.experiences.map((item) => (
-              <Card
-                key={item.id}
-                variant="interactive"
-                padding="none"
-                className="group flex flex-col h-full"
-              >
-                {/* Image Container */}
-                <div className="relative h-72 w-full overflow-hidden bg-slate-200 dark:bg-slate-800">
-                  {item.imageUrl ? (
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.title}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 text-white/40">
-                      <span className="text-4xl">✈️</span>
-                    </div>
-                  )}
-
-                  {/* Subtle Gradient Overlay */}
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-t ${
-                      isDark ? 'from-[#1a1718] via-transparent' : 'from-black/20 via-transparent'
-                    } to-transparent opacity-60`}
-                  />
-
-                  {/* Type Badge */}
-                  <div className="absolute top-6 left-6">
-                    <Badge variant={item.type === 'package' ? 'primary' : 'accent'} size="sm">
-                      {item.type === 'package'
-                        ? data.labels.packageLabel || 'Package'
-                        : data.labels.dailyTourLabel || 'Daily Tour'}
-                    </Badge>
-                  </div>
-
-                  {/* Price Tag */}
-                  <div className="absolute top-6 right-6">
-                    <div className="px-4 py-2 bg-white/95 backdrop-blur-md rounded-lg shadow-xl">
-                      <span className="text-[#00aeef] font-bold tracking-tight text-sm">
-                        <CurrencyDisplay price={item.price} size="sm" />
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Details */}
-                <div className="flex flex-col grow p-8 justify-between">
-                  <div>
-                    <div className="mb-4">
-                      <h3
-                        className={`text-2xl font-serif font-light mb-2 transition-colors duration-300 line-clamp-1 ${
-                          isDark
-                            ? 'text-white group-hover:text-[#f58220]'
-                            : 'text-[#231f20] group-hover:text-[#2e3192]'
-                        }`}
-                      >
-                        {item.title}
-                      </h3>
-                      <div className="h-1 w-12 bg-[#f58220] transition-all duration-500 group-hover:w-24" />
-                    </div>
-
-                    <span className="text-xs font-semibold text-slate-400 block mb-1">
-                      📍 {item.location}
-                    </span>
-
-                    <p
-                      className={`text-sm mb-8 line-clamp-2 leading-relaxed ${isDark ? 'text-[#a7aaac]' : 'text-[#666666]'}`}
-                    >
-                      {item.subtitle}
-                    </p>
-                  </div>
-
-                  <Link href={`/experiences/${item.slug}`}>
-                    <Button variant="outline" size="md" className="w-full">
-                      {data.labels.viewItinerary || 'View Itinerary'}
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Server-Side Pagination Bar (Preserving Active Query Parameters) */}
-
-        {data.pagination && data.pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between pt-12 mt-12 border-t border-slate-200 dark:border-slate-800">
-            <span className="text-sm font-medium text-slate-500">
-              Page {data.pagination.page} of {data.pagination.totalPages} (
-              {data.pagination.totalItems} total)
+        {/* Inner Content Container: neatly bounds the grid and controls */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
+          {/* Section Header / Results Counter */}
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10 animate-editorial-reveal">
+            <span className="text-xs uppercase font-medium text-neutral-400 tracking-wider">
+              Curated Journeys
             </span>
+            <span className="text-xs font-medium text-neutral-400">
+              Showing{' '}
+              <strong className="text-accent font-bold">
+                {data.experiences.length}
+              </strong>{' '}
+              of{' '}
+              <strong className="text-white font-semibold">
+                {data.pagination?.totalItems ?? data.experiences.length}
+              </strong>
+            </span>
+          </div>
 
-            <div className="flex items-center gap-3">
-              {data.pagination.page > 1 ? (
-                <Link
-                  href={buildPaginationUrl(data.pagination.page - 1)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          {/* Experiences Grid OR Concierge Empty State */}
+          {data.experiences.length === 0 ? (
+            <div className="py-16 px-6 text-center rounded-2xl border border-white/10 bg-[#161415]/80 backdrop-blur-md max-w-xl mx-auto relative z-10 animate-editorial-reveal">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-accent">
+                <svg
+                  className="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  viewBox="0 0 24 24"
                 >
-                  ← Previous
-                </Link>
-              ) : (
-                <span className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed">
-                  ← Previous
-                </span>
-              )}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 21a9 9 0 100-18 9 9 0 000 18z"
+                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" />
+                </svg>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-serif font-light mb-3 text-white">
+                No Journeys Found
+              </h3>
+              <p className="text-sm sm:text-base max-w-md mx-auto mb-8 text-neutral-400 leading-relaxed">
+                We couldn&apos;t find any journeys matching your current criteria. Our Private
+                Concierge can curate a bespoke itinerary tailored to your desires, or you may clear
+                your active filters.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button variant="primary" size="md" onClick={handleResetAll}>
+                  Reset All Filters
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 relative z-10">
+              {data.experiences.map((item, index) => {
+                const staggerClass = index < 6 ? `stagger-${index + 1}` : ''
+                return (
+                  <div key={item.id} className={`animate-editorial-reveal ${staggerClass}`}>
+                    <ExperienceCard
+                      experience={item}
+                      variant="catalog"
+                      withAmbientGlow={false}
+                      labels={data.labels}
+                      priority={index < 3}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
-              <span
-                className={`text-sm font-medium ${isDark ? 'text-neutral-300' : 'text-neutral-700'}`}
-              >
-                {data.pagination.page} / {data.pagination.totalPages}
+          {/* Server-Side Pagination Bar */}
+          {data.pagination && data.pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between pt-10 mt-12 border-t border-white/10 relative z-10">
+              <span className="text-xs sm:text-sm font-medium text-neutral-400">
+                Page <strong className="text-white">{data.pagination.page}</strong> of{' '}
+                <strong className="text-white">{data.pagination.totalPages}</strong> (
+                {data.pagination.totalItems} total)
               </span>
 
-              {data.pagination.page < data.pagination.totalPages ? (
-                <Link
-                  href={buildPaginationUrl(data.pagination.page + 1)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  Next →
-                </Link>
-              ) : (
-                <span className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed">
-                  Next →
+              <div className="flex items-center gap-3">
+                {data.pagination.page > 1 ? (
+                  <Link
+                    href={buildPaginationUrl(data.pagination.page - 1)}
+                    aria-label="Previous Page"
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/5 border border-white/15 text-neutral-200 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5 backdrop-blur-sm"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 19.5L8.25 12l7.5-7.5"
+                      />
+                    </svg>
+                    <span>Previous</span>
+                  </Link>
+                ) : (
+                  <span className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/5 border border-white/10 text-neutral-600 cursor-not-allowed flex items-center gap-1.5 opacity-40">
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 19.5L8.25 12l7.5-7.5"
+                      />
+                    </svg>
+                    <span>Previous</span>
+                  </span>
+                )}
+
+                <span className="text-xs sm:text-sm font-mono px-2 text-neutral-300">
+                  {data.pagination.page} / {data.pagination.totalPages}
                 </span>
-              )}
+
+                {data.pagination.page < data.pagination.totalPages ? (
+                  <Link
+                    href={buildPaginationUrl(data.pagination.page + 1)}
+                    aria-label="Next Page"
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/5 border border-white/15 text-neutral-200 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5 backdrop-blur-sm"
+                  >
+                    <span>Next</span>
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                      />
+                    </svg>
+                  </Link>
+                ) : (
+                  <span className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/5 border border-white/10 text-neutral-600 cursor-not-allowed flex items-center gap-1.5 opacity-40">
+                    <span>Next</span>
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                      />
+                    </svg>
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

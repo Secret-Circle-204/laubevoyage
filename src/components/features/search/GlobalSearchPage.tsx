@@ -4,12 +4,14 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useLoadingNavigation } from '@/application/loading/use-loading-navigation'
 import { useTheme } from '@/providers/theme-provider'
 import { CurrencyDisplay, EmptyState } from '@/components/ui'
 import type { GlobalSearchPageDTO } from '@/application/search/dto'
 
 export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
   const router = useRouter()
+  const loadingNav = useLoadingNavigation()
   const [searchTerm, setSearchTerm] = useState(data.query)
   const { theme } = useTheme()
   const isDark = theme === 'dark'
@@ -22,7 +24,7 @@ export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
     if (data.facets.minPrice) params.set('minPrice', String(data.facets.minPrice))
     if (data.facets.maxPrice) params.set('maxPrice', String(data.facets.maxPrice))
     const qStr = params.toString()
-    router.push(qStr ? `/search?${qStr}` : '/search')
+    loadingNav.push(qStr ? `/search?${qStr}` : '/search')
   }
 
   const handleCategorySelect = (category?: string) => {
@@ -32,7 +34,7 @@ export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
     if (data.facets.minPrice) params.set('minPrice', String(data.facets.minPrice))
     if (data.facets.maxPrice) params.set('maxPrice', String(data.facets.maxPrice))
     const qStr = params.toString()
-    router.push(qStr ? `/search?${qStr}` : '/search')
+    loadingNav.push(qStr ? `/search?${qStr}` : '/search')
   }
 
   const buildPaginationUrl = (targetPage: number) => {
@@ -53,7 +55,7 @@ export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Search Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <span className="text-xs uppercase tracking-[0.25em] font-medium text-[#00aeef] block mb-2">
+          <span className="text-xs uppercase font-semibold text-[#00aeef] block mb-2">
             {data.labels.badge}
           </span>
           <h1 className={`text-4xl sm:text-5xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
@@ -81,7 +83,7 @@ export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
             />
             <button
               type="submit"
-              className="px-8 py-3.5 bg-[#f58220] hover:bg-[#2e3192] text-white font-semibold text-xs uppercase tracking-widest transition-all duration-300 rounded-xl shadow-lg shrink-0 cursor-pointer"
+              className="px-8 py-3.5 bg-[#f58220] hover:bg-[#2e3192] text-white font-semibold text-xs uppercase transition-all duration-300 rounded-xl shadow-lg shrink-0 cursor-pointer"
             >
               {data.labels.searchButton}
             </button>
@@ -92,7 +94,7 @@ export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
             <button
               type="button"
               onClick={() => handleCategorySelect('all')}
-              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
+              className={`px-5 py-2 rounded-full text-xs font-semibold uppercase transition-all duration-300 cursor-pointer ${
                 activeCategory === 'all'
                   ? 'bg-[#f58220] text-white shadow-md'
                   : isDark
@@ -106,7 +108,7 @@ export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
             <button
               type="button"
               onClick={() => handleCategorySelect('package')}
-              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
+              className={`px-5 py-2 rounded-full text-xs font-semibold uppercase transition-all duration-300 cursor-pointer ${
                 activeCategory === 'package'
                   ? 'bg-[#f58220] text-white shadow-md'
                   : isDark
@@ -120,7 +122,7 @@ export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
             <button
               type="button"
               onClick={() => handleCategorySelect('daily_tour')}
-              className={`px-5 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
+              className={`px-5 py-2 rounded-full text-xs font-semibold uppercase transition-all duration-300 cursor-pointer ${
                 activeCategory === 'daily_tour'
                   ? 'bg-[#f58220] text-white shadow-md'
                   : isDark
@@ -168,7 +170,7 @@ export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
 
                     {/* Type Badge */}
                     <div className="absolute top-4 left-4">
-                      <span className="px-3 py-1 bg-[#231F20]/80 backdrop-blur-md text-white text-[10px] font-semibold tracking-wider uppercase rounded-md border border-white/10">
+                      <span className="px-3 py-1 bg-[#231F20]/80 backdrop-blur-md text-white text-[10px] font-semibold uppercase rounded-md border border-white/10">
                         {item.experienceType === 'package' ? data.labels.filterPackages : (item.experienceType === 'daily_tour' ? data.labels.filterDailyTours : item.type.toUpperCase())}
                       </span>
                     </div>
@@ -211,7 +213,7 @@ export function GlobalSearchPage({ data }: { data: GlobalSearchPageDTO }) {
 
                     <Link href={item.url}>
                       <button
-                        className={`w-full py-3.5 text-xs tracking-[0.2em] uppercase font-medium transition-all duration-500 border rounded-lg cursor-pointer ${
+                        className={`w-full py-3.5 text-xs uppercase font-medium transition-all duration-500 border rounded-lg cursor-pointer ${
                           isDark
                             ? 'border-[#00aeef]/50 text-[#00aeef] hover:bg-[#00aeef] hover:text-white'
                             : 'border-[#2e3192]/50 text-[#2e3192] hover:bg-[#2e3192] hover:text-white'

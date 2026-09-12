@@ -16,20 +16,20 @@ const listeners = new Set<() => void>()
 
 function getThemeSnapshot(): Theme {
   if (typeof window !== 'undefined') {
-    return (localStorage.getItem('laube-theme') as Theme) || 'light'
+    return (localStorage.getItem('laube-theme') as Theme) || 'dark'
   }
-  return 'light'
+  return 'dark'
 }
 
 function getThemeServerSnapshot(): Theme {
-  return 'light'
+  return 'dark'
 }
 
 function subscribeTheme(onStoreChange: () => void) {
   listeners.add(onStoreChange)
   const handleStorage = (event: StorageEvent) => {
     if (event.key === 'laube-theme') {
-      const newTheme = (event.newValue as Theme) || 'light'
+      const newTheme = (event.newValue as Theme) || 'dark'
       document.documentElement.classList.toggle('dark', newTheme === 'dark')
       onStoreChange()
     }
