@@ -1,11 +1,21 @@
 import React from 'react'
 import localFont from 'next/font/local'
-import { Inter, Playfair_Display } from 'next/font/google'
+import { Inter, Playfair_Display, Outfit, Montserrat } from 'next/font/google'
 import './styles.css'
 import { AppProviders } from '@/providers'
 
 const inter = Inter({
   variable: '--font-inter',
+  subsets: ['latin'],
+})
+
+const outfit = Outfit({
+  variable: '--font-outfit',
+  subsets: ['latin'],
+})
+
+const montserrat = Montserrat({
+  variable: '--font-montserrat',
   subsets: ['latin'],
 })
 
@@ -92,7 +102,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         />
       </head>
       <body
-        className={`${inter.variable} ${playfair.variable} ${hornbill.variable} antialiased bg-[#231F20] text-slate-100 min-h-screen transition-colors duration-300`}
+        className={`${outfit.variable} ${montserrat.variable} ${inter.variable} ${playfair.variable} ${hornbill.variable} antialiased bg-background text-foreground min-h-screen transition-colors duration-300 font-sans`}
         suppressHydrationWarning
       >
         <AppProviders initialLocale={initialLocale} initialDirection={dir} initialCurrency={initialCurrency} initialSession={session}>

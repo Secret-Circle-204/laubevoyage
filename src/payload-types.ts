@@ -581,7 +581,14 @@ export interface Experience {
   slug: string;
   type: 'package' | 'daily_tour';
   packageMode?: ('fixed_date' | 'flexible_date') | null;
+  /**
+   * Origin / Departure Gateway City (where the journey officially commences and initial meeting occurs).
+   */
   city: number | City;
+  /**
+   * Ordered Post-Origin Destinations (all sequential cities visited AFTER departing from the Origin city). Do NOT re-add the Origin city.
+   */
+  destinations?: (number | City)[] | null;
   description?: {
     root: {
       type: string;
@@ -619,7 +626,7 @@ export interface Experience {
     durationMinutes?: number | null;
   };
   /**
-   * Base default price in EGP. Required for Daily Tours; optional for Packages with Departure Slots.
+   * Base Journey Price per Adult in EGP — Excluding Accommodation (covers touring, private transport, expert guiding, and included provisions).
    */
   price?: number | null;
   availability: 'available' | 'sold_out' | 'coming_soon' | 'unavailable';
@@ -639,6 +646,10 @@ export interface Experience {
     | {
         dayNumber: number;
         title: string;
+        /**
+         * Geographical city waypoint for this specific day (optional).
+         */
+        city?: (number | null) | City;
         description: string;
         id?: string | null;
       }[]
@@ -666,18 +677,22 @@ export interface Experience {
         roomCategory?: string | null;
         boardBasis?: ('bed_and_breakfast' | 'half_board' | 'full_board' | 'all_inclusive') | null;
         /**
-         * Available occupancy configurations and supplements for this stay.
+         * Commercial pricing calculation unit for room rates in this stay.
          */
-        occupancyOptions: {
+        pricingUnit: 'per_stay' | 'per_night';
+        /**
+         * Explicit commercial room rates and availability flags per occupancy type for this stay.
+         */
+        roomRates: {
           occupancy: 'single' | 'double' | 'triple' | 'quad';
           /**
-           * Price adjustment in EGP relative to standard Double Occupancy base.
+           * Commercial room price in EGP for this stay (or per night if pricingUnit is per_night). Set 0 only if complimentary/bundled.
            */
-          supplementEGP: number;
+          rateEGP: number;
           /**
-           * Set to true for the standard default occupancy (exactly one default required).
+           * Enable to offer this occupancy type for booking. Uncheck to disable and prevent reservation.
            */
-          isDefault?: boolean | null;
+          enabled?: boolean | null;
           id?: string | null;
         }[];
         id?: string | null;
@@ -1900,6 +1915,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
   type?: T;
   packageMode?: T;
   city?: T;
+  destinations?: T;
   description?: T;
   hero?: T;
   gallery?:
@@ -1934,6 +1950,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
     | {
         dayNumber?: T;
         title?: T;
+        city?: T;
         description?: T;
         id?: T;
       };
@@ -1945,12 +1962,13 @@ export interface ExperiencesSelect<T extends boolean = true> {
         nights?: T;
         roomCategory?: T;
         boardBasis?: T;
-        occupancyOptions?:
+        pricingUnit?: T;
+        roomRates?:
           | T
           | {
               occupancy?: T;
-              supplementEGP?: T;
-              isDefault?: T;
+              rateEGP?: T;
+              enabled?: T;
               id?: T;
             };
         id?: T;

@@ -11,6 +11,60 @@ import {
   refundAdminBookingAction,
 } from '@/application/actions/booking-actions'
 
+function AlertTriangleIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '5px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '5px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '5px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
+
+function SendIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '5px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  )
+}
+
+function CreditCardIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '5px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+      <line x1="1" y1="10" x2="23" y2="10" />
+    </svg>
+  )
+}
+
+function RotateCcwIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '5px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="1 4 1 10 7 10" />
+      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+    </svg>
+  )
+}
+
 export const BookingStatusField: SelectFieldClientComponent = (props) => {
   const { path } = props
   const { value, setValue } = useField<string>({ path })
@@ -249,7 +303,10 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
             fontWeight: 500,
           }}
         >
-          ⚠️ {errorMsg}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <AlertTriangleIcon />
+            <span>{errorMsg}</span>
+          </div>
         </div>
       )}
 
@@ -280,7 +337,8 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
               onMouseOver={(e) => (e.currentTarget.style.opacity = '0.9')}
               onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}
             >
-              ⚡ Submit for Admin Review
+              <SendIcon />
+              <span>Submit for Admin Review</span>
             </button>
           )}
 
@@ -354,7 +412,8 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
                     cursor: 'pointer',
                   }}
                 >
-                  ✓ Approve & Confirm Reservation
+                  <CheckIcon />
+                  <span>Approve & Confirm Reservation</span>
                 </button>
 
                 {!showCancelPrompt ? (
@@ -373,8 +432,9 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
                       cursor: 'pointer',
                     }}
                   >
-                    ✕ Cancel Booking
-                  </button>
+                  <XIcon />
+                  <span>Cancel Booking</span>
+                </button>
                 ) : (
                   <div style={{ borderTop: '1px solid var(--theme-elevation-200)', paddingTop: '0.55rem', marginTop: '0.25rem' }}>
                     <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--theme-elevation-600)', marginBottom: '0.25rem' }}>
@@ -517,7 +577,8 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
                       marginBottom: '0.5rem',
                     }}
                   >
-                    ⚡ Record Payment
+                    <CreditCardIcon />
+                    <span>Record Payment</span>
                   </button>
                 </div>
               )}
@@ -543,8 +604,9 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
                         cursor: 'pointer',
                       }}
                     >
-                      ↺ Issue Manual Refund ({paidEGP.toLocaleString()} EGP)
-                    </button>
+                    <RotateCcwIcon />
+                    <span>Issue Manual Refund ({paidEGP.toLocaleString()} EGP)</span>
+                  </button>
                   ) : (
                     <div>
                       <div style={{ fontSize: '0.75rem', color: '#c5221f', marginBottom: '0.4rem', fontWeight: 500 }}>
@@ -609,7 +671,8 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
                       cursor: 'pointer',
                     }}
                   >
-                    ✕ Cancel Booking
+                    <XIcon />
+                    <span>Cancel Booking</span>
                   </button>
                 ) : (
                   <div>
@@ -724,8 +787,9 @@ export const BookingStatusField: SelectFieldClientComponent = (props) => {
                         cursor: 'pointer',
                       }}
                     >
-                      ↺ Issue Refund ({paidEGP.toLocaleString()} EGP)
-                    </button>
+                    <RotateCcwIcon />
+                    <span>Issue Refund ({paidEGP.toLocaleString()} EGP)</span>
+                  </button>
                   ) : (
                     <div>
                       <div style={{ fontSize: '0.75rem', color: '#c5221f', marginBottom: '0.4rem', fontWeight: 500 }}>

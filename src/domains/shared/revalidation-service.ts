@@ -11,7 +11,14 @@ console.log('[RevalidationService VERSION] REMOTE-BOUNDARY-V2')
 export class RevalidationService {
   private static async executeRevalidation(
     payload: {
-      type: 'dashboard' | 'experience' | 'destination' | 'layout' | 'content' | 'translation' | 'currencies'
+      type:
+        | 'dashboard'
+        | 'experience'
+        | 'destination'
+        | 'layout'
+        | 'content'
+        | 'translation'
+        | 'currencies'
       customerId?: number
       slices?: ('loyalty' | 'trips' | 'customer' | 'security')[]
       experienceSlug?: string
@@ -22,7 +29,7 @@ export class RevalidationService {
       language?: string
     },
     localActions: () => void,
-    options?: { forceLocal?: boolean }
+    options?: { forceLocal?: boolean },
   ): Promise<void> {
     try {
       localActions()
@@ -34,7 +41,10 @@ export class RevalidationService {
       if (isStoreMissing && !options?.forceLocal) {
         await this.triggerRemoteRevalidate(payload)
       } else {
-        console.error(`[RevalidationService] Local revalidation failed for type ${payload.type}:`, err)
+        console.error(
+          `[RevalidationService] Local revalidation failed for type ${payload.type}:`,
+          err,
+        )
         throw err
       }
     }
@@ -44,7 +54,10 @@ export class RevalidationService {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const secret = process.env.INTERNAL_REVALIDATION_TOKEN || 'laube-internal-token-2026'
 
-    console.log(`[RevalidationService] Dispatching remote revalidation for:`, JSON.stringify(payload))
+    console.log(
+      `[RevalidationService] Dispatching remote revalidation for:`,
+      JSON.stringify(payload),
+    )
     try {
       const res = await fetch(`${appUrl}/api/internal/revalidate`, {
         method: 'POST',
@@ -57,7 +70,9 @@ export class RevalidationService {
 
       if (!res.ok) {
         const text = await res.text()
-        console.error(`[RevalidationService] Remote revalidation failed (HTTP ${res.status}): ${text}`)
+        console.error(
+          `[RevalidationService] Remote revalidation failed (HTTP ${res.status}): ${text}`,
+        )
       } else {
         const data = await res.json()
         if (!data.success) {
@@ -73,67 +88,109 @@ export class RevalidationService {
 
   public static async purgeCurrencies(options?: { forceLocal?: boolean }): Promise<void> {
     console.log('[RevalidationService] Purging targeted currencies cache tag (currencies)')
-    await this.executeRevalidation({ type: 'currencies' }, () => {
-      revalidateTag('currencies', {})
-    }, options)
+    await this.executeRevalidation(
+      { type: 'currencies' },
+      () => {
+        revalidateTag('currencies', {})
+      },
+      options,
+    )
   }
 
   public static async purgeLayout(options?: { forceLocal?: boolean }): Promise<void> {
     console.log('[RevalidationService] Purging layout tags (system-settings, currencies)')
-    await this.executeRevalidation({ type: 'layout' }, () => {
-      revalidateTag('system-settings', {})
-      revalidateTag('currencies', {})
-      revalidateTag('exchange-rates', {})
-    }, options)
+    await this.executeRevalidation(
+      { type: 'layout' },
+      () => {
+        revalidateTag('system-settings', {})
+        revalidateTag('currencies', {})
+        revalidateTag('exchange-rates', {})
+      },
+      options,
+    )
   }
 
   public static async purgeExperiences(options?: { forceLocal?: boolean }): Promise<void> {
     console.log('[RevalidationService] Purging experiences listing catalog')
-    await this.executeRevalidation({ type: 'experience', experienceSlug: 'all' }, () => {
-      revalidateTag('experiences', {})
-      revalidatePath('/experiences')
-    }, options)
+    await this.executeRevalidation(
+      { type: 'experience', experienceSlug: 'all' },
+      () => {
+        revalidateTag('experiences', {})
+        revalidatePath('/experiences')
+      },
+      options,
+    )
   }
 
-  public static async purgeExperienceSlug(slug: string, options?: { forceLocal?: boolean }): Promise<void> {
+  public static async purgeExperienceSlug(
+    slug: string,
+    options?: { forceLocal?: boolean },
+  ): Promise<void> {
     console.log(`[RevalidationService] Purging experience detail for slug: ${slug}`)
-    await this.executeRevalidation({ type: 'experience', experienceSlug: slug }, () => {
-      revalidateTag(`experience-${slug}`, {})
-      revalidateTag(`slots-${slug}`, {})
-      revalidatePath(`/experiences/${slug}`)
-    }, options)
+    await this.executeRevalidation(
+      { type: 'experience', experienceSlug: slug },
+      () => {
+        revalidateTag(`experience-${slug}`, {})
+        revalidateTag(`slots-${slug}`, {})
+        revalidatePath(`/experiences/${slug}`)
+      },
+      options,
+    )
   }
 
   public static async purgeDestinations(options?: { forceLocal?: boolean }): Promise<void> {
     console.log('[RevalidationService] Purging destinations catalogs')
-    await this.executeRevalidation({ type: 'destination' }, () => {
-      revalidateTag('destinations', {})
-      revalidatePath('/destinations')
-    }, options)
+    await this.executeRevalidation(
+      { type: 'destination' },
+      () => {
+        revalidateTag('destinations', {})
+        revalidatePath('/destinations')
+      },
+      options,
+    )
   }
 
-  public static async purgeCountrySlug(countrySlug: string, options?: { forceLocal?: boolean }): Promise<void> {
+  public static async purgeCountrySlug(
+    countrySlug: string,
+    options?: { forceLocal?: boolean },
+  ): Promise<void> {
     console.log(`[RevalidationService] Purging country destinations for slug: ${countrySlug}`)
-    await this.executeRevalidation({ type: 'destination', countrySlug }, () => {
-      revalidateTag(`destination-${countrySlug}`, {})
-      revalidatePath(`/destinations/${countrySlug}`)
-    }, options)
+    await this.executeRevalidation(
+      { type: 'destination', countrySlug },
+      () => {
+        revalidateTag(`destination-${countrySlug}`, {})
+        revalidatePath(`/destinations/${countrySlug}`)
+      },
+      options,
+    )
   }
 
-  public static async purgeCitySlug(countrySlug: string, citySlug: string, options?: { forceLocal?: boolean }): Promise<void> {
-    console.log(`[RevalidationService] Purging city layout for city: ${citySlug} in country: ${countrySlug}`)
-    await this.executeRevalidation({ type: 'destination', countrySlug, citySlug }, () => {
-      revalidateTag(`city-${citySlug}`, {})
-      revalidatePath(`/destinations/${countrySlug}/${citySlug}`)
-    }, options)
+  public static async purgeCitySlug(
+    countrySlug: string,
+    citySlug: string,
+    options?: { forceLocal?: boolean },
+  ): Promise<void> {
+    console.log(
+      `[RevalidationService] Purging city layout for city: ${citySlug} in country: ${countrySlug}`,
+    )
+    await this.executeRevalidation(
+      { type: 'destination', countrySlug, citySlug },
+      () => {
+        revalidateTag(`city-${citySlug}`, {})
+        revalidatePath(`/destinations/${countrySlug}/${citySlug}`)
+      },
+      options,
+    )
   }
 
   public static async purgeDashboardSlices(
     customerId: number,
     slices: ('loyalty' | 'trips' | 'customer' | 'security')[],
-    options?: { forceLocal?: boolean }
+    options?: { forceLocal?: boolean },
   ): Promise<void> {
-    console.log(`[RevalidationService] Purging targeted dashboard slices for customer ID: ${customerId} (Slices: ${slices.join(', ')})`)
+    console.log(
+      `[RevalidationService] Purging targeted dashboard slices for customer ID: ${customerId} (Slices: ${slices.join(', ')})`,
+    )
     await this.executeRevalidation(
       { type: 'dashboard', customerId, slices },
       () => {
@@ -142,19 +199,25 @@ export class RevalidationService {
         revalidatePath('/dashboard')
 
         if (slices.includes('loyalty')) {
-          console.log(`[RevalidationService] -> Purging loyalty view & tags for customer #${customerId}`)
+          console.log(
+            `[RevalidationService] -> Purging loyalty view & tags for customer #${customerId}`,
+          )
           revalidateTag(`ledger-customer-${customerId}`, {})
           revalidatePath('/dashboard/loyalty')
         }
 
         if (slices.includes('trips')) {
-          console.log(`[RevalidationService] -> Purging trips/bookings view & tags for customer #${customerId}`)
+          console.log(
+            `[RevalidationService] -> Purging trips/bookings view & tags for customer #${customerId}`,
+          )
           revalidateTag(`bookings-customer-${customerId}`, {})
           revalidatePath('/dashboard/bookings')
         }
 
         if (slices.includes('customer')) {
-          console.log(`[RevalidationService] -> Purging profile view & tags for customer #${customerId}`)
+          console.log(
+            `[RevalidationService] -> Purging profile view & tags for customer #${customerId}`,
+          )
           revalidateTag(`profile-customer-${customerId}`, {})
           revalidatePath('/dashboard/profile')
         }
@@ -164,48 +227,78 @@ export class RevalidationService {
           revalidateTag(`security-customer-${customerId}`, {})
         }
       },
-      options
+      options,
     )
   }
 
-  public static async purgeDashboard(customerId: number, options?: { forceLocal?: boolean }): Promise<void> {
+  public static async purgeDashboard(
+    customerId: number,
+    options?: { forceLocal?: boolean },
+  ): Promise<void> {
     console.log('[RevalidationService] purgeDashboard (Full Invalidation)')
-    console.log(`[RevalidationService] Purging all customer dashboard views for customer ID: ${customerId}`)
-    await this.executeRevalidation({ type: 'dashboard', customerId }, () => {
-      revalidateTag(`dashboard-customer-${customerId}`, {})
-      revalidateTag(`bookings-customer-${customerId}`, {})
-      revalidateTag(`ledger-customer-${customerId}`, {})
-      revalidateTag(`profile-customer-${customerId}`, {})
-      revalidatePath('/dashboard')
-      revalidatePath('/dashboard/bookings')
-      revalidatePath('/dashboard/loyalty')
-      revalidatePath('/dashboard/profile')
-    }, options)
+    console.log(
+      `[RevalidationService] Purging all customer dashboard views for customer ID: ${customerId}`,
+    )
+    await this.executeRevalidation(
+      { type: 'dashboard', customerId },
+      () => {
+        revalidateTag(`dashboard-customer-${customerId}`, {})
+        revalidateTag(`bookings-customer-${customerId}`, {})
+        revalidateTag(`ledger-customer-${customerId}`, {})
+        revalidateTag(`profile-customer-${customerId}`, {})
+        revalidatePath('/dashboard')
+        revalidatePath('/dashboard/bookings')
+        revalidatePath('/dashboard/loyalty')
+        revalidatePath('/dashboard/profile')
+      },
+      options,
+    )
   }
 
-  public static async purgeContent(slug: string, options?: { forceLocal?: boolean }): Promise<void> {
+  public static async purgeContent(
+    slug: string,
+    options?: { forceLocal?: boolean },
+  ): Promise<void> {
     console.log(`[RevalidationService] Purging content page: ${slug}`)
-    await this.executeRevalidation({ type: 'content', pageSlug: slug }, () => {
-      revalidateTag('content', {})
-      revalidateTag(`page-${slug}`, {})
-      revalidatePath(`/${slug}`)
-    }, options)
+    await this.executeRevalidation(
+      { type: 'content', pageSlug: slug },
+      () => {
+        revalidateTag('content', {})
+        revalidateTag(`page-${slug}`, {})
+        revalidatePath(`/${slug}`)
+      },
+      options,
+    )
   }
 
   public static async purgeBlog(slug: string, options?: { forceLocal?: boolean }): Promise<void> {
     console.log(`[RevalidationService] Purging blog articles and dynamic post: ${slug}`)
-    await this.executeRevalidation({ type: 'content', pageSlug: `blog-${slug}` }, () => {
-      revalidateTag('blog', {})
-      revalidateTag(`post-${slug}`, {})
-      revalidatePath('/blog')
-      revalidatePath(`/blog/${slug}`)
-    }, options)
+    await this.executeRevalidation(
+      { type: 'content', pageSlug: `blog-${slug}` },
+      () => {
+        revalidateTag('blog', {})
+        revalidateTag(`post-${slug}`, {})
+        revalidatePath('/blog')
+        revalidatePath(`/blog/${slug}`)
+      },
+      options,
+    )
   }
 
-  public static async purgeTranslation(originalHash: string, language: string, options?: { forceLocal?: boolean }): Promise<void> {
-    console.log(`[RevalidationService] Purging targeted translation: [${originalHash}] (${language})`)
-    await this.executeRevalidation({ type: 'translation', originalHash, language }, () => {
-      // Local revalidation can purge tags if applicable
-    }, options)
+  public static async purgeTranslation(
+    originalHash: string,
+    language: string,
+    options?: { forceLocal?: boolean },
+  ): Promise<void> {
+    console.log(
+      `[RevalidationService] Purging targeted translation: [${originalHash}] (${language})`,
+    )
+    await this.executeRevalidation(
+      { type: 'translation', originalHash, language },
+      () => {
+        // Local revalidation can purge tags if applicable
+      },
+      options,
+    )
   }
 }

@@ -1,7 +1,7 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Card, Badge, CurrencyDisplay, Button } from '@/components/ui'
+import { Card, Badge, CurrencyDisplay, Button, EmptyState } from '@/components/ui'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { redirect } from 'next/navigation'
 import { CustomerInvoicesLoader } from '@/application/booking/loaders-invoices'
@@ -19,6 +19,64 @@ interface PageProps {
     status?: string
     paymentStatus?: string
   }>
+}
+
+// SVG Icons
+function CreditCardIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-6 3.75h16.5a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 5.25v13.5a1.5 1.5 0 001.5 1.5z" />
+    </svg>
+  )
+}
+
+function ClockIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  )
+}
+
+function RotateCcwIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+    </svg>
+  )
+}
+
+function CalendarIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.253M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" />
+    </svg>
+  )
+}
+
+function PinIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+    </svg>
+  )
+}
+
+function UsersIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+    </svg>
+  )
+}
+
+function CheckIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  )
 }
 
 export default async function Page({ searchParams }: PageProps) {
@@ -41,10 +99,10 @@ export default async function Page({ searchParams }: PageProps) {
   })
 
   const statusTabs = [
-    { label: 'All Records', value: undefined },
-    { label: 'Paid & Settled', value: 'paid', icon: '💳' },
-    { label: 'Outstanding / Partial', value: 'pending_payment', icon: '⏳' },
-    { label: 'Cancelled & Refunded', value: 'cancelled', icon: '🔄' },
+    { label: 'All Records', value: undefined, icon: null },
+    { label: 'Paid & Settled', value: 'paid', icon: CreditCardIcon },
+    { label: 'Outstanding / Partial', value: 'pending_payment', icon: ClockIcon },
+    { label: 'Cancelled & Refunded', value: 'cancelled', icon: RotateCcwIcon },
   ]
 
   const getBookingStatusBadge = (status: string) => {
@@ -85,8 +143,8 @@ export default async function Page({ searchParams }: PageProps) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Invoices & Receipts</h1>
-          <p className="text-xs text-slate-500 mt-1">Your official travel service invoices, payment receipts, and billing history.</p>
+          <h1 className="text-3xl font-extrabold text-foreground">Invoices & Receipts</h1>
+          <p className="text-xs text-muted-foreground mt-1">Your official travel service invoices, payment receipts, and billing history.</p>
         </div>
         <Badge variant="primary" size="md">{data.total} Total Records</Badge>
       </div>
@@ -96,18 +154,19 @@ export default async function Page({ searchParams }: PageProps) {
         {statusTabs.map((tab) => {
           const isActive = currentStatus === tab.value || (!currentStatus && !tab.value)
           const href = tab.value ? `/dashboard/invoices?status=${tab.value}` : '/dashboard/invoices'
+          const Icon = tab.icon
 
           return (
             <Link
               key={tab.label}
               href={href}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
                 isActive
-                  ? 'bg-[#2e3192] text-white shadow-sm'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-card text-muted-foreground hover:text-foreground hover:border-accent/40 hover:bg-accent/5 border border-border/70'
               }`}
             >
-              {tab.icon && <span>{tab.icon}</span>}
+              {Icon && <Icon className="w-3.5 h-3.5 opacity-90" />}
               <span>{tab.label}</span>
             </Link>
           )
@@ -116,30 +175,31 @@ export default async function Page({ searchParams }: PageProps) {
 
       {/* Financial Records List */}
       {data.invoices.length === 0 ? (
-        <Card variant="flat" padding="lg" className="text-center py-12">
-          <span className="text-4xl mb-3 block">🧾</span>
-          <h3 className="font-bold text-base text-slate-800 dark:text-slate-200">No financial records found</h3>
-          <p className="text-xs text-slate-500 mt-1">
-            {currentStatus
+        <EmptyState
+          title="No financial records found"
+          description={
+            currentStatus
               ? `There are no financial records matching status "${currentStatus}".`
-              : 'No invoices or payment receipts issued yet.'}
-          </p>
-        </Card>
+              : 'No invoices or payment receipts issued yet.'
+          }
+          icon="generic"
+        />
       ) : (
         <div className="flex flex-col gap-5">
           {data.invoices.map((inv) => (
-            <Card key={inv.id} variant="flat" padding="lg" className="flex flex-col gap-4 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <Card key={inv.id} variant="flat" padding="lg" className="flex flex-col gap-4 border border-border/70 shadow-sm">
               {/* 1. Document / Booking Identity Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2 flex-wrap">
                   {getBookingStatusBadge(inv.bookingStatus)}
                   {getPaymentStatusBadge(inv.paymentStatus)}
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Booking: <span className="font-mono text-[#00aeef]">{inv.bookingNumber}</span>
+                  <span className="text-xs font-semibold text-foreground">
+                    Booking: <span className="text-primary font-bold">{inv.bookingNumber}</span>
                   </span>
                 </div>
-                <span className="text-xs text-slate-400">
-                  📅 Booked: {inv.date}
+                <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5 font-medium">
+                  <CalendarIcon className="w-3.5 h-3.5 opacity-70" />
+                  Booked: {inv.date}
                 </span>
               </div>
 
@@ -149,21 +209,29 @@ export default async function Page({ searchParams }: PageProps) {
                   <div className="flex items-center gap-2 flex-wrap">
                     {inv.productTypeLabel && <Badge variant="outline" size="sm">{inv.productTypeLabel}</Badge>}
                     {inv.destinationCity && (
-                      <span className="text-xs text-slate-500 font-medium">📍 {inv.destinationCity}</span>
+                      <span className="text-xs text-muted-foreground font-medium inline-flex items-center gap-1">
+                        <PinIcon className="w-3.5 h-3.5 text-primary" />
+                        {inv.destinationCity}
+                      </span>
                     )}
                     {inv.durationText && (
-                      <span className="text-xs text-slate-500 font-medium">⏱️ {inv.durationText}</span>
+                      <span className="text-xs text-muted-foreground font-medium inline-flex items-center gap-1">
+                        <ClockIcon className="w-3.5 h-3.5 opacity-70" />
+                        {inv.durationText}
+                      </span>
                     )}
                   </div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">{inv.title}</h3>
-                  <div className="text-xs text-slate-500 space-y-0.5">
-                    <p>
-                      📅 <strong>Departure:</strong> {inv.departureDate}{inv.departureTime ? ` at ${inv.departureTime}` : ''}
+                  <h3 className="font-bold text-base text-foreground">{inv.title}</h3>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p className="flex items-center gap-1.5">
+                      <CalendarIcon className="w-3.5 h-3.5 opacity-70 flex-shrink-0" />
+                      <span><strong>Departure:</strong> {inv.departureDate}{inv.departureTime ? ` at ${inv.departureTime}` : ''}
                       {inv.destinationTimezone ? ` (${inv.destinationTimezone})` : ''}
-                      {inv.endDate && <span> • <strong>End Date:</strong> {inv.endDate}</span>}
+                      {inv.endDate && <span> • <strong>End Date:</strong> {inv.endDate}</span>}</span>
                     </p>
-                    <p>
-                      👤 <strong>Lead Traveler:</strong> {inv.leadTravelerName} • <strong>Passengers:</strong> {inv.passengersCount}
+                    <p className="flex items-center gap-1.5">
+                      <UsersIcon className="w-3.5 h-3.5 opacity-70 flex-shrink-0" />
+                      <span><strong>Lead Traveler:</strong> {inv.leadTravelerName} • <strong>Passengers:</strong> {inv.passengersCount}</span>
                     </p>
                   </div>
                 </div>
@@ -178,10 +246,10 @@ export default async function Page({ searchParams }: PageProps) {
               </div>
 
               {/* 3. Commercial Financial Summary Box */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/60 text-xs">
+              <div className="p-3.5 rounded-xl bg-card-elevated/70 border border-border/80 text-xs shadow-2xs">
                 {/* Price Breakdown Sub-row (if basePrice or discounts exist) */}
                 {(inv.basePrice || inv.loyaltyDiscount || inv.promoDiscount) && (
-                  <div className="flex items-center gap-4 flex-wrap pb-2 mb-2 border-b border-slate-200/60 dark:border-slate-800/60 text-slate-500 text-[11px]">
+                  <div className="flex items-center gap-4 flex-wrap pb-2 mb-2 border-b border-border/50 text-muted-foreground text-[11px]">
                     {inv.basePrice && (
                       <span>Base Price: <CurrencyDisplay price={inv.basePrice} size="sm" /></span>
                     )}
@@ -195,23 +263,23 @@ export default async function Page({ searchParams }: PageProps) {
                         Promo Discount: -<CurrencyDisplay price={inv.promoDiscount} size="sm" />
                       </span>
                     )}
-                    <span className="ml-auto text-slate-400">Plan: <strong className="text-slate-600 dark:text-slate-300">{inv.paymentPlan}</strong></span>
+                    <span className="ml-auto text-muted-foreground/70">Plan: <strong className="text-foreground">{inv.paymentPlan}</strong></span>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <span className="text-slate-500 block mb-0.5 font-medium">Total Invoiced:</span>
+                    <span className="text-muted-foreground block mb-0.5 font-medium">Total Invoiced:</span>
                     <CurrencyDisplay price={inv.totalAmount} size="sm" />
                   </div>
                   <div>
-                    <span className="text-slate-500 block mb-0.5 font-medium">Amount Paid:</span>
+                    <span className="text-muted-foreground block mb-0.5 font-medium">Amount Paid:</span>
                     <CurrencyDisplay price={inv.paidAmount} size="sm" />
                   </div>
                   <div>
-                    <span className="text-slate-500 block mb-0.5 font-medium">Balance Due:</span>
+                    <span className="text-muted-foreground block mb-0.5 font-medium">Balance Due:</span>
                     {inv.isCancelled ? (
-                      <span className="font-semibold text-slate-400 dark:text-slate-500">
+                      <span className="font-semibold text-muted-foreground">
                         $0.00 (Cancelled / Voided)
                       </span>
                     ) : inv.paymentStatus === 'paid' ? (
@@ -229,24 +297,24 @@ export default async function Page({ searchParams }: PageProps) {
 
               {/* 4. Payment Receipts Ledger */}
               {inv.receipts.length > 0 && (
-                <div className="mt-1 pt-3 border-t border-slate-100 dark:border-slate-800/60">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                <div className="mt-1 pt-3 border-t border-border/50">
+                  <span className="text-xs font-bold text-foreground block mb-2">
                     Official Payment Receipts ({inv.receipts.length})
                   </span>
                   <div className="flex flex-col gap-2">
                     {inv.receipts.map((rcpt) => (
-                      <div key={rcpt.attemptId} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                      <div key={rcpt.attemptId} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-card border border-border/50">
                         <div className="flex items-center gap-2">
-                          <span className="text-emerald-500 font-bold">✓</span>
-                          <span className="font-semibold text-slate-800 dark:text-slate-200">{rcpt.provider}</span>
+                          <CheckIcon className="w-3.5 h-3.5 text-emerald-500 font-bold" />
+                          <span className="font-semibold text-foreground">{rcpt.provider}</span>
                           {rcpt.transactionReference && (
-                            <span className="font-mono text-[11px] text-slate-400">
+                            <span className="text-[11px] text-muted-foreground font-medium">
                               (Ref: {rcpt.transactionReference})
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-1 sm:mt-0">
-                          <span className="text-slate-400 text-[11px]">{rcpt.date}</span>
+                          <span className="text-muted-foreground text-[11px]">{rcpt.date}</span>
                           <CurrencyDisplay price={rcpt.amount} size="sm" />
                         </div>
                       </div>

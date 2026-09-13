@@ -204,12 +204,12 @@ export async function confirmCheckoutAction(params: {
             targetBookingId = existing.id
             bookingNumber = existing.bookingNumber
 
-            if (existing.status === 'draft') {
-              if (params.gatewayId === 'bnpl') {
+            if (params.gatewayId === 'bnpl') {
+              if (existing.status === 'draft' || existing.status === 'pending_payment') {
                 await booking.moveToPendingAdminReview(existing.id)
-              } else {
-                await booking.moveToPendingPayment(existing.id)
               }
+            } else if (existing.status === 'draft') {
+              await booking.moveToPendingPayment(existing.id)
             }
           } else {
             if (
@@ -406,13 +406,12 @@ export async function confirmCheckoutAction(params: {
                 targetBookingId = existing.id
                 bookingNumber = existing.bookingNumber
 
-                if (existing.status === 'draft') {
-                  // Run status transition outside the dead transaction context
-                  if (params.gatewayId === 'bnpl') {
+                if (params.gatewayId === 'bnpl') {
+                  if (existing.status === 'draft' || existing.status === 'pending_payment') {
                     await booking.moveToPendingAdminReview(existing.id)
-                  } else {
-                    await booking.moveToPendingPayment(existing.id)
                   }
+                } else if (existing.status === 'draft') {
+                  await booking.moveToPendingPayment(existing.id)
                 }
               } else {
                 if (
@@ -443,13 +442,13 @@ export async function confirmCheckoutAction(params: {
       targetBookingId = bookingDoc.id
       bookingNumber = bookingDoc.bookingNumber
 
-      // Move to next state if it is in draft
-      if (bookingDoc.status === 'draft') {
-        if (params.gatewayId === 'bnpl') {
+      // Move to next state based on gateway and current status
+      if (params.gatewayId === 'bnpl') {
+        if (bookingDoc.status === 'draft' || bookingDoc.status === 'pending_payment') {
           await booking.moveToPendingAdminReview(bookingDoc.id)
-        } else {
-          await booking.moveToPendingPayment(bookingDoc.id)
         }
+      } else if (bookingDoc.status === 'draft') {
+        await booking.moveToPendingPayment(bookingDoc.id)
       }
     }
 

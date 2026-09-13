@@ -29,6 +29,44 @@ import {
 
 import './DepartureSlotsEditor.css'
 
+function CalendarIcon() {
+  return (
+    <svg style={{ width: '18px', height: '18px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '6px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  )
+}
+
+function AlertTriangleIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '6px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '6px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
+
 function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
   // State: Slots data & loading
   const [slots, setSlots] = useState<AdminDepartureSlotDTO[]>([])
@@ -343,7 +381,7 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
     const bookingsCount = slot.referencedBookingsCount || 0
     const confirmMessage =
       bookingsCount > 0
-        ? `⚠️ This departure has ${bookingsCount} existing booking(s).\n\nCancelling the departure will disable this slot from future public availability.\n\nExisting bookings will NOT be modified, cancelled, or refunded automatically. They will remain linked to this departure for administrative review.\n\nAre you sure you want to cancel this departure slot?`
+        ? `Warning: This departure has ${bookingsCount} existing booking(s).\n\nCancelling the departure will disable this slot from future public availability.\n\nExisting bookings will NOT be modified, cancelled, or refunded automatically. They will remain linked to this departure for administrative review.\n\nAre you sure you want to cancel this departure slot?`
         : `Are you sure you want to cancel departure slot on ${slot.date}? This will disable future public bookings.`
 
     if (!window.confirm(confirmMessage)) {
@@ -438,7 +476,10 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
       <div className="dse-container">
         <div className="dse-header">
           <div className="dse-title-area">
-            <h4 className="dse-title">📅 Departure Slots Control Surface</h4>
+            <h4 className="dse-title" style={{ display: 'flex', alignItems: 'center' }}>
+              <CalendarIcon />
+              <span>Departure Slots Control Surface</span>
+            </h4>
             <p className="dse-description">
               Please save this experience first before configuring and managing departure slots.
             </p>
@@ -454,7 +495,8 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
       <div className="dse-header">
         <div className="dse-title-area">
           <h4 className="dse-title">
-            <span>📅 Departure Slots Control Surface</span>
+            <CalendarIcon />
+            <span>Departure Slots Control Surface</span>
           </h4>
           <p className="dse-description">
             Authoritative Single Source of Truth management for{' '}
@@ -469,7 +511,7 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
             setEditingSlot(null)
           }}
         >
-          {showAddForm ? '✕ Close Add Form' : '+ Add Departure Slot'}
+          {showAddForm ? 'Close Add Form' : '+ Add Departure Slot'}
         </button>
       </div>
 
@@ -478,26 +520,36 @@ function DepartureSlotsEditorInner({ id }: { id?: string | number }) {
 
       {/* Alerts */}
       {errorAlert && (
-        <div className="dse-alert dse-alert--error">
-          <span>⚠️ {errorAlert}</span>
+        <div className="dse-alert dse-alert--error" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <AlertTriangleIcon />
+            <span>{errorAlert}</span>
+          </div>
           <button
             type="button"
             className="dse-btn dse-btn--secondary"
             onClick={() => setErrorAlert(null)}
+            style={{ padding: '2px 6px', display: 'inline-flex', alignItems: 'center' }}
+            aria-label="Dismiss"
           >
-            ✕
+            <XIcon />
           </button>
         </div>
       )}
       {successAlert && (
-        <div className="dse-alert dse-alert--success">
-          <span>✓ {successAlert}</span>
+        <div className="dse-alert dse-alert--success" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <CheckIcon />
+            <span>{successAlert}</span>
+          </div>
           <button
             type="button"
             className="dse-btn dse-btn--secondary"
             onClick={() => setSuccessAlert(null)}
+            style={{ padding: '2px 6px', display: 'inline-flex', alignItems: 'center' }}
+            aria-label="Dismiss"
           >
-            ✕
+            <XIcon />
           </button>
         </div>
       )}

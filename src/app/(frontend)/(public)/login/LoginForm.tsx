@@ -57,7 +57,7 @@ export function LoginForm({ welcomeBonus }: LoginFormProps) {
   return (
     <form onSubmit={handleLogin} className="space-y-5">
       <div>
-        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">
           Email Address
         </label>
         <Input
@@ -72,7 +72,7 @@ export function LoginForm({ welcomeBonus }: LoginFormProps) {
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
             Password
           </label>
           <Link href="/forgot-password" className="text-xs text-[#00aeef] hover:underline">

@@ -20,23 +20,18 @@ export function RouteProgressBar() {
   const { state } = useGlobalLoading()
   const [progress, setProgress] = useState<number>(0)
   const [isFinishing, setIsFinishing] = useState<boolean>(false)
-  const [isVisible, setIsVisible] = useState<boolean>(false)
 
   const wasNavActiveRef = useRef<boolean>(false)
   const stepTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const hasNavOperation = state.activeOperations.some((op) => op.type === 'navigation')
   const isRevealedOrProlonged = state.phase === 'revealed' || state.phase === 'prolonged'
+  const isNavActive = hasNavOperation && isRevealedOrProlonged
 
   useEffect(() => {
     // 1. Navigation is active and phase has revealed (>150ms delay elapsed)
-    if (hasNavOperation && isRevealedOrProlonged) {
+    if (isNavActive) {
       wasNavActiveRef.current = true
-      setIsVisible(true)
-      setIsFinishing(false)
-
-      // Start initial jump to 25% then smoothly trickle to ~80%
-      setProgress((prev) => (prev === 0 ? 25 : prev))
 
       if (stepTimerRef.current) clearTimeout(stepTimerRef.current)
       stepTimerRef.current = setTimeout(() => {
@@ -51,25 +46,36 @@ export function RouteProgressBar() {
     // 2. Navigation just completed: had an active nav, now activeOperations is 0, but phase still revealed/prolonged
     else if (wasNavActiveRef.current && !hasNavOperation && isRevealedOrProlonged) {
       if (stepTimerRef.current) clearTimeout(stepTimerRef.current)
-      setIsFinishing(true)
-      setProgress(100)
+      const finishTimer = setTimeout(() => {
+        setIsFinishing(true)
+        setProgress(100)
+      }, 0)
+
+      return () => clearTimeout(finishTimer)
     }
     // 3. Completely idle: reset everything
     else if (state.phase === 'idle') {
       wasNavActiveRef.current = false
       if (stepTimerRef.current) clearTimeout(stepTimerRef.current)
-      setIsVisible(false)
-      setIsFinishing(false)
-      setProgress(0)
+      const resetTimer = setTimeout(() => {
+        setIsFinishing(false)
+        setProgress(0)
+      }, 0)
+
+      return () => clearTimeout(resetTimer)
     }
 
     return () => {
       if (stepTimerRef.current) clearTimeout(stepTimerRef.current)
     }
-  }, [hasNavOperation, isRevealedOrProlonged, state.phase])
+  }, [isNavActive, hasNavOperation, isRevealedOrProlonged, state.phase])
+
+  // Derived visibility and progress: avoid cascading render warnings
+  const isVisible = isNavActive || isFinishing
+  const displayProgress = isNavActive && progress === 0 ? 25 : progress
 
   // Zero DOM emission during idle, silent, or non-navigation operations
-  if (!isVisible && !isFinishing) {
+  if (!isVisible) {
     return null
   }
 
@@ -86,7 +92,7 @@ export function RouteProgressBar() {
         data-testid="route-progress-bar-fill"
         className="h-full origin-left rtl:origin-right transition-all duration-300 ease-out bg-gradient-to-r rtl:bg-gradient-to-l from-primary via-secondary to-accent shadow-[0_0_8px_rgba(245,130,32,0.6)] motion-reduce:transition-none"
         style={{
-          width: `${progress}%`,
+          width: `${displayProgress}%`,
         }}
       />
     </div>

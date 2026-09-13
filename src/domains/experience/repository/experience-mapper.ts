@@ -5,7 +5,8 @@ import type {
   ScheduleConfig,
   AccommodationStayEntity,
   AccommodationPropertyEntity,
-  OccupancyOptionEntity,
+  RoomRateEntity,
+  PricingUnit,
   OccupancyType,
   AccommodationType,
   BoardBasis,
@@ -150,14 +151,29 @@ export function mapExperienceDocToAggregate(
     ? docObj.excluded.map((x) => x?.item || (typeof x === 'string' ? x : '')).filter(Boolean)
     : []
 
+  const destinations: number[] = Array.isArray((docObj as any).destinations)
+    ? (docObj as any).destinations
+        .map((d: any) => (typeof d === 'object' && d !== null ? Number(d.id) : Number(d)))
+        .filter((id: number) => !isNaN(id) && id > 0)
+    : []
+
   const itinerary = Array.isArray(docObj.itinerary)
     ? docObj.itinerary.map((x, idx) => {
         const rawDay = typeof x?.dayNumber === 'number' ? x.dayNumber : Number(x?.dayNumber)
         const dayNumber = !isNaN(rawDay) && rawDay >= 1 ? rawDay : idx + 1
+        const rawCity = (x as any)?.city
+        const cityId = rawCity
+          ? typeof rawCity === 'object' && rawCity !== null
+            ? Number(rawCity.id)
+            : Number(rawCity)
+          : undefined
+        const cityName = rawCity && typeof rawCity === 'object' && 'name' in rawCity ? String(rawCity.name) : undefined
         return {
           dayNumber,
           title: typeof x?.title === 'string' ? x.title : '',
           description: typeof x?.description === 'string' ? x.description : '',
+          cityId: cityId && !isNaN(cityId) && cityId > 0 ? cityId : undefined,
+          cityName,
         }
       })
     : []
@@ -169,6 +185,7 @@ export function mapExperienceDocToAggregate(
     title: docObj.title,
     slug: docObj.slug,
     cityId,
+    destinations: destinations.length > 0 ? destinations : undefined,
     price,
     availability: docObj.availability as ExperienceAvailabilityStatus,
     version: 1,
@@ -280,15 +297,20 @@ export function mapExperienceDocToAggregate(
             }
           }
 
-          const occupancyOptions: OccupancyOptionEntity[] = Array.isArray(stay.occupancyOptions)
-            ? stay.occupancyOptions.map((opt: any) => {
-                const occupancy = opt.occupancy as OccupancyType
-                const guestCount = OCCUPANCY_GUEST_COUNT_MAP[occupancy] || Number(opt.guestCount) || 1
+          const pricingUnit = (stay.pricingUnit === 'per_night' ? 'per_night' : 'per_stay') as PricingUnit
+
+          const roomRates: RoomRateEntity[] = Array.isArray(stay.roomRates)
+            ? stay.roomRates.map((rateObj: any) => {
+                const occupancy = rateObj.occupancy as OccupancyType
+                const guestCount = OCCUPANCY_GUEST_COUNT_MAP[occupancy] || 1
+                const rawRate = Number(rateObj.rateEGP)
+                const rateEGP = !isNaN(rawRate) && rawRate >= 0 ? rawRate : 0
+                const enabled = rateObj.enabled !== false
                 return {
                   occupancy,
                   guestCount,
-                  supplementEGP: Number(opt.supplementEGP ?? 0),
-                  isDefault: Boolean(opt.isDefault),
+                  rateEGP,
+                  enabled,
                 }
               })
             : []
@@ -300,7 +322,8 @@ export function mapExperienceDocToAggregate(
             nights: Number(stay.nights),
             roomCategory: stay.roomCategory ? String(stay.roomCategory) : undefined,
             boardBasis: stay.boardBasis ? (stay.boardBasis as BoardBasis) : undefined,
-            occupancyOptions,
+            pricingUnit,
+            roomRates,
           }
         })
         .sort((a: AccommodationStayEntity, b: AccommodationStayEntity) => a.order - b.order)
@@ -503,11 +526,18 @@ export function mapExperienceDocToOperationalMetadata(
         .filter((s) => Boolean(s.startTime))
     : []
 
+  const destinations: number[] = Array.isArray((docObj as any).destinations)
+    ? (docObj as any).destinations
+        .map((d: any) => (typeof d === 'object' && d !== null ? Number(d.id) : Number(d)))
+        .filter((id: number) => !isNaN(id) && id > 0)
+    : []
+
   return {
     id: Number(docObj.id),
     title: docObj.title,
     slug: docObj.slug,
     cityId,
+    destinations: destinations.length > 0 ? destinations : undefined,
     type: docObj.type,
     packageMode: docObj.packageMode || undefined,
     durationDays,

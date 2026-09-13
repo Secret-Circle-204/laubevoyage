@@ -65,8 +65,8 @@ export class PaymentRepository {
 
   async findActiveGateways() {
     return [
-      { id: 'stripe', name: 'Credit / Debit Card (Stripe)', icon: '💳', isAvailable: true },
-      { id: 'bnpl', name: 'Buy Now Pay Later', icon: '⚡', isAvailable: true },
+      { id: 'stripe', name: 'Credit / Debit Card (Stripe)', icon: 'card', isAvailable: true },
+      { id: 'bnpl', name: 'Buy Now Pay Later', icon: 'clock', isAvailable: true },
     ]
   }
 

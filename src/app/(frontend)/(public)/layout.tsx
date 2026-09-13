@@ -11,7 +11,7 @@ export default async function PublicLayout({ children }: { children: React.React
   const layoutData = await LayoutLoader.load({ locale, currency })
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header data={layoutData} />
       <main className="flex-grow">{children}</main>
       <Footer data={layoutData} />

@@ -21,6 +21,26 @@ export interface RelatedBookingsModalProps {
   onClose: () => void
 }
 
+function UsersIcon() {
+  return (
+    <svg style={{ width: '16px', height: '16px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '6px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg style={{ width: '14px', height: '14px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
+
 export const RelatedBookingsModal: React.FC<RelatedBookingsModalProps> = ({
   slot,
   bookings,
@@ -37,8 +57,9 @@ export const RelatedBookingsModal: React.FC<RelatedBookingsModalProps> = ({
       <div className="dse-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="dse-modal-header">
           <div>
-            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
-              👥 Related Bookings — {slot.date} ({slot.formattedTime || slot.startTime})
+            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+              <UsersIcon />
+              <span>Related Bookings — {slot.date} ({slot.formattedTime || slot.startTime})</span>
             </h4>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#a0aec0' }}>
               Departure Slot #{slot.id} • {slot.departureId} • Total Affected:{' '}
@@ -49,9 +70,10 @@ export const RelatedBookingsModal: React.FC<RelatedBookingsModalProps> = ({
             type="button"
             className="dse-btn dse-btn--secondary"
             onClick={onClose}
-            style={{ padding: '4px 8px', fontSize: '14px', lineHeight: 1 }}
+            style={{ padding: '4px 8px', fontSize: '14px', lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            aria-label="Close"
           >
-            ✕
+            <XIcon />
           </button>
         </div>
 

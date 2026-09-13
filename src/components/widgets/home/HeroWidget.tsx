@@ -3,73 +3,78 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { Button } from '@/components/ui'
 import { DiscoverySearchBar } from '@/components/features/search/DiscoverySearchBar'
 import type { HomeHeroDTO } from '@/application/pages/home/dto'
 
 export function HeroWidget({ data }: { data: HomeHeroDTO }) {
   return (
-    <section className="relative min-h-screen py-24 sm:py-32 flex items-center justify-center overflow-hidden bg-[#231F20] text-white">
-      {/* Background Overlay & Image */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#231F20]/90 via-[#231F20]/60 to-[#231F20] z-10" />
-      <div className="absolute inset-0 z-0">
+    <section className="relative min-h-[90vh] lg:min-h-screen pt-32 pb-20 sm:pt-40 sm:pb-28 flex items-center justify-center bg-background text-foreground z-20">
+      {/* Background Cinematic Image with Seamless Canvas Vignette - Strictly clips image & gradients */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <Image
-          src={data.backgroundImageUrl || "/images/hero-bg.jpg"}
-          alt="L'Aube Voyage Luxury Hero"
+          src={data.backgroundImageUrl || '/images/hero-bg.jpg'}
+          alt="L'Aube Voyage Luxury Travel"
           fill
           sizes="100vw"
-          className="object-cover scale-105 transition-transform duration-1000"
+          className="object-cover scale-100 transition-transform duration-1000"
           priority
         />
+        {/* Layered luxury lighting: darker top for header contrast, soft middle, natural fade to canvas */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/35 to-background z-10" />
       </div>
 
       {/* Content Container */}
-      <div className="relative z-20 max-w-6xl mx-auto px-4 text-center flex flex-col items-center gap-6">
-        <div className="flex flex-col items-center mb-2">
-          {/* Centered Brand Logo */}
-          <div className="relative w-64 h-36 sm:w-80 sm:h-44 mb-3">
-            <Image
-              src="/logos/LAube-Voyage-logo-name-white.svg"
-              alt="L'AUBE VOYAGE"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-
-          {/* Gold Divider Accent Line */}
-          <div className="flex items-center justify-center gap-4">
-            <div className="h-px w-16 bg-gradient-to-r from-transparent to-[#f58220]" />
-            <span className="text-white text-xs sm:text-sm tracking-[0.3em] uppercase font-light">
-              Est. 1996
-            </span>
-            <div className="h-px w-16 bg-gradient-to-l from-transparent to-[#f58220]" />
-          </div>
+      <div className="relative z-20 max-w-5xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-6">
+        {/* Editorial Eyebrow with Delicate Hairlines */}
+        <div className="flex items-center justify-center gap-4 soft-reveal [animation-delay:0ms]">
+          <span className="h-px w-10 sm:w-16 bg-gradient-to-r from-transparent to-white/60" />
+          <span className="text-white/90 text-[11px] sm:text-xs uppercase font-medium">
+            Bespoke Luxury Voyages • Est. 1996
+          </span>
+          <span className="h-px w-10 sm:w-16 bg-gradient-to-l from-transparent to-white/60" />
         </div>
 
-        {/* Dynamic Subtitle from DTO */}
-        <p className="text-base sm:text-lg font-light max-w-2xl mx-auto text-white/80 tracking-wide">
-          {data.subtitle}
-        </p>
+        {/* Grand Editorial Hornbill Headline */}
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-serif font-light text-white tracking-tight leading-[1.1] max-w-4xl mx-auto soft-reveal [animation-delay:80ms]">
+          Journeys Crafted Beyond the Horizon
+        </h1>
 
-        {/* Unified Luxury Discovery Search Widget */}
-        <div className="w-full max-w-4xl mx-auto mt-2">
+        {/* Subtitle from DTO */}
+        {data.subtitle && (
+          <p className="text-sm sm:text-base lg:text-lg font-light max-w-2xl mx-auto text-white/80 leading-relaxed soft-reveal [animation-delay:140ms]">
+            {data.subtitle}
+          </p>
+        )}
+
+        {/* Unified Luxury Discovery Search Capsule with Elevated Stacking Context */}
+        <div className="w-full max-w-5xl mx-auto mt-4 relative z-30 soft-reveal [animation-delay:200ms]">
           <DiscoverySearchBar
             variant="hero"
             destinations={data.destinations}
+            budgetPresets={data.budgetPresets}
           />
         </div>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-2">
+        {/* Refined CTA Actions with Lower Stacking Context */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-2 relative z-0 soft-reveal [animation-delay:260ms]">
           <Link href="/experiences">
-            <button className="px-8 py-3 bg-[#f58220] hover:bg-[#2e3192] text-white font-semibold tracking-widest text-xs sm:text-sm uppercase transition-all duration-300 shadow-2xl rounded-sm">
+            <Button
+              variant="accent"
+              size="lg"
+              className="rounded-full px-8 uppercase text-xs font-semibold shadow-xl shadow-accent/25 border border-accent-light/30"
+            >
               {data.ctaExploreText || 'Explore Experiences'}
-            </button>
+            </Button>
           </Link>
           <Link href="/destinations">
-            <button className="px-8 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 font-semibold tracking-widest text-xs sm:text-sm uppercase transition-all duration-300 shadow-xl rounded-sm">
+            <Button
+              variant="glass"
+              size="lg"
+              className="rounded-full px-8 uppercase text-xs font-medium text-white hover:bg-white/20"
+            >
               {data.ctaDiscoverText || 'Browse Destinations'}
-            </button>
+            </Button>
           </Link>
         </div>
       </div>

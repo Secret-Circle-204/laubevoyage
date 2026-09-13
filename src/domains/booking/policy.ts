@@ -399,13 +399,11 @@ export class BookingPolicy {
 
     // 8. Validate Gateway Intent (Strict Invariant Protection)
     if (requestedGateway) {
-      const existingGatewayIsBnpl = booking.status === BookingStatus.PENDING_ADMIN_REVIEW
-      const requestedGatewayIsBnpl = requestedGateway === 'bnpl'
-      if (existingGatewayIsBnpl !== requestedGatewayIsBnpl) {
+      if (booking.status === BookingStatus.PENDING_ADMIN_REVIEW && requestedGateway !== 'bnpl') {
         return {
           allowed: false,
           code: 'IDEMPOTENCY_GATEWAY_MISMATCH',
-          reason: `Existing booking payment method state does not match requested gateway (${requestedGateway}).`,
+          reason: `Existing booking is awaiting admin review for BNPL and cannot be reused for gateway ${requestedGateway}.`,
         }
       }
     }

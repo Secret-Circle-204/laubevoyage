@@ -27,17 +27,18 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     <button
       type="button"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className={`p-2 rounded-full transition-colors duration-300 ${
-        isDark
-          ? 'bg-slate-800 text-amber-400 hover:bg-slate-700'
-          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-      } ${className}`}
+      className={`p-2 rounded-full border border-border bg-card text-foreground hover:bg-border/30 hover:shadow-sm transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer ${className}`}
       title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       aria-label="Toggle Theme"
     >
       {isDark ? (
-        /* Sun Icon */
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        /* Sun Icon - Solar Amber micro-twist */
+        <svg
+          className="w-5 h-5 text-accent transition-all duration-300 rotate-0 hover:rotate-45 hover:scale-105"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -46,8 +47,13 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
           />
         </svg>
       ) : (
-        /* Moon Icon */
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        /* Moon Icon - Celestial Cyan micro-tilt */
+        <svg
+          className="w-5 h-5 text-secondary transition-all duration-300 -rotate-12 hover:rotate-0 hover:scale-105"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"

@@ -201,7 +201,7 @@ export class PricingFacade {
     const totalCommercialBaseEGP =
       params.commercialBreakdown?.adultsTotalEGP !== undefined
         ? params.commercialBreakdown.adultsTotalEGP +
-          (params.commercialBreakdown.occupancySupplementsTotalEGP || 0) +
+          (params.commercialBreakdown.accommodationTotalEGP || 0) +
           (params.commercialBreakdown.childrenTotalEGP || 0)
         : params.basePricePerPersonEGP * params.adultsCount
 

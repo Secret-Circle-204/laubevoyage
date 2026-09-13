@@ -188,12 +188,17 @@ export async function findFilteredExperiences(
     conditions.push({ type: { equals: params.type } })
   }
 
-  // City filter
+  // City filter (matches either Origin city or any Journey destination stop)
   if (params.cityId) {
-    conditions.push({ city: { equals: params.cityId } })
+    conditions.push({
+      or: [
+        { city: { equals: params.cityId } },
+        { destinations: { in: [params.cityId] } },
+      ],
+    })
   }
 
-  // Country resolution filter (finds cities in country first)
+  // Country resolution filter (matches if origin city OR any destination stop belongs to the country)
   if (params.countryId) {
     const citiesInCountry = await payload.find({
       collection: 'cities',
@@ -203,12 +208,17 @@ export async function findFilteredExperiences(
           { isActive: { equals: true } },
         ],
       },
-      limit: 100,
+      limit: 200,
       req,
     })
     const cityIds = citiesInCountry.docs.map((c) => Number(c.id))
     if (cityIds.length > 0) {
-      conditions.push({ city: { in: cityIds } })
+      conditions.push({
+        or: [
+          { city: { in: cityIds } },
+          { destinations: { in: cityIds } },
+        ],
+      })
     } else {
       // No cities exist for this country -> return empty page
       conditions.push({ id: { equals: -1 } })

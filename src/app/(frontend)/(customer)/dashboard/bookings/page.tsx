@@ -1,16 +1,17 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Card, Badge, CurrencyDisplay, Button } from '@/components/ui'
+import { Badge, EmptyState } from '@/components/ui'
 import { CustomerPortalLoader } from '@/application/dashboard/loaders'
 import { getLocaleContext } from '@/lib/get-locale-context'
 import { redirect } from 'next/navigation'
 import { SessionResolver } from '@/application/auth/session-resolver'
+import { TravelLedgerCard } from '@/components/features/dashboard/TravelLedgerCard'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: "My Bookings History | L'Aube Voyage Customer Portal" }
+  return { title: "Travel Ledger & Bookings | L'Aube Voyage Customer Portal" }
 }
 
 interface PageProps {
@@ -40,7 +41,7 @@ export default async function Page({ searchParams }: PageProps) {
   })
 
   const statusTabs = [
-    { label: 'All Bookings', value: undefined },
+    { label: 'All', value: undefined },
     { label: 'Confirmed', value: 'confirmed' },
     { label: 'Pending Payment', value: 'pending_payment' },
     { label: 'Completed', value: 'completed' },
@@ -49,12 +50,28 @@ export default async function Page({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Luxury Ledger Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">My Bookings History</h1>
-          <p className="text-xs text-slate-500 mt-1">Review, track, and manage all your curated voyages and travel reservations.</p>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-xs uppercase text-secondary font-semibold">
+              VOYAGE ARCHIVE & REPOSITORY
+            </span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-hornbill font-light text-foreground">
+            Travel Ledger
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Review, track, and inspect all your curated voyages and sovereign travel reservations.
+          </p>
         </div>
-        <Badge variant="primary" size="md">{data.total} Total Bookings</Badge>
+        <Badge
+          variant="secondary"
+          size="md"
+          className="text-xs border border-secondary/25 bg-secondary/10 text-secondary self-start sm:self-auto font-semibold"
+        >
+          {data.total} {data.total === 1 ? 'Total Voyage' : 'Total Voyages'}
+        </Badge>
       </div>
 
       {/* Server-Side Database Status Filter Tabs */}
@@ -69,8 +86,8 @@ export default async function Page({ searchParams }: PageProps) {
               href={href}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-[#2e3192] text-white shadow-sm'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+                  ? 'bg-secondary text-secondary-foreground shadow-sm'
+                  : 'bg-card text-muted-foreground hover:bg-card-elevated hover:text-foreground border border-border/80'
               }`}
             >
               {tab.label}
@@ -79,119 +96,42 @@ export default async function Page({ searchParams }: PageProps) {
         })}
       </div>
 
-      {/* Bookings List */}
+      {/* Bookings Ledger List */}
       {data.bookings.length === 0 ? (
-        <Card variant="flat" padding="lg" className="text-center py-12">
-          <span className="text-4xl mb-3 block">🧳</span>
-          <h3 className="font-bold text-base text-slate-800 dark:text-slate-200">No bookings found</h3>
-          <p className="text-xs text-slate-500 mt-1">
-            {currentStatus ? `There are no bookings matching status "${currentStatus}".` : 'You have not booked any voyages yet.'}
-          </p>
-        </Card>
+        <EmptyState
+          title="No voyages found"
+          description={
+            currentStatus
+              ? `There are no travel records matching status "${currentStatus.replace(/_/g, ' ')}".`
+              : 'You have not booked any voyages yet. Explore our curated journeys to begin.'
+          }
+          icon="booking"
+        />
       ) : (
         <div className="flex flex-col gap-4">
           {data.bookings.map((booking) => (
-            <Card key={booking.id} variant="flat" padding="md" className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-20 h-20 rounded-xl bg-cover bg-center flex-shrink-0"
-                  style={{ backgroundImage: `url(${booking.experienceImage})` }}
-                />
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-xs font-bold text-[#00aeef]">{booking.reference}</span>
-                    <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'completed' ? 'primary' : booking.status === 'cancelled' || booking.status === 'refunded' ? 'error' : 'warning'} size="sm">
-                      {booking.status.toUpperCase()}
-                    </Badge>
-                    {booking.paymentStatus === 'partially_paid' && (
-                      <Badge variant="warning" size="sm" className="bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                        PARTIALLY PAID
-                      </Badge>
-                    )}
-                    {booking.paymentStatus === 'paid' && (
-                      <Badge variant="outline" size="sm" className="text-emerald-500 border-emerald-500/30">
-                        PAID
-                      </Badge>
-                    )}
-                  </div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">{booking.experienceTitle}</h3>
-                  <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500 mt-1">
-                    {booking.productTypeLabel && <Badge variant="outline" size="sm">{booking.productTypeLabel}</Badge>}
-                    {booking.destinationCity && <span className="font-medium">📍 {booking.destinationCity}</span>}
-                    {booking.durationText && <span className="font-medium">⏱️ {booking.durationText}</span>}
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1.5 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap text-slate-700 dark:text-slate-300">
-                      <span>📅 <strong>Departure:</strong> {booking.departureDate}{booking.departureTime ? ` at ${booking.departureTime}` : ''}</span>
-                      {booking.destinationTimezone && <span className="text-slate-400">({booking.destinationTimezone})</span>}
-                      {booking.productTypeLabel === 'Daily Tour' && booking.returnTime && (
-                        <span className="text-emerald-700 dark:text-emerald-400 font-medium">
-                          • <strong>Return:</strong> {booking.returnTime}
-                        </span>
-                      )}
-                      {booking.endDate && (
-                        <span className="text-slate-600 dark:text-slate-400">
-                          • <strong>End Date:</strong> {booking.endDate}
-                        </span>
-                      )}
-                    </div>
-                    <p>
-                      👥 {booking.passengersCount} {booking.passengersCount === 1 ? 'Passenger' : 'Passengers'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-                <CurrencyDisplay price={booking.totalCost} size="md" />
-                {booking.isCancelled ? (
-                  <div className="text-right mt-1">
-                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 block">
-                      $0.00 (Cancelled / Voided)
-                    </span>
-                  </div>
-                ) : booking.paymentStatus === 'partially_paid' && booking.outstandingBalance ? (
-                  <div className="text-right mt-1 space-y-0.5">
-                    {booking.paidAmount && (
-                      <div className="text-[11px] text-slate-500 flex items-center justify-end gap-1">
-                        <span>Paid:</span>
-                        <CurrencyDisplay price={booking.paidAmount} size="sm" />
-                      </div>
-                    )}
-                    <div className="text-[11px] font-bold text-amber-600 dark:text-amber-500 flex items-center justify-end gap-1">
-                      <span>Remaining:</span>
-                      <CurrencyDisplay price={booking.outstandingBalance} size="sm" />
-                    </div>
-                  </div>
-                ) : null}
-                <Link href={`/dashboard/bookings/${booking.reference}`}>
-                  <Button variant="accent" size="sm" className="mt-2">
-                    View Reservation Details
-                  </Button>
-                </Link>
-              </div>
-            </Card>
+            <TravelLedgerCard key={booking.id} booking={booking} />
           ))}
         </div>
       )}
 
       {/* Server-Side Pagination Bar */}
       {data.totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
-          <span className="text-xs font-medium text-slate-500">
-            Page {data.page} of {data.totalPages} ({data.total} total)
+        <div className="flex items-center justify-between pt-4 border-t border-border/60">
+          <span className="text-xs font-medium text-muted-foreground">
+            Page {data.page} of {data.totalPages} ({data.total} total records)
           </span>
 
           <div className="flex items-center gap-2">
             {data.page > 1 ? (
               <Link
                 href={`/dashboard/bookings?page=${data.page - 1}${currentStatus ? `&status=${currentStatus}` : ''}`}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-card border border-border text-foreground hover:bg-card-elevated transition-colors"
               >
                 ← Previous
               </Link>
             ) : (
-              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed">
+              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-card/40 border border-border/40 text-muted-foreground/40 cursor-not-allowed">
                 ← Previous
               </span>
             )}
@@ -199,12 +139,12 @@ export default async function Page({ searchParams }: PageProps) {
             {data.page < data.totalPages ? (
               <Link
                 href={`/dashboard/bookings?page=${data.page + 1}${currentStatus ? `&status=${currentStatus}` : ''}`}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-card border border-border text-foreground hover:bg-card-elevated transition-colors"
               >
                 Next →
               </Link>
             ) : (
-              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed">
+              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-card/40 border border-border/40 text-muted-foreground/40 cursor-not-allowed">
                 Next →
               </span>
             )}
@@ -214,3 +154,4 @@ export default async function Page({ searchParams }: PageProps) {
     </div>
   )
 }
+

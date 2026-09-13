@@ -9,6 +9,7 @@ import { SessionProvider, type CustomerSessionState } from './session-provider'
 import { LoadingProvider } from './loading-provider'
 import { NavigationLoadingTracker } from '@/components/layout/NavigationLoadingTracker'
 import { RouteProgressBar } from '@/components/ui/loading/RouteProgressBar'
+import { FullScreenLoadingOverlay } from '@/components/ui/loading/FullScreenLoadingOverlay'
 
 export interface AppProvidersProps {
   children: React.ReactNode
@@ -32,17 +33,18 @@ export function AppProviders({
 }: AppProvidersProps) {
   return (
     <ThemeProvider>
-      <LocaleProvider initialLocale={initialLocale} initialDirection={initialDirection}>
-        <CurrencyProvider initialCurrency={initialCurrency}>
-          <SessionProvider initialSession={initialSession}>
-            <LoadingProvider>
+      <LoadingProvider>
+        <LocaleProvider initialLocale={initialLocale} initialDirection={initialDirection}>
+          <CurrencyProvider initialCurrency={initialCurrency}>
+            <SessionProvider initialSession={initialSession}>
               <NavigationLoadingTracker />
               <RouteProgressBar />
+              <FullScreenLoadingOverlay />
               <ToastProvider>{children}</ToastProvider>
-            </LoadingProvider>
-          </SessionProvider>
-        </CurrencyProvider>
-      </LocaleProvider>
+            </SessionProvider>
+          </CurrencyProvider>
+        </LocaleProvider>
+      </LoadingProvider>
     </ThemeProvider>
   )
 }
@@ -52,5 +54,5 @@ export { useLocale } from './locale-provider'
 export { useCurrency } from './currency-provider'
 export { useToast } from './toast-provider'
 export { useSession } from './session-provider'
-export { useGlobalLoading } from './loading-provider'
+export { useGlobalLoading, useOptionalGlobalLoading } from './loading-provider'
 

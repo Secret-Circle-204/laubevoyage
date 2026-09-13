@@ -369,7 +369,7 @@ export async function getHistoricalExperienceSlotsAction(
       queryOptions,
     )
 
-    const rawSlots: AdminDepartureSlotDTO[] = paginatedRes.docs.map((slot) => {
+    const rawSlots: AdminDepartureSlotDTO[] = paginatedRes.docs.map((slot: any) => {
       const { dto } = mapSlotToAdminDTO(slot, experience, destinationTimezone, nowUtc)
       return dto
     })

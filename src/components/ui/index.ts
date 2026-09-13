@@ -7,4 +7,4 @@ export * from './Rating'
 export * from './CurrencyDisplay'
 export * from './EmptyState'
 export * from './Flag'
-
+export * from './Select'

@@ -3,41 +3,35 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useTheme } from '@/providers/theme-provider'
+import { Button } from '@/components/ui'
 import type { HomeDestinationCardDTO } from '@/application/pages/home/dto'
 
 export function DestinationsWidget({ destinations }: { destinations: HomeDestinationCardDTO[] }) {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
-
   return (
-    <section
-      className={`py-20 ${isDark ? 'bg-[#1a1718]' : 'bg-white'} transition-colors duration-500 border-b border-white/5`}
-    >
+    <section className="py-24 bg-background/50 text-foreground transition-colors duration-500 border-b border-border/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
           <div>
-            <span className="text-xs uppercase tracking-[0.25em] font-medium text-[#00aeef] block mb-2">
+            <span className="text-[11px] uppercase font-semibold text-secondary block mb-2">
               Geographical Exploration
             </span>
-            <h2
-              className={`text-3xl sm:text-4xl font-serif font-light tracking-tight ${isDark ? 'text-white' : 'text-[#231F20]'}`}
-            >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-light tracking-tight text-foreground">
               Top Travel Destinations
             </h2>
-            <div className="h-1 w-16 bg-[#f58220] mt-3" />
           </div>
 
           <Link href="/destinations">
-            <button
-              className={`px-8 py-3 text-xs tracking-[0.2em] uppercase font-medium border transition-all duration-500 ${
-                isDark
-                  ? 'border-[#00aeef]/50 text-[#00aeef] hover:bg-[#00aeef] hover:text-white'
-                  : 'border-[#2e3192]/50 text-[#2e3192] hover:bg-[#2e3192] hover:text-white'
-              }`}
+            <Button
+              variant="outline"
+              size="md"
+              className="uppercase text-xs font-semibold px-7 rounded-full flex items-center gap-2 group"
             >
-              View All Destinations →
-            </button>
+              <span>View All Destinations</span>
+              <svg className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1 text-secondary" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </Button>
           </Link>
         </div>
 
@@ -47,7 +41,7 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
             <Link
               key={dest.id}
               href={`/destinations/${dest.countrySlug}`}
-              className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg"
+              className="group relative aspect-[3/4] sm:aspect-[4/5] rounded-2xl overflow-hidden cursor-pointer shadow-md border border-border/40 bg-card transition-all duration-500 hover:shadow-xl hover:-translate-y-1"
             >
               {dest.imageUrl ? (
                 <Image
@@ -55,37 +49,43 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
                   alt={dest.countryName || dest.cityName}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                  className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                 />
               ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-[#231F20] to-slate-900" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-card text-accent/50 gap-2">
+                  <svg className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8" />
+                  </svg>
+                  <span className="text-[9px] uppercase font-semibold">L&apos;Aube Voyage</span>
+                </div>
               )}
 
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#231F20] via-[#231F20]/30 to-transparent" />
+              {/* Natural Cinematic Vignette */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent transition-opacity duration-300 group-hover:from-black/90" />
 
-              {/* Content */}
-              <div className="absolute bottom-0 left-0 right-0 p-6">
-                <span className="text-[#00aeef] text-xs tracking-widest uppercase mb-1 block font-semibold">
-                  Featured Country
+              {/* Editorial Card Content */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-7 flex flex-col justify-end">
+                <span className="text-[10px] uppercase font-medium text-white/75 mb-1.5 block">
+                  {dest.cityName ? `${dest.countryName} • ${dest.cityName}` : 'Featured Region'}
                 </span>
-                <h3 className="text-2xl font-serif font-light text-white mb-2 group-hover:text-[#f58220] transition-colors duration-300">
+                <h3 className="text-2xl sm:text-3xl font-serif font-light text-white leading-tight transition-colors">
                   {dest.countryName}
                 </h3>
 
-                <div className="flex items-center gap-2 text-white/90 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-medium">
-                  <span>Explore Destination</span>
+                <div className="flex items-center gap-2 text-white/90 text-xs uppercase mt-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 font-medium">
+                  <span>Explore</span>
                   <svg
-                    className="w-4 h-4 text-[#f58220]"
+                    className="w-3.5 h-3.5 text-secondary"
                     fill="none"
                     stroke="currentColor"
+                    strokeWidth={1.5}
                     viewBox="0 0 24 24"
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 8l4 4m0 0l-4 4m4-4H3"
+                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
                     />
                   </svg>
                 </div>
@@ -94,7 +94,6 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
           ))}
         </div>
       </div>
-
     </section>
   )
 }

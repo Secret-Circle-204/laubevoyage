@@ -1,6 +1,7 @@
 import { getDomainServices } from '@/domains/factory'
 import { getBusinessDateString } from '@/lib/date'
 import type { LocaleContext } from '@/types/locale'
+import { ExperiencesCatalogLoader } from '@/application/experience/loaders'
 import type { HomeDTO } from './dto'
 
 export class HomePageLoader {
@@ -56,6 +57,53 @@ export class HomePageLoader {
             ? durationDaysRaw
             : (Number(durationDaysRaw) || 1)
 
+          // Origin Gateway City Waypoint
+          const originCityName =
+            doc.city && typeof doc.city === 'object'
+              ? doc.city.name
+              : typeof doc.city === 'string'
+              ? doc.city
+              : undefined
+
+          const originCityHero =
+            doc.city && typeof doc.city === 'object' && doc.city.hero
+              ? (typeof doc.city.hero === 'object' ? doc.city.hero.url : doc.city.hero)
+              : undefined
+
+          // Ordered Post-Origin Destination Waypoints
+          const destinationCityNames: string[] = []
+          const destinationCityHeroes: string[] = []
+
+          if (Array.isArray(doc.destinations)) {
+            for (const d of doc.destinations) {
+              if (d && typeof d === 'object') {
+                if (d.name) destinationCityNames.push(d.name)
+                const heroUrl = typeof d.hero === 'object' ? d.hero?.url : d.hero
+                if (heroUrl && typeof heroUrl === 'string') destinationCityHeroes.push(heroUrl)
+              }
+            }
+          }
+
+          // Canonical Journey Route: Origin + Sequential Destinations
+          const routeCities = [originCityName, ...destinationCityNames].filter(Boolean)
+
+          // Visual City Avatars representing the Journey's Waypoints (Strictly authentic from city records)
+          const thumbnails = [originCityHero, ...destinationCityHeroes].filter(
+            (url): url is string => typeof url === 'string' && url.length > 0,
+          )
+
+          // Real included provisions strictly from database
+          const rawIncluded =
+            expEntity?.included && expEntity.included.length > 0
+              ? expEntity.included
+              : Array.isArray(doc.included)
+              ? doc.included
+                  .map((x: any) => (typeof x === 'object' && x ? x.item : x))
+                  .filter(Boolean)
+              : []
+
+          const features = rawIncluded.slice(0, 3)
+
           return {
             id: Number(doc.id),
             slug: doc.slug,
@@ -68,6 +116,9 @@ export class HomePageLoader {
             rating: typeof doc.rating === 'number' ? doc.rating : 0,
             reviewsCount: typeof doc.reviewsCount === 'number' ? doc.reviewsCount : 0,
             price: pricingResult,
+            routeCities,
+            thumbnails,
+            features,
           }
         }),
       )
@@ -90,9 +141,10 @@ export class HomePageLoader {
       })
 
 
-      const [countriesRes, citiesRes] = await Promise.all([
+      const [countriesRes, citiesRes, budgetPresets] = await Promise.all([
         destination.getCountries({ limit: 100 }),
         destination.getAllActiveCities({ limit: 200 }),
+        ExperiencesCatalogLoader.resolveBudgetPresets(ctx, localization),
       ])
 
       const heroCountries = (countriesRes.docs || []).map((c: any) => ({
@@ -120,6 +172,7 @@ export class HomePageLoader {
             countries: heroCountries,
             cities: heroCities,
           },
+          budgetPresets,
         },
         featuredExperiences,
         topDestinations,

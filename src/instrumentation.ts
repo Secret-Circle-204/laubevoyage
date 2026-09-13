@@ -5,14 +5,16 @@ export async function register() {
     process.env.NEXT_RUNTIME === 'nodejs' &&
     process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD
   ) {
-    const { bootstrapWebApplication, bootstrapWorkerApplication } = await import('./domains/bootstrap')
-    
+    const { getDomainServices } = await import('./domains/factory')
+    const { bootstrapApplication, bootstrapWorkerApplication } = await import('./domains/bootstrap')
+    const container = await getDomainServices()
+
     if (process.env.DISABLE_BG_WORKERS === 'true') {
       console.log('[SystemBootstrap] Web-only runtime detected. Bootstrapping web application.')
-      await bootstrapWebApplication()
+      await bootstrapApplication(container)
     } else {
       console.log('[SystemBootstrap] Unified runtime detected. Bootstrapping web & background workers.')
-      await bootstrapWorkerApplication()
+      await bootstrapWorkerApplication(container)
     }
   }
 }

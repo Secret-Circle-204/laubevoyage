@@ -33,11 +33,11 @@ export function CurrencyDisplay({
   return (
     <div className={`inline-flex items-baseline gap-1.5 ${className}`}>
       {showOriginal && originalPrice && originalPrice.convertedAmount > price.convertedAmount && (
-        <span className="text-xs sm:text-sm line-through text-slate-400 font-medium mr-1">
+        <span className="text-xs sm:text-sm line-through text-muted font-medium mr-1">
           {originalPrice.formatted}
         </span>
       )}
-      <span className={`${sizeClasses[size]} text-[#2e3192] dark:text-[#00aeef]`}>
+      <span className={`${sizeClasses[size]} text-primary dark:text-secondary`}>
         {price.formatted}
       </span>
     </div>

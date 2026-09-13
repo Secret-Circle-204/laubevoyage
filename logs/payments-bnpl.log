@@ -1,170 +1,21 @@
---- Log session started at 2026-09-05T21:50:58.647Z ---
-[2026-09-05T21:51:01.958Z] [LOG] [EventBus] 📢 Publishing event [EXPERIENCE_MUTATED] (EventID: evt_exp_1803_1788645061957, CorrelationID: corr_exp_1803)
-[2026-09-05T21:51:01.958Z] [LOG] [EventBus] ⚠️ No subscribers found for event [EXPERIENCE_MUTATED]
-[2026-09-05T21:51:02.392Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 1s (EventID: evt_1788645061874_6x2fz).
-[2026-09-05T21:51:02.392Z] [LOG] [OutboxPublisherWorker] 📦 Found 3 pending events to publish in outbox.
-[2026-09-05T21:51:02.392Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_1788645061874_6x2fz (Type: CUSTOMER_REGISTERED)
-[2026-09-05T21:51:02.393Z] [LOG] [EventBus] 📢 Publishing event [CUSTOMER_REGISTERED] (EventID: evt_1788645061874_6x2fz, CorrelationID: corr_1788645061874_yg5te)
-[2026-09-05T21:51:02.393Z] [LOG] [EventBus] Found 1 subscribers for [CUSTOMER_REGISTERED]: CustomerSubscriber.logRegistration
-[2026-09-05T21:51:02.393Z] [LOG] [EventBus] [CUSTOMER_REGISTERED] -> Running subscriber [CustomerSubscriber.logRegistration] (Timeout: 15000ms)...
-[2026-09-05T21:51:02.394Z] [LOG] [EventBus] [CUSTOMER_REGISTERED] -> Subscriber [CustomerSubscriber.logRegistration] completed successfully in 1ms.
-[2026-09-05T21:51:02.395Z] [LOG] [EventBus] 📢 Finished publishing event [CUSTOMER_REGISTERED]
-[2026-09-05T21:51:02.412Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_1788645061874_6x2fz successfully marked as published.
-[2026-09-05T21:51:02.413Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14906_1788645062223 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:51:02.413Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14906_1788645062223, CorrelationID: corr_14906)
-[2026-09-05T21:51:02.413Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:51:02.413Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:51:02.414Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:51:02.626Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] completed successfully in 212ms.
-[2026-09-05T21:51:02.756Z] [LOG] [EventBus] 📢 Publishing event [DASHBOARD_PROJECTION_REBUILT] (EventID: evt_dash_rebuilt_bnpl_800_1788645062756, CorrelationID: corr_14906)
-[2026-09-05T21:51:02.757Z] [LOG] [EventBus] ⚠️ No subscribers found for event [DASHBOARD_PROJECTION_REBUILT]
-[2026-09-05T21:51:02.757Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 344ms.
-[2026-09-05T21:51:02.758Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_PENDING_ADMIN_REVIEW]
-[2026-09-05T21:51:02.774Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_rev_14906_1788645062223 successfully marked as published.
-[2026-09-05T21:51:02.774Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14907_1788645062381 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:51:02.774Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14907_1788645062381, CorrelationID: corr_14907)
-[2026-09-05T21:51:02.775Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:51:02.775Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:51:02.775Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:51:02.862Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] completed successfully in 87ms.
-[2026-09-05T21:51:02.872Z] [LOG] [EventBus] 📢 Publishing event [DASHBOARD_PROJECTION_REBUILT] (EventID: evt_dash_rebuilt_bnpl_800_1788645062872, CorrelationID: corr_14907)
-[2026-09-05T21:51:02.872Z] [LOG] [EventBus] ⚠️ No subscribers found for event [DASHBOARD_PROJECTION_REBUILT]
-[2026-09-05T21:51:02.873Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 98ms.
-[2026-09-05T21:51:02.874Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_PENDING_ADMIN_REVIEW]
-[2026-09-05T21:51:02.894Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_rev_14907_1788645062381 successfully marked as published.
-[2026-09-05T21:51:03.023Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 0s (EventID: evt_bk_rev_14908_1788645063014).
-[2026-09-05T21:51:03.024Z] [LOG] [OutboxPublisherWorker] 📦 Found 1 pending events to publish in outbox.
-[2026-09-05T21:51:03.024Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14908_1788645063014 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:51:03.024Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14908_1788645063014, CorrelationID: corr_14908)
-[2026-09-05T21:51:03.024Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:51:03.025Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.025Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.073Z] [ERROR] [EventBus] ❌ Error handling event [BOOKING_PENDING_ADMIN_REVIEW] in subscriber [NotificationSubscriber.enqueuePendingReviewNotifications]: Error: [NotificationSubscriber] No booking notification recipients configured in SystemSettings for Booking #BK-BNPL-1788645062934-3. Holding event in Outbox retry schedule.
-    at F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/subscribers/notification-subscriber.ts:255:15
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/event-bus.ts:107:11
-    at async Promise.all (index 1)
-    at EventBus.publish (F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/event-bus.ts:119:5)
-    at OutboxPublisherWorker.publishPendingEvents (F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/outbox-publisher.ts:53:11)
-    at F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/tests/integration/booking/bnpl-notification-flow.int.spec.ts:351:20
-    at file:///F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/node_modules/.pnpm/@vitest+runner@4.0.18/node_modules/@vitest/runner/dist/index.js:915:20
-[2026-09-05T21:51:03.074Z] [WARN] [OutboxPublisherWorker] ⚠️ Event evt_bk_rev_14908_1788645063014 failed (attempt 1, Reason: UNKNOWN_DISPATCH_FAILURE). Error: [NotificationSubscriber] No booking notification recipients configured in SystemSettings for Booking #BK-BNPL-1788645062934-3. Holding event in Outbox retry schedule.. Next retry at 2026-09-05T21:52:03.074Z
-[2026-09-05T21:51:03.116Z] [LOG] [EventBus] 📢 Publishing event [DASHBOARD_PROJECTION_REBUILT] (EventID: evt_dash_rebuilt_bnpl_800_1788645063115, CorrelationID: corr_14908)
-[2026-09-05T21:51:03.116Z] [LOG] [EventBus] ⚠️ No subscribers found for event [DASHBOARD_PROJECTION_REBUILT]
-[2026-09-05T21:51:03.117Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 93ms.
-[2026-09-05T21:51:03.248Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 0s (EventID: evt_bk_rev_14909_1788645063240).
-[2026-09-05T21:51:03.248Z] [LOG] [OutboxPublisherWorker] 📦 Found 1 pending events to publish in outbox.
-[2026-09-05T21:51:03.248Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14909_1788645063240 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:51:03.249Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14909_1788645063240, CorrelationID: corr_14909)
-[2026-09-05T21:51:03.249Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:51:03.249Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.250Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.287Z] [ERROR] [EventBus] ❌ Error handling event [BOOKING_PENDING_ADMIN_REVIEW] in subscriber [NotificationSubscriber.enqueuePendingReviewNotifications]: Error: [NotificationSubscriber] No booking notification recipients configured in SystemSettings for Booking #BK-BNPL-1788645063149-recovery. Holding event in Outbox retry schedule.
-    at F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/subscribers/notification-subscriber.ts:255:15
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/event-bus.ts:107:11
-    at async Promise.all (index 1)
-    at EventBus.publish (F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/event-bus.ts:119:5)
-    at OutboxPublisherWorker.publishPendingEvents (F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/outbox-publisher.ts:53:11)
-    at F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/tests/integration/booking/bnpl-notification-flow.int.spec.ts:448:26
-    at file:///F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/node_modules/.pnpm/@vitest+runner@4.0.18/node_modules/@vitest/runner/dist/index.js:915:20
-[2026-09-05T21:51:03.287Z] [WARN] [OutboxPublisherWorker] ⚠️ Event evt_bk_rev_14909_1788645063240 failed (attempt 1, Reason: UNKNOWN_DISPATCH_FAILURE). Error: [NotificationSubscriber] No booking notification recipients configured in SystemSettings for Booking #BK-BNPL-1788645063149-recovery. Holding event in Outbox retry schedule.. Next retry at 2026-09-05T21:52:03.287Z
-[2026-09-05T21:51:03.301Z] [LOG] [EventBus] 📢 Publishing event [DASHBOARD_PROJECTION_REBUILT] (EventID: evt_dash_rebuilt_bnpl_800_1788645063300, CorrelationID: corr_14909)
-[2026-09-05T21:51:03.301Z] [LOG] [EventBus] ⚠️ No subscribers found for event [DASHBOARD_PROJECTION_REBUILT]
-[2026-09-05T21:51:03.302Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 52ms.
-[2026-09-05T21:51:03.338Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 0s (EventID: evt_bk_rev_14909_1788645063240).
-[2026-09-05T21:51:03.338Z] [LOG] [OutboxPublisherWorker] 📦 Found 1 pending events to publish in outbox.
-[2026-09-05T21:51:03.338Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14909_1788645063240 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:51:03.339Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14909_1788645063240, CorrelationID: corr_14909)
-[2026-09-05T21:51:03.339Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:51:03.339Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.340Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.346Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 7ms.
-[2026-09-05T21:51:03.365Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] completed successfully in 25ms.
-[2026-09-05T21:51:03.365Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_PENDING_ADMIN_REVIEW]
-[2026-09-05T21:51:03.382Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_rev_14909_1788645063240 successfully marked as published.
-[2026-09-05T21:51:03.551Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 0s (EventID: evt_bk_rev_14910_1788645063544).
-[2026-09-05T21:51:03.552Z] [LOG] [OutboxPublisherWorker] 📦 Found 1 pending events to publish in outbox.
-[2026-09-05T21:51:03.552Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14910_1788645063544 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:51:03.552Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14910_1788645063544, CorrelationID: corr_14910)
-[2026-09-05T21:51:03.552Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:51:03.553Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.553Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.600Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] completed successfully in 47ms.
-[2026-09-05T21:51:03.637Z] [LOG] [EventBus] 📢 Publishing event [DASHBOARD_PROJECTION_REBUILT] (EventID: evt_dash_rebuilt_bnpl_800_1788645063637, CorrelationID: corr_14910)
-[2026-09-05T21:51:03.637Z] [LOG] [EventBus] ⚠️ No subscribers found for event [DASHBOARD_PROJECTION_REBUILT]
-[2026-09-05T21:51:03.638Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 85ms.
-[2026-09-05T21:51:03.638Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_PENDING_ADMIN_REVIEW]
-[2026-09-05T21:51:03.652Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_rev_14910_1788645063544 successfully marked as published.
-[2026-09-05T21:51:03.739Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 0s (EventID: evt_bk_conf_14910_1788645063713).
-[2026-09-05T21:51:03.739Z] [LOG] [OutboxPublisherWorker] 📦 Found 1 pending events to publish in outbox.
-[2026-09-05T21:51:03.740Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_conf_14910_1788645063713 (Type: BOOKING_CONFIRMED)
-[2026-09-05T21:51:03.740Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_CONFIRMED] (EventID: evt_bk_conf_14910_1788645063713, CorrelationID: corr_14910)
-[2026-09-05T21:51:03.740Z] [LOG] [EventBus] Found 3 subscribers for [BOOKING_CONFIRMED]: DashboardSubscriber.updateProjectionOnBooking, NotificationSubscriber.enqueueBookingConfirmation, LoyaltySubscriber.awardPointsOnBooking
-[2026-09-05T21:51:03.740Z] [LOG] [EventBus] [BOOKING_CONFIRMED] -> Running subscriber [DashboardSubscriber.updateProjectionOnBooking] (Timeout: 10000ms)...
-[2026-09-05T21:51:03.741Z] [LOG] [EventBus] [BOOKING_CONFIRMED] -> Running subscriber [NotificationSubscriber.enqueueBookingConfirmation] (Timeout: 10000ms)...
-[2026-09-05T21:51:03.742Z] [LOG] [EventBus] [BOOKING_CONFIRMED] -> Running subscriber [LoyaltySubscriber.awardPointsOnBooking] (Timeout: 20000ms)...
-[2026-09-05T21:51:03.778Z] [LOG] [EventBus] [BOOKING_CONFIRMED] -> Subscriber [LoyaltySubscriber.awardPointsOnBooking] completed successfully in 36ms.
-[2026-09-05T21:51:03.792Z] [LOG] [EventBus] [BOOKING_CONFIRMED] -> Subscriber [NotificationSubscriber.enqueueBookingConfirmation] completed successfully in 51ms.
-[2026-09-05T21:51:03.793Z] [LOG] [EventBus] 📢 Publishing event [DASHBOARD_PROJECTION_REBUILT] (EventID: evt_dash_rebuilt_800_1788645063793, CorrelationID: corr_14910)
-[2026-09-05T21:51:03.793Z] [LOG] [EventBus] ⚠️ No subscribers found for event [DASHBOARD_PROJECTION_REBUILT]
-[2026-09-05T21:51:03.794Z] [LOG] [EventBus] [BOOKING_CONFIRMED] -> Subscriber [DashboardSubscriber.updateProjectionOnBooking] completed successfully in 54ms.
-[2026-09-05T21:51:03.794Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_CONFIRMED]
-[2026-09-05T21:51:03.814Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_conf_14910_1788645063713 successfully marked as published.
-[2026-09-05T21:51:03.948Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 0s (EventID: evt_bk_rev_14911_1788645063940).
-[2026-09-05T21:51:03.948Z] [LOG] [OutboxPublisherWorker] 📦 Found 1 pending events to publish in outbox.
-[2026-09-05T21:51:03.949Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14911_1788645063940 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:51:03.949Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14911_1788645063940, CorrelationID: corr_14911)
-[2026-09-05T21:51:03.949Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:51:03.950Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.950Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:51:03.997Z] [LOG] [EventBus] 📢 Publishing event [DASHBOARD_PROJECTION_REBUILT] (EventID: evt_dash_rebuilt_bnpl_800_1788645063997, CorrelationID: corr_14911)
-[2026-09-05T21:51:03.998Z] [LOG] [EventBus] ⚠️ No subscribers found for event [DASHBOARD_PROJECTION_REBUILT]
-[2026-09-05T21:51:03.999Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 50ms.
-[2026-09-05T21:51:04.028Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] completed successfully in 78ms.
-[2026-09-05T21:51:04.029Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_PENDING_ADMIN_REVIEW]
-[2026-09-05T21:51:04.084Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_rev_14911_1788645063940 successfully marked as published.
-[2026-09-05T21:51:04.186Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 0s (EventID: evt_bk_rev_14912_1788645064176).
-[2026-09-05T21:51:04.186Z] [LOG] [OutboxPublisherWorker] 📦 Found 1 pending events to publish in outbox.
-[2026-09-05T21:51:04.187Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14912_1788645064176 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:51:04.187Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14912_1788645064176, CorrelationID: corr_14912)
-[2026-09-05T21:51:04.187Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:51:04.188Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:51:04.188Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:51:04.227Z] [ERROR] [EventBus] ❌ Error handling event [BOOKING_PENDING_ADMIN_REVIEW] in subscriber [NotificationSubscriber.enqueuePendingReviewNotifications]: Error: Database connection timeout (Simulated DB failure)
-    at BasePayload.payload.findGlobal (F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/tests/integration/booking/bnpl-notification-flow.int.spec.ts:746:15)
-    at NotificationRepository.getBookingNotificationRecipients (F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/notification/repository.ts:452:42)
-    at NotificationService.getBookingNotificationRecipients (F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/notification/service.ts:56:43)
-    at F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/subscribers/notification-subscriber.ts:253:57
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/event-bus.ts:107:11
-    at async Promise.all (index 1)
-    at EventBus.publish (F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/event-bus.ts:119:5)
-    at OutboxPublisherWorker.publishPendingEvents (F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/src/domains/events/outbox-publisher.ts:53:11)
-    at F:/new-websites/laube-rebuild/Rebuild-Laube-Voyage-app-last/tests/integration/booking/bnpl-notification-flow.int.spec.ts:752:22
-[2026-09-05T21:51:04.228Z] [WARN] [OutboxPublisherWorker] ⚠️ Event evt_bk_rev_14912_1788645064176 failed (attempt 1, Reason: UNKNOWN_DISPATCH_FAILURE). Error: Database connection timeout (Simulated DB failure). Next retry at 2026-09-05T21:52:04.227Z
-[2026-09-05T21:51:04.238Z] [LOG] [EventBus] 📢 Publishing event [DASHBOARD_PROJECTION_REBUILT] (EventID: evt_dash_rebuilt_bnpl_800_1788645064238, CorrelationID: corr_14912)
-[2026-09-05T21:51:04.238Z] [LOG] [EventBus] ⚠️ No subscribers found for event [DASHBOARD_PROJECTION_REBUILT]
-[2026-09-05T21:51:04.239Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 52ms.
-[2026-09-05T21:51:04.455Z] [LOG] [EventBus] 📢 Publishing event [EXPERIENCE_MUTATED] (EventID: evt_exp_del_1803_1788645064455, CorrelationID: corr_exp_del_1803)
-[2026-09-05T21:51:04.455Z] [LOG] [EventBus] ⚠️ No subscribers found for event [EXPERIENCE_MUTATED]
-[2026-09-05T21:52:05.801Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 63s (EventID: evt_bk_rev_14908_1788645063014).
-[2026-09-05T21:52:05.802Z] [LOG] [OutboxPublisherWorker] 📦 Found 2 pending events to publish in outbox.
-[2026-09-05T21:52:05.802Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14908_1788645063014 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:52:05.803Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14908_1788645063014, CorrelationID: corr_14908)
-[2026-09-05T21:52:05.803Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:52:05.804Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:52:05.804Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:52:05.813Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 9ms.
-[2026-09-05T21:52:06.004Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] completed successfully in 200ms.
-[2026-09-05T21:52:06.005Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_PENDING_ADMIN_REVIEW]
-[2026-09-05T21:52:06.057Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_rev_14908_1788645063014 successfully marked as published.
-[2026-09-05T21:52:06.057Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_14912_1788645064176 (Type: BOOKING_PENDING_ADMIN_REVIEW)
-[2026-09-05T21:52:06.058Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_14912_1788645064176, CorrelationID: corr_14912)
-[2026-09-05T21:52:06.059Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
-[2026-09-05T21:52:06.059Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
-[2026-09-05T21:52:06.060Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
-[2026-09-05T21:52:06.066Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 6ms.
-[2026-09-05T21:52:06.109Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] completed successfully in 49ms.
-[2026-09-05T21:52:06.109Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_PENDING_ADMIN_REVIEW]
-[2026-09-05T21:52:06.128Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_rev_14912_1788645064176 successfully marked as published.
+--- Log session started at 2026-09-13T11:26:43.844Z ---
+[2026-09-13T11:26:45.163Z] [LOG] [OutboxPublisherWorker] 📊 Queue Health Metric: Oldest pending event age is 6215s (EventID: evt_bk_rev_15196_1789292590296).
+[2026-09-13T11:26:45.163Z] [LOG] [OutboxPublisherWorker] 📦 Found 2 pending events to publish in outbox.
+[2026-09-13T11:26:45.164Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_15196_1789292590296 (Type: BOOKING_PENDING_ADMIN_REVIEW)
+[2026-09-13T11:26:45.164Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_15196_1789292590296, CorrelationID: corr_15196)
+[2026-09-13T11:26:45.165Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
+[2026-09-13T11:26:45.165Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
+[2026-09-13T11:26:45.167Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
+[2026-09-13T11:26:45.198Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 32ms.
+[2026-09-13T11:26:45.330Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] completed successfully in 164ms.
+[2026-09-13T11:26:45.331Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_PENDING_ADMIN_REVIEW]
+[2026-09-13T11:26:45.386Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_rev_15196_1789292590296 successfully marked as published.
+[2026-09-13T11:26:45.387Z] [LOG] [OutboxPublisherWorker] ➡️ Processing outbox event evt_bk_rev_15202_1789292594192 (Type: BOOKING_PENDING_ADMIN_REVIEW)
+[2026-09-13T11:26:45.387Z] [LOG] [EventBus] 📢 Publishing event [BOOKING_PENDING_ADMIN_REVIEW] (EventID: evt_bk_rev_15202_1789292594192, CorrelationID: corr_15202)
+[2026-09-13T11:26:45.387Z] [LOG] [EventBus] Found 2 subscribers for [BOOKING_PENDING_ADMIN_REVIEW]: DashboardSubscriber.updateProjectionOnPendingAdminReview, NotificationSubscriber.enqueuePendingReviewNotifications
+[2026-09-13T11:26:45.388Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] (Timeout: 15000ms)...
+[2026-09-13T11:26:45.388Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Running subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] (Timeout: 15000ms)...
+[2026-09-13T11:26:45.392Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [DashboardSubscriber.updateProjectionOnPendingAdminReview] completed successfully in 5ms.
+[2026-09-13T11:26:45.441Z] [LOG] [EventBus] [BOOKING_PENDING_ADMIN_REVIEW] -> Subscriber [NotificationSubscriber.enqueuePendingReviewNotifications] completed successfully in 53ms.
+[2026-09-13T11:26:45.441Z] [LOG] [EventBus] 📢 Finished publishing event [BOOKING_PENDING_ADMIN_REVIEW]
+[2026-09-13T11:26:45.469Z] [LOG] [OutboxPublisherWorker] ✅ Event evt_bk_rev_15202_1789292594192 successfully marked as published.

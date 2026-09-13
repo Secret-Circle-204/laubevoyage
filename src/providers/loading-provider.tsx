@@ -37,7 +37,7 @@ export function LoadingProvider({ children, policy: customPolicy }: LoadingProvi
     [customPolicy]
   )
 
-  const orchestratorRef = useRef<LoadingOrchestrator>(new LoadingOrchestrator())
+  const [orchestrator] = useState<LoadingOrchestrator>(() => new LoadingOrchestrator())
   const isMountedRef = useRef<boolean>(true)
 
   // Timer references
@@ -100,7 +100,6 @@ export function LoadingProvider({ children, policy: customPolicy }: LoadingProvi
 
   const start = useCallback(
     (options: StartLoadingOptions = {}): string => {
-      const orchestrator = orchestratorRef.current
       const wasActive = orchestrator.getCount() > 0
       const op = orchestrator.registerOperation(options)
 
@@ -131,7 +130,7 @@ export function LoadingProvider({ children, policy: customPolicy }: LoadingProvi
         clearRevealTimer()
         revealTimerRef.current = setTimeout(() => {
           if (!isMountedRef.current) return
-          if (orchestratorRef.current.getCount() > 0) {
+          if (orchestrator.getCount() > 0) {
             revealedAtRef.current = Date.now()
             safeSetPhase('revealed')
 
@@ -139,7 +138,7 @@ export function LoadingProvider({ children, policy: customPolicy }: LoadingProvi
             clearProlongedTimer()
             prolongedTimerRef.current = setTimeout(() => {
               if (!isMountedRef.current) return
-              if (orchestratorRef.current.getCount() > 0) {
+              if (orchestrator.getCount() > 0) {
                 safeSetPhase('prolonged')
               }
             }, Math.max(0, policy.longOperationThresholdMs - policy.revealDelayMs))
@@ -157,6 +156,7 @@ export function LoadingProvider({ children, policy: customPolicy }: LoadingProvi
       clearProlongedTimer,
       clearRevealTimer,
       finalizeIdle,
+      orchestrator,
       policy.longOperationThresholdMs,
       policy.navigationSafetyDecayMs,
       policy.revealDelayMs,
@@ -166,7 +166,6 @@ export function LoadingProvider({ children, policy: customPolicy }: LoadingProvi
 
   const stop = useCallback(
     (idOrDedupeKey: string, generation?: number): void => {
-      const orchestrator = orchestratorRef.current
       clearDecayTimer(idOrDedupeKey)
 
       const removed = orchestrator.unregisterOperation(idOrDedupeKey, generation)
@@ -188,7 +187,7 @@ export function LoadingProvider({ children, policy: customPolicy }: LoadingProvi
             clearMinDurationTimer()
             minDurationTimerRef.current = setTimeout(() => {
               if (!isMountedRef.current) return
-              if (orchestratorRef.current.getCount() === 0) {
+              if (orchestrator.getCount() === 0) {
                 finalizeIdle()
               }
             }, remaining)
@@ -200,7 +199,7 @@ export function LoadingProvider({ children, policy: customPolicy }: LoadingProvi
         setStateVersion((v) => v + 1)
       }
     },
-    [clearDecayTimer, clearMinDurationTimer, finalizeIdle, policy.minVisibleDurationMs]
+    [clearDecayTimer, clearMinDurationTimer, finalizeIdle, orchestrator, policy.minVisibleDurationMs]
   )
 
   // Cleanup on unmount to prevent leaks and state updates
@@ -215,16 +214,16 @@ export function LoadingProvider({ children, policy: customPolicy }: LoadingProvi
       clearMinDurationTimer()
       currentDecayTimers.forEach((timer) => clearTimeout(timer))
       currentDecayTimers.clear()
-      orchestratorRef.current.clear()
+      orchestrator.clear()
     }
-  }, [clearMinDurationTimer, clearProlongedTimer, clearRevealTimer])
+  }, [clearMinDurationTimer, clearProlongedTimer, clearRevealTimer, orchestrator])
 
   // Derive aggregated state snapshot
   const state = useMemo<AggregatedLoadingState>(() => {
     // Reference stateVersion to ensure re-computation when version increments
     void stateVersion
-    return orchestratorRef.current.getSnapshot(phase)
-  }, [phase, stateVersion])
+    return orchestrator.getSnapshot(phase)
+  }, [orchestrator, phase, stateVersion])
 
   const contextValue = useMemo<LoadingContextValue>(
     () => ({
@@ -246,3 +245,8 @@ export function useGlobalLoading(): LoadingContextValue {
   }
   return context
 }
+
+export function useOptionalGlobalLoading(): LoadingContextValue | null {
+  return useContext(LoadingContext) ?? null
+}
+

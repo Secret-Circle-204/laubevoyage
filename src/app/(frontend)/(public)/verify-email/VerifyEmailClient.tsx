@@ -14,6 +14,47 @@ interface VerifyEmailClientProps {
 
 type StatusState = 'loading' | 'success' | 'already_verified' | 'failed'
 
+// SVG Icons
+function MailIcon({ className = 'w-8 h-8' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+    </svg>
+  )
+}
+
+function SpinnerIcon({ className = 'w-8 h-8' }: { className?: string }) {
+  return (
+    <svg className={`animate-spin ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+    </svg>
+  )
+}
+
+function CheckCircleIcon({ className = 'w-8 h-8' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  )
+}
+
+function InfoIcon({ className = 'w-8 h-8' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+    </svg>
+  )
+}
+
+function XCircleIcon({ className = 'w-8 h-8' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  )
+}
+
 export default function VerifyEmailClient({ token, email, welcomeBonus }: VerifyEmailClientProps) {
   const { addToast } = useToast()
   const [status, setStatus] = useState<StatusState>(token ? 'loading' : 'success')
@@ -76,24 +117,24 @@ export default function VerifyEmailClient({ token, email, welcomeBonus }: Verify
   // If no token, show the standard "Check your email" instruction page
   if (!token) {
     return (
-      <div className="py-20 bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center justify-center px-4">
-        <Card variant="flat" padding="lg" className="w-full max-w-md text-center shadow-xl border border-slate-200 dark:border-slate-800">
-          <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50 text-[#00aeef] flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
-            ✉️
+      <div className="py-20 bg-background min-h-screen flex items-center justify-center px-4">
+        <Card variant="flat" padding="lg" className="w-full max-w-md text-center shadow-xl border border-border">
+          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+            <MailIcon className="w-8 h-8" />
           </div>
 
           <Badge variant="primary" size="sm" className="mb-3">
             Account Verification
           </Badge>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
             Verify Your Email
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
             We sent a verification link to {email ? <strong>{email}</strong> : 'your email address'}. Please check your inbox and click the link to activate your traveler profile{hasBonus ? <> and claim your <strong>{welcomeBonus} Welcome Points</strong></> : '.'}
           </p>
 
-          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
-            <Link href="/login" className="text-sm font-bold text-[#2e3192] dark:text-[#00aeef] hover:underline">
+          <div className="mt-8 pt-6 border-t border-border">
+            <Link href="/login" className="text-sm font-bold text-primary hover:underline">
               ← Return to Sign In
             </Link>
           </div>
@@ -103,20 +144,20 @@ export default function VerifyEmailClient({ token, email, welcomeBonus }: Verify
   }
 
   return (
-    <div className="py-20 bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center justify-center px-4">
-      <Card variant="flat" padding="lg" className="w-full max-w-md text-center shadow-xl border border-slate-200 dark:border-slate-800">
+    <div className="py-20 bg-background min-h-screen flex items-center justify-center px-4">
+      <Card variant="flat" padding="lg" className="w-full max-w-md text-center shadow-xl border border-border">
         {status === 'loading' && (
           <>
-            <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50 text-[#00aeef] flex items-center justify-center mx-auto mb-4 text-3xl font-bold animate-pulse">
-              🔄
+            <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <SpinnerIcon className="w-8 h-8" />
             </div>
             <Badge variant="primary" size="sm" className="mb-3">
               Processing
             </Badge>
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
               Verifying Email
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
               We are verifying your email verification token with L&apos;Aube Voyage secure servers. Please do not close this window.
             </p>
           </>
@@ -124,16 +165,16 @@ export default function VerifyEmailClient({ token, email, welcomeBonus }: Verify
 
         {status === 'success' && (
           <>
-            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 text-green-500 flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
-              ✅
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+              <CheckCircleIcon className="w-8 h-8" />
             </div>
             <Badge variant="accent" size="sm" className="mb-3">
-              {hasBonus ? `🎉 ${welcomeBonus} Welcome Points Awarded` : '🎉 Account Activated'}
+              {hasBonus ? `${welcomeBonus} Welcome Points Awarded` : 'Account Activated'}
             </Badge>
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
               Email Verified!
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
               {hasBonus
                 ? `Your email is verified and your luxury traveler profile is now active. Your ${welcomeBonus} bonus loyalty points are available in your ledger.`
                 : 'Your email is verified and your luxury traveler profile is now active.'}
@@ -150,16 +191,16 @@ export default function VerifyEmailClient({ token, email, welcomeBonus }: Verify
 
         {status === 'already_verified' && (
           <>
-            <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-500 flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
-              ℹ️
+            <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+              <InfoIcon className="w-8 h-8" />
             </div>
             <Badge variant="secondary" size="sm" className="mb-3">
               Status Active
             </Badge>
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
               Already Verified
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
               Your email address is already verified. Your account is active and you are ready to sign in.
             </p>
             <div className="mt-8">
@@ -174,19 +215,19 @@ export default function VerifyEmailClient({ token, email, welcomeBonus }: Verify
 
         {status === 'failed' && (
           <>
-            <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 text-red-500 flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
-              ❌
+            <div className="w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto mb-4">
+              <XCircleIcon className="w-8 h-8" />
             </div>
             <Badge variant="error" size="sm" className="mb-3">
               Verification Failed
             </Badge>
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
               Invalid or Expired Link
             </h1>
-            <p className="text-sm text-red-500 dark:text-red-400 mt-2 leading-relaxed text-xs p-3 bg-red-50 dark:bg-red-950/20 rounded-md border border-red-100 dark:border-red-900/30 font-mono">
+            <p className="text-sm text-destructive mt-2 leading-relaxed text-xs p-3 bg-destructive/10 rounded-md border border-destructive/20 font-medium">
               {errorMessage}
             </p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-4 leading-relaxed">
+            <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
               Please check that you copied the complete URL, or try requesting a new verification email from the login page.
             </p>
             <div className="mt-8 space-y-3">

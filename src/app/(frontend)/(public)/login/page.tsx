@@ -11,7 +11,7 @@ import { getDomainServices } from '@/domains/factory'
 
 export const metadata: Metadata = {
   title: "Customer Sign In | L'Aube Voyage",
-  description: "Sign in to access your luxury travel bookings and loyalty ledger.",
+  description: 'Sign in to access your luxury travel bookings and loyalty ledger.',
 }
 
 export default async function LoginPage() {
@@ -35,7 +35,11 @@ export default async function LoginPage() {
 
   return (
     <div className="py-20 bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center justify-center px-4">
-      <Card variant="flat" padding="lg" className="w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-800">
+      <Card
+        variant="flat"
+        padding="lg"
+        className="w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-800"
+      >
         <div className="text-center mb-8">
           <Badge variant="primary" size="sm" className="mb-3">
             {customerPortal}
@@ -43,9 +47,7 @@ export default async function LoginPage() {
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             {welcomeBack}
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-            {signInSubtitle}
-          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{signInSubtitle}</p>
         </div>
 
         <Suspense fallback={<div className="text-center py-4">Loading login form...</div>}>
@@ -54,7 +56,10 @@ export default async function LoginPage() {
 
         <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
           {dontHaveAccount}{' '}
-          <Link href="/register" className="font-bold text-[#2e3192] dark:text-[#00aeef] hover:underline">
+          <Link
+            href="/register"
+            className="font-bold text-[#2e3192] dark:text-[#00aeef] hover:underline"
+          >
             {hasBonus ? `Register & Get ${welcomeBonus} Welcome Points` : createAccount}
           </Link>
         </div>

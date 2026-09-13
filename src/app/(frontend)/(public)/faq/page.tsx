@@ -8,7 +8,8 @@ export const dynamic = 'force-static'
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Frequently Asked Questions | L'Aube Voyage",
-    description: 'Find answers about bookings, luxury transfers, customized itineraries, and policies.',
+    description:
+      'Find answers about bookings, luxury transfers, customized itineraries, and policies.',
   }
 }
 

@@ -124,7 +124,7 @@ export class FaqLoader {
         }
       })
 
-      const categories = Array.from(new Set(items.map((i) => i.category).filter(Boolean)))
+      const categories = Array.from(new Set(items.map((i: any) => i.category).filter(Boolean)))
 
       return {
         categories,

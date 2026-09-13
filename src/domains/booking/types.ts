@@ -140,7 +140,7 @@ export interface CommercialSnapshotBreakdown {
   roomCount: number
   autoAdjusted?: boolean
   adjustmentMessage?: string
-  occupancySupplementsTotalEGP: number
+  accommodationTotalEGP: number
 
   children?: Array<{
     age: number
@@ -157,7 +157,18 @@ export interface CommercialSnapshotBreakdown {
     propertyName: string
     nights: number
     roomCategory?: string
-    supplementEGP: number
+    pricingUnit: 'per_stay' | 'per_night'
+    appliedRoomRates: Array<{
+      roomIndex: number
+      occupancy: 'single' | 'double' | 'triple' | 'quad'
+      pricingUnit: 'per_stay' | 'per_night'
+      nights: number
+      unitRateEGP: number
+      rateEGP: number
+      nightsMultiplier: number
+      totalRoomCostEGP: number
+    }>
+    stayAccommodationTotalEGP: number
   }>
 }
 

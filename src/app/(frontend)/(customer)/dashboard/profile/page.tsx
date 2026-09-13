@@ -21,7 +21,7 @@ export default async function Page() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Profile & Companion Travelers</h1>
+      <h1 className="text-3xl font-hornbill font-light text-foreground">Profile & Companion Travelers</h1>
 
       <ProfileFormClient initialData={initialData} />
     </div>

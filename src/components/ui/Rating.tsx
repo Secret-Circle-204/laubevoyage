@@ -28,7 +28,10 @@ export function Rating({
   }
 
   return (
-    <div className={`inline-flex items-center gap-1.5 ${className}`}>
+    <div
+      className={`inline-flex items-center gap-1.5 ${className}`}
+      {...(readOnly ? { role: 'img', 'aria-label': `Rating: ${value.toFixed(1)} out of ${max} stars` } : {})}
+    >
       <div className="flex items-center gap-0.5 text-amber-400">
         {Array.from({ length: max }).map((_, index) => {
           const filled = index + 1 <= Math.floor(value)
@@ -39,11 +42,13 @@ export function Rating({
               key={index}
               type="button"
               disabled={readOnly}
+              aria-label={readOnly ? undefined : `Rate ${index + 1} out of ${max} stars`}
+              tabIndex={readOnly ? -1 : 0}
               onClick={() => !readOnly && onChange?.(index + 1)}
               className={`${readOnly ? 'cursor-default' : 'cursor-pointer hover:scale-110'} transition-transform`}
             >
               <svg
-                className={`${sizeClasses[size]} ${filled || half ? 'fill-amber-400 text-amber-400' : 'fill-slate-200 text-slate-300 dark:fill-slate-700 dark:text-slate-700'}`}
+                className={`${sizeClasses[size]} ${filled || half ? 'fill-amber-400 text-amber-400' : 'fill-border text-border'}`}
                 viewBox="0 0 24 24"
               >
                 <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
@@ -53,12 +58,12 @@ export function Rating({
         })}
       </div>
 
-      <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 ml-0.5">
+      <span className="text-xs sm:text-sm font-semibold text-foreground ml-0.5">
         {value.toFixed(1)}
       </span>
 
       {reviewsCount !== undefined && (
-        <span className="text-xs text-slate-400 dark:text-slate-500">({reviewsCount})</span>
+        <span className="text-xs text-muted">({reviewsCount})</span>
       )}
     </div>
   )

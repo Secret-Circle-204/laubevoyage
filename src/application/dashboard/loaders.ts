@@ -36,13 +36,13 @@ export class CustomerPortalLoader {
       ).toLowerCase() as LoyaltyTier
 
       const navLinks = [
-        { label: localization.translateUiKey('layout.sidebar.overview', ctx), href: '/dashboard', icon: '📊' },
-        { label: localization.translateUiKey('layout.sidebar.myBookings', ctx), href: '/dashboard/bookings', icon: '🧳' },
-        { label: localization.translateUiKey('layout.sidebar.loyaltyRewards', ctx), href: '/dashboard/loyalty', icon: '👑' },
-        { label: localization.translateUiKey('layout.sidebar.profileCompanions', ctx), href: '/dashboard/profile', icon: '👤' },
-        { label: localization.translateUiKey('layout.sidebar.invoicesReceipts', ctx), href: '/dashboard/invoices', icon: '🧾' },
-        { label: localization.translateUiKey('layout.sidebar.notifications', ctx), href: '/dashboard/notifications', icon: '🔔' },
-        { label: localization.translateUiKey('layout.sidebar.settings', ctx), href: '/dashboard/settings', icon: '⚙️' },
+        { label: localization.translateUiKey('layout.sidebar.overview', ctx), href: '/dashboard', icon: 'overview' },
+        { label: localization.translateUiKey('layout.sidebar.myBookings', ctx), href: '/dashboard/bookings', icon: 'bookings' },
+        { label: localization.translateUiKey('layout.sidebar.loyaltyRewards', ctx), href: '/dashboard/loyalty', icon: 'loyalty' },
+        { label: localization.translateUiKey('layout.sidebar.profileCompanions', ctx), href: '/dashboard/profile', icon: 'profile' },
+        { label: localization.translateUiKey('layout.sidebar.invoicesReceipts', ctx), href: '/dashboard/invoices', icon: 'invoices' },
+        { label: localization.translateUiKey('layout.sidebar.notifications', ctx), href: '/dashboard/notifications', icon: 'notifications' },
+        { label: localization.translateUiKey('layout.sidebar.settings', ctx), href: '/dashboard/settings', icon: 'settings' },
       ]
 
       const tierSuffix = localization.translateUiKey('layout.sidebar.tierSuffix', ctx)

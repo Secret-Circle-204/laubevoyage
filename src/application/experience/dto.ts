@@ -7,10 +7,23 @@ export interface DestinationOptionDTO {
   cities: { id: number; name: string; slug: string; countryId: number; countryName: string }[]
 }
 
+export interface BudgetPresetOption {
+  egpValue: number
+  displayLabel: string
+}
+
+export interface BudgetPresetsDTO {
+  currencyCode: string
+  currencySymbol: string
+  minPresets: BudgetPresetOption[]
+  maxPresets: BudgetPresetOption[]
+}
+
 export interface ExperienceCatalogDTO {
   filters: ParsedExperienceSearchParams
   experiences: HomeFeaturedExperienceDTO[]
   destinations: DestinationOptionDTO
+  budgetPresets: BudgetPresetsDTO
   facets: {
     minPrice: number
     maxPrice: number
@@ -29,4 +42,5 @@ export interface ExperienceCatalogDTO {
     dailyTourLabel: string
   }
 }
+
 

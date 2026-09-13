@@ -15,6 +15,8 @@ export interface ItineraryDayDTO {
   dayNumber: number
   title: string
   description: string
+  location?: string
+  cityId?: number
   includedMeals?: string[]
 }
 
@@ -49,7 +51,7 @@ export interface DailyTourBookability {
 export interface FormattedCommercialBreakdown {
   adultBasePrice: ConvertedPrice
   adultsTotalPrice: ConvertedPrice
-  occupancySupplementsTotalPrice: ConvertedPrice
+  accommodationTotalPrice: ConvertedPrice
   childrenTotalPrice: ConvertedPrice
   children: Array<{
     age: number
@@ -58,14 +60,30 @@ export interface FormattedCommercialBreakdown {
     appliedPercentage: number
     price: ConvertedPrice
   }>
+  staysBreakdown?: Array<{
+    order: number
+    propertyName: string
+    nights: number
+    roomCategory?: string
+    pricingUnit: 'per_stay' | 'per_night'
+    stayAccommodationTotalPrice: ConvertedPrice
+    appliedRoomRates: Array<{
+      roomIndex: number
+      occupancy: 'single' | 'double' | 'triple' | 'quad'
+      pricingUnit: 'per_stay' | 'per_night'
+      nights: number
+      unitRatePrice: ConvertedPrice
+      totalRoomCostPrice: ConvertedPrice
+    }>
+  }>
 }
 
-export interface OccupancyOptionDTO {
+export interface RoomRateDTO {
   occupancy: 'single' | 'double' | 'triple' | 'quad'
   label: string
-  supplementEGP: number
-  supplementPrice?: ConvertedPrice
-  isDefault: boolean
+  rateEGP: number
+  ratePrice?: ConvertedPrice
+  enabled: boolean
 }
 
 export interface AccommodationStayDTO {
@@ -75,7 +93,8 @@ export interface AccommodationStayDTO {
   nights: number
   roomCategory?: string
   boardBasis?: string
-  occupancyOptions: OccupancyOptionDTO[]
+  pricingUnit: 'per_stay' | 'per_night'
+  roomRates: RoomRateDTO[]
 }
 
 export interface ChildPolicyDTO {
@@ -86,12 +105,21 @@ export interface ChildPolicyDTO {
   childExtraBedPrice?: ConvertedPrice
 }
 
+export interface DestinationStopDTO {
+  id: number
+  name: string
+  slug: string
+  countryName: string
+  countrySlug: string
+}
+
 export interface BaseExperienceDetailsDTO {
   id: number
   slug: string
   title: string
   subtitle: string
   location: string
+  destinations?: DestinationStopDTO[]
   destinationTimezone: string
   rating: number
   reviewsCount: number

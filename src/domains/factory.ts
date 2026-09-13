@@ -56,37 +56,37 @@ import { ReviewService } from './review/service'
 import { PayloadOutboxRepository } from './events/repositories/payload-outbox-repository'
 import { EventOutboxService } from './events/outbox'
 
-export type DomainServices = Awaited<ReturnType<typeof buildDomainServices>>
+export type DomainServices = ReturnType<typeof createPureDomainServices>
 
-let cachedDomainServicesPromise: Promise<DomainServices> | null = null
+let defaultPayloadPromise: Promise<any> | null = null
+let defaultContainerPromise: Promise<DomainServices> | null = null
+let defaultContainer: DomainServices | null = null
+
+/**
+ * Resolves the process-wide default Payload CMS instance lazily.
+ */
+export async function resolveDefaultPayload(): Promise<any> {
+  if (!defaultPayloadPromise) {
+    defaultPayloadPromise = getPayload({ config }).catch((err) => {
+      defaultPayloadPromise = null
+      throw err
+    })
+  }
+  return defaultPayloadPromise
+}
 
 /**
  * Domain Service Factory (Composition Root)
  * Pure Inversion of Control & Constructor Dependency Injection Container.
- * Singleton Memoized Container: Built exactly once per process lifecycle.
- * Instantiates Repositories with Payload and injects Repositories into Domain Services.
+ * 100% Synchronous, In-Memory Object Graph Instantiation.
+ * ZERO await, ZERO I/O, ZERO Network, ZERO Subscribers wiring, ZERO LISTEN.
  */
-export async function getDomainServices(providedPayload?: any): Promise<DomainServices> {
-  if (providedPayload && cachedDomainServicesPromise) {
-    const existing = await cachedDomainServicesPromise
-    if (existing && existing.payload !== providedPayload) {
-      cachedDomainServicesPromise = buildDomainServices(providedPayload)
-    }
-  } else if (!cachedDomainServicesPromise) {
-    cachedDomainServicesPromise = buildDomainServices(providedPayload)
-  }
-  return cachedDomainServicesPromise
-}
-
-async function buildDomainServices(providedPayload?: any) {
-  const payload = providedPayload || (await getPayload({ config }))
-
+export function createPureDomainServices(payload: any) {
   // 1. Instantiate Repositories & Providers
   const outboxRepository = new PayloadOutboxRepository(payload)
   EventOutboxService.getInstance(outboxRepository)
 
   const destinationRepository = new DestinationRepository(payload)
-  countryCatalogRegistry.setRepository(destinationRepository)
   const experienceRepository = new ExperienceRepository(payload)
   const contentRepository = new ContentRepository(payload)
   const bookingRepository = new BookingRepository(payload)
@@ -95,17 +95,13 @@ async function buildDomainServices(providedPayload?: any) {
   const dashboardRepository = new DashboardProjectionRepository(payload)
   const paymentRepository = new PaymentRepository(payload)
   const currencyRepository = new CurrencyRepository(payload)
-  rateRegistry.setRepository(currencyRepository)
-  catalogRegistry.setRepository(currencyRepository)
   const compositeRateProvider = new CompositeExchangeRateProvider()
   const systemRepository = new SystemRepository(payload)
-  systemSettingsRegistry.setRepository(systemRepository)
   const loyaltyRepository = new LoyaltyRepository(payload)
   const notificationRepository = new NotificationRepository(payload)
   const translationRepository = new TranslationRepository(payload)
   const maintenanceRepository = new MaintenanceRepository(payload)
   const languageRepository = new LanguageRepository(payload)
-
 
   // 2. Instantiate Base Services & Buses
   const translationService = new TranslationService(translationRepository)
@@ -132,7 +128,12 @@ async function buildDomainServices(providedPayload?: any) {
   const languageService = new LanguageService(languageRepository)
   const pricingPipeline = new PricingPipeline(serviceRateProvider, serviceSettingsProvider)
   const pricingFacade = new PricingFacade(pricingPipeline)
-  const localizationService = new LocalizationService(translationService, pricingFacade, undefined, languageService)
+  const localizationService = new LocalizationService(
+    translationService,
+    pricingFacade,
+    undefined,
+    languageService,
+  )
   const notificationService = new NotificationService(notificationRepository)
   const loyaltyService = new LoyaltyService(loyaltyRepository)
   const customerDeletionDependencyChecker = {
@@ -227,21 +228,7 @@ async function buildDomainServices(providedPayload?: any) {
   )
   const systemIntegrationService = new SystemIntegrationService(payload)
 
-  // 3. Wire Master Event Bus Subscribers (Composition Root Bootstrap)
-  await systemIntegrationService.bootstrapSystem({
-    customerService,
-    loyaltyService,
-    notificationService,
-  })
-
-  // 4. Start Distributed Cache Coordination (PostgreSQL LISTEN)
-  try {
-    const { CacheInvalidationCoordinator } = await import('./events/coordination/cache-coordinator')
-    const coordinator = CacheInvalidationCoordinator.getInstance(payload)
-    await coordinator.start()
-  } catch {}
-
-  // 5. Return Pure Injected Domain Services Container
+  // Pure Injected Domain Services Container (Zero Runtime Side-Effects)
   return {
     payload,
     system: systemIntegrationService,
@@ -266,3 +253,53 @@ async function buildDomainServices(providedPayload?: any) {
   }
 }
 
+/**
+ * Wires process-level singleton registries strictly to the default container repositories.
+ */
+function wireGlobalRegistries(container: DomainServices): void {
+  countryCatalogRegistry.setRepository(new DestinationRepository(container.payload))
+  const currencyRepo = new CurrencyRepository(container.payload)
+  rateRegistry.setRepository(currencyRepo)
+  catalogRegistry.setRepository(currencyRepo)
+  systemSettingsRegistry.setRepository(new SystemRepository(container.payload))
+}
+
+/**
+ * Domain Services Resolver (Single Entry Point)
+ * Thread-safe resolution with self-healing retry on failure.
+ * Completely immune to circular re-entrancy during cold boot.
+ */
+export async function getDomainServices(providedPayload?: any): Promise<DomainServices> {
+  // If an explicit payload instance is passed (e.g. onInit or an isolated test):
+  if (providedPayload) {
+    if (defaultContainer && defaultContainer.payload === providedPayload) {
+      return defaultContainer
+    }
+    // Instant synchronous in-memory resolution without awaiting any pending promise!
+    return createPureDomainServices(providedPayload)
+  }
+
+  // Global default singleton resolution
+  if (defaultContainer) {
+    return defaultContainer
+  }
+
+  if (!defaultContainerPromise) {
+    defaultContainerPromise = (async () => {
+      try {
+        const payload = await resolveDefaultPayload()
+        const container = createPureDomainServices(payload)
+        wireGlobalRegistries(container)
+        defaultContainer = container
+        return container
+      } catch (err) {
+        // Reset promises on error to allow future retry
+        defaultContainerPromise = null
+        defaultPayloadPromise = null
+        throw err
+      }
+    })()
+  }
+
+  return defaultContainerPromise
+}

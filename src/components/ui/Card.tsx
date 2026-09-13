@@ -17,10 +17,11 @@ export function Card({
   const baseClasses = 'rounded-2xl border transition-all duration-500 overflow-hidden'
 
   const variantClasses = {
-    flat: 'bg-white border-slate-200/80 dark:bg-[#1a1718] dark:border-white/10 text-slate-900 dark:text-slate-100',
-    elevated: 'bg-white border-slate-100 shadow-xl dark:bg-[#1a1718] dark:border-white/10 dark:shadow-2xl text-slate-900 dark:text-slate-100',
-    glass: 'bg-white/80 backdrop-blur-md border-white/20 shadow-xl dark:bg-[#1a1718]/80 dark:border-white/15 text-slate-900 dark:text-slate-100',
-    interactive: 'bg-white border-slate-200/80 hover-lift hover:shadow-2xl hover:border-[#00aeef]/50 cursor-pointer dark:bg-[#1a1718] dark:border-white/10 dark:hover:border-[#00aeef]/40 text-slate-900 dark:text-slate-100',
+    flat: 'bg-card border-border text-foreground',
+    elevated: 'bg-card border-border shadow-xl dark:shadow-2xl text-foreground',
+    glass: 'bg-card/80 backdrop-blur-md border-border/80 shadow-xl text-foreground',
+    interactive:
+      'bg-card border-border hover-lift hover:shadow-2xl hover:border-secondary/50 cursor-pointer dark:hover:border-secondary/40 text-foreground',
   }
 
   const paddingClasses = {

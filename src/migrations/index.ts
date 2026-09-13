@@ -38,7 +38,8 @@ import * as migration_20260901_160000_add_search_and_batch_indexes from './20260
 import * as migration_20260904_200000_drop_obsolete_customer_addresses from './20260904_200000_drop_obsolete_customer_addresses';
 import * as migration_20260904_210000_drop_customer_device_sessions from './20260904_210000_drop_customer_device_sessions';
 import * as migration_20260904_220000_add_booking_pickup_location from './20260904_220000_add_booking_pickup_location';
-
+import * as migration_20260911_154717_update_accommodations_room_rates from './20260911_154717_update_accommodations_room_rates';
+import * as migration_20260911_170000_drop_legacy_occupancy_options from './20260911_170000_drop_legacy_occupancy_options';
 
 export const migrations = [
   {
@@ -199,37 +200,37 @@ export const migrations = [
   {
     up: migration_20260818_152800_change_loyalty_seting.up,
     down: migration_20260818_152800_change_loyalty_seting.down,
-    name: '20260818_152800_change_loyalty_seting'
+    name: '20260818_152800_change_loyalty_seting',
   },
   {
     up: migration_20260819_140000_align_departure_slots_and_booking_relationships.up,
     down: migration_20260819_140000_align_departure_slots_and_booking_relationships.down,
-    name: '20260819_140000_align_departure_slots_and_booking_relationships'
+    name: '20260819_140000_align_departure_slots_and_booking_relationships',
   },
   {
     up: migration_20260819_160000_repair_maintenance_leases.up,
     down: migration_20260819_160000_repair_maintenance_leases.down,
-    name: '20260819_160000_repair_maintenance_leases'
+    name: '20260819_160000_repair_maintenance_leases',
   },
   {
     up: migration_20260822_120000_add_completion_at_and_duration_minutes.up,
     down: migration_20260822_120000_add_completion_at_and_duration_minutes.down,
-    name: '20260822_120000_add_completion_at_and_duration_minutes'
+    name: '20260822_120000_add_completion_at_and_duration_minutes',
   },
   {
     up: migration_20260822_140000_add_payment_window_expires_at.up,
     down: migration_20260822_140000_add_payment_window_expires_at.down,
-    name: '20260822_140000_add_payment_window_expires_at'
+    name: '20260822_140000_add_payment_window_expires_at',
   },
   {
     up: migration_20260901_160000_add_search_and_batch_indexes.up,
     down: migration_20260901_160000_add_search_and_batch_indexes.down,
-    name: '20260901_160000_add_search_and_batch_indexes'
+    name: '20260901_160000_add_search_and_batch_indexes',
   },
   {
     up: migration_20260904_200000_drop_obsolete_customer_addresses.up,
     down: migration_20260904_200000_drop_obsolete_customer_addresses.down,
-    name: '20260904_200000_drop_obsolete_customer_addresses'
+    name: '20260904_200000_drop_obsolete_customer_addresses',
   },
   {
     up: migration_20260904_210000_drop_customer_device_sessions.up,
@@ -241,5 +242,14 @@ export const migrations = [
     down: migration_20260904_220000_add_booking_pickup_location.down,
     name: '20260904_220000_add_booking_pickup_location',
   },
+  {
+    up: migration_20260911_154717_update_accommodations_room_rates.up,
+    down: migration_20260911_154717_update_accommodations_room_rates.down,
+    name: '20260911_154717_update_accommodations_room_rates'
+  },
+  {
+    up: migration_20260911_170000_drop_legacy_occupancy_options.up,
+    down: migration_20260911_170000_drop_legacy_occupancy_options.down,
+    name: '20260911_170000_drop_legacy_occupancy_options'
+  },
 ];
-

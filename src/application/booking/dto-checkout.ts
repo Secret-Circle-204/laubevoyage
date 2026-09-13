@@ -1,4 +1,5 @@
 import type { ConvertedPrice } from '@/domains/currency/types'
+import type { TravelerInput, BookingPickupLocation } from '@/domains/booking/types'
 
 export interface PaymentGatewayDTO {
   id: string
@@ -39,9 +40,12 @@ export interface CheckoutPageDTO {
     email: string
     phone: string
   }
+  initialTravelers?: TravelerInput[]
+  initialPickupLocation?: BookingPickupLocation | null
   destinationCityName?: string
   destinationCountryName?: string
 }
+
 
 
 

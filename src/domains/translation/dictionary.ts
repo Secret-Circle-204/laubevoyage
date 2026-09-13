@@ -17,7 +17,7 @@ import fiDict from '../../dictionaries/fi.json'
  * Allows future replacement with CDN, Redis, or Remote API without altering LocalizationService.
  */
 export interface ITranslationDictionary {
-  get(locale: string, key: string): string
+  get(locale: string, key: string, params?: Record<string, string | number>): string
 }
 
 const DICTIONARIES: Record<string, any> = {
@@ -56,16 +56,23 @@ export class JsonTranslationDictionary implements ITranslationDictionary {
     return this.getStrict(locale, key) !== undefined
   }
 
-  get(locale: string, key: string): string {
+  get(locale: string, key: string, params?: Record<string, string | number>): string {
     const normLocale = (locale || 'en').toLowerCase()
     const dict = DICTIONARIES[normLocale] || DICTIONARIES['en']
 
-    const value = this.getNestedValue(dict, key)
-    if (value) return value
+    let value = this.getNestedValue(dict, key)
+    if (!value) {
+      // Fallback to English dictionary if key missing in requested locale
+      value = this.getNestedValue(DICTIONARIES['en'], key) || key
+    }
 
-    // Fallback to English dictionary if key missing in requested locale
-    const fallbackValue = this.getNestedValue(DICTIONARIES['en'], key)
-    return fallbackValue || key
+    if (params && typeof value === 'string') {
+      Object.entries(params).forEach(([paramKey, paramVal]) => {
+        value = (value as string).replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramVal))
+      })
+    }
+
+    return value
   }
 
   private getNestedValue(obj: any, path: string): string | undefined {

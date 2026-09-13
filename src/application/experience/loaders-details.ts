@@ -26,34 +26,113 @@ export class ExperienceDetailsLoader {
 
     const rawTitle = exp.title
 
-    // Resolve authoritative City & Country from Destination Domain
-    let locationText = ''
-    if (exp.cityId) {
-      const cityDoc = (await destination.getCityById(exp.cityId)) as Record<string, any> | null
-      if (cityDoc) {
-        const cityName = String(cityDoc.name || '')
+    // Resolve authoritative Origin & Destination Stops from Destination Domain
+    const allCityIdsToFetch = Array.from(
+      new Set(
+        [
+          exp.cityId,
+          ...(exp.destinations || []),
+          ...(exp.itinerary || []).map((d) => d.cityId).filter((id): id is number => typeof id === 'number' && id > 0),
+        ].filter((id): id is number => typeof id === 'number' && id > 0),
+      ),
+    )
+
+    const cityDocsMap = new Map<number, { id: number; name: string; slug: string; countryId: number; countryName: string; countrySlug: string }>()
+    if (allCityIdsToFetch.length > 0) {
+      const rawCityDocs = await destination.getCitiesByIds(allCityIdsToFetch)
+      for (const c of rawCityDocs) {
+        const cId = Number(c.id)
+        const cName = String(c.name || '')
+        const cSlug = String(c.slug || '')
+        let countryId = 0
         let countryName = ''
-        if (cityDoc.country && typeof cityDoc.country === 'object' && cityDoc.country.name) {
-          countryName = String(cityDoc.country.name)
-        } else if (cityDoc.country) {
-          const countryDoc = (await destination.getCountryById(Number(cityDoc.country))) as Record<string, any> | null
-          if (countryDoc) countryName = String(countryDoc.name || '')
+        let countrySlug = ''
+        if (c.country && typeof c.country === 'object') {
+          countryId = Number(c.country.id)
+          countryName = String(c.country.name || '')
+          countrySlug = String(c.country.slug || '')
+        } else if (c.country) {
+          countryId = Number(c.country)
+          const cCountryDoc = (await destination.getCountryById(countryId)) as Record<string, any> | null
+          if (cCountryDoc) {
+            countryName = String(cCountryDoc.name || '')
+            countrySlug = String(cCountryDoc.slug || '')
+          }
         }
-        locationText = cityName && countryName ? `${cityName}, ${countryName}` : (cityName || countryName)
+        cityDocsMap.set(cId, { id: cId, name: cName, slug: cSlug, countryId, countryName, countrySlug })
+      }
+    }
+
+    // Build ordered destination stops list (Origin City + additional destinations)
+    const orderedCityIds = Array.from(
+      new Set([exp.cityId, ...(exp.destinations || [])].filter((id): id is number => typeof id === 'number' && id > 0)),
+    )
+    const destinationStops = orderedCityIds
+      .map((id) => cityDocsMap.get(id))
+      .filter((s): s is NonNullable<typeof s> => s !== undefined)
+
+    const originCity = cityDocsMap.get(exp.cityId)
+
+    // Collect all raw names for translation batch
+    const textsToTranslate: string[] = [rawTitle]
+    for (const stop of destinationStops) {
+      textsToTranslate.push(stop.name)
+      if (stop.countryName) textsToTranslate.push(stop.countryName)
+    }
+
+    // Dynamic translations for itinerary days
+    const rawDays = exp.itinerary || []
+    for (const day of rawDays) {
+      textsToTranslate.push(day.title)
+      textsToTranslate.push(day.description)
+    }
+
+    // Dynamic translations for services
+    const rawIncluded = exp.included || []
+    const rawExcluded = exp.excluded || []
+    const servicesToTranslate = [...rawIncluded, ...rawExcluded]
+    textsToTranslate.push(...servicesToTranslate)
+
+    const translatedBatch = await localization.translateBatch(textsToTranslate, ctx)
+    let batchIdx = 0
+
+    const translatedTitle = translatedBatch[batchIdx++] || rawTitle
+
+    // Map translated destination stops
+    const translatedStops = destinationStops.map((stop) => {
+      const translatedCityName = translatedBatch[batchIdx++] || stop.name
+      const translatedCountryName = stop.countryName ? (translatedBatch[batchIdx++] || stop.countryName) : ''
+      return {
+        id: stop.id,
+        name: translatedCityName,
+        slug: stop.slug,
+        countryName: translatedCountryName,
+        countrySlug: stop.countrySlug,
+      }
+    })
+
+    // Compute canonical location string
+    let locationText = ''
+    if (translatedStops.length === 0) {
+      locationText = ''
+    } else if (translatedStops.length === 1) {
+      const single = translatedStops[0]
+      locationText = single.countryName ? `${single.name}, ${single.countryName}` : single.name
+    } else {
+      // Check if all stops belong to the same country
+      const distinctCountries = Array.from(new Set(translatedStops.map((s) => s.countryName).filter(Boolean)))
+      if (distinctCountries.length <= 1) {
+        const cityNames = translatedStops.map((s) => s.name).join(' • ')
+        locationText = distinctCountries[0] ? `${cityNames}, ${distinctCountries[0]}` : cityNames
+      } else {
+        // Multi-country: "City (Country) • City (Country)"
+        locationText = translatedStops
+          .map((s) => (s.countryName ? `${s.name} (${s.countryName})` : s.name))
+          .join(' • ')
       }
     }
 
     const adultsCount = typeof options?.adults === 'number' && options.adults >= 1 ? options.adults : 2
-
-    const textsToTranslate: string[] = [rawTitle]
-    if (locationText) {
-      textsToTranslate.push(locationText)
-    }
-
-    const translatedBatch = await localization.translateBatch(textsToTranslate, ctx)
-    const translatedTitle = translatedBatch[0] || rawTitle
-    const translatedLocation = locationText ? (translatedBatch[1] || locationText) : ''
-
     const destinationTimezone = await experience.getDestinationTimezone(exp.id)
     const todayStr = getBusinessDateString(destinationTimezone)
 
@@ -66,37 +145,26 @@ export class ExperienceDetailsLoader {
       ? await localization.translateBatch([rawDescription], ctx)
       : [rawDescription]
 
-    // Dynamic translations for itinerary days
-    const rawDays = exp.itinerary || []
-    const dayTextsToTranslate: string[] = []
-    for (const day of rawDays) {
-      dayTextsToTranslate.push(day.title)
-      dayTextsToTranslate.push(day.description)
-    }
-    
-    const translatedDayTexts = dayTextsToTranslate.length > 0 
-      ? await localization.translateBatch(dayTextsToTranslate, ctx) 
-      : []
-
-    const itinerary: ItineraryDayDTO[] = rawDays.map((day, idx) => {
-      const titleIndex = idx * 2
-      const descIndex = idx * 2 + 1
+    const itinerary: ItineraryDayDTO[] = rawDays.map((day) => {
+      const dayTitle = translatedBatch[batchIdx++] || day.title
+      const dayDesc = translatedBatch[batchIdx++] || day.description
+      let dayLocation: string | undefined = undefined
+      if (day.cityId && cityDocsMap.has(day.cityId)) {
+        const dayCityDoc = cityDocsMap.get(day.cityId)!
+        const translatedMatch = translatedStops.find((s) => s.id === day.cityId)
+        dayLocation = translatedMatch ? translatedMatch.name : dayCityDoc.name
+      }
       return {
         dayNumber: day.dayNumber,
-        title: translatedDayTexts[titleIndex] || day.title,
-        description: translatedDayTexts[descIndex] || day.description,
+        title: dayTitle,
+        description: dayDesc,
+        cityId: day.cityId,
+        location: dayLocation,
       }
     })
 
-    // Dynamic translations for services
-    const rawIncluded = exp.included || []
-    const rawExcluded = exp.excluded || []
-    const servicesToTranslate = [...rawIncluded, ...rawExcluded]
-    const translatedServices = servicesToTranslate.length > 0
-      ? await localization.translateBatch(servicesToTranslate, ctx)
-      : []
-    const includedServices = translatedServices.slice(0, rawIncluded.length)
-    const excludedServices = translatedServices.slice(rawIncluded.length)
+    const includedServices = rawIncluded.map(() => translatedBatch[batchIdx++] || '')
+    const excludedServices = rawExcluded.map(() => translatedBatch[batchIdx++] || '')
 
     const images: string[] = Array.isArray(exp.gallery) && exp.gallery.length > 0
       ? exp.gallery
@@ -107,7 +175,8 @@ export class ExperienceDetailsLoader {
       slug: exp.slug,
       title: translatedTitle,
       subtitle: translatedTitle,
-      location: translatedLocation,
+      location: locationText,
+      destinations: translatedStops,
       destinationTimezone,
       rating: (exp as any).rating ?? 0,
       reviewsCount: (exp as any).reviewsCount ?? 0,
@@ -242,15 +311,18 @@ export class ExperienceDetailsLoader {
                 nights: stay.nights,
                 roomCategory: stay.roomCategory || undefined,
                 boardBasis: stay.boardBasis || undefined,
-                occupancyOptions: await Promise.all(
-                  (stay.occupancyOptions || []).map(async (opt: any) => ({
-                    occupancy: opt.occupancy,
-                    label: OCCUPANCY_KEY_MAP[opt.occupancy]
-                      ? localization.translateUiKey(OCCUPANCY_KEY_MAP[opt.occupancy], ctx)
-                      : opt.occupancy,
-                    supplementEGP: opt.supplementEGP || 0,
-                    supplementPrice: await localization.formatPrice(opt.supplementEGP || 0, ctx),
-                    isDefault: opt.isDefault || false,
+                pricingUnit: (stay.pricingUnit === 'per_night' ? 'per_night' : 'per_stay') as
+                  | 'per_stay'
+                  | 'per_night',
+                roomRates: await Promise.all(
+                  (stay.roomRates || []).map(async (rateObj: any) => ({
+                    occupancy: rateObj.occupancy,
+                    label: OCCUPANCY_KEY_MAP[rateObj.occupancy]
+                      ? localization.translateUiKey(OCCUPANCY_KEY_MAP[rateObj.occupancy], ctx)
+                      : rateObj.occupancy,
+                    rateEGP: Number(rateObj.rateEGP || 0),
+                    ratePrice: await localization.formatPrice(Number(rateObj.rateEGP || 0), ctx),
+                    enabled: rateObj.enabled !== false,
                   })),
                 ),
               })),
@@ -368,15 +440,18 @@ export class ExperienceDetailsLoader {
                 nights: stay.nights,
                 roomCategory: stay.roomCategory || undefined,
                 boardBasis: stay.boardBasis || undefined,
-                occupancyOptions: await Promise.all(
-                  (stay.occupancyOptions || []).map(async (opt: any) => ({
-                    occupancy: opt.occupancy,
-                    label: OCCUPANCY_KEY_MAP[opt.occupancy]
-                      ? localization.translateUiKey(OCCUPANCY_KEY_MAP[opt.occupancy], ctx)
-                      : opt.occupancy,
-                    supplementEGP: opt.supplementEGP || 0,
-                    supplementPrice: await localization.formatPrice(opt.supplementEGP || 0, ctx),
-                    isDefault: opt.isDefault || false,
+                pricingUnit: (stay.pricingUnit === 'per_night' ? 'per_night' : 'per_stay') as
+                  | 'per_stay'
+                  | 'per_night',
+                roomRates: await Promise.all(
+                  (stay.roomRates || []).map(async (rateObj: any) => ({
+                    occupancy: rateObj.occupancy,
+                    label: OCCUPANCY_KEY_MAP[rateObj.occupancy]
+                      ? localization.translateUiKey(OCCUPANCY_KEY_MAP[rateObj.occupancy], ctx)
+                      : rateObj.occupancy,
+                    rateEGP: Number(rateObj.rateEGP || 0),
+                    ratePrice: await localization.formatPrice(Number(rateObj.rateEGP || 0), ctx),
+                    enabled: rateObj.enabled !== false,
                   })),
                 ),
               })),

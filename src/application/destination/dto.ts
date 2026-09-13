@@ -24,6 +24,14 @@ export interface CityDTO {
 export interface DestinationsCatalogDTO {
   countries: CountryDTO[]
   cities: CityDTO[]
+  countriesPagination: {
+    page: number
+    limit: number
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
   pagination: {
     page: number
     limit: number

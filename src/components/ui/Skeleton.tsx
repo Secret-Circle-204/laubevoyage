@@ -5,7 +5,7 @@ import React from 'react'
 export function Skeleton({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse bg-slate-200 dark:bg-slate-800 rounded-lg ${className}`}
+      className={`animate-pulse bg-border/60 dark:bg-border/30 rounded-lg ${className}`}
     />
   )
 }
@@ -19,7 +19,7 @@ export function Spinner({ className = '', size = 'md' }: { className?: string; s
 
   return (
     <div
-      className={`inline-block animate-spin rounded-full border-current border-t-transparent text-[#2e3192] dark:text-[#00aeef] ${sizeClasses[size]} ${className}`}
+      className={`inline-block animate-spin rounded-full border-current border-t-transparent text-primary dark:text-secondary ${sizeClasses[size]} ${className}`}
       role="status"
     >
       <span className="sr-only">Loading...</span>

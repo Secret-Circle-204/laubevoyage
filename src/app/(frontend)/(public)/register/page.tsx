@@ -37,7 +37,7 @@ export default async function RegisterPage() {
       <Card variant="flat" padding="lg" className="w-full max-w-md shadow-xl border border-slate-200 dark:border-slate-800">
         <div className="text-center mb-8">
           <Badge variant="accent" size="sm" className="mb-3">
-            {hasBonus ? `🎁 ${welcomeBonus} Points Welcome Bonus` : 'Traveler Portal'}
+            {hasBonus ? `${welcomeBonus} Points Welcome Bonus` : 'Traveler Portal'}
           </Badge>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             {createAccountTitle}

@@ -14,12 +14,16 @@ export class DestinationRepository {
     this.payload = payload
   }
 
-  async findCountries(_options?: DestinationQueryOptions) {
+  async findCountries(options?: DestinationQueryOptions) {
+    const page = options?.page ?? 1
+    const limit = options?.limit ?? 10
     return this.payload.find({
       collection: 'countries',
       where: {
         isActive: { equals: true },
       },
+      page,
+      limit,
       sort: 'name',
     })
   }
@@ -238,7 +242,15 @@ export class DestinationRepository {
     return this.payload.find({
       collection: 'experiences',
       where: {
-        and: [{ city: { equals: cityId } }, { isActive: { equals: true } }],
+        and: [
+          {
+            or: [
+              { city: { equals: cityId } },
+              { destinations: { in: [cityId] } },
+            ],
+          },
+          { isActive: { equals: true } },
+        ],
       },
       page,
       limit,
@@ -252,6 +264,7 @@ export class DestinationRepository {
         isActive: { equals: true },
       },
       limit,
+      depth: 2,
       sort: '-createdAt',
     })
 

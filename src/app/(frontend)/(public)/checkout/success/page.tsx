@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 export default async function CheckoutSuccessPage(props: {
-  searchParams: Promise<{ tx?: string; bookingNumber?: string; [key: string]: any }>
+  searchParams: Promise<{ tx?: string; bookingNumber?: string; [key: string]: string | string[] | undefined }>
 }) {
   const searchParams = await props.searchParams
 

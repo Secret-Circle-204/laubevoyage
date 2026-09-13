@@ -21,17 +21,28 @@ export const Experiences: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data }) => {
-        if (data && data.type === 'daily_tour') {
-          if (Array.isArray((data as any).accommodations) && (data as any).accommodations.length > 0) {
-            throw new Error('[Experiences] Daily Tours cannot contain accommodation stays.')
+        if (data) {
+          // Domain Invariant: Duplicate Origin Protection
+          if (data.city && Array.isArray(data.destinations) && data.destinations.length > 0) {
+            const originId = typeof data.city === 'object' ? Number((data.city as any).id) : Number(data.city)
+            const destIds = data.destinations.map((d: any) => (typeof d === 'object' ? Number(d.id) : Number(d)))
+            if (destIds.includes(originId)) {
+              throw new Error(`[Experiences Validation] Origin city (#${originId}) cannot be included in subsequent destinations list. Destinations represent cities visited AFTER departing the Origin.`)
+            }
           }
-          if (data.duration) {
-            delete (data.duration as any).days
-            delete (data.duration as any).nights
-          }
-        } else if (data && data.type === 'package') {
-          if (data.duration) {
-            delete (data.duration as any).durationMinutes
+
+          if (data.type === 'daily_tour') {
+            if (Array.isArray((data as any).accommodations) && (data as any).accommodations.length > 0) {
+              throw new Error('[Experiences] Daily Tours cannot contain accommodation stays.')
+            }
+            if (data.duration) {
+              delete (data.duration as any).days
+              delete (data.duration as any).nights
+            }
+          } else if (data.type === 'package') {
+            if (data.duration) {
+              delete (data.duration as any).durationMinutes
+            }
           }
         }
         return data
@@ -141,6 +152,27 @@ export const Experiences: CollectionConfig = {
       required: true,
       admin: {
         position: 'sidebar',
+        description: 'Origin / Departure Gateway City (where the journey officially commences and initial meeting occurs).',
+      },
+    },
+    {
+      name: 'destinations',
+      type: 'relationship',
+      relationTo: 'cities',
+      hasMany: true,
+      validate: (val: unknown, { data }: { data: Partial<Experience> }) => {
+        if (Array.isArray(val) && val.length > 0 && data?.city) {
+          const originId = typeof data.city === 'object' ? Number((data.city as any).id) : Number(data.city)
+          const destIds = val.map((d: any) => (typeof d === 'object' ? Number(d.id) : Number(d)))
+          if (destIds.includes(originId)) {
+            return 'Origin city cannot be included in subsequent destinations list. Destinations represent cities visited AFTER departing from the Origin.'
+          }
+        }
+        return true
+      },
+      admin: {
+        position: 'sidebar',
+        description: 'Ordered Post-Origin Destinations (all sequential cities visited AFTER departing from the Origin city). Do NOT re-add the Origin city.',
       },
     },
     {
@@ -240,7 +272,8 @@ export const Experiences: CollectionConfig = {
         return true
       },
       admin: {
-        description: 'Base default price in EGP. Required for Daily Tours; optional for Packages with Departure Slots.',
+        description:
+          'Base Journey Price per Adult in EGP — Excluding Accommodation (covers touring, private transport, expert guiding, and included provisions).',
       },
     },
     {
@@ -293,6 +326,14 @@ export const Experiences: CollectionConfig = {
           name: 'title',
           type: 'text',
           required: true,
+        },
+        {
+          name: 'city',
+          type: 'relationship',
+          relationTo: 'cities',
+          admin: {
+            description: 'Geographical city waypoint for this specific day (optional).',
+          },
         },
         {
           name: 'description',
@@ -354,12 +395,25 @@ export const Experiences: CollectionConfig = {
           ],
         },
         {
-          name: 'occupancyOptions',
+          name: 'pricingUnit',
+          type: 'select',
+          required: true,
+          defaultValue: 'per_stay',
+          options: [
+            { label: 'Per Stay (Fixed room rate for the entire stay duration)', value: 'per_stay' },
+            { label: 'Per Night (Room rate multiplied by stay nights)', value: 'per_night' },
+          ],
+          admin: {
+            description: 'Commercial pricing calculation unit for room rates in this stay.',
+          },
+        },
+        {
+          name: 'roomRates',
           type: 'array',
           required: true,
           minRows: 1,
           admin: {
-            description: 'Available occupancy configurations and supplements for this stay.',
+            description: 'Explicit commercial room rates and availability flags per occupancy type for this stay.',
           },
           fields: [
             {
@@ -367,28 +421,27 @@ export const Experiences: CollectionConfig = {
               type: 'select',
               required: true,
               options: [
-                { label: 'Single Occupancy', value: 'single' },
-                { label: 'Double Occupancy', value: 'double' },
-                { label: 'Triple Occupancy', value: 'triple' },
-                { label: 'Quad Occupancy', value: 'quad' },
+                { label: 'Single Occupancy (1 Guest)', value: 'single' },
+                { label: 'Double Occupancy (2 Guests)', value: 'double' },
+                { label: 'Triple Occupancy (3 Guests)', value: 'triple' },
+                { label: 'Quad Occupancy (4 Guests)', value: 'quad' },
               ],
             },
             {
-              name: 'supplementEGP',
+              name: 'rateEGP',
               type: 'number',
               required: true,
               min: 0,
-              defaultValue: 0,
               admin: {
-                description: 'Price adjustment in EGP relative to standard Double Occupancy base.',
+                description: 'Commercial room price in EGP for this stay (or per night if pricingUnit is per_night). Set 0 only if complimentary/bundled.',
               },
             },
             {
-              name: 'isDefault',
+              name: 'enabled',
               type: 'checkbox',
-              defaultValue: false,
+              defaultValue: true,
               admin: {
-                description: 'Set to true for the standard default occupancy (exactly one default required).',
+                description: 'Enable to offer this occupancy type for booking. Uncheck to disable and prevent reservation.',
               },
             },
           ],

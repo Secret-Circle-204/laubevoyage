@@ -101,6 +101,72 @@ export class CheckoutPageLoader {
           }
         }
 
+        let startTime: string | undefined = options?.startTime
+
+        if (!startTime && bookingDoc.departureSlot) {
+          const slotDoc = await experience.getDepartureSlotById(bookingDoc.departureSlot, expDoc.id)
+          if (slotDoc?.startTime) {
+            startTime = slotDoc.startTime
+          }
+        }
+
+        if (!startTime && expDoc.type === 'daily_tour' && bookingDoc.completionAt && expDoc.durationMinutes) {
+          try {
+            const tz = bookingDoc.destinationTimezone || 'Africa/Cairo'
+            const completionDate = new Date(bookingDoc.completionAt)
+            const formatter = new Intl.DateTimeFormat('en-US', {
+              timeZone: tz,
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })
+            const parts = formatter.formatToParts(completionDate)
+            const hStr = parts.find((p) => p.type === 'hour')?.value || '0'
+            const mStr = parts.find((p) => p.type === 'minute')?.value || '0'
+            let h = Number(hStr)
+            if (h === 24) h = 0
+            const m = Number(mStr)
+            const endMinutes = h * 60 + m
+            let startMinutes = endMinutes - expDoc.durationMinutes
+            if (startMinutes < 0) {
+              startMinutes = ((startMinutes % 1440) + 1440) % 1440
+            }
+            const startHour = Math.floor(startMinutes / 60)
+            const startMin = startMinutes % 60
+            startTime = `${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`
+          } catch (err) {
+            console.error('[CheckoutPageLoader] Failed to resolve startTime from completionAt:', err)
+          }
+        }
+
+        if (!startTime && expDoc.schedules && expDoc.schedules.length === 1) {
+          startTime = expDoc.schedules[0].startTime
+        }
+
+        const initialTravelers = travelers.length > 0
+          ? travelers.map((t) => ({
+              firstName: t.firstName || '',
+              lastName: t.lastName || '',
+              email: t.email || '',
+              phone: t.phone || '',
+              dateOfBirth: t.dateOfBirth || '',
+              passportNumber: t.passportNumber || '',
+              nationality: t.nationality || '',
+              type: (t.type || 'adult') as 'adult' | 'child' | 'infant',
+            }))
+          : undefined
+
+        const initialPickupLocation = bookingDoc.pickupLocation
+          ? {
+              label: bookingDoc.pickupLocation.label || '',
+              address: bookingDoc.pickupLocation.address || '',
+              latitude: bookingDoc.pickupLocation.latitude || 0,
+              longitude: bookingDoc.pickupLocation.longitude || 0,
+              instructions: bookingDoc.pickupLocation.instructions || undefined,
+              source: bookingDoc.pickupLocation.source as any,
+            }
+          : undefined
+
         return {
           bookingId: bookingDoc.bookingNumber,
           experienceId: expDoc.id,
@@ -109,6 +175,7 @@ export class CheckoutPageLoader {
           experienceType: expDoc.type === 'daily_tour' ? 'daily_tour' : 'package',
           imageUrl,
           departureDate: bookingDoc.startDate,
+          startTime,
           adultsCount,
           childrenCount,
           basePricePerPersonEGP: snapshot.basePriceEGP,
@@ -123,6 +190,8 @@ export class CheckoutPageLoader {
           loyaltyDiscountPrice,
           gateways,
           leadTraveler,
+          initialTravelers,
+          initialPickupLocation,
           destinationCityName,
           destinationCountryName,
         }

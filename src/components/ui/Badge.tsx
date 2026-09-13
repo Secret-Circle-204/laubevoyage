@@ -17,13 +17,13 @@ export function Badge({
   const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-full select-none'
 
   const variantClasses = {
-    primary: 'bg-[#2e3192]/10 text-[#2e3192] dark:bg-[#2e3192]/30 dark:text-indigo-300',
-    secondary: 'bg-[#00aeef]/10 text-[#00aeef] dark:bg-[#00aeef]/30 dark:text-cyan-300',
-    accent: 'bg-[#f58220]/10 text-[#f58220] dark:bg-[#f58220]/30 dark:text-amber-300',
-    success: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400',
-    warning: 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400',
-    error: 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400',
-    outline: 'border border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-300',
+    primary: 'bg-primary/10 text-primary dark:bg-primary/30 dark:text-secondary',
+    secondary: 'bg-secondary/10 text-secondary dark:bg-secondary/30 dark:text-secondary',
+    accent: 'bg-accent/10 text-accent dark:bg-accent/30 dark:text-accent',
+    success: 'bg-secondary/10 text-secondary border border-secondary/20 dark:bg-secondary/20 dark:text-secondary',
+    warning: 'bg-accent/10 text-accent border border-accent/20 dark:bg-accent/20 dark:text-accent',
+    error: 'bg-accent/10 text-accent border border-accent/30 dark:bg-accent/20 dark:text-accent',
+    outline: 'border border-border text-foreground',
     glass: 'bg-white/20 backdrop-blur-md border border-white/30 text-white shadow-sm',
   }
 

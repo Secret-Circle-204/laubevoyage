@@ -96,6 +96,38 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
           return
         }
 
+        // Status Guard: Booking is in PENDING_ADMIN_REVIEW (Customer switched to BNPL review flow)
+        if (currentBooking.status === BookingStatus.PENDING_ADMIN_REVIEW) {
+          console.warn(`[BookingPaymentSubscriber] Stale Settlement Warning: Received payment for Booking #${bookingId} currently in PENDING_ADMIN_REVIEW (Customer switched to BNPL). Recording payment attempt without altering BNPL review lifecycle.`);
+          
+          const paymentAttempt = {
+            attemptId: event.attemptId || `pay_att_${event.transactionId}`,
+            attemptNumber: (currentBooking.paymentAttempts?.length || 0) + 1,
+            provider: event.provider as any,
+            amount: event.amount,
+            currency: event.currency,
+            status: 'successful' as const,
+            transactionReference: (event.gatewayReference || event.transactionId) as string,
+            timestamp: event.occurredAt || new Date().toISOString(),
+          }
+
+          const updatedAttempts = [...(currentBooking.paymentAttempts || []), paymentAttempt]
+          const metadata = currentBooking.metadata || {}
+          metadata.stalePaymentReceivedOnAdminReview = true
+          metadata.reconciliationNotes = 'stripe_payment_received_after_bnpl_switch'
+
+          await booking.update(Number(bookingId), {
+            paymentAttempts: updatedAttempts,
+            metadata,
+          }, context)
+
+          if (transactionID) {
+            await payload.db.commitTransaction(transactionID)
+            console.log(`[BookingPaymentSubscriber] ✅ Transaction committed successfully for PENDING_ADMIN_REVIEW Booking #${bookingId} (Recorded stale Stripe settlement).`);
+          }
+          return
+        }
+
         const paymentAttempt = {
           attemptId: event.attemptId || `pay_att_${event.transactionId}`,
           attemptNumber: (currentBooking.paymentAttempts?.length || 0) + 1,

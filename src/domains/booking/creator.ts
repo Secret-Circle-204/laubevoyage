@@ -212,7 +212,7 @@ export class BookingCreator {
         const totalBasePriceEGP =
           params.commercialBreakdown?.adultsTotalEGP !== undefined
             ? params.commercialBreakdown.adultsTotalEGP +
-              (params.commercialBreakdown.occupancySupplementsTotalEGP || 0) +
+              (params.commercialBreakdown.accommodationTotalEGP || 0) +
               (params.commercialBreakdown.childrenTotalEGP || 0)
             : departure.effectiveBasePrice * params.travelers.length
 
@@ -314,7 +314,7 @@ export class BookingCreator {
       timeline,
       auditTrail,
       documents: {},
-      pickupLocation: params.pickupLocation || null,
+      pickupLocation: params.pickupLocation || undefined,
       idempotencyKey: params.idempotencyKey,
     }
 

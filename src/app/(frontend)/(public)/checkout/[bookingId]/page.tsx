@@ -19,7 +19,7 @@ import { SessionResolver } from '@/application/auth/session-resolver'
 
 export default async function Page(props: {
   params: Promise<{ bookingId: string }>
-  searchParams: Promise<{ experienceId?: string; adults?: string; [key: string]: any }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const params = await props.params
   const searchParams = await props.searchParams

@@ -4,9 +4,16 @@ import type { DestinationQueryOptions } from '@/domains/destination/types'
 import type { DestinationsCatalogDTO, CountryDetailsDTO, CityExperiencesDTO } from './dto'
 import { serializeLexicalToText } from '@/lib/lexical'
 
+const COUNTRIES_PAGE_SIZE = 10
+
+export type DestinationsCatalogLoadOptions = DestinationQueryOptions & {
+  countriesPage?: number
+  countriesLimit?: number
+}
+
 export class DestinationsCatalogLoader {
   static async load(
-    options?: DestinationQueryOptions & { page?: number; limit?: number },
+    options?: DestinationsCatalogLoadOptions,
   ): Promise<DestinationsCatalogDTO> {
     const { destination, localization } = await getDomainServices()
     const ctx = await localization.buildContext({
@@ -14,11 +21,17 @@ export class DestinationsCatalogLoader {
       cookieCurrency: options?.currency,
     })
 
-    const page = options?.page || 1
-    const limit = options?.limit || 12
+    const page = options?.page ?? 1
+    const limit = options?.limit ?? 12
+    const countriesPage = options?.countriesPage ?? 1
+    const countriesLimit = options?.countriesLimit ?? COUNTRIES_PAGE_SIZE
 
-    // Query 1: Active Operating Countries (Finite Reference Catalog: < 10 countries)
-    const countriesRes = await destination.getCountries(options)
+    // Query 1: Active Operating Countries (Server-Side Bounded Pagination: 10 countries per page)
+    const countriesRes = await destination.getCountries({
+      ...options,
+      page: countriesPage,
+      limit: countriesLimit,
+    })
     const countryDocs = (countriesRes.docs || []) as Record<string, any>[]
     const countryIds = countryDocs.map((c) => Number(c.id)).filter(Boolean)
 
@@ -106,11 +119,19 @@ export class DestinationsCatalogLoader {
     return {
       countries,
       cities,
+      countriesPagination: {
+        page: countriesRes.page ?? countriesPage,
+        limit: countriesRes.limit ?? countriesLimit,
+        totalDocs: countriesRes.totalDocs ?? 0,
+        totalPages: countriesRes.totalPages ?? 1,
+        hasNextPage: Boolean(countriesRes.hasNextPage),
+        hasPrevPage: Boolean(countriesRes.hasPrevPage),
+      },
       pagination: {
-        page: citiesRes.page || page,
-        limit: citiesRes.limit || limit,
-        totalDocs: citiesRes.totalDocs || 0,
-        totalPages: citiesRes.totalPages || 1,
+        page: citiesRes.page ?? page,
+        limit: citiesRes.limit ?? limit,
+        totalDocs: citiesRes.totalDocs ?? 0,
+        totalPages: citiesRes.totalPages ?? 1,
         hasNextPage: Boolean(citiesRes.hasNextPage),
         hasPrevPage: Boolean(citiesRes.hasPrevPage),
       },
@@ -340,6 +361,42 @@ export class CityLoader {
             ? durationDaysRaw
             : Number(durationDaysRaw) || 1
 
+        // Origin Gateway City Waypoint
+        const originCityHero = city.bannerUrl
+
+        // Ordered Post-Origin Destination Waypoints
+        const destNames: string[] = []
+        const destHeroes: string[] = []
+        if (Array.isArray(doc.destinations)) {
+          for (const d of doc.destinations) {
+            if (d && typeof d === 'object') {
+              if (d.name) destNames.push(d.name)
+              const heroUrl = typeof d.hero === 'object' ? d.hero?.url : d.hero
+              if (heroUrl && typeof heroUrl === 'string') destHeroes.push(heroUrl)
+            }
+          }
+        }
+
+        // Canonical Journey Route: Origin + Sequential Destinations
+        const routeCities = [city.name, ...destNames].filter(Boolean)
+
+        // Visual City Avatars representing the Journey's Waypoints (Strictly authentic from city records)
+        const thumbnails = [originCityHero, ...destHeroes].filter(
+          (url): url is string => typeof url === 'string' && url.length > 0,
+        )
+
+        // Real included provisions strictly from database
+        const rawIncluded =
+          expEntity?.included && expEntity.included.length > 0
+            ? expEntity.included
+            : Array.isArray((doc as any).included)
+            ? (doc as any).included
+                .map((x: any) => (typeof x === 'object' && x ? x.item : x))
+                .filter(Boolean)
+            : []
+
+        const features = rawIncluded.slice(0, 3)
+
         return {
           id: Number(doc.id),
           slug: doc.slug || `exp-${doc.id}`,
@@ -352,6 +409,9 @@ export class CityLoader {
           rating: typeof doc.rating === 'number' ? doc.rating : 0,
           reviewsCount: typeof doc.reviewsCount === 'number' ? doc.reviewsCount : 0,
           price: pricingResult,
+          routeCities,
+          thumbnails,
+          features,
         }
       }),
     )

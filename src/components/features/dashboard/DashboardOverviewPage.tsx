@@ -2,118 +2,505 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { useTheme } from '@/providers/theme-provider'
-import { Card, Badge, CurrencyDisplay, EmptyState } from '@/components/ui'
-import type { CustomerPortalOverviewDTO } from '@/application/dashboard/dto'
+import { Badge, CurrencyDisplay, EmptyState, Button } from '@/components/ui'
+import type { CustomerPortalOverviewDTO, CustomerBookingCardDTO } from '@/application/dashboard/dto'
+
+function PinIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+    </svg>
+  )
+}
+
+function CalendarIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+    </svg>
+  )
+}
+
+function UsersIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+    </svg>
+  )
+}
+
+function GemIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+    </svg>
+  )
+}
+
+function PrimaryJourneyCard({ booking }: { booking: CustomerBookingCardDTO }) {
+  const [isExpanded, setIsExpanded] = React.useState(false)
+  const isConfirmed = booking.status === 'confirmed' || booking.status === 'completed'
+  const isReview = booking.status === 'pending_admin_review'
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-sm transition-all duration-300 hover:border-secondary/40">
+      {/* Top Ledger Strip */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-border/60">
+        <div className="flex items-center gap-2.5">
+          <span className="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_rgba(0,174,239,0.7)]" />
+          <span className="text-xs font-bold uppercase text-muted-foreground">
+            PRIMARY VOYAGE DOSSIER
+          </span>
+          <span className="text-xs font-bold text-secondary">
+            #{booking.reference}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isConfirmed ? (
+            <Badge variant="secondary" size="sm" className="text-xs uppercase bg-secondary/10 text-secondary border-secondary/25 font-semibold">
+              CONFIRMED
+            </Badge>
+          ) : isReview ? (
+            <Badge variant="outline" size="sm" className="text-xs uppercase border-amber-500/30 text-amber-500 bg-amber-500/5 font-semibold">
+              PENDING REVIEW
+            </Badge>
+          ) : (
+            <Badge variant="outline" size="sm" className="text-xs uppercase border-border text-muted-foreground font-semibold">
+              {booking.status.replace(/_/g, ' ').toUpperCase()}
+            </Badge>
+          )}
+
+          {/* Accessible Details Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            aria-expanded={isExpanded}
+            aria-controls={`journey-details-${booking.id}`}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border border-border/80 bg-card-elevated text-foreground hover:border-secondary/40 hover:text-secondary focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer transition-colors"
+          >
+            <span>Details</span>
+            <span className="font-bold text-xs">{isExpanded ? '−' : '+'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Experience Visual & Primary Resting Specs */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-6 items-center">
+        {/* Experience Image Thumbnail */}
+        <div className="lg:col-span-4 relative aspect-[16/10] sm:aspect-[16/9] lg:aspect-[4/3] rounded-2xl overflow-hidden border border-border/80 shadow-sm bg-card-elevated">
+          <div
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
+            style={{ backgroundImage: `url(${booking.experienceImage})` }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {booking.productTypeLabel && (
+            <div className="absolute bottom-3 left-3">
+              <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase bg-black/60 backdrop-blur-md text-white border border-white/20">
+                {booking.productTypeLabel}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Experience Resting Details & Action */}
+        <div className="lg:col-span-8 flex flex-col justify-between h-full space-y-4">
+          <div className="space-y-1.5">
+            <h2 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground">
+              {booking.experienceTitle}
+            </h2>
+            {booking.destinationCity && (
+              <p className="text-xs font-semibold text-secondary uppercase flex items-center gap-1.5">
+                <PinIcon className="w-3.5 h-3.5 text-secondary flex-shrink-0" />
+                <span>{booking.destinationCity}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Resting Summary Strip */}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-3.5 rounded-2xl bg-card-elevated/70 border border-border/60 text-xs">
+            <div>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Departure</span>
+              <span className="font-semibold text-foreground mt-0.5 block">{booking.departureDate}</span>
+            </div>
+
+            <div>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Settlement</span>
+              <div className="mt-0.5">
+                <CurrencyDisplay price={booking.totalCost} size="sm" />
+              </div>
+            </div>
+
+            <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
+              <Button
+                variant="primary"
+                size="sm"
+                className="font-bold shadow-md cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Access Travel Dossier</span>
+                <span>→</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Progressive Disclosure Section (Content-safe CSS grid) */}
+      <div
+        id={`journey-details-${booking.id}`}
+        className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
+          isExpanded ? 'grid-rows-[1fr] opacity-100 mt-5 pt-5 border-t border-border/60' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-card-elevated/70 p-3.5 rounded-2xl border border-border/60">
+            <div>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Schedule</span>
+              <span className="font-semibold text-foreground mt-0.5 block">
+                {booking.departureTime || 'Standard'}
+                {booking.destinationTimezone ? ` (${booking.destinationTimezone})` : ''}
+              </span>
+            </div>
+            <div>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Manifest</span>
+              <span className="font-semibold text-foreground mt-0.5 flex items-center gap-1">
+                <UsersIcon className="w-3 h-3 text-secondary inline" />
+                <span>{booking.passengersCount} {booking.passengersCount === 1 ? 'Traveler' : 'Travelers'}</span>
+              </span>
+            </div>
+            <div>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Type</span>
+              <span className="font-semibold text-foreground mt-0.5 block">
+                {booking.productTypeLabel || 'Signature Tour'}
+              </span>
+            </div>
+            <div>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Payment Status</span>
+              <span className="font-semibold text-foreground mt-0.5 capitalize block">
+                {booking.paymentStatus?.replace(/_/g, ' ') || 'Confirmed'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PersonalTravelWallet({ data }: { data: CustomerPortalOverviewDTO }) {
+  const [isExpanded, setIsExpanded] = React.useState(false)
+
+  return (
+    <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-sm transition-all duration-300 hover:border-secondary/40">
+      {/* Top Wallet Eyebrow & Toggle Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-border/60">
+        <div className="flex items-center gap-2">
+          <GemIcon className="w-4 h-4 text-secondary" />
+          <span className="text-xs font-bold uppercase text-muted-foreground">
+            PERSONAL TRAVEL WALLET & PRIVILEGES
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-secondary/10 text-secondary border border-secondary/25">
+            {data.currentTier} TIER
+          </span>
+
+          {/* Accessible Details Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            aria-expanded={isExpanded}
+            aria-controls="travel-wallet-details"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border border-border/80 bg-card-elevated text-foreground hover:border-secondary/40 hover:text-secondary focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer transition-colors"
+          >
+            <span>Privileges</span>
+            <span className="font-bold text-xs">{isExpanded ? '−' : '+'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Resting State: Calm Master Balance & Compact Progress Strip */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-6 items-center">
+        {/* Left: Master Points Balance & Voyage Credit Value */}
+        <div className="md:col-span-7 flex flex-wrap items-baseline gap-3">
+          <span className="text-4xl sm:text-5xl font-hornbill font-light text-foreground">
+            {data.formattedPoints}
+          </span>
+          <span className="text-sm font-bold text-secondary uppercase">
+            Points
+          </span>
+          <span className="inline-flex items-center px-2.5 py-1 rounded-xl bg-secondary/10 border border-secondary/20 text-xs font-semibold text-secondary">
+            ≈ {data.pointsMonetaryValue.formatted} Points Value
+          </span>
+        </div>
+
+        {/* Right: Compact Tier Progress Track */}
+        <div className="md:col-span-5 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground uppercase font-medium">{data.currentTier} Tier</span>
+            <span className="text-secondary font-bold">{data.nextTierProgressPercent}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-card-elevated border border-border/80 overflow-hidden">
+            <div
+              className="h-full bg-secondary rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(0,174,239,0.5)]"
+              style={{ width: `${Math.min(100, Math.max(0, data.nextTierProgressPercent))}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Progressive Disclosure Section (Content-safe CSS grid) */}
+      <div
+        id="travel-wallet-details"
+        className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
+          isExpanded ? 'grid-rows-[1fr] opacity-100 mt-6 pt-6 border-t border-border/60' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left: Points Guide Context & Hub link */}
+            <div className="lg:col-span-7 space-y-4">
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                {data.pointsValueGuide.description}
+              </p>
+              <div>
+                <Link href="/dashboard/loyalty">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-semibold text-xs uppercase flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Loyalty Privileges Hub</span>
+                    <span>→</span>
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: Qualifying Spend & Active Itineraries Matrix */}
+            <div className="lg:col-span-5 p-4 rounded-2xl bg-card-elevated/70 border border-border/60 space-y-3 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground text-xs font-medium">Annual Qualifying Spend:</span>
+                <span className="font-bold text-foreground">{data.formattedTotalSpentEGP}</span>
+              </div>
+
+              {data.formattedRemainingQualifyingSpend && (
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-muted-foreground font-medium">Spend to Next Tier:</span>
+                  <span className="text-secondary font-semibold">{data.formattedRemainingQualifyingSpend}</span>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-border/60 flex justify-between items-center">
+                <span className="text-muted-foreground text-xs font-medium">Active Itineraries:</span>
+                <Link href="/dashboard/bookings" className="font-bold text-secondary hover:underline">
+                  {data.activeBookingsCount} {data.activeBookingsCount === 1 ? 'Voyage' : 'Voyages'} →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RecentReservationRow({ booking }: { booking: CustomerBookingCardDTO }) {
+  const [isExpanded, setIsExpanded] = React.useState(false)
+  const isConfirmed = booking.status === 'confirmed' || booking.status === 'completed'
+  const isReview = booking.status === 'pending_admin_review'
+
+  return (
+    <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-sm transition-all duration-300 hover:border-secondary/40">
+      {/* Resting Primary Row: Scan Path (Reference • Title/Destination • Date • Status • Amount • Details Toggle) */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div
+            className="w-12 h-12 rounded-xl bg-cover bg-center flex-shrink-0 border border-border/60 shadow-sm"
+            style={{ backgroundImage: `url(${booking.experienceImage})` }}
+          />
+          <div className="min-w-0 space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-secondary">
+                #{booking.reference}
+              </span>
+              {isConfirmed ? (
+                <Badge variant="secondary" size="sm" className="text-xs uppercase bg-secondary/10 text-secondary border-secondary/25 font-semibold">
+                  CONFIRMED
+                </Badge>
+              ) : isReview ? (
+                <Badge variant="outline" size="sm" className="text-xs uppercase border-amber-500/30 text-amber-500 bg-amber-500/5 font-semibold">
+                  PENDING REVIEW
+                </Badge>
+              ) : (
+                <Badge variant="outline" size="sm" className="text-xs uppercase border-border text-muted-foreground font-semibold">
+                  {booking.status.replace(/_/g, ' ').toUpperCase()}
+                </Badge>
+              )}
+            </div>
+
+            <h3 className="font-serif font-light text-base text-foreground truncate">
+              {booking.experienceTitle}
+            </h3>
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+              <CalendarIcon className="w-3 h-3 text-secondary inline" />
+              <span>{booking.departureDate}</span>
+              {booking.destinationCity && (
+                <>
+                  <span className="text-border">•</span>
+                  <PinIcon className="w-3 h-3 text-secondary inline" />
+                  <span>{booking.destinationCity}</span>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Right side: Amount + Details Toggle */}
+        <div className="flex items-center justify-between lg:justify-end gap-3.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-border/60 flex-shrink-0">
+          <CurrencyDisplay price={booking.totalCost} size="sm" />
+
+          <button
+            type="button"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            aria-expanded={isExpanded}
+            aria-controls={`recent-booking-details-${booking.id}`}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border border-border/80 bg-card-elevated text-foreground hover:border-secondary/40 hover:text-secondary focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer transition-colors"
+          >
+            <span>Details</span>
+            <span className="font-bold text-xs">{isExpanded ? '−' : '+'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Progressive Spatial Disclosure: Unfolds additional existing metadata without layout shifts */}
+      <div
+        id={`recent-booking-details-${booking.id}`}
+        className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
+          isExpanded ? 'grid-rows-[1fr] opacity-100 mt-4 pt-4 border-t border-border/60' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card-elevated/70 p-3.5 rounded-xl border border-border/60 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 flex-grow">
+              <div>
+                <span className="text-[11px] uppercase text-muted-foreground block font-medium">Manifest</span>
+                <span className="font-semibold text-foreground mt-0.5 flex items-center gap-1">
+                  <UsersIcon className="w-3 h-3 text-secondary inline" />
+                  <span>{booking.passengersCount} {booking.passengersCount === 1 ? 'Traveler' : 'Travelers'}</span>
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[11px] uppercase text-muted-foreground block font-medium">Tour Type</span>
+                <span className="font-semibold text-foreground mt-0.5 block">
+                  {booking.productTypeLabel || 'Signature Tour'}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[11px] uppercase text-muted-foreground block font-medium">Settlement Status</span>
+                <span className="font-semibold text-foreground mt-0.5 capitalize block">
+                  {booking.paymentStatus === 'paid'
+                    ? 'Fully Settled'
+                    : booking.paymentStatus === 'partially_paid'
+                      ? 'Partially Paid'
+                      : 'Pending'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 self-end sm:self-center">
+              {booking.paymentStatus === 'partially_paid' && booking.outstandingBalance && (
+                <div className="text-right text-xs">
+                  <span className="text-muted-foreground block font-medium">Balance Due:</span>
+                  <span className="font-bold text-amber-500">{booking.outstandingBalance.formatted}</span>
+                </div>
+              )}
+              <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="font-bold shadow-sm cursor-pointer whitespace-nowrap"
+                >
+                  Access Travel Dossier →
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDTO }) {
-  const { theme } = useTheme()
-  const isDark = theme === 'dark'
+  // Existing authoritative primary booking directly from server projection (no custom client sorting)
+  const primaryBooking = data.recentBookings && data.recentBookings.length > 0 ? data.recentBookings[0] : null
 
   return (
     <div className="flex flex-col gap-8 flex-grow">
-      {/* Overview Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className={`p-6 rounded-2xl border flex flex-col gap-2 transition-all ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Bookings</span>
-          <span className="text-4xl font-serif font-light text-[#00aeef]">
-            {data.activeBookingsCount}
-          </span>
-          <span className="text-xs text-slate-500 mt-auto">Upcoming & active trips</span>
+      {/* 5.1 Travel Home Header */}
+      <div className="space-y-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/30 bg-secondary/10 text-secondary text-xs font-bold uppercase">
+          <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+          <span>PERSONAL TRAVEL HOME</span>
         </div>
-
-        <div className={`p-6 rounded-2xl border flex flex-col gap-2 transition-all ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loyalty Points</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-serif font-light text-[#f58220]">
-              {data.formattedPoints}
-            </span>
-            <span className="text-sm font-semibold text-[#f58220]">Pts</span>
-          </div>
-          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-auto">
-            ≈ {data.pointsMonetaryValue.formatted} Cash Value
-          </span>
-        </div>
-
-        <div className={`p-6 rounded-2xl border flex flex-col gap-2 transition-all ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Member Tier</span>
-          <span className="text-3xl font-serif font-light capitalize text-emerald-500">
-            {data.currentTier} Member
-          </span>
-          <span className="text-xs text-slate-500 mt-auto">
-            {data.nextTierProgressPercent}% to {data.nextTierName}
-          </span>
-        </div>
-
-        <div className={`p-6 rounded-2xl border flex flex-col gap-2 transition-all ${isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Qualifying Spend</span>
-          <span className="text-3xl font-serif font-light text-slate-900 dark:text-white">
-            {data.formattedTotalSpentEGP}
-          </span>
-          <span className="text-xs text-slate-500 mt-auto">Base currency spend tracker</span>
-        </div>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-hornbill font-light text-foreground">
+          Welcome back, <span className="font-normal text-secondary">{data.fullName}</span>
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground font-light">
+          Your personal travel sanctuary and curated voyage ledger.
+        </p>
       </div>
 
-      {/* Points Value Guide Card */}
-      <div className={`p-6 sm:p-8 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-6 ${
-        isDark ? 'bg-gradient-to-br from-[#1a1718] via-[#1f1a1c] to-[#161415] border-white/10 shadow-lg' : 'bg-gradient-to-br from-white via-slate-50 to-slate-100/60 border-slate-200 shadow-sm'
-      }`}>
-        <div className="flex flex-col gap-2 max-w-2xl">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">💎</span>
-            <h2 className={`text-xl font-serif font-semibold ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
-              {data.pointsValueGuide.title}
-            </h2>
-            <Badge variant="accent" size="sm">Instant Savings</Badge>
+      {/* 5.1 Primary Journey Canvas */}
+      {primaryBooking ? (
+        <PrimaryJourneyCard booking={primaryBooking} />
+      ) : (
+        <div className="p-8 sm:p-12 rounded-3xl border border-dashed border-border/80 bg-card/40 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-secondary/10 border border-secondary/30 text-secondary mx-auto flex items-center justify-center text-xs font-bold">
+            LBV
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-            {data.pointsValueGuide.description}
+          <h2 className="text-2xl font-hornbill font-light text-foreground">
+            No Active Reservations Found
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Your travel sanctuary is ready. Begin curating your bespoke voyage today.
           </p>
+          <div className="pt-2">
+            <Link href="/experiences">
+              <Button variant="primary" size="md" className="font-bold shadow-md cursor-pointer">
+                Explore Curated Experiences →
+              </Button>
+            </Link>
+          </div>
         </div>
+      )}
 
-        <div className="flex flex-wrap items-center gap-4 self-stretch md:self-auto justify-between md:justify-end">
-          <Badge variant="accent" size="md" className="py-2.5 px-4 rounded-xl flex flex-col items-center justify-center text-center">
-            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">Redemption Rate</span>
-            <span className="text-sm font-bold">
-              {data.pointsValueGuide.unitText}
-            </span>
-          </Badge>
+      {/* 5.2 Personal Travel Wallet & Privileges Strip */}
+      <PersonalTravelWallet data={data} />
 
-          <Badge variant="success" size="md" className="py-2.5 px-4 rounded-xl flex flex-col items-center justify-center text-center">
-            <span className="text-[10px] font-bold opacity-75 uppercase tracking-wider block">Your Points Value</span>
-            <span className="text-sm font-extrabold">
-              {data.pointsMonetaryValue.formatted}
-            </span>
-          </Badge>
-
-          <Link href="/dashboard/loyalty">
-            <button className="px-5 py-3.5 text-xs uppercase tracking-wider font-semibold bg-[#f58220] hover:bg-[#d97013] text-white rounded-xl transition-all shadow-sm whitespace-nowrap">
-              Loyalty Hub →
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Recent Bookings Section */}
+      {/* 5.3 Recent Bookings Ledger */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="flex items-center justify-between border-b border-border/60 pb-4">
           <div>
-            <h2 className={`text-2xl font-serif font-light ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
+            <h2 className="text-2xl font-serif font-light text-foreground">
               Recent Reservations
             </h2>
-            <div className="h-1 w-12 bg-[#f58220] mt-1" />
+            <div className="h-1 w-12 bg-secondary mt-1" />
           </div>
 
           <Link href="/dashboard/bookings">
-            <button
-              className={`px-4 py-2 text-xs tracking-widest uppercase font-medium border rounded-lg transition-colors ${
-                isDark
-                  ? 'border-white/10 text-slate-300 hover:border-[#00aeef]'
-                  : 'border-slate-300 text-slate-700 hover:border-[#2e3192]'
-              }`}
+            <Button
+              variant="outline"
+              size="sm"
+              className="uppercase text-xs font-semibold"
             >
               View All →
-            </button>
+            </Button>
           </Link>
         </div>
 
@@ -126,62 +513,9 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
             actionHref="/experiences"
           />
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {data.recentBookings.map((booking) => (
-              <div
-                key={booking.id}
-                className={`p-6 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-300 hover:border-[#00aeef]/40 ${
-                  isDark ? 'bg-[#1a1718] border-white/10' : 'bg-white border-slate-200 shadow-sm'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className="w-16 h-16 rounded-xl bg-cover bg-center flex-shrink-0 shadow-md"
-                    style={{ backgroundImage: `url(${booking.experienceImage})` }}
-                  />
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-xs font-bold text-[#00aeef]">{booking.reference}</span>
-                      <Badge variant={booking.status === 'confirmed' ? 'success' : 'warning'} size="sm">
-                        {booking.status.toUpperCase()}
-                      </Badge>
-                      {booking.paymentStatus === 'partially_paid' && (
-                        <Badge variant="warning" size="sm" className="bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                          PARTIALLY PAID
-                        </Badge>
-                      )}
-                      {booking.paymentStatus === 'paid' && (
-                        <Badge variant="outline" size="sm" className="text-emerald-500 border-emerald-500/30">
-                          PAID
-                        </Badge>
-                      )}
-                    </div>
-                    <h3 className={`font-serif font-light text-base ${isDark ? 'text-white' : 'text-[#231F20]'}`}>
-                      {booking.experienceTitle}
-                    </h3>
-                    <span className="text-xs text-slate-400">📅 {booking.departureDate} • {booking.passengersCount} Passengers</span>
-                  </div>
-                </div>
-
-                <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-white/10">
-                  <CurrencyDisplay price={booking.totalCost} size="sm" />
-                  {booking.paymentStatus === 'partially_paid' && booking.outstandingBalance && (
-                    <div className="text-right mt-1">
-                      <span className="text-[11px] text-slate-400 block">
-                        Paid: <strong className="text-slate-700 dark:text-slate-300">{booking.paidAmount?.formatted}</strong>
-                      </span>
-                      <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 block">
-                        Remaining: {booking.outstandingBalance.formatted}
-                      </span>
-                    </div>
-                  )}
-                  <Link href={`/dashboard/bookings/${booking.id}`}>
-                    <button className="mt-2 px-4 py-1.5 text-xs uppercase tracking-wider font-semibold border border-[#00aeef]/40 text-[#00aeef] hover:bg-[#00aeef] hover:text-white rounded-lg transition-colors">
-                      View Details
-                    </button>
-                  </Link>
-                </div>
-              </div>
+              <RecentReservationRow key={booking.id} booking={booking} />
             ))}
           </div>
         )}
@@ -189,3 +523,5 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
     </div>
   )
 }
+
+

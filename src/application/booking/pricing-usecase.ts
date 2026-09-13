@@ -157,22 +157,34 @@ export class BookingPricingUseCase {
         }
       }
 
-      // 2. Pure Domain Rule: Resolve Supported Room Occupancies
-      const supportedOccupanciesSet = new Set<OccupancyType>()
+      // 2. Pure Domain Rule: Resolve Supported Room Occupancies (Intersection across Stays)
+      let supportedOccupancies: OccupancyType[] = []
       if (Array.isArray(pkg?.accommodations) && pkg.accommodations.length > 0) {
-        // Collect occupancies supported across stays
-        pkg.accommodations.forEach((stay) => {
-          stay.occupancyOptions.forEach((opt) => supportedOccupanciesSet.add(opt.occupancy))
+        const enabledPerStay = pkg.accommodations.map((stay) => {
+          const set = new Set<OccupancyType>()
+          if (Array.isArray(stay.roomRates)) {
+            stay.roomRates.forEach((r) => {
+              if (r.enabled !== false) {
+                set.add(r.occupancy)
+              }
+            })
+          }
+          return set
         })
-      } else {
-        // Default package occupancies if no specific stays configured
-        supportedOccupanciesSet.add('single')
-        supportedOccupanciesSet.add('double')
-        supportedOccupanciesSet.add('triple')
-        supportedOccupanciesSet.add('quad')
-      }
 
-      const supportedOccupancies = Array.from(supportedOccupanciesSet)
+        const firstStayEnabled = enabledPerStay[0] || new Set<OccupancyType>()
+        supportedOccupancies = Array.from(firstStayEnabled).filter((occ) =>
+          enabledPerStay.every((staySet) => staySet.has(occ)),
+        )
+
+        if (supportedOccupancies.length === 0) {
+          throw new Error(
+            '[BookingPricingUseCase] This package has no mutually compatible room occupancy options across its accommodation stays.',
+          )
+        }
+      } else {
+        supportedOccupancies = ['single', 'double', 'triple', 'quad']
+      }
 
       // 3. Pure Domain Rule: Resolve Room Allocation (Smart Assistant Pattern)
       const allocationResult = RoomAllocationPolicy.resolveSmartAllocation({
@@ -188,31 +200,62 @@ export class BookingPricingUseCase {
 
       const roomAllocation = allocationResult.allocation || []
 
-      // 4. Calculate Occupancy Supplements across Stays (Admin-controlled values)
-      let occupancySupplementsTotalEGP = 0
-      const staysBreakdown: CommercialSnapshotBreakdown['staysBreakdown'] = []
+      // 4. Calculate Standalone Accommodation Room Rates across Stays (Admin-controlled values)
+      let accommodationTotalEGP = 0
+      const staysBreakdown: NonNullable<CommercialSnapshotBreakdown['staysBreakdown']> = []
 
       if (Array.isArray(pkg?.accommodations) && pkg.accommodations.length > 0) {
         for (const stay of pkg.accommodations) {
-          let staySupplementEGP = 0
+          let stayAccommodationTotalEGP = 0
+          const appliedRoomRates: NonNullable<CommercialSnapshotBreakdown['staysBreakdown']>[0]['appliedRoomRates'] = []
+          const pricingUnit = stay.pricingUnit === 'per_night' ? 'per_night' : 'per_stay'
+          const nightsMultiplier = pricingUnit === 'per_night' ? stay.nights : 1
+
           for (const room of roomAllocation) {
-            if (room.occupancy === 'double') {
-              // Double occupancy is the zero-supplement baseline
-              continue
+            const rateObj = stay.roomRates?.find((r) => r.occupancy === room.occupancy)
+            if (!rateObj || rateObj.enabled === false) {
+              throw new Error(
+                `[BookingPricingUseCase] Room occupancy "${room.occupancy}" is unavailable at "${stay.property?.name || `Stay #${stay.order}`}".`,
+              )
             }
-            const opt = stay.occupancyOptions.find((o) => o.occupancy === room.occupancy)
-            if (opt && opt.supplementEGP) {
-              staySupplementEGP += opt.supplementEGP
+
+            if (
+              rateObj.rateEGP === undefined ||
+              rateObj.rateEGP === null ||
+              isNaN(Number(rateObj.rateEGP)) ||
+              Number(rateObj.rateEGP) < 0
+            ) {
+              throw new Error(
+                `[BookingPricingUseCase] Missing or invalid room rate for "${room.occupancy}" at "${stay.property?.name || `Stay #${stay.order}`}".`,
+              )
             }
+
+            const unitRateEGP = Number(rateObj.rateEGP)
+            const totalRoomCostEGP = unitRateEGP * nightsMultiplier
+            stayAccommodationTotalEGP += totalRoomCostEGP
+
+            appliedRoomRates.push({
+              roomIndex: room.roomIndex,
+              occupancy: room.occupancy,
+              pricingUnit,
+              nights: stay.nights,
+              unitRateEGP,
+              rateEGP: unitRateEGP,
+              nightsMultiplier,
+              totalRoomCostEGP,
+            })
           }
-          occupancySupplementsTotalEGP += staySupplementEGP
+
+          accommodationTotalEGP += stayAccommodationTotalEGP
           staysBreakdown.push({
             order: stay.order,
             propertyId: stay.propertyId,
             propertyName: stay.property?.name || `Accommodation Stay #${stay.order}`,
             nights: stay.nights,
             roomCategory: stay.roomCategory,
-            supplementEGP: staySupplementEGP,
+            pricingUnit,
+            appliedRoomRates,
+            stayAccommodationTotalEGP,
           })
         }
       }
@@ -272,7 +315,7 @@ export class BookingPricingUseCase {
         roomCount: roomAllocation.length,
         autoAdjusted: allocationResult.autoAdjusted,
         adjustmentMessage: allocationResult.adjustmentReason,
-        occupancySupplementsTotalEGP,
+        accommodationTotalEGP,
         children: childrenDetails,
         childrenTotalEGP,
         staysBreakdown,
@@ -285,7 +328,7 @@ export class BookingPricingUseCase {
         adultsTotalEGP,
         roomAllocation: [],
         roomCount: 0,
-        occupancySupplementsTotalEGP: 0,
+        accommodationTotalEGP: 0,
         children: [],
         childrenTotalEGP: effectiveChildren * adultBasePriceEGP,
       }
@@ -293,7 +336,7 @@ export class BookingPricingUseCase {
 
     const totalCalculatedBaseEGP =
       commercialBreakdown.adultsTotalEGP +
-      commercialBreakdown.occupancySupplementsTotalEGP +
+      commercialBreakdown.accommodationTotalEGP +
       commercialBreakdown.childrenTotalEGP
 
     // 6. Process Loyalty Points Intent via Domain Validation & Valuation (Fail-Fast)
@@ -354,7 +397,7 @@ export class BookingPricingUseCase {
     const formattedBreakdown: FormattedCommercialBreakdown = {
       adultBasePrice: await this.localizationService.formatPrice(commercialBreakdown.adultBasePriceEGP, params.ctx),
       adultsTotalPrice: await this.localizationService.formatPrice(commercialBreakdown.adultsTotalEGP, params.ctx),
-      occupancySupplementsTotalPrice: await this.localizationService.formatPrice(commercialBreakdown.occupancySupplementsTotalEGP, params.ctx),
+      accommodationTotalPrice: await this.localizationService.formatPrice(commercialBreakdown.accommodationTotalEGP, params.ctx),
       childrenTotalPrice: await this.localizationService.formatPrice(commercialBreakdown.childrenTotalEGP, params.ctx),
       children: await Promise.all(
         (commercialBreakdown.children || []).map(async (ch) => ({
@@ -365,6 +408,28 @@ export class BookingPricingUseCase {
           price: await this.localizationService.formatPrice(ch.priceEGP, params.ctx),
         }))
       ),
+      staysBreakdown: commercialBreakdown.staysBreakdown && commercialBreakdown.staysBreakdown.length > 0
+        ? await Promise.all(
+            commercialBreakdown.staysBreakdown.map(async (stay) => ({
+              order: stay.order,
+              propertyName: stay.propertyName,
+              nights: stay.nights,
+              roomCategory: stay.roomCategory,
+              pricingUnit: stay.pricingUnit,
+              stayAccommodationTotalPrice: await this.localizationService.formatPrice(stay.stayAccommodationTotalEGP, params.ctx),
+              appliedRoomRates: await Promise.all(
+                stay.appliedRoomRates.map(async (rate) => ({
+                  roomIndex: rate.roomIndex,
+                  occupancy: rate.occupancy,
+                  pricingUnit: rate.pricingUnit,
+                  nights: rate.nights,
+                  unitRatePrice: await this.localizationService.formatPrice(rate.unitRateEGP, params.ctx),
+                  totalRoomCostPrice: await this.localizationService.formatPrice(rate.totalRoomCostEGP, params.ctx),
+                }))
+              ),
+            }))
+          )
+        : undefined,
     }
 
     // 9. Calculate estimated points earned on net paid amount

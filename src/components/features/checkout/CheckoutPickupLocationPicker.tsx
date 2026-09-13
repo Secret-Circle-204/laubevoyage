@@ -24,6 +24,47 @@ interface CheckoutPickupLocationPickerProps {
   experienceType?: 'package' | 'daily_tour'
 }
 
+function PinIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+    </svg>
+  )
+}
+
+function BuildingIcon({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+    </svg>
+  )
+}
+
+function CheckIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  )
+}
+
+function GpsIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m0 13.5V21m9-9h-2.25M5.25 12H3m15.364 6.364l-1.591-1.591M7.227 7.227L5.636 5.636m12.728 0l-1.591 1.591M7.227 16.773l-1.591 1.591M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  )
+}
+
+function InfoIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+    </svg>
+  )
+}
+
 interface SearchResultItem {
   id: string
   label: string
@@ -296,8 +337,8 @@ export function CheckoutPickupLocationPicker({
     // Marker element
     const el = document.createElement('div')
     el.className =
-      'w-9 h-9 rounded-full bg-[#00aeef] border-2 border-white shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing transform -translate-x-1/2 -translate-y-full hover:scale-110 transition-transform ring-4 ring-[#00aeef]/20'
-    el.innerHTML = '<span style="font-size: 18px; line-height: 1;">📍</span>'
+      'w-9 h-9 rounded-full bg-secondary border-2 border-background shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing transform -translate-x-1/2 -translate-y-full hover:scale-110 transition-transform ring-4 ring-secondary/20 text-white'
+    el.innerHTML = '<svg style="width: 18px; height: 18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>'
 
     const marker = new maplibregl.Marker({
       element: el,
@@ -500,42 +541,52 @@ export function CheckoutPickupLocationPicker({
   }
 
   return (
-    <Card variant="flat" padding="lg" className="border border-slate-200/80 dark:border-slate-800">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-          <span className="w-8 h-8 rounded-full bg-[#00aeef]/20 text-[#00aeef] text-sm flex items-center justify-center font-bold">
-            📍
+    <Card variant="flat" padding="lg" className="border border-border/80 bg-card rounded-2xl shadow-xs">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3 pb-4 border-b border-border/60">
+        <div className="flex items-center gap-3.5">
+          <span className="w-9 h-9 rounded-full bg-secondary text-background text-sm font-hornbill font-bold flex items-center justify-center shrink-0 shadow-xs">
+            02
           </span>
-          {isArabic ? 'مكان الانطلاق والتجمع' : 'Pickup & Meeting Location'}
-        </h2>
+          <div>
+            <span className="text-[10px] text-secondary uppercase font-semibold block">
+              DEPARTURE LOGISTICS
+            </span>
+            <h2 className="text-xl sm:text-2xl font-hornbill font-light text-foreground tracking-tight">
+              {isArabic ? 'مكان الانطلاق والتجمع' : 'Pickup & Meeting Location'}
+            </h2>
+          </div>
+        </div>
         {value && !isEditing && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">
-            ✓ {isArabic ? 'تم تأكيد المكان' : 'Location Selected'}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-secondary/10 border border-secondary/25 text-secondary">
+            <CheckIcon className="w-3.5 h-3.5" />
+            <span>{isArabic ? 'تم تأكيد المكان' : 'Location Confirmed'}</span>
           </span>
         )}
       </div>
 
-      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+      <p className="text-xs text-muted-foreground mb-5">
         {isArabic
           ? 'من أين نلتقي بك لبدء هذه الرحلة؟ يمكنك البحث باسم فندقك، استخدام موقعك الحالي، أو النقر وسحب الدبوس على الخريطة.'
-          : 'Where should our driver/guide meet you for this journey? Search your hotel, use GPS, or drop a pin on the map.'}
+          : 'Where should our private concierge/driver meet you for this journey? Search your hotel, use GPS, or drop a pin on the map.'}
       </p>
 
       {/* Confirmed Location Summary */}
       {value && !isEditing ? (
-        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col gap-4">
+        <div className="p-4 sm:p-5 rounded-2xl bg-card-elevated/70 border border-border/70 flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl mt-0.5">🏨</span>
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary flex-shrink-0 mt-0.5">
+                <BuildingIcon className="w-5 h-5" />
+              </div>
               <div>
-                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                <h4 className="font-hornbill font-semibold text-base text-foreground">
                   {value.label}
                 </h4>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 line-clamp-2">
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                   {value.address}
                 </p>
                 {(value.instructions || localNote) && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-1 rounded-md mt-2 border border-amber-200/50 dark:border-amber-800/40">
+                  <p className="text-[11px] text-secondary bg-secondary/10 px-2.5 py-1.5 rounded-lg mt-2.5 border border-secondary/20">
                     <span className="font-semibold">
                       {isArabic ? 'ملاحظة للسائق:' : 'Driver Note:'}
                     </span>{' '}
@@ -550,9 +601,10 @@ export function CheckoutPickupLocationPicker({
               variant="outline"
               size="sm"
               onClick={() => setIsEditing(true)}
-              className="text-xs font-bold self-start sm:self-center"
+              className="text-xs font-semibold self-start sm:self-center cursor-pointer shrink-0"
             >
-              ✏️ {isArabic ? 'تغيير المكان' : 'Change Location'}
+              <span>{isArabic ? 'تغيير المكان' : 'Change Location'}</span>
+              <span>→</span>
             </Button>
           </div>
         </div>
@@ -560,7 +612,7 @@ export function CheckoutPickupLocationPicker({
         /* Location Picker Active Mode */
         <div className="flex flex-col gap-4">
           {/* Search bar + GPS Button */}
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2.5">
             <div className="relative flex-1">
               <input
                 type="text"
@@ -569,28 +621,30 @@ export function CheckoutPickupLocationPicker({
                 placeholder={
                   destinationCityName
                     ? isArabic
-                      ? `🔍 ابحث عن فندقك أو عنوانك في ${destinationCityName}...`
-                      : `🔍 Search hotel or address in ${destinationCityName}...`
+                      ? `ابحث عن فندقك أو عنوانك في ${destinationCityName}...`
+                      : `Search hotel or address in ${destinationCityName}...`
                     : isArabic
-                    ? '🔍 ابحث عن فندقك، معلم سياحي، أو شارع...'
-                    : '🔍 Search your hotel, landmark, or street address...'
+                    ? 'ابحث عن فندقك، معلم سياحي، أو شارع...'
+                    : 'Search your hotel, landmark, or street address...'
                 }
-                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#00aeef]"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-border bg-card-elevated text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-secondary"
               />
               {isSearching && (
-                <span className="absolute right-3 top-3 text-xs text-slate-400 animate-spin">
-                  ⏳
+                <span className="absolute right-3 top-3 text-xs text-secondary">
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
                 </span>
               )}
 
               {/* Search Error State */}
               {searchError && (
-                <p className="text-[11px] text-red-500 mt-1">{searchError}</p>
+                <p className="text-[11px] text-accent mt-1">{searchError}</p>
               )}
 
               {/* Search Suggestions Dropdown with Stable Provider IDs */}
               {searchResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto">
+                <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-card-elevated border border-border/80 rounded-xl shadow-2xl overflow-hidden divide-y divide-border/60 max-h-60 overflow-y-auto">
                   {searchResults.map((res) => (
                     <button
                       key={res.id}
@@ -600,14 +654,14 @@ export function CheckoutPickupLocationPicker({
                         setSearchResults([])
                         setSearchQuery('')
                       }}
-                      className="w-full p-3 text-left hover:bg-[#00aeef]/10 transition-colors flex items-start gap-2.5"
+                      className="w-full p-3 text-left hover:bg-secondary/10 transition-colors flex items-start gap-2.5 cursor-pointer"
                     >
-                      <span className="text-base mt-0.5">📍</span>
+                      <PinIcon className="w-4 h-4 text-secondary mt-0.5 flex-shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <span className="font-bold text-xs text-slate-900 dark:text-white block truncate">
+                        <span className="font-semibold text-xs text-foreground block truncate">
                           {res.label}
                         </span>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block truncate">
+                        <span className="text-[11px] text-muted-foreground block truncate">
                           {res.address}
                         </span>
                       </div>
@@ -623,21 +677,27 @@ export function CheckoutPickupLocationPicker({
               size="sm"
               isLoading={isLocating}
               onClick={handleUseCurrentLocation}
-              className="text-xs font-bold whitespace-nowrap h-[42px] px-4"
+              className="text-xs font-semibold whitespace-nowrap h-[42px] px-4 cursor-pointer inline-flex items-center gap-1.5"
             >
-              📍 {isArabic ? 'موقعي الحالي' : 'Use My Location'}
+              <GpsIcon className="w-3.5 h-3.5" />
+              <span>{isArabic ? 'موقعي الحالي' : 'Use My Location'}</span>
             </Button>
           </div>
 
           {/* Interactive Map Container */}
-          <div className="relative w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner">
+          <div className="relative w-full h-72 sm:h-80 rounded-2xl overflow-hidden border border-border/80 shadow-inner bg-card-elevated">
             <div ref={mapContainerRef} className="w-full h-full" />
-            <div className="absolute bottom-2 left-2 z-10 bg-slate-900/85 backdrop-blur-sm text-white text-[10px] sm:text-xs px-3 py-1.5 rounded-lg shadow-md border border-white/10">
+            <div className="absolute bottom-2 left-2 z-10 bg-background/90 backdrop-blur-sm text-foreground text-[10px] sm:text-xs px-3 py-1.5 rounded-lg shadow-md border border-border/70">
               {isGeocoding ? (
-                <span>⏳ {isArabic ? 'جاري تحديد العنوان...' : 'Resolving address...'}</span>
+                <span className="text-secondary inline-flex items-center gap-1.5">
+                  <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                  {isArabic ? 'جاري تحديد العنوان...' : 'Resolving address...'}
+                </span>
               ) : (
-                <span>
-                  💡{' '}
+                <span className="inline-flex items-center gap-1.5">
+                  <InfoIcon className="w-3.5 h-3.5 text-secondary" />
                   {isArabic
                     ? 'انقر في أي مكان على الخريطة أو اسحب الدبوس لتحديد نقطة التجمع'
                     : 'Click anywhere on map or drag the pin to pinpoint meeting spot'}
@@ -648,14 +708,14 @@ export function CheckoutPickupLocationPicker({
 
           {/* Active Pinned Preview & Confirmation */}
           {value && (
-            <div className="p-3.5 rounded-xl bg-[#00aeef]/10 border border-[#00aeef]/30 flex items-center justify-between gap-3">
+            <div className="p-3.5 rounded-xl bg-secondary/10 border border-secondary/25 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="text-xl">📍</span>
+                <PinIcon className="w-4 h-4 text-secondary flex-shrink-0" />
                 <div className="truncate">
-                  <span className="font-bold text-xs text-slate-900 dark:text-white block truncate">
+                  <span className="font-semibold text-xs text-foreground block truncate">
                     {value.label}
                   </span>
-                  <span className="text-[11px] text-slate-600 dark:text-slate-300 block truncate">
+                  <span className="text-[11px] text-muted-foreground block truncate">
                     {value.address}
                   </span>
                 </div>
@@ -665,16 +725,17 @@ export function CheckoutPickupLocationPicker({
                 variant="primary"
                 size="sm"
                 onClick={() => setIsEditing(false)}
-                className="text-xs font-bold flex-shrink-0"
+                className="text-xs font-semibold flex-shrink-0 cursor-pointer shadow-xs inline-flex items-center gap-1.5"
               >
-                ✓ {isArabic ? 'تأكيد هذا المكان' : 'Confirm Location'}
+                <CheckIcon className="w-3.5 h-3.5" />
+                <span>{isArabic ? 'تأكيد هذا المكان' : 'Confirm Location'}</span>
               </Button>
             </div>
           )}
 
           {/* Single Driver Note Editing Field */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
               {isArabic
                 ? 'ملاحظات للسائق أو تفاصيل التجمع (اختياري)'
                 : 'Driver Note / Specific Meeting Spot (Optional)'}
@@ -688,7 +749,7 @@ export function CheckoutPickupLocationPicker({
                   ? 'مثال: في بهو الفندق، أو أمام البوابة الرئيسية...'
                   : 'e.g. In hotel lobby, near main entrance...'
               }
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#00aeef]"
+              className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-border bg-card-elevated text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-secondary"
             />
           </div>
         </div>

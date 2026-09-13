@@ -8,6 +8,14 @@ import { JsonTranslationDictionary } from '@/domains/translation/dictionary'
 
 const dict = new JsonTranslationDictionary()
 
+function MailIcon({ className = 'w-8 h-8' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+    </svg>
+  )
+}
+
 export function ContactFormClient() {
   const { addToast } = useToast()
   const { locale } = useLocale()
@@ -83,9 +91,11 @@ export function ContactFormClient() {
   if (isSubmitted) {
     return (
       <Card variant="flat" padding="lg" className="flex flex-col items-center justify-center text-center py-12 gap-4">
-        <span className="text-5xl">✉️</span>
-        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Thank You!</h3>
-        <p className="text-slate-600 dark:text-slate-400 max-w-md">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+          <MailIcon className="w-8 h-8" />
+        </div>
+        <h3 className="text-2xl font-bold text-foreground">Thank You!</h3>
+        <p className="text-muted-foreground max-w-md text-sm">
           Your message has been sent successfully. One of our luxury travel concierge specialists will email you within the next 2 hours.
         </p>
         <Button variant="outline" size="sm" onClick={() => setIsSubmitted(false)} className="mt-4">
@@ -100,7 +110,7 @@ export function ContactFormClient() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
               {nameLabel} *
             </label>
             <Input
@@ -112,7 +122,7 @@ export function ContactFormClient() {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
               {emailLabel} *
             </label>
             <Input
@@ -127,7 +137,7 @@ export function ContactFormClient() {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
             {subjectLabel} *
           </label>
           <Input
@@ -140,7 +150,7 @@ export function ContactFormClient() {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
             {messageLabel} *
           </label>
           <textarea

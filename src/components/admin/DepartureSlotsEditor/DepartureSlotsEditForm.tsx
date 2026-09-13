@@ -10,6 +10,14 @@ export interface DepartureSlotsEditFormProps {
   onCancel: () => void
 }
 
+function CheckIcon() {
+  return (
+    <svg style={{ width: '13px', height: '13px', display: 'inline-block', verticalAlign: 'text-bottom', marginRight: '5px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
 export const DepartureSlotsEditForm: React.FC<DepartureSlotsEditFormProps> = ({
   editingSlot,
   submitting,
@@ -114,7 +122,14 @@ export const DepartureSlotsEditForm: React.FC<DepartureSlotsEditFormProps> = ({
           disabled={submitting || !editingSlot.date || !editingSlot.capacityTotal}
           onClick={onSave}
         >
-          {submitting ? 'Saving Changes...' : '✓ Save Slot Updates'}
+          {submitting ? (
+            'Saving Changes...'
+          ) : (
+            <>
+              <CheckIcon />
+              <span>Save Slot Updates</span>
+            </>
+          )}
         </button>
         <button type="button" className="dse-btn dse-btn--secondary" onClick={onCancel}>
           Cancel

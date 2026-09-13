@@ -21,7 +21,10 @@ export class LoyaltyProgramRegistry {
   }
 
   public static getInstance(): LoyaltyProgramRegistry {
-    const globalContext = globalThis as unknown as Record<typeof LOYALTY_PROGRAM_GLOBAL_KEY, LoyaltyProgramRegistry>
+    const globalContext = globalThis as unknown as Record<
+      typeof LOYALTY_PROGRAM_GLOBAL_KEY,
+      LoyaltyProgramRegistry
+    >
     if (!globalContext[LOYALTY_PROGRAM_GLOBAL_KEY]) {
       globalContext[LOYALTY_PROGRAM_GLOBAL_KEY] = new LoyaltyProgramRegistry()
     }

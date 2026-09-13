@@ -8,6 +8,7 @@ import type {
   DailyTourDuration,
   AccommodationStayEntity,
   ExperienceChildPolicy,
+  ItineraryDay,
 } from './types'
 import type { BlackoutEntry } from './blackout-policy'
 
@@ -19,7 +20,10 @@ export interface BaseExperienceAggregate {
   id: number
   title: string
   slug: string
+  /** Origin / Departure Gateway City ID (authoritative departure location and timezone source) */
   cityId: number
+  /** Ordered Post-Origin Journey Destination City IDs (subsequent destinations visited after Origin) */
+  destinations?: number[]
   price: number // Canonical catalog default base price in EGP
   availability: ExperienceAvailabilityStatus
   schedules?: ScheduleConfig[]
@@ -34,12 +38,15 @@ export interface BaseExperienceAggregate {
   included?: string[]
   excluded?: string[]
   descriptionHtml?: string
-  itinerary?: Array<{
-    dayNumber: number
-    title: string
-    description: string
-  }>
+  itinerary?: ItineraryDay[]
   policiesHtml?: string
+}
+
+/**
+ * Derives the canonical ordered journey trajectory (Origin + Post-Origin destinations)
+ */
+export function getExperienceTrajectory(exp: BaseExperienceAggregate): number[] {
+  return [exp.cityId, ...(exp.destinations || [])]
 }
 
 /**

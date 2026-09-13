@@ -26,7 +26,7 @@ export default function NotFound() {
       } transition-colors duration-500`}
     >
       <Card variant="flat" padding="lg" className="max-w-md w-full shadow-2xl flex flex-col items-center gap-4">
-        <span className="text-6xl font-serif font-light text-[#00aeef] tracking-widest">
+        <span className="text-6xl font-serif font-light text-[#00aeef]">
           404
         </span>
 

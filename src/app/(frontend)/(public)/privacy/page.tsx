@@ -45,7 +45,7 @@ export default async function PrivacyPage() {
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           {t[0]}
         </h1>
-        <p className="text-xs text-slate-400 font-mono">{t[1]}</p>
+        <p className="text-xs text-slate-400">{t[1]}</p>
 
         <div className="space-y-6 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
           <section>

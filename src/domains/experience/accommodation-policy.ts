@@ -14,6 +14,7 @@ export const OCCUPANCY_GUEST_COUNT_MAP: Record<string, number> = {
 
 const VALID_OCCUPANCIES = new Set(['single', 'double', 'triple', 'quad'])
 const VALID_BOARD_BASIS = new Set(['bed_and_breakfast', 'half_board', 'full_board', 'all_inclusive'])
+const VALID_PRICING_UNITS = new Set(['per_stay', 'per_night'])
 
 export class AccommodationPolicy {
   /**
@@ -77,69 +78,66 @@ export class AccommodationPolicy {
         }
       }
 
-      // Invariant 3: Occupancy Options Validation
-      if (!Array.isArray(stayRaw.occupancyOptions) || stayRaw.occupancyOptions.length === 0) {
-        errors.push(`[AccommodationPolicy] Stay #${stayIndex} must contain at least one occupancy option in occupancyOptions[].`)
+      // Pricing unit validation (strict enum: per_stay | per_night)
+      const pricingUnit = stayRaw.pricingUnit || 'per_stay'
+      if (!VALID_PRICING_UNITS.has(pricingUnit)) {
+        errors.push(
+          `[AccommodationPolicy] Stay #${stayIndex} has invalid pricingUnit: "${stayRaw.pricingUnit}". Allowed: per_stay, per_night.`,
+        )
+      }
+
+      // Invariant 3: Room Rates Validation
+      if (!Array.isArray(stayRaw.roomRates) || stayRaw.roomRates.length === 0) {
+        errors.push(`[AccommodationPolicy] Stay #${stayIndex} must contain at least one room rate configuration in roomRates[].`)
       } else {
         const seenOccupancies = new Set<string>()
-        let defaultCount = 0
+        let enabledCount = 0
 
-        stayRaw.occupancyOptions.forEach((opt: any, optIdx: number) => {
-          const optIndex = optIdx + 1
+        stayRaw.roomRates.forEach((rateObj: any, rateIdx: number) => {
+          const rateIndex = rateIdx + 1
 
-          if (!opt || typeof opt !== 'object') {
-            errors.push(`[AccommodationPolicy] Stay #${stayIndex} option #${optIndex} must be a valid object.`)
+          if (!rateObj || typeof rateObj !== 'object') {
+            errors.push(`[AccommodationPolicy] Stay #${stayIndex} room rate #${rateIndex} must be a valid object.`)
             return
           }
 
           // Validate occupancy type enum
-          if (!opt.occupancy || !VALID_OCCUPANCIES.has(opt.occupancy)) {
+          if (!rateObj.occupancy || !VALID_OCCUPANCIES.has(rateObj.occupancy)) {
             errors.push(
-              `[AccommodationPolicy] Stay #${stayIndex} option #${optIndex} has invalid occupancy: "${opt.occupancy}". Allowed: single, double, triple, quad.`,
+              `[AccommodationPolicy] Stay #${stayIndex} room rate #${rateIndex} has invalid occupancy: "${rateObj.occupancy}". Allowed: single, double, triple, quad.`,
             )
           } else {
             // Check for duplicates
-            if (seenOccupancies.has(opt.occupancy)) {
+            if (seenOccupancies.has(rateObj.occupancy)) {
               errors.push(
-                `[AccommodationPolicy] Stay #${stayIndex} contains duplicate occupancy option: "${opt.occupancy}". Each occupancy must be unique per stay.`,
+                `[AccommodationPolicy] Stay #${stayIndex} contains duplicate room rate for occupancy: "${rateObj.occupancy}". Each occupancy must be unique per stay.`,
               )
             }
-            seenOccupancies.add(opt.occupancy)
+            seenOccupancies.add(rateObj.occupancy)
+          }
 
-            // Validate guestCount if provided (must match derived guest count)
-            if (opt.guestCount !== undefined && opt.guestCount !== null && opt.guestCount !== '') {
-              const expectedCount = OCCUPANCY_GUEST_COUNT_MAP[opt.occupancy]
-              const actualCount = Number(opt.guestCount)
-              if (actualCount !== expectedCount) {
-                errors.push(
-                  `[AccommodationPolicy] Stay #${stayIndex} option #${optIndex} has mismatched guestCount: ${opt.guestCount} (expected ${expectedCount} for "${opt.occupancy}").`,
-                )
-              }
+          // Rate EGP must be a valid non-negative number >= 0
+          if (rateObj.rateEGP === undefined || rateObj.rateEGP === null || rateObj.rateEGP === '') {
+            errors.push(
+              `[AccommodationPolicy] Stay #${stayIndex} option "${rateObj.occupancy}" is missing rateEGP (must be a valid number >= 0).`,
+            )
+          } else {
+            const rateVal = Number(rateObj.rateEGP)
+            if (isNaN(rateVal) || rateVal < 0 || !Number.isFinite(rateVal)) {
+              errors.push(
+                `[AccommodationPolicy] Stay #${stayIndex} option "${rateObj.occupancy}" has invalid rateEGP: ${rateObj.rateEGP} (must be a non-negative number >= 0).`,
+              )
             }
           }
 
-          // Supplement EGP must be non-negative >= 0
-          const supp = Number(opt.supplementEGP)
-          if (isNaN(supp) || supp < 0) {
-            errors.push(
-              `[AccommodationPolicy] Stay #${stayIndex} option #${optIndex} has invalid supplementEGP: ${opt.supplementEGP} (must be >= 0).`,
-            )
-          }
-
-          // Count defaults
-          if (opt.isDefault === true) {
-            defaultCount++
+          if (rateObj.enabled !== false) {
+            enabledCount++
           }
         })
 
-        // Invariant 4: Exactly ONE default option required (NO silent fallback)
-        if (defaultCount === 0) {
+        if (enabledCount === 0) {
           errors.push(
-            `[AccommodationPolicy] Stay #${stayIndex} has no default occupancy option. Exactly one option must have isDefault === true.`,
-          )
-        } else if (defaultCount > 1) {
-          errors.push(
-            `[AccommodationPolicy] Stay #${stayIndex} has ${defaultCount} default occupancy options. Exactly one option must have isDefault === true.`,
+            `[AccommodationPolicy] Stay #${stayIndex} has no enabled room rates. At least one room occupancy must have enabled === true.`,
           )
         }
       }

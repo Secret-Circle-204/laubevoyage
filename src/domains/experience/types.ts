@@ -26,12 +26,13 @@ export type AccommodationType = 'hotel' | 'resort' | 'cruise' | 'lodge' | 'camp'
 export type BoardBasis = 'bed_and_breakfast' | 'half_board' | 'full_board' | 'all_inclusive'
 
 export type OccupancyType = 'single' | 'double' | 'triple' | 'quad'
+export type PricingUnit = 'per_stay' | 'per_night'
 
-export interface OccupancyOptionEntity {
+export interface RoomRateEntity {
   occupancy: OccupancyType
-  guestCount: number
-  supplementEGP: number
-  isDefault: boolean
+  guestCount?: number
+  rateEGP: number
+  enabled: boolean
 }
 
 export interface AccommodationPropertyEntity {
@@ -59,7 +60,16 @@ export interface AccommodationStayEntity {
   nights: number
   roomCategory?: string
   boardBasis?: BoardBasis
-  occupancyOptions: OccupancyOptionEntity[]
+  pricingUnit: PricingUnit
+  roomRates: RoomRateEntity[]
+}
+
+export interface ItineraryDay {
+  dayNumber: number
+  title: string
+  description: string
+  cityId?: number
+  cityName?: string
 }
 
 /**
@@ -70,7 +80,10 @@ export interface ExperienceOperationalMetadata {
   id: number
   title: string
   slug: string
+  /** Origin / Departure Gateway City ID (where the journey commences). */
   cityId: number
+  /** Ordered Post-Origin Journey Destination City IDs (visited after departing Origin). */
+  destinations?: number[]
   type: ExperienceType
   packageMode?: PackageMode
   durationDays: number

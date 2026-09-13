@@ -216,8 +216,10 @@ export default buildConfig({
     },
   }),
   onInit: async (payload) => {
-    const { bootstrapWebApplication } = await import('./domains/bootstrap')
-    await bootstrapWebApplication(payload)
+    const { createPureDomainServices } = await import('./domains/factory')
+    const { bootstrapApplication } = await import('./domains/bootstrap')
+    const container = createPureDomainServices(payload)
+    await bootstrapApplication(container)
   },
   plugins: [],
 })

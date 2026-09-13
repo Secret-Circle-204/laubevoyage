@@ -15,10 +15,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page(props: {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; countriesPage?: string }>
 }) {
   const searchParams = await props.searchParams
-  const currentPage = Number(searchParams.page) || 1
+  const rawCitiesPage = Number(searchParams.page)
+  const rawCountriesPage = Number(searchParams.countriesPage)
+
+  const currentPage = Number.isInteger(rawCitiesPage) && rawCitiesPage > 0 ? rawCitiesPage : 1
+  const countriesPage = Number.isInteger(rawCountriesPage) && rawCountriesPage > 0 ? rawCountriesPage : 1
+
   const cookieStore = await cookies()
   const locale = cookieStore.get('laube-locale')?.value
   const currency = cookieStore.get('laube-currency')?.value
@@ -26,6 +31,7 @@ export default async function Page(props: {
   const data = await DestinationsCatalogLoader.load({
     page: currentPage,
     limit: 12,
+    countriesPage,
     locale,
     currency,
   })

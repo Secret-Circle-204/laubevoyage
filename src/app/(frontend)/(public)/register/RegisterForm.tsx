@@ -77,7 +77,7 @@ export function RegisterForm({ welcomeBonus }: RegisterFormProps) {
     <form onSubmit={handleRegister} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
             First Name
           </label>
           <Input
@@ -90,7 +90,7 @@ export function RegisterForm({ welcomeBonus }: RegisterFormProps) {
           />
         </div>
         <div>
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
             Last Name
           </label>
           <Input
@@ -105,7 +105,7 @@ export function RegisterForm({ welcomeBonus }: RegisterFormProps) {
       </div>
 
       <div>
-        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
           Email Address
         </label>
         <Input
@@ -120,7 +120,7 @@ export function RegisterForm({ welcomeBonus }: RegisterFormProps) {
       </div>
 
       <div>
-        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
           Phone Number
         </label>
         <Input
@@ -134,7 +134,7 @@ export function RegisterForm({ welcomeBonus }: RegisterFormProps) {
       </div>
 
       <div>
-        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
           Password
         </label>
         <Input

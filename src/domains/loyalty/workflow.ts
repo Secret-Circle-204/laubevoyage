@@ -445,11 +445,12 @@ export class LoyaltyWorkflowEngine {
 
     // 1. Deduct booking qualifying spend from totalSpentEGP ONLY if booking contributed qualifying spend
     if (qualifyingSpendContributed > 0) {
-      const newTotalSpent = aggregate.totalSpentEGP - qualifyingSpendContributed
+      const deduction = Math.min(aggregate.totalSpentEGP, qualifyingSpendContributed)
+      const newTotalSpent = Math.max(0, aggregate.totalSpentEGP - qualifyingSpendContributed)
       newTier = TierPolicy.evaluateEligibleTier(newTotalSpent, activeConfig)
 
       // Update customer document (reduces totalSpent and updates tier if demoted)
-      await this.repository.updateCustomerTier(customerId, newTier, -qualifyingSpendContributed, context)
+      await this.repository.updateCustomerTier(customerId, newTier, -deduction, context)
     }
 
     // 2. Refund redeemed points if any, or record audit marker if pointsRedeemed === 0
