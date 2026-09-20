@@ -124,7 +124,7 @@ export function CustomerSidebar({ data, unreadCount }: CustomerSidebarProps) {
           <span className="font-bold text-sm text-foreground truncate tracking-tight">{data.fullName}</span>
           <div className="flex items-center gap-1.5 mt-1">
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-accent/10 text-accent border border-accent/25">
-              {data.currentTier} {data.tierSuffix}
+              {data.formattedTier || `${data.currentTier} ${data.tierSuffix}`}
             </span>
           </div>
         </div>

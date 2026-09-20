@@ -114,6 +114,89 @@ export class BookingPolicy {
   }
 
   /**
+   * Validate that an existing booking draft with a point hold conforms to current active loyalty redemption policy
+   * before delegating to payment gateway checkout session creation.
+   * Prevents unauthorized, forged, or outdated discounts from reaching Stripe.
+   */
+  static validateBookingRedemptionForCheckout(
+    booking: {
+      customerId: number
+      pricingSnapshot?: any
+      pointHold?: { pointsHeld: number; valueEGP: number; status: string } | null
+    },
+    activeConfig: {
+      minRedemptionPoints: number
+      maxRedemptionPercent: number
+      maxRedemptionFixedEGP?: number
+      redemptionStepUnit?: number
+      redemptionPointsUnit: number
+      redemptionValueEGP: number
+    },
+  ): PolicyResult {
+    if (!booking.pointHold || booking.pointHold.pointsHeld <= 0) {
+      return { allowed: true }
+    }
+
+    const { pointsHeld, valueEGP } = booking.pointHold
+    const snapshotDiscount = booking.pricingSnapshot?.loyaltyDiscountEGP ?? 0
+
+    // Integrity Guard 1: pointHold value must match pricingSnapshot discount
+    if (Math.abs(valueEGP - snapshotDiscount) > 0.01) {
+      return {
+        allowed: false,
+        code: 'SNAPSHOT_DISCOUNT_MISMATCH',
+        reason: `Point hold value (${valueEGP} EGP) does not match pricing snapshot discount (${snapshotDiscount} EGP).`,
+      }
+    }
+
+    // Policy Guard 2: Maximum fixed redemption limit
+    if (activeConfig.maxRedemptionFixedEGP && activeConfig.maxRedemptionFixedEGP > 0) {
+      if (valueEGP > activeConfig.maxRedemptionFixedEGP) {
+        return {
+          allowed: false,
+          code: 'EXCEEDS_MAX_FIXED_LIMIT',
+          reason: `Discount ${valueEGP} EGP exceeds maximum fixed redemption limit of ${activeConfig.maxRedemptionFixedEGP} EGP.`,
+        }
+      }
+    }
+
+    // Policy Guard 3: Maximum percentage of booking total
+    const basePrice = booking.pricingSnapshot?.basePriceEGP || booking.pricingSnapshot?.totalAmountEGP || 0
+    if (basePrice > 0 && activeConfig.maxRedemptionPercent && activeConfig.maxRedemptionPercent > 0) {
+      const maxAllowedPercentEGP = (basePrice * activeConfig.maxRedemptionPercent) / 100
+      if (valueEGP > maxAllowedPercentEGP) {
+        return {
+          allowed: false,
+          code: 'EXCEEDS_MAX_PERCENT_LIMIT',
+          reason: `Discount ${valueEGP} EGP exceeds maximum allowed percent limit (${maxAllowedPercentEGP} EGP).`,
+        }
+      }
+    }
+
+    // Policy Guard 4: Minimum points threshold
+    if (activeConfig.minRedemptionPoints && pointsHeld < activeConfig.minRedemptionPoints) {
+      return {
+        allowed: false,
+        code: 'MIN_REDEMPTION_NOT_MET',
+        reason: `Held points (${pointsHeld}) is below minimum threshold of ${activeConfig.minRedemptionPoints} points.`,
+      }
+    }
+
+    // Policy Guard 5: Step unit
+    if (activeConfig.redemptionStepUnit && activeConfig.redemptionStepUnit > 0) {
+      if (pointsHeld % activeConfig.redemptionStepUnit !== 0) {
+        return {
+          allowed: false,
+          code: 'INVALID_STEP_UNIT',
+          reason: `Held points (${pointsHeld}) must be a multiple of ${activeConfig.redemptionStepUnit}.`,
+        }
+      }
+    }
+
+    return { allowed: true }
+  }
+
+  /**
    * Validate if a booking can be confirmed after payment.
    */
   static canConfirm(booking: BookingAggregate): PolicyResult {

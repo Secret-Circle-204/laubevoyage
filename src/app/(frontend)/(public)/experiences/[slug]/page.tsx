@@ -4,12 +4,11 @@ import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { ExperienceDetailsLoader } from '@/application/experience/loaders-details'
 import { ExperienceDetailsPage } from '@/components/features/experience/ExperienceDetailsPage'
-
-
+import { AccommodationParamsParser } from '@/application/shared/parsers/accommodation-params-parser'
 
 export async function generateMetadata(props: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ adults?: string; [key: string]: any }>
+  searchParams: Promise<{ adults?: string; accommodations?: string; [key: string]: any }>
 }): Promise<Metadata> {
   const params = await props.params
   const searchParams = await props.searchParams
@@ -17,8 +16,16 @@ export async function generateMetadata(props: {
   const locale = cookieStore.get('laube-locale')?.value
   const currency = cookieStore.get('laube-currency')?.value
   const adults = Number(searchParams.adults) || 2
+  const selectedAccommodationOptions = typeof searchParams.accommodations === 'string'
+    ? AccommodationParamsParser.parse(searchParams.accommodations)
+    : undefined
 
-  const data = await ExperienceDetailsLoader.loadBySlug(params.slug, { locale, currency, adults })
+  const data = await ExperienceDetailsLoader.loadBySlug(params.slug, {
+    locale,
+    currency,
+    adults,
+    selectedAccommodationOptions,
+  })
 
   if (!data) {
     return { title: "Experience Not Found | L'Aube Voyage" }
@@ -32,7 +39,7 @@ export async function generateMetadata(props: {
 
 export default async function Page(props: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ adults?: string; [key: string]: any }>
+  searchParams: Promise<{ adults?: string; accommodations?: string; [key: string]: any }>
 }) {
   const params = await props.params
   const searchParams = await props.searchParams
@@ -40,8 +47,16 @@ export default async function Page(props: {
   const locale = cookieStore.get('laube-locale')?.value
   const currency = cookieStore.get('laube-currency')?.value
   const adults = Number(searchParams.adults) || 2
+  const selectedAccommodationOptions = typeof searchParams.accommodations === 'string'
+    ? AccommodationParamsParser.parse(searchParams.accommodations)
+    : undefined
 
-  const data = await ExperienceDetailsLoader.loadBySlug(params.slug, { locale, currency, adults })
+  const data = await ExperienceDetailsLoader.loadBySlug(params.slug, {
+    locale,
+    currency,
+    adults,
+    selectedAccommodationOptions,
+  })
 
   if (!data) {
     notFound()

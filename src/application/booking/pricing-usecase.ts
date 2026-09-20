@@ -10,10 +10,12 @@ import type { BookableDeparture } from '@/domains/experience/bookable-departure'
 import type { PricingSnapshotData } from '@/domains/currency/pipeline'
 import type { CommercialSnapshotBreakdown } from '@/domains/booking/types'
 import type { PackageExperienceAggregate } from '@/domains/experience/aggregate'
-import type { OccupancyType } from '@/domains/experience/types'
+import type { OccupancyType, AccommodationStayEntity, AccommodationOptionEntity } from '@/domains/experience/types'
 import { ChildPolicy, type ChildBeddingMode } from '@/domains/experience/child-policy'
 import { RoomAllocationPolicy } from '@/domains/experience/room-allocation-policy'
 import type { FormattedCommercialBreakdown } from '@/application/experience/dto-details'
+
+import type { RoomAllocationOption } from '@/domains/experience/room-allocation-policy'
 
 export interface BookingPricingResult {
   snapshot: PricingSnapshotData
@@ -27,6 +29,9 @@ export interface BookingPricingResult {
   remainingLoyaltyPoints?: number
   commercialBreakdown?: CommercialSnapshotBreakdown
   formattedBreakdown?: FormattedCommercialBreakdown
+  availableAllocationOptions?: RoomAllocationOption[]
+  selectedAllocationId?: string
+  selectedAccommodationOptions?: Record<number, string>
 }
 
 export interface CalculatePricingParams {
@@ -38,7 +43,8 @@ export interface CalculatePricingParams {
   childrenCount?: number
   childAges?: number[]
   childBeddingModes?: ChildBeddingMode[]
-  requestedRooms?: number
+  selectedAllocationId?: string
+  selectedAccommodationOptions?: Record<number, string>
   ctx: LocaleContext
   pointsToRedeem?: number
   customerId?: number
@@ -98,7 +104,7 @@ export class BookingPricingUseCase {
       throw new Error(`[BookingPricingUseCase] date is required for preview pricing.`)
     }
 
-    const departure = await this.experienceService.resolvePreviewDepartureByDate(
+    const departure = await this.experienceService.resolveBookableDepartureByDate(
       params.experienceId,
       params.date,
       params.startTime || '',
@@ -131,7 +137,6 @@ export class BookingPricingUseCase {
         : null
 
     const expType = experienceDoc?.type || departure.experienceType || 'daily_tour'
-
     const effectiveAdults = Math.max(1, params.adultsCount)
     const childAges = params.childAges || []
     const effectiveChildren = Math.max(params.childrenCount || 0, childAges.length)
@@ -140,6 +145,9 @@ export class BookingPricingUseCase {
     const adultsTotalEGP = effectiveAdults * adultBasePriceEGP
 
     let commercialBreakdown: CommercialSnapshotBreakdown
+    let availableAllocationOptions: RoomAllocationOption[] | undefined = undefined
+    let selectedAllocationId: string | undefined = undefined
+    const resolvedOptionsMap: Record<number, string> = {}
 
     if (expType === 'package') {
       const pkg = experienceDoc as PackageExperienceAggregate
@@ -157,13 +165,76 @@ export class BookingPricingUseCase {
         }
       }
 
-      // 2. Pure Domain Rule: Resolve Supported Room Occupancies (Intersection across Stays)
-      let supportedOccupancies: OccupancyType[] = []
+      // 2. Server-Side Authority & Accommodation Option Resolution
+      // Reject any unknown stay order in untrusted client input
+      if (params.selectedAccommodationOptions) {
+        const validOrders = new Set((pkg?.accommodations || []).map((s) => s.order))
+        for (const orderKey of Object.keys(params.selectedAccommodationOptions)) {
+          const orderNum = Number(orderKey)
+          if (isNaN(orderNum) || !validOrders.has(orderNum)) {
+            throw new Error(
+              `[BookingPricingUseCase] Unknown stay order "${orderKey}" in accommodation options selection.`,
+            )
+          }
+        }
+      }
+
+      const resolvedStays: Array<{
+        stay: AccommodationStayEntity
+        option: AccommodationOptionEntity
+      }> = []
+
       if (Array.isArray(pkg?.accommodations) && pkg.accommodations.length > 0) {
-        const enabledPerStay = pkg.accommodations.map((stay) => {
+        for (const stay of pkg.accommodations) {
+          const options = Array.isArray(stay.options) ? stay.options : []
+          if (options.length === 0) {
+            throw new Error(
+              `[BookingPricingUseCase] Stay #${stay.order} has no accommodation options configured.`,
+            )
+          }
+
+          let selectedOption: AccommodationOptionEntity
+
+          if (options.length === 1) {
+            // Case A: Exactly one option -> Auto-select
+            selectedOption = options[0]
+            const suppliedOptionId = params.selectedAccommodationOptions?.[stay.order]
+            if (suppliedOptionId !== undefined && suppliedOptionId !== selectedOption.id) {
+              throw new Error(
+                `[BookingPricingUseCase] Invalid accommodation option "${suppliedOptionId}" for Stay #${stay.order}.`,
+              )
+            }
+          } else {
+            // Case B: Multiple options -> Explicit valid selection required
+            const selectedOptionId = params.selectedAccommodationOptions?.[stay.order]
+            if (!selectedOptionId) {
+              throw new Error(
+                `[BookingPricingUseCase] Explicit accommodation option selection required for Stay #${stay.order} (multiple options available).`,
+              )
+            }
+            const foundOption = options.find((opt) => opt.id === selectedOptionId)
+            if (!foundOption) {
+              throw new Error(
+                `[BookingPricingUseCase] Invalid accommodation option "${selectedOptionId}" for Stay #${stay.order}.`,
+              )
+            }
+            selectedOption = foundOption
+          }
+
+          resolvedStays.push({ stay, option: selectedOption })
+          if (selectedOption.id) {
+            resolvedOptionsMap[stay.order] = selectedOption.id
+          }
+        }
+      }
+
+      // 3. Pure Domain Rule: Resolve Supported Room Occupancies (Intersection across SELECTED Options)
+      let supportedOccupancies: OccupancyType[] = []
+      if (resolvedStays.length > 0) {
+        const enabledPerStay = resolvedStays.map(({ option }) => {
           const set = new Set<OccupancyType>()
-          if (Array.isArray(stay.roomRates)) {
-            stay.roomRates.forEach((r) => {
+          if (Array.isArray(option.roomRates)) {
+            option.roomRates.forEach((r) => {
               if (r.enabled !== false) {
                 set.add(r.occupancy)
               }
@@ -186,36 +257,71 @@ export class BookingPricingUseCase {
         supportedOccupancies = ['single', 'double', 'triple', 'quad']
       }
 
-      // 3. Pure Domain Rule: Resolve Room Allocation (Smart Assistant Pattern)
-      const allocationResult = RoomAllocationPolicy.resolveSmartAllocation({
+      // 4. Pure Domain Rule: Resolve Available Room Allocations & User Selection
+      availableAllocationOptions = RoomAllocationPolicy.getValidAllocationOptions({
         adultsCount: effectiveAdults,
         childrenCount: effectiveChildren,
-        requestedRooms: params.requestedRooms,
         supportedOccupancies,
       })
 
-      if (!allocationResult.valid) {
-        throw new Error(allocationResult.errors.join('; '))
+      let roomAllocation: Array<{
+        roomIndex: number
+        occupancy: OccupancyType
+        adults: number
+        children: number
+      }> = []
+      let minimumRequiredRooms = RoomAllocationPolicy.calculateMinimumRequiredRooms({
+        adultsCount: effectiveAdults,
+        childrenCount: effectiveChildren,
+        supportedOccupancies,
+      })
+      let autoAdjusted = false
+      let adjustmentReason: string | undefined = undefined
+
+      if (params.selectedAllocationId) {
+        // Strict Server Validation of User Selection against Authoritative Available Options
+        const matchedOption = availableAllocationOptions.find(
+          (opt) => opt.id === params.selectedAllocationId,
+        )
+        if (!matchedOption) {
+          throw new Error(
+            `[BookingPricingUseCase] Invalid or unsupported room allocation arrangement "${params.selectedAllocationId}".`,
+          )
+        }
+        roomAllocation = matchedOption.rooms
+        selectedAllocationId = matchedOption.id
+      } else {
+        // Default to Recommended Allocation from Policy
+        const recommendedOption =
+          RoomAllocationPolicy.getRecommendedAllocationOption(availableAllocationOptions) ||
+          availableAllocationOptions[0]
+
+        if (!recommendedOption) {
+          throw new Error(
+            `[BookingPricingUseCase] No valid room allocations available for ${effectiveAdults} adult(s) and ${effectiveChildren} child(ren).`,
+          )
+        }
+
+        roomAllocation = recommendedOption.rooms
+        selectedAllocationId = recommendedOption.id
       }
 
-      const roomAllocation = allocationResult.allocation || []
-
-      // 4. Calculate Standalone Accommodation Room Rates across Stays (Admin-controlled values)
+      // 5. Calculate Standalone Accommodation Room Rates across Stays from Selected Options (Admin-controlled values)
       let accommodationTotalEGP = 0
       const staysBreakdown: NonNullable<CommercialSnapshotBreakdown['staysBreakdown']> = []
 
-      if (Array.isArray(pkg?.accommodations) && pkg.accommodations.length > 0) {
-        for (const stay of pkg.accommodations) {
+      if (resolvedStays.length > 0) {
+        for (const { stay, option: selectedOption } of resolvedStays) {
           let stayAccommodationTotalEGP = 0
           const appliedRoomRates: NonNullable<CommercialSnapshotBreakdown['staysBreakdown']>[0]['appliedRoomRates'] = []
-          const pricingUnit = stay.pricingUnit === 'per_night' ? 'per_night' : 'per_stay'
+          const pricingUnit = selectedOption.pricingUnit === 'per_night' ? 'per_night' : 'per_stay'
           const nightsMultiplier = pricingUnit === 'per_night' ? stay.nights : 1
 
           for (const room of roomAllocation) {
-            const rateObj = stay.roomRates?.find((r) => r.occupancy === room.occupancy)
+            const rateObj = selectedOption.roomRates?.find((r) => r.occupancy === room.occupancy)
             if (!rateObj || rateObj.enabled === false) {
               throw new Error(
-                `[BookingPricingUseCase] Room occupancy "${room.occupancy}" is unavailable at "${stay.property?.name || `Stay #${stay.order}`}".`,
+                `[BookingPricingUseCase] Room occupancy "${room.occupancy}" is unavailable for option "${selectedOption.id || selectedOption.propertyId}" at "${selectedOption.property?.name || `Stay #${stay.order}`}".`,
               )
             }
 
@@ -226,7 +332,7 @@ export class BookingPricingUseCase {
               Number(rateObj.rateEGP) < 0
             ) {
               throw new Error(
-                `[BookingPricingUseCase] Missing or invalid room rate for "${room.occupancy}" at "${stay.property?.name || `Stay #${stay.order}`}".`,
+                `[BookingPricingUseCase] Missing or invalid room rate for "${room.occupancy}" at "${selectedOption.property?.name || `Stay #${stay.order}`}".`,
               )
             }
 
@@ -249,10 +355,12 @@ export class BookingPricingUseCase {
           accommodationTotalEGP += stayAccommodationTotalEGP
           staysBreakdown.push({
             order: stay.order,
-            propertyId: stay.propertyId,
-            propertyName: stay.property?.name || `Accommodation Stay #${stay.order}`,
+            optionId: selectedOption.id,
+            propertyId: selectedOption.propertyId,
+            propertyName: selectedOption.property?.name || `Accommodation Stay #${stay.order}`,
             nights: stay.nights,
-            roomCategory: stay.roomCategory,
+            roomCategory: selectedOption.roomCategory,
+            boardBasis: selectedOption.boardBasis,
             pricingUnit,
             appliedRoomRates,
             stayAccommodationTotalEGP,
@@ -260,7 +368,7 @@ export class BookingPricingUseCase {
         }
       }
 
-      // 5. Calculate Child Pricing from Admin-configured percentages
+      // 6. Calculate Child Pricing from Admin-configured percentages
       const childrenDetails: NonNullable<CommercialSnapshotBreakdown['children']> = []
       let childrenTotalEGP = 0
 
@@ -308,13 +416,13 @@ export class BookingPricingUseCase {
         adultsCount: effectiveAdults,
         adultBasePriceEGP,
         adultsTotalEGP,
-        requestedRooms: params.requestedRooms || 1,
+        requestedRooms: roomAllocation.length,
         effectiveRoomCount: roomAllocation.length,
-        minimumRequiredRooms: allocationResult.minimumRequiredRooms || 1,
+        minimumRequiredRooms,
         roomAllocation,
         roomCount: roomAllocation.length,
-        autoAdjusted: allocationResult.autoAdjusted,
-        adjustmentMessage: allocationResult.adjustmentReason,
+        autoAdjusted,
+        adjustmentMessage: adjustmentReason,
         accommodationTotalEGP,
         children: childrenDetails,
         childrenTotalEGP,
@@ -339,7 +447,7 @@ export class BookingPricingUseCase {
       commercialBreakdown.accommodationTotalEGP +
       commercialBreakdown.childrenTotalEGP
 
-    // 6. Process Loyalty Points Intent via Domain Validation & Valuation (Fail-Fast)
+    // 7. Process Loyalty Points Intent via Domain Validation & Valuation (Fail-Fast)
     let pointsValueEGP = 0
     let remainingLoyaltyPoints: number | undefined = undefined
 
@@ -371,7 +479,7 @@ export class BookingPricingUseCase {
       )
     }
 
-    // 7. Delegate to Pricing Domain (Single Financial Pricing SSOT Pipeline)
+    // 8. Delegate to Pricing Domain (Single Financial Pricing SSOT Pipeline)
     const snapshot = await this.pricingFacade.calculateCheckoutSnapshot({
       basePricePerPersonEGP: departure.effectiveBasePrice,
       adultsCount: effectiveAdults,
@@ -384,7 +492,7 @@ export class BookingPricingUseCase {
       bookingDate: departure.date,
     })
 
-    // 8. Format dynamic prices via localizationService
+    // 9. Format dynamic prices via localizationService
     const subtotalPrice = await this.localizationService.formatPrice(snapshot.subtotalEGP, params.ctx)
     const totalCost = await this.localizationService.formatPrice(snapshot.totalAmountEGP, params.ctx)
     const unitPrice = await this.localizationService.formatPrice(departure.effectiveBasePrice, params.ctx)
@@ -412,9 +520,11 @@ export class BookingPricingUseCase {
         ? await Promise.all(
             commercialBreakdown.staysBreakdown.map(async (stay) => ({
               order: stay.order,
+              optionId: stay.optionId,
               propertyName: stay.propertyName,
               nights: stay.nights,
               roomCategory: stay.roomCategory,
+              boardBasis: stay.boardBasis,
               pricingUnit: stay.pricingUnit,
               stayAccommodationTotalPrice: await this.localizationService.formatPrice(stay.stayAccommodationTotalEGP, params.ctx),
               appliedRoomRates: await Promise.all(
@@ -432,7 +542,7 @@ export class BookingPricingUseCase {
         : undefined,
     }
 
-    // 9. Calculate estimated points earned on net paid amount
+    // 10. Calculate estimated points earned on net paid amount
     const estimatedEarnPoints = this.loyaltyService
       ? await this.loyaltyService.calculateEarnedPoints(snapshot.totalAmountEGP)
       : undefined
@@ -449,6 +559,9 @@ export class BookingPricingUseCase {
       remainingLoyaltyPoints,
       commercialBreakdown,
       formattedBreakdown,
+      availableAllocationOptions: expType === 'package' ? availableAllocationOptions : undefined,
+      selectedAllocationId: expType === 'package' ? selectedAllocationId : undefined,
+      selectedAccommodationOptions: expType === 'package' ? resolvedOptionsMap : undefined,
     }
   }
 }

@@ -6,6 +6,8 @@ import type { ConvertedPrice } from '@/domains/currency/types'
 import type { CommercialSnapshotBreakdown } from '@/domains/booking/types'
 import type { FormattedCommercialBreakdown } from '@/application/experience/dto-details'
 
+import type { RoomAllocationOption } from '@/domains/experience/room-allocation-policy'
+
 /**
  * Server Action to resolve the pricing view model on the server.
  * Pure Read-Only Query (Zero DB Mutations).
@@ -19,7 +21,8 @@ export async function resolvePricingAction(params: {
   children?: number
   childAges?: number[]
   childBeddingModes?: ('sharing_bed' | 'extra_bed')[]
-  requestedRooms?: number
+  selectedAllocationId?: string
+  selectedAccommodationOptions?: Record<number, string>
   currency: string
   locale?: string
   pointsToRedeem?: number
@@ -36,6 +39,9 @@ export async function resolvePricingAction(params: {
     remainingLoyaltyPoints?: number
     commercialBreakdown?: CommercialSnapshotBreakdown
     formattedBreakdown?: FormattedCommercialBreakdown
+    availableAllocationOptions?: RoomAllocationOption[]
+    selectedAllocationId?: string
+    selectedAccommodationOptions?: Record<number, string>
   }
   error?: string
   code?: string
@@ -97,7 +103,8 @@ export async function resolvePricingAction(params: {
         childrenCount: effectiveChildren,
         childAges: params.childAges,
         childBeddingModes: params.childBeddingModes,
-        requestedRooms: params.requestedRooms,
+        selectedAllocationId: params.selectedAllocationId,
+        selectedAccommodationOptions: params.selectedAccommodationOptions,
         ctx,
         pointsToRedeem: params.pointsToRedeem,
         customerId,
@@ -116,6 +123,9 @@ export async function resolvePricingAction(params: {
           remainingLoyaltyPoints: result.remainingLoyaltyPoints,
           commercialBreakdown: result.commercialBreakdown,
           formattedBreakdown: result.formattedBreakdown,
+          availableAllocationOptions: result.availableAllocationOptions,
+          selectedAllocationId: result.selectedAllocationId,
+          selectedAccommodationOptions: result.selectedAccommodationOptions,
         },
       }
     } else if (isFlexiblePackage) {
@@ -129,7 +139,8 @@ export async function resolvePricingAction(params: {
         childrenCount: effectiveChildren,
         childAges: params.childAges,
         childBeddingModes: params.childBeddingModes,
-        requestedRooms: params.requestedRooms,
+        selectedAllocationId: params.selectedAllocationId,
+        selectedAccommodationOptions: params.selectedAccommodationOptions,
         ctx,
         pointsToRedeem: params.pointsToRedeem,
         customerId,
@@ -148,6 +159,9 @@ export async function resolvePricingAction(params: {
           remainingLoyaltyPoints: result.remainingLoyaltyPoints,
           commercialBreakdown: result.commercialBreakdown,
           formattedBreakdown: result.formattedBreakdown,
+          availableAllocationOptions: result.availableAllocationOptions,
+          selectedAllocationId: result.selectedAllocationId,
+          selectedAccommodationOptions: result.selectedAccommodationOptions,
         },
       }
     } else if (isDailyTour) {
@@ -162,7 +176,6 @@ export async function resolvePricingAction(params: {
         childrenCount: effectiveChildren,
         childAges: params.childAges,
         childBeddingModes: params.childBeddingModes,
-        requestedRooms: params.requestedRooms,
         ctx,
         pointsToRedeem: params.pointsToRedeem,
         customerId,

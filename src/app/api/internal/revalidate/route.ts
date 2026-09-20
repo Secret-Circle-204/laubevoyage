@@ -12,8 +12,7 @@ export async function POST(req: NextRequest) {
       throw new Error('[SECURITY CRITICAL] INTERNAL_REVALIDATION_TOKEN must be a secure random secret in production.')
     }
 
-    const activeToken = secret || 'laube-internal-token-2026'
-    if (token !== activeToken) {
+    if (!secret || token !== secret) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 

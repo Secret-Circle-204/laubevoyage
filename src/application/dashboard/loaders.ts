@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { getDomainServices } from '@/domains/factory'
 import { getBusinessDateString } from '@/lib/date'
 import type { BookingAggregate, BookingUserFilter } from '@/domains/booking/types'
@@ -18,21 +19,27 @@ import { LoyaltyTier, BookingStatus } from '@/types'
 import { TierPolicy } from '@/domains/loyalty/tier-policy'
 import { LoyaltyProgressDTOFactory } from '@/application/loyalty/progress-factory'
 
+/**
+ * Request-scoped memoized reader for CustomerPortalProjection.
+ * Deduplicates concurrent/sequential projection reads within a single HTTP request (e.g. Layout + Page)
+ * with 0ms in-memory cache hits and zero database query duplication.
+ */
+export const getSharedPortalOverview = cache(async (customerId: number) => {
+  const { dashboard } = await getDomainServices()
+  return dashboard.getPortalOverview(customerId)
+})
+
 export class CustomerPortalLoader {
   static async loadSidebar(customerId: number, locale?: string): Promise<CustomerSidebarDTO> {
     try {
-      const { customer, dashboard, localization } = await getDomainServices()
+      const { localization } = await getDomainServices()
       const ctx = await localization.buildContext({ cookieLocale: locale })
-      const [customerDoc, projection] = await Promise.all([
-        customer.getById(customerId),
-        dashboard.getPortalOverview(customerId),
-      ])
+      const projection = await getSharedPortalOverview(customerId)
 
-      const fullName = customerDoc?.fullName || projection?.customer?.fullName || 'Traveler'
+      const fullName = projection?.customer?.fullName || 'Traveler'
       const currentTier = (
         projection?.loyalty?.tier ||
-        customerDoc?.loyalty?.tier ||
-        ''
+        'silver'
       ).toLowerCase() as LoyaltyTier
 
       const navLinks = [
@@ -46,11 +53,15 @@ export class CustomerPortalLoader {
       ]
 
       const tierSuffix = localization.translateUiKey('layout.sidebar.tierSuffix', ctx)
+      const rawSidebarTierFormat = localization.translateUiKey('layout.sidebar.tierFormat', ctx) || '{tier} Tier'
+      const translatedTier = localization.translateUiKey(`loyalty.tier.${currentTier}`, ctx) || currentTier
+      const formattedTier = rawSidebarTierFormat.replace('{tier}', translatedTier)
 
       return {
         customerId,
         fullName,
         currentTier,
+        formattedTier,
         navLinks,
         tierSuffix,
       }
@@ -69,7 +80,6 @@ export class CustomerPortalLoader {
   ): Promise<CustomerPortalOverviewDTO> {
     try {
       const {
-        dashboard,
         localization,
         customer: customerService,
         booking,
@@ -84,7 +94,7 @@ export class CustomerPortalLoader {
       })
 
       const [projection, customerDoc] = await Promise.all([
-        dashboard.getPortalOverview(customerId),
+        getSharedPortalOverview(customerId),
         customerService.getById(customerId),
       ])
       const notifsPortal = await CustomerPortalLoader.loadNotifications(customerId, {
@@ -241,11 +251,64 @@ export class CustomerPortalLoader {
         displayValue: formattedRedemption.formatted,
       }
 
+      const translatedCurrentTier = localization.translateUiKey(`loyalty.tier.${currentTier}`, ctx) || currentTier
+      const rawOverviewTierFormat = localization.translateUiKey('dashboard.overview.tierFormat', ctx) || '{tier} Tier'
+      const formattedCurrentTier = rawOverviewTierFormat.replace('{tier}', translatedCurrentTier)
+
+      const uiLabels = {
+        personalTravelHome: localization.translateUiKey('dashboard.overview.personalTravelHome', ctx),
+        welcomeBack: localization.translateUiKey('dashboard.overview.welcomeBack', ctx),
+        welcomeSubtitle: localization.translateUiKey('dashboard.overview.welcomeSubtitle', ctx),
+        primaryVoyageDossier: localization.translateUiKey('dashboard.overview.primaryVoyageDossier', ctx),
+        statusConfirmed: localization.translateUiKey('dashboard.overview.statusConfirmed', ctx),
+        statusPendingReview: localization.translateUiKey('dashboard.overview.statusPendingReview', ctx),
+        viewDetails: localization.translateUiKey('dashboard.overview.viewDetails', ctx),
+        hideDetails: localization.translateUiKey('dashboard.overview.hideDetails', ctx),
+        details: localization.translateUiKey('dashboard.overview.details', ctx),
+        departure: localization.translateUiKey('dashboard.overview.departure', ctx),
+        settlement: localization.translateUiKey('dashboard.overview.settlement', ctx),
+        accessTravelDossier: localization.translateUiKey('dashboard.overview.accessTravelDossier', ctx),
+        schedule: localization.translateUiKey('dashboard.overview.schedule', ctx),
+        manifest: localization.translateUiKey('dashboard.overview.manifest', ctx),
+        travelerSingle: localization.translateUiKey('dashboard.overview.travelerSingle', ctx),
+        travelerMultiple: localization.translateUiKey('dashboard.overview.travelerMultiple', ctx),
+        tourType: localization.translateUiKey('dashboard.overview.tourType', ctx),
+        type: localization.translateUiKey('dashboard.overview.type', ctx),
+        paymentStatus: localization.translateUiKey('dashboard.overview.paymentStatus', ctx),
+        standardSchedule: localization.translateUiKey('dashboard.overview.standardSchedule', ctx),
+        signatureTour: localization.translateUiKey('dashboard.overview.signatureTour', ctx),
+        noActiveReservations: localization.translateUiKey('dashboard.overview.noActiveReservations', ctx),
+        noActiveReservationsDesc: localization.translateUiKey('dashboard.overview.noActiveReservationsDesc', ctx),
+        exploreCuratedExperiences: localization.translateUiKey('dashboard.overview.exploreCuratedExperiences', ctx),
+        travelWalletTitle: localization.translateUiKey('dashboard.overview.travelWalletTitle', ctx),
+        tierSuffix: localization.translateUiKey('dashboard.overview.tierSuffix', ctx),
+        points: localization.translateUiKey('dashboard.overview.points', ctx),
+        pointsValue: localization.translateUiKey('dashboard.overview.pointsValue', ctx),
+        loyaltyHubBtn: localization.translateUiKey('dashboard.overview.loyaltyHubBtn', ctx),
+        totalSpend: localization.translateUiKey('dashboard.overview.totalSpend', ctx),
+        spendToNextTier: localization.translateUiKey('dashboard.overview.spendToNextTier', ctx),
+        activeItineraries: localization.translateUiKey('dashboard.overview.activeItineraries', ctx),
+        voyageSingle: localization.translateUiKey('dashboard.overview.voyageSingle', ctx),
+        voyageMultiple: localization.translateUiKey('dashboard.overview.voyageMultiple', ctx),
+        recentReservationsTitle: localization.translateUiKey('dashboard.overview.recentReservationsTitle', ctx),
+        viewAll: localization.translateUiKey('dashboard.overview.viewAll', ctx),
+        noBookingsFound: localization.translateUiKey('dashboard.overview.noBookingsFound', ctx),
+        noBookingsFoundDesc: localization.translateUiKey('dashboard.overview.noBookingsFoundDesc', ctx),
+        exploreExperiencesBtn: localization.translateUiKey('dashboard.overview.exploreExperiencesBtn', ctx),
+        settlementStatus: localization.translateUiKey('dashboard.overview.settlementStatus', ctx),
+        fullySettled: localization.translateUiKey('dashboard.overview.fullySettled', ctx),
+        partiallyPaid: localization.translateUiKey('dashboard.overview.partiallyPaid', ctx),
+        pending: localization.translateUiKey('dashboard.overview.pending', ctx),
+        balanceDue: localization.translateUiKey('dashboard.overview.balanceDue', ctx),
+      }
+
       return {
         customerId,
         fullName: rawTitle,
         email: projection?.customer?.email || '',
         currentTier: currentTier as LoyaltyTier,
+        translatedCurrentTier,
+        formattedCurrentTier,
         points: pts,
         formattedPoints,
         pointsMonetaryValue: valuationPresentation.pointsMonetaryValue,
@@ -264,6 +327,7 @@ export class CustomerPortalLoader {
         nationality: customerDoc?.nationality || undefined,
         tierThresholds,
         redemptionRate,
+        uiLabels,
       }
     } catch (err) {
       console.error(

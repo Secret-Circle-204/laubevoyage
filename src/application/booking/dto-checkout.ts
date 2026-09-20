@@ -33,7 +33,8 @@ export interface CheckoutPageDTO {
   gateways: PaymentGatewayDTO[]
   childAges?: number[]
   childBeddingModes?: ('sharing_bed' | 'extra_bed')[]
-  requestedRooms?: number
+  selectedAllocationId?: string
+  selectedAccommodationOptions?: Record<number, string>
   leadTraveler?: {
     firstName: string
     lastName: string

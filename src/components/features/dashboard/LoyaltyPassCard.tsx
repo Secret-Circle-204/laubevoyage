@@ -27,8 +27,19 @@ function ShieldIcon({ className = 'w-4 h-4' }: { className?: string }) {
 export function LoyaltyPassCard({ data }: LoyaltyPassCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (target.closest('a, button, input, select, textarea, [data-prevent-toggle="true"]')) {
+      return
+    }
+    setIsExpanded((prev) => !prev)
+  }
+
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 sm:p-7 shadow-sm transition-all duration-300 hover:border-secondary/40">
+    <div
+      onClick={handleCardClick}
+      className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 sm:p-7 shadow-sm transition-all duration-300 hover:border-secondary/40 cursor-pointer"
+    >
       {/* Top Pass Header: Eyebrow + Tier Badge */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-border/60">
         <div className="flex items-center gap-2">
@@ -42,7 +53,7 @@ export function LoyaltyPassCard({ data }: LoyaltyPassCardProps) {
           size="sm"
           className="text-xs uppercase bg-secondary/10 text-secondary border-secondary/25 font-semibold"
         >
-          {data.translatedCurrentTier} {data.uiLabels.tierMemberSuffix}
+          {data.formattedMemberTier || `${data.translatedCurrentTier} ${data.uiLabels.tierMemberSuffix}`}
         </Badge>
       </div>
 
@@ -99,8 +110,17 @@ export function LoyaltyPassCard({ data }: LoyaltyPassCardProps) {
             aria-controls="loyalty-pass-details"
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border border-border/80 bg-card-elevated text-foreground hover:border-secondary/40 hover:text-secondary focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer transition-colors"
           >
-            <span>Privilege Details</span>
-            <span className="font-bold text-xs">{isExpanded ? '−' : '+'}</span>
+            <span>{isExpanded ? 'Hide Details' : 'Privilege Details'}</span>
+            <svg
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
         </div>
       </div>

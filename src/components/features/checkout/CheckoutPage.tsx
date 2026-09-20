@@ -203,7 +203,8 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
           children: data.childrenCount,
           childAges: data.childAges,
           childBeddingModes: data.childBeddingModes,
-          requestedRooms: data.requestedRooms,
+          selectedAllocationId: data.selectedAllocationId,
+          selectedAccommodationOptions: data.selectedAccommodationOptions,
           currency: data.totalCost.currencyCode,
           locale,
           pointsToRedeem: pointsNum > 0 ? pointsNum : undefined,
@@ -243,7 +244,8 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
     data.childrenCount,
     data.childAges,
     data.childBeddingModes,
-    data.requestedRooms,
+    data.selectedAllocationId,
+    data.selectedAccommodationOptions,
     data.totalCost.currencyCode,
     locale,
   ])
@@ -312,7 +314,8 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
         childrenCount: data.childrenCount,
         childAges: data.childAges,
         childBeddingModes: data.childBeddingModes,
-        requestedRooms: data.requestedRooms,
+        selectedAllocationId: data.selectedAllocationId,
+        selectedAccommodationOptions: data.selectedAccommodationOptions,
         travelers: travelers as unknown as TravelerInput[],
         pickupLocation: pickupLocation
           ? {

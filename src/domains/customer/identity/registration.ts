@@ -18,20 +18,31 @@ export class RegistrationService {
     email: string,
     firstName: string,
     lastName: string,
+    phone: string,
     password?: string,
     preferences?: CustomerPreferencesInput,
     options?: { eventSource?: 'domain' | 'external' },
     context?: RequestContext,
   ): Promise<CustomerAggregate> {
-    const existing = await this.repository.findByEmail(email, context)
+    const trimmedEmail = email.toLowerCase().trim()
+    const trimmedFirstName = firstName.trim()
+    const trimmedLastName = lastName.trim()
+    const trimmedPhone = phone.trim()
+
+    if (!trimmedPhone) {
+      throw new Error('[RegistrationService] Phone number is required for customer registration.')
+    }
+
+    const existing = await this.repository.findByEmail(trimmedEmail, context)
     if (existing) {
-      throw new Error(`[RegistrationService] Customer with email ${email} already exists.`)
+      throw new Error(`[RegistrationService] Customer with email ${trimmedEmail} already exists.`)
     }
 
     const data: Record<string, unknown> = {
-      email: email.toLowerCase(),
-      firstName,
-      lastName,
+      email: trimmedEmail,
+      firstName: trimmedFirstName,
+      lastName: trimmedLastName,
+      phone: trimmedPhone,
       password,
       status: 'pending_verification',
       verificationExpiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),

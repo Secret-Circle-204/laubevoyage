@@ -42,6 +42,7 @@ export interface CustomerLoyaltyPortalDTO {
   pointsValueGuide: PointsValueGuideDTO
   currentTier: LoyaltyTier
   translatedCurrentTier: string
+  formattedMemberTier: string
   redemptionRate: LoyaltyRedemptionRateDTO
   tierThresholds: LoyaltyTierThresholdDTO[]
   totalSpentEGP: number

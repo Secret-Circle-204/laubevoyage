@@ -5,11 +5,12 @@ import { TierPolicy } from '@/domains/loyalty/tier-policy'
 import { LoyaltyProgressDTOFactory } from '@/application/loyalty/progress-factory'
 import type { CustomerLoyaltyPortalDTO, PublicLoyaltyConfigDTO } from './dto'
 import { LoyaltyProgramConfigurationException } from '@/domains/loyalty/tier-config'
+import { getSharedPortalOverview } from '@/application/dashboard/loaders'
 
 export class CustomerLoyaltyLoader {
   static async load(customerId: number, options?: { page?: number; limit?: number }): Promise<CustomerLoyaltyPortalDTO> {
     try {
-      const { loyalty, dashboard, localization, currency: currencyService, pricingFacade, booking } = await getApplicationServices()
+      const { loyalty, localization, currency: currencyService, pricingFacade, booking } = await getApplicationServices()
       const ctx = await getLocaleContext()
       const page = options?.page || 1
       const limit = options?.limit || 20
@@ -17,7 +18,7 @@ export class CustomerLoyaltyLoader {
       const [authoritativeBalance, paginatedHistory, projection, activeHeldPoints] = await Promise.all([
         loyalty.getCustomerBalance(customerId),
         loyalty.getCustomerLedgerHistoryPaginated(customerId, { page, limit }),
-        dashboard.getPortalOverview(customerId),
+        getSharedPortalOverview(customerId),
         booking.getActiveHeldPointsForCustomer(customerId),
       ])
 
@@ -59,7 +60,9 @@ export class CustomerLoyaltyLoader {
           `[CustomerLoyaltyLoader] Critical config error: Customer's active tier [${currentTier}] is missing from active config.`,
         )
       }
-      const translatedCurrentTier = await localization.translateText(currentTierConfig.label, ctx)
+      const translatedCurrentTier = localization.translateUiKey(`loyalty.tier.${currentTier}`, ctx) || (await localization.translateText(currentTierConfig.label, ctx))
+      const rawTierMemberFormat = localization.translateUiKey('loyalty.portal.tierMemberFormat', ctx) || '{tier} Tier Member'
+      const formattedMemberTier = rawTierMemberFormat.replace('{tier}', translatedCurrentTier)
 
       const tierThresholds = await Promise.all(
         tierThresholdsArray.map(async (t) => {
@@ -141,6 +144,7 @@ export class CustomerLoyaltyLoader {
         pointsValueGuide: valuationPresentation.pointsValueGuide,
         currentTier: currentTier as LoyaltyTier,
         translatedCurrentTier,
+        formattedMemberTier,
         redemptionRate,
         tierThresholds,
         totalSpentEGP,

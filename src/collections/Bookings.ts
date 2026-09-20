@@ -250,6 +250,14 @@ export const Bookings: CollectionConfig = {
         { name: 'exchangeRateTimestamp', type: 'date', admin: { readOnly: true } },
         { name: 'roundingStrategy', type: 'text', admin: { readOnly: true } },
         { name: 'currencyDecimals', type: 'number', admin: { readOnly: true } },
+        {
+          name: 'commercialBreakdown',
+          type: 'json',
+          admin: {
+            readOnly: true,
+            description: 'Immutable commercial and accommodation snapshot breakdown',
+          },
+        },
       ],
     },
     {

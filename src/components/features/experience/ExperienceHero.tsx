@@ -103,10 +103,10 @@ export function ExperienceHero({
     '/images/hero-bg.jpg',
   ]
   const galleryImages = images && images.length > 0 ? images : defaultGallery
-  const heroImage = galleryImages[0] || defaultGallery[0]
+  const heroImage = galleryImages[activeImageIndex] || defaultGallery[0]
   const isPackage = type === 'package'
 
-  const openGallery = (index: number = 0) => {
+  const openGallery = (index: number = activeImageIndex) => {
     setActiveImageIndex(index)
     setIsGalleryOpen(true)
   }
@@ -173,28 +173,68 @@ export function ExperienceHero({
         role="button"
         tabIndex={0}
         aria-label="Open Photographic Gallery"
-        onClick={() => openGallery(0)}
+        onClick={() => openGallery(activeImageIndex)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
-            openGallery(0)
+            openGallery(activeImageIndex)
+          } else if (e.key === 'ArrowRight') {
+            e.preventDefault()
+            nextImage()
+          } else if (e.key === 'ArrowLeft') {
+            e.preventDefault()
+            prevImage()
           }
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         className="relative min-h-[28rem] sm:min-h-[34rem] lg:min-h-[38rem] w-full rounded-3xl overflow-hidden mb-12 shadow-2xl bg-neutral-950 flex flex-col justify-between p-6 sm:p-12 animate-editorial-reveal stagger-1 group cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-secondary/50"
       >
         {heroImage ? (
           <Image
+            key={heroImage}
             src={heroImage}
             alt={title}
             fill
             priority
             sizes="100vw"
-            className="object-cover opacity-85 transition-transform duration-1000 ease-out group-hover:scale-[1.018]"
+            className="object-cover opacity-85 transition-all duration-500 ease-out group-hover:scale-[1.018]"
           />
         ) : (
           <div className="absolute inset-0 bg-neutral-900" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/20 group-hover:via-black/35 transition-colors duration-500" />
+
+        {/* External Gallery Navigation Arrows */}
+        {galleryImages.length > 1 && (
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-between px-3 sm:px-6 pointer-events-none">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                prevImage()
+              }}
+              className="pointer-events-auto w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/25 hover:border-secondary text-white hover:text-secondary flex items-center justify-center transition-all duration-200 active:scale-90 shadow-2xl cursor-pointer group/navbtn"
+              aria-label="Previous Image"
+              title="Previous Image"
+            >
+              <ChevronLeftIcon className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover/navbtn:-translate-x-0.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                nextImage()
+              }}
+              className="pointer-events-auto w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/25 hover:border-secondary text-white hover:text-secondary flex items-center justify-center transition-all duration-200 active:scale-90 shadow-2xl cursor-pointer group/navbtn"
+              aria-label="Next Image"
+              title="Next Image"
+            >
+              <ChevronRightIcon className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover/navbtn:translate-x-0.5" />
+            </button>
+          </div>
+        )}
 
         {/* Top Supra Badges & Gallery Affordance */}
         <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
@@ -204,9 +244,6 @@ export function ExperienceHero({
               {type === 'package'
                 ? dict.get(locale, 'catalog.packageLabel')
                 : dict.get(locale, 'catalog.dailyTourLabel')}
-            </span>
-            <span className="hidden sm:inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase bg-black/40 backdrop-blur-md border border-white/15 text-white/85">
-              Private Collection
             </span>
           </div>
 
@@ -223,14 +260,14 @@ export function ExperienceHero({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()
-                  openGallery(0)
+                  openGallery(activeImageIndex)
                 }}
                 className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-black/60 group-hover:bg-black/85 backdrop-blur-md border border-white/25 group-hover:border-secondary text-white transition-all duration-300 shadow-lg active:scale-95 cursor-pointer"
                 aria-label="Open Photographic Gallery"
               >
                 <GalleryIcon className="w-3.5 h-3.5 text-secondary group-hover:scale-110 transition-transform" />
                 <span className="font-hornbill text-xs font-bold text-white">
-                  {String(galleryImages.length).padStart(2, '0')} / GALLERY
+                  {String(activeImageIndex + 1).padStart(2, '0')} / {String(galleryImages.length).padStart(2, '0')}
                 </span>
               </button>
             )}
@@ -238,13 +275,15 @@ export function ExperienceHero({
         </div>
 
         {/* Hero Bottom Editorial Title & Waypoint Trackers */}
-        <div className="relative z-10 flex flex-col gap-4 max-w-4xl mt-auto pt-12">
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-hornbill font-light text-white tracking-tight leading-[1.12]">
+        <div className="relative z-10 flex flex-col gap-3 max-w-3xl mt-auto pt-8">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-hornbill font-normal text-white tracking-tight leading-snug">
             {title}
           </h1>
-          <p className="text-sm sm:text-base text-neutral-300 font-normal line-clamp-2 leading-relaxed max-w-2xl">
-            {subtitle}
-          </p>
+          {subtitle && subtitle.trim() !== title.trim() && (
+            <p className="text-xs sm:text-sm text-neutral-300 font-normal line-clamp-2 leading-relaxed max-w-2xl">
+              {subtitle}
+            </p>
+          )}
 
           {/* Waypoint Signal Metadata Bar */}
           <div className="flex items-center gap-4 sm:gap-6 flex-wrap pt-4 border-t border-white/15 text-xs text-white/90">
@@ -267,10 +306,10 @@ export function ExperienceHero({
               </>
             )}
 
-            {/* Photographic Dossier Click Hint */}
+            {/* Gallery Click Hint */}
             {galleryImages.length > 1 && (
               <div className="ml-auto hidden sm:inline-flex items-center gap-1.5 text-secondary text-xs font-semibold uppercase group-hover:underline">
-                <span>View Photographic Dossier</span>
+                <span>{dict.get(locale, 'experience.viewGallery')}</span>
                 <ChevronRightIcon className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
               </div>
             )}
@@ -278,12 +317,12 @@ export function ExperienceHero({
         </div>
       </div>
 
-      {/* ── LUXURY TRAVEL DOSSIER GALLERY VIEWER MODAL ───────────────────────── */}
+      {/* ── LUXURY TRAVEL GALLERY VIEWER MODAL ───────────────────────── */}
       {isGalleryOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Photographic Gallery Viewer"
+          aria-label="Gallery Viewer"
           className="fixed inset-0 z-50 bg-[#231F20]/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-8 animate-editorial-reveal select-none"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -295,7 +334,7 @@ export function ExperienceHero({
               <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse" />
               <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
                 <span className="text-xs uppercase font-bold text-secondary">
-                  Photographic Monograph
+                  {dict.get(locale, 'experience.viewGallery')}
                 </span>
                 <span className="font-hornbill text-sm text-foreground/85 font-light hidden sm:inline-block pl-3 border-l border-border/40 line-clamp-1">
                   {title}

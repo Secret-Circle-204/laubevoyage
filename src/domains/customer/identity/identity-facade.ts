@@ -27,12 +27,13 @@ export class IdentityCoordinatorFacade {
     email: string,
     firstName: string,
     lastName: string,
+    phone: string,
     password?: string,
     preferences?: CustomerPreferencesInput,
     options?: { eventSource?: 'domain' | 'external' },
     context?: RequestContext,
   ): Promise<CustomerAggregate> {
-    return this.registration.registerCustomer(email, firstName, lastName, password, preferences, options, context)
+    return this.registration.registerCustomer(email, firstName, lastName, phone, password, preferences, options, context)
   }
 
   async verifyEmail(rawToken: string): Promise<number> {

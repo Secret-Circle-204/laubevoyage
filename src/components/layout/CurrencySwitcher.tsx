@@ -141,8 +141,8 @@ export function CurrencySwitcher({
         aria-expanded={isOpen}
         aria-controls={isOpen ? listboxId : undefined}
         aria-label={`Current currency: ${activeCurrency.name} (${activeCurrency.code}). Click to switch currency`}
-        className={`group relative flex items-center gap-1.5 sm:gap-2 text-xs font-semibold rounded-full px-2.5 sm:px-3 py-1.5 border border-border/80 bg-card/60 hover:bg-card text-foreground transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 cursor-pointer shadow-xs active:scale-[0.98] ${
-          isOpen ? 'ring-2 ring-secondary/30 border-secondary/60 bg-card' : ''
+        className={`group relative flex items-center gap-1.5 sm:gap-2 text-xs font-semibold rounded-full px-2.5 sm:px-3 py-1.5 border border-white/30 bg-white/20 hover:bg-white/30 text-white dark:border-border/80 dark:bg-card/60 dark:hover:bg-card dark:text-foreground transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 dark:focus-visible:ring-secondary/50 cursor-pointer shadow-xs active:scale-[0.98] ${
+          isOpen ? 'ring-2 ring-white/40 border-white bg-white/30 dark:ring-secondary/30 dark:border-secondary/60 dark:bg-card' : ''
         }`}
       >
         <Flag
@@ -154,7 +154,7 @@ export function CurrencySwitcher({
         {/* Adaptive Density Container */}
         <span className="flex items-center tracking-wide font-medium">
           {!compactOnly && (
-            <span className="hidden sm:inline-flex items-center overflow-hidden transition-all duration-300 ease-out max-w-0 group-hover:max-w-28 group-focus-within:max-w-28 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 whitespace-nowrap text-muted text-[11px] font-normal mr-1">
+            <span className="hidden sm:inline-flex items-center overflow-hidden transition-all duration-300 ease-out max-w-0 group-hover:max-w-28 group-focus-within:max-w-28 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 whitespace-nowrap text-white/80 dark:text-muted text-[11px] font-normal mr-1">
               {activeCurrency.name} ·
             </span>
           )}
@@ -162,8 +162,8 @@ export function CurrencySwitcher({
         </span>
 
         <svg
-          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted transition-transform duration-250 ease-out flex-shrink-0 ${
-            isOpen ? 'rotate-180 text-secondary' : 'group-hover:text-foreground'
+          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-white/80 dark:text-muted transition-transform duration-250 ease-out flex-shrink-0 ${
+            isOpen ? 'rotate-180 text-white dark:text-secondary' : 'group-hover:text-white dark:group-hover:text-foreground'
           }`}
           fill="none"
           stroke="currentColor"

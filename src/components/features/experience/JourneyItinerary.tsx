@@ -37,13 +37,10 @@ export function JourneyItinerary({ itinerary, locale }: JourneyItineraryProps) {
       <div className="flex flex-col mb-8 pb-3 border-b border-border/60">
         <div className="flex items-center gap-2 mb-1">
           <span className="w-2 h-2 rounded-full bg-secondary" />
-          <span className="text-xs uppercase font-bold text-secondary">
-            Sequential Narrative
-          </span>
+          <h2 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground">
+            {dict.get(locale, 'experience.itineraryTitle')}
+          </h2>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground mt-1">
-          {dict.get(locale, 'experience.itineraryTitle')}
-        </h2>
       </div>
 
       <div className="relative pl-6 sm:pl-8 border-l-2 border-secondary/25 space-y-8">

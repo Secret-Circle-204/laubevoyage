@@ -44,11 +44,60 @@ export interface PointsValueGuideDTO {
   unitText: string
 }
 
+export interface CustomerPortalOverviewLabelsDTO {
+  personalTravelHome: string
+  welcomeBack: string
+  welcomeSubtitle: string
+  primaryVoyageDossier: string
+  statusConfirmed: string
+  statusPendingReview: string
+  viewDetails: string
+  hideDetails: string
+  details: string
+  departure: string
+  settlement: string
+  accessTravelDossier: string
+  schedule: string
+  manifest: string
+  travelerSingle: string
+  travelerMultiple: string
+  tourType: string
+  type: string
+  paymentStatus: string
+  standardSchedule: string
+  signatureTour: string
+  noActiveReservations: string
+  noActiveReservationsDesc: string
+  exploreCuratedExperiences: string
+  travelWalletTitle: string
+  tierSuffix: string
+  points: string
+  pointsValue: string
+  loyaltyHubBtn: string
+  totalSpend: string
+  spendToNextTier: string
+  activeItineraries: string
+  voyageSingle: string
+  voyageMultiple: string
+  recentReservationsTitle: string
+  viewAll: string
+  noBookingsFound: string
+  noBookingsFoundDesc: string
+  exploreExperiencesBtn: string
+  settlementStatus: string
+  fullySettled: string
+  partiallyPaid: string
+  pending: string
+  balanceDue: string
+}
+
 export interface CustomerPortalOverviewDTO {
   customerId: number
   fullName: string
   email: string
   currentTier: LoyaltyTier
+  translatedCurrentTier: string
+  formattedCurrentTier: string
   points: number
   formattedPoints: string // Canonical localized points balance
   pointsMonetaryValue: ConvertedPrice
@@ -67,12 +116,14 @@ export interface CustomerPortalOverviewDTO {
   nationality?: string
   tierThresholds: LoyaltyTierThresholdDTO[]
   redemptionRate: LoyaltyRedemptionRateDTO
+  uiLabels: CustomerPortalOverviewLabelsDTO
 }
 
 export interface CustomerSidebarDTO {
   customerId: number
   fullName: string
   currentTier: LoyaltyTier
+  formattedTier: string
   navLinks: Array<{ label: string; href: string; icon: string }>
   tierSuffix: string
 }

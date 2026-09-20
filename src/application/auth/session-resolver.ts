@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers'
+import { unstable_rethrow } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { cache } from 'react'
@@ -33,10 +34,14 @@ export class SessionResolver {
 
       const reqId = getRequestId()
       const headerStore = await headers()
+
+      const authHeaders = new Headers(headerStore)
+      authHeaders.set('Authorization', `JWT ${token}`)
+
       console.log(`[SessionResolver] [Req:${reqId}] DB auth start`)
       const payload = await getPayload({ config })
       const { user } = await payload.auth({
-        headers: headerStore,
+        headers: authHeaders,
       })
       console.log(`[SessionResolver] [Req:${reqId}] DB auth end`)
 
@@ -78,8 +83,9 @@ export class SessionResolver {
         preferredLanguage: profile.preferredLanguage,
       }
     } catch (e) {
+      unstable_rethrow(e)
       console.error('[SessionResolver] Error during session resolution:', e)
-      return { isAuthenticated: false }
+      throw e
     }
   })
 }

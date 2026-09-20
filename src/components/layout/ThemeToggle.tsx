@@ -27,7 +27,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     <button
       type="button"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className={`p-2 rounded-full border border-border bg-card text-foreground hover:bg-border/30 hover:shadow-sm transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer ${className}`}
+      className={`p-2 rounded-full border border-white/30 bg-white/20 text-white hover:bg-white/30 dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-border/30 hover:shadow-sm transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 dark:focus-visible:ring-secondary cursor-pointer ${className}`}
       title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       aria-label="Toggle Theme"
     >
@@ -47,9 +47,9 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
           />
         </svg>
       ) : (
-        /* Moon Icon - Celestial Cyan micro-tilt */
+        /* Moon Icon */
         <svg
-          className="w-5 h-5 text-secondary transition-all duration-300 -rotate-12 hover:rotate-0 hover:scale-105"
+          className="w-5 h-5 text-white dark:text-secondary transition-all duration-300 -rotate-12 hover:rotate-0 hover:scale-105"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

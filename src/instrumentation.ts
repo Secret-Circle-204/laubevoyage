@@ -5,6 +5,8 @@ export async function register() {
     process.env.NEXT_RUNTIME === 'nodejs' &&
     process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD
   ) {
+    await import('./lib/env')
+
     const { getDomainServices } = await import('./domains/factory')
     const { bootstrapApplication, bootstrapWorkerApplication } = await import('./domains/bootstrap')
     const container = await getDomainServices()

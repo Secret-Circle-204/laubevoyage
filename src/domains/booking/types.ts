@@ -153,10 +153,12 @@ export interface CommercialSnapshotBreakdown {
 
   staysBreakdown?: Array<{
     order: number
+    optionId?: string
     propertyId: number
     propertyName: string
     nights: number
     roomCategory?: string
+    boardBasis?: 'bed_and_breakfast' | 'half_board' | 'full_board' | 'all_inclusive'
     pricingUnit: 'per_stay' | 'per_night'
     appliedRoomRates: Array<{
       roomIndex: number

@@ -8,9 +8,15 @@ import type {
   FormattedCommercialBreakdown,
   ChildPolicyDTO,
   AccommodationStayDTO,
+  AccommodationOptionDTO,
 } from '@/application/experience/dto-details'
 import type { CommercialSnapshotBreakdown } from '@/domains/booking/types'
-import { useCurrency, useLocale } from '@/providers'
+import {
+  RoomAllocationPolicy,
+  type RoomAllocationOption,
+  type OccupancyType,
+} from '@/domains/experience/room-allocation-policy'
+import { useCurrency, useLocale, useToast } from '@/providers'
 import { useTheme } from '@/providers/theme-provider'
 import { resolvePricingAction } from '@/application/actions/pricing-actions'
 import type { ConvertedPrice } from '@/domains/currency/types'
@@ -22,8 +28,70 @@ import { JourneyItinerary } from './JourneyItinerary'
 import { StayDossier } from './StayDossier'
 import { ProvisionsLedger } from './ProvisionsLedger'
 import { JourneyControl } from './JourneyControl'
-
 const dict = new JsonTranslationDictionary()
+
+function validateAccommodationSelections(
+  stays?: AccommodationStayDTO[],
+  selections?: Record<number, string>,
+): { complete: boolean; missingStayOrder: number | null } {
+  if (!stays || stays.length === 0) return { complete: true, missingStayOrder: null }
+  for (const stay of stays) {
+    if (stay.options.length > 1) {
+      const selectedId = selections?.[stay.order]
+      if (!selectedId || typeof selectedId !== 'string' || selectedId.trim() === '') {
+        return { complete: false, missingStayOrder: stay.order }
+      }
+    }
+  }
+  return { complete: true, missingStayOrder: null }
+}
+
+function resolveSupportedOccupanciesForSelections(
+  stays: AccommodationStayDTO[] | undefined,
+  selectedOptions: Record<number, string>,
+): OccupancyType[] {
+  if (!stays || stays.length === 0) {
+    return ['single', 'double', 'triple', 'quad']
+  }
+
+  const enabledPerStay: Set<OccupancyType>[] = []
+
+  for (const stay of stays) {
+    const options = Array.isArray(stay.options) ? stay.options : []
+    if (options.length === 0) continue
+
+    let selectedOption: AccommodationOptionDTO | undefined
+    if (options.length === 1) {
+      selectedOption = options[0]
+    } else {
+      const selectedId = selectedOptions[stay.order]
+      selectedOption = options.find((opt) => opt.id === selectedId)
+    }
+
+    if (!selectedOption) {
+      continue
+    }
+
+    const enabledSet = new Set<OccupancyType>()
+    if (Array.isArray(selectedOption.roomRates)) {
+      for (const rate of selectedOption.roomRates) {
+        if (rate.enabled !== false) {
+          enabledSet.add(rate.occupancy as OccupancyType)
+        }
+      }
+    }
+    enabledPerStay.push(enabledSet)
+  }
+
+  if (enabledPerStay.length === 0) {
+    return ['single', 'double', 'triple', 'quad']
+  }
+
+  const firstStay = enabledPerStay[0]
+  return Array.from(firstStay).filter((occ) =>
+    enabledPerStay.every((staySet) => staySet.has(occ)),
+  )
+}
 
 function ChevronLeftIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
@@ -37,6 +105,7 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
   const router = useRouter()
   const { currency } = useCurrency()
   const { locale } = useLocale()
+  const { addToast } = useToast()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
 
@@ -78,16 +147,31 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
   const [childrenCount, setChildrenCount] = useState<number>(0)
   const [childAges, setChildAges] = useState<number[]>([])
   const [childBeddingModes, setChildBeddingModes] = useState<('sharing_bed' | 'extra_bed')[]>([])
-  const [requestedRooms, setRequestedRooms] = useState<number>(1)
+  // User-Customized Room Allocation Lock vs System-Generated Recommendation
+  // Initial page load starts as System Recommendation (customAllocationId === null)
+  const [customAllocationId, setCustomAllocationId] = useState<string | null>(null)
+  const isCustomizedAllocation = customAllocationId !== null
+
+  // Accommodation Option Selections (key: stay.order, value: option.id)
+  // Authoritatively initialized from the server pricing engine resolution
+  const [selectedAccommodationOptions, setSelectedAccommodationOptions] = useState<Record<number, string>>(
+    () => data.pricing?.selectedAccommodationOptions || {},
+  )
 
   const [pricingState, setPricingState] = useState<{
     unitPrice: ConvertedPrice
     totalPrice: ConvertedPrice
     commercialBreakdown?: CommercialSnapshotBreakdown
     formattedBreakdown?: FormattedCommercialBreakdown
+    availableAllocationOptions?: RoomAllocationOption[]
+    selectedAllocationId?: string
+    selectedAccommodationOptions?: Record<number, string>
   } | null>(data.pricing)
   const [loadingPrice, setLoadingPrice] = useState(false)
   const [pricingError, setPricingError] = useState<string | null>(null)
+
+  // Active Authoritative Allocation ID (custom user choice takes precedence if active, else server recommendation)
+  const effectiveAllocationId = customAllocationId || pricingState?.selectedAllocationId || null
 
   // Calculated End Date for Flexible Package: Start Date + (durationDays - 1)
   const calculatedEndDate = React.useMemo(() => {
@@ -170,6 +254,43 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
         return
       }
 
+      // Reconciliation & User Intent Defense:
+      // If user has an explicit customization, verify it against the newly selected accommodation's supported occupancies.
+      let allocationToSend: string | undefined = undefined
+
+      if (isPackage && customAllocationId) {
+        const stays = (data as { accommodations?: AccommodationStayDTO[] }).accommodations
+        const supported = resolveSupportedOccupanciesForSelections(stays, selectedAccommodationOptions)
+        const validOptions = RoomAllocationPolicy.getValidAllocationOptions({
+          adultsCount: adults,
+          childrenCount,
+          supportedOccupancies: supported,
+        })
+        const isStillValid = validOptions.some((opt) => opt.id === customAllocationId)
+
+        if (isStillValid) {
+          // Rule 10: Preserve valid user intent
+          allocationToSend = customAllocationId
+        } else {
+          // Rule 6 & 11: Do not send invalid custom allocation to Pricing!
+          setLoadingPrice(false)
+          setPricingState((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  availableAllocationOptions: validOptions,
+                }
+              : null,
+          )
+          setPricingError(
+            locale === 'ar'
+              ? 'توزيع الغرف المختار سابقاً غير مدعوم في خيار الإقامة هذا. يرجى تعديل الغرف أو اختيار فندق آخر.'
+              : 'Your previously selected room arrangement is not supported by this accommodation option. Please adjust your rooms or choose another hotel.',
+          )
+          return
+        }
+      }
+
       setLoadingPrice(true)
       setPricingError(null)
 
@@ -182,7 +303,8 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
         children: childrenCount,
         childAges: childrenCount > 0 ? childAges : undefined,
         childBeddingModes: childrenCount > 0 ? childBeddingModes : undefined,
-        requestedRooms: isPackage ? requestedRooms : undefined,
+        selectedAllocationId: allocationToSend,
+        selectedAccommodationOptions: isPackage ? selectedAccommodationOptions : undefined,
         currency,
       })
 
@@ -190,16 +312,10 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
 
       if (res.success && res.pricing) {
         setPricingState(res.pricing)
+        // Rule 8 (Break Cascading Re-trigger):
+        // Never call setSelectedAllocationId(res.pricing.selectedAllocationId) here!
+        // Derived server recommendation lives in pricingState.selectedAllocationId without polluting user intent state.
         setPricingError(null)
-
-        // Monotonic Smart Assistant Expansion: If domain determined minimum required rooms exceeds requested, adjust up
-        if (
-          res.pricing.commercialBreakdown?.autoAdjusted &&
-          typeof res.pricing.commercialBreakdown.roomCount === 'number' &&
-          res.pricing.commercialBreakdown.roomCount > requestedRooms
-        ) {
-          setRequestedRooms(res.pricing.commercialBreakdown.roomCount)
-        }
       } else {
         setPricingState(null)
         setPricingError(res.error || 'The selected guest configuration is currently unavailable.')
@@ -216,7 +332,8 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
     childrenCount,
     childAges,
     childBeddingModes,
-    requestedRooms,
+    customAllocationId,
+    selectedAccommodationOptions,
     currency,
     selectedSlotId,
     selectedDate,
@@ -228,19 +345,23 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
     isFixedPackage,
     isDailyTour,
     isFlexiblePackage,
+    locale,
   ])
 
   const handleAdultsChange = (delta: number) => {
+    setCustomAllocationId(null)
     setAdults((prev) => Math.max(1, prev + delta))
   }
 
   const handleAddChild = () => {
+    setCustomAllocationId(null)
     setChildrenCount((prev) => prev + 1)
     setChildAges((prev) => [...prev, 6])
     setChildBeddingModes((prev) => [...prev, 'sharing_bed'])
   }
 
   const handleRemoveChild = (index: number) => {
+    setCustomAllocationId(null)
     setChildrenCount((prev) => Math.max(0, prev - 1))
     setChildAges((prev) => prev.filter((_, i) => i !== index))
     setChildBeddingModes((prev) => prev.filter((_, i) => i !== index))
@@ -262,15 +383,26 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
     })
   }
 
-  const handleRequestedRoomsChange = (delta: number) => {
-    setRequestedRooms((prev) => Math.max(1, prev + delta))
+  const handleSelectAccommodationOption = (stayOrder: number, optionId: string) => {
+    setSelectedAccommodationOptions((prev) => ({
+      ...prev,
+      [stayOrder]: optionId,
+    }))
   }
+
+  const accommodationValidation = isPackage
+    ? validateAccommodationSelections(
+        (data as { accommodations?: AccommodationStayDTO[] }).accommodations,
+        selectedAccommodationOptions,
+      )
+    : { complete: true, missingStayOrder: null }
 
   const canBook =
     data.bookability.isBookable &&
     !loadingPrice &&
     pricingState !== null &&
     !pricingError &&
+    accommodationValidation.complete &&
     (isFixedPackage
       ? selectedSlotId !== null
       : isFlexiblePackage
@@ -278,6 +410,22 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
         : Boolean(selectedDate && selectedTime && !isSelectedTimeInPast && !isSelectedDateBlackedOut))
 
   const handleProceedToCheckout = () => {
+    if (!accommodationValidation.complete && accommodationValidation.missingStayOrder) {
+      const stayNum = accommodationValidation.missingStayOrder
+      const msg =
+        locale === 'ar'
+          ? `يرجى اختيار أحد فنادق المرحلة ${stayNum} قبل المتابعة.`
+          : `Please select an accommodation option for Stay #${stayNum} before proceeding.`
+      addToast({
+        type: 'error',
+        title: locale === 'ar' ? 'الاختيار مطلوب' : 'Accommodation Selection Required',
+        description: msg,
+      })
+      const el = document.getElementById(`stay-segment-${stayNum}`)
+      el?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+
     if (!canBook) return
 
     const query = new URLSearchParams({
@@ -300,17 +448,75 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
       query.set('childBeddingModes', childBeddingModes.join(','))
     }
 
-    if (isPackage && requestedRooms > 1) {
-      query.set('requestedRooms', String(requestedRooms))
+    if (isPackage) {
+      const pairs = Object.entries(selectedAccommodationOptions)
+        .filter(([order, id]) => !isNaN(Number(order)) && Number(order) > 0 && typeof id === 'string' && id.trim() !== '')
+        .sort(([a], [b]) => Number(a) - Number(b))
+        .map(([order, id]) => `${order}:${id.trim()}`)
+      if (pairs.length > 0) {
+        query.set('accommodations', pairs.join(','))
+      }
+      const checkoutAllocationId = effectiveAllocationId || pricingState?.selectedAllocationId
+      if (checkoutAllocationId) {
+        query.set('roomAllocation', checkoutAllocationId)
+      }
     }
 
     router.push(`/checkout/new?${query.toString()}`)
   }
 
+  const handleApplyAllocationAsync = async (allocationId: string): Promise<boolean> => {
+    // Rule 9 (Unified Race Condition Protection):
+    // Increment monotonic requestIdRef shared with useEffect to discard any older in-flight requests.
+    const currentRequestId = ++requestIdRef.current
+
+    try {
+      setLoadingPrice(true)
+      setPricingError(null)
+
+      const res = await resolvePricingAction({
+        experienceId: data.id,
+        slotId: isFixedPackage && selectedSlotId ? selectedSlotId : undefined,
+        date: !isFixedPackage && selectedDate ? selectedDate : undefined,
+        startTime: isDailyTour ? selectedTime : undefined,
+        adults,
+        children: childrenCount,
+        childAges: childrenCount > 0 ? childAges : undefined,
+        childBeddingModes: childrenCount > 0 ? childBeddingModes : undefined,
+        selectedAllocationId: allocationId,
+        selectedAccommodationOptions: isPackage ? selectedAccommodationOptions : undefined,
+        currency,
+      })
+
+      if (currentRequestId !== requestIdRef.current) {
+        // Discard stale response
+        return false
+      }
+
+      if (res.success && res.pricing) {
+        setPricingState(res.pricing)
+        setCustomAllocationId(res.pricing.selectedAllocationId || allocationId)
+        setPricingError(null)
+        setLoadingPrice(false)
+        return true
+      } else {
+        setPricingError(res.error || 'The selected guest configuration is currently unavailable.')
+        setLoadingPrice(false)
+        return false
+      }
+    } catch (err: unknown) {
+      if (currentRequestId !== requestIdRef.current) return false
+      const message = err instanceof Error ? err.message : 'Failed to update pricing.'
+      setPricingError(message)
+      setLoadingPrice(false)
+      return false
+    }
+  }
+
   const displayPrice = pricingState?.totalPrice ?? null
 
   return (
-    <div className={`py-12 sm:py-16 ${isDark ? 'bg-[#231F20]' : 'bg-[#FAF8F5]'} transition-colors duration-500 min-h-screen text-foreground`}>
+    <div className={`pt-24 sm:pt-28 lg:pt-32 pb-12 sm:pb-16 ${isDark ? 'bg-[#231F20]' : 'bg-[#FAF8F5]'} transition-colors duration-500 min-h-screen text-foreground`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Navigation Trail */}
@@ -351,8 +557,10 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
             <JourneySummary
               formattedDuration={data.formattedDuration}
               location={data.location}
-              isPackage={isPackage}
+              type={data.type}
+              destinations={data.destinations}
               descriptionHtml={data.descriptionHtml}
+              backgroundImage={data.images?.[0]}
               locale={locale}
             />
 
@@ -366,6 +574,8 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
             {isPackage && (
               <StayDossier
                 stays={(data as { accommodations?: AccommodationStayDTO[] }).accommodations}
+                selectedAccommodationOptions={selectedAccommodationOptions}
+                onSelectOption={handleSelectAccommodationOption}
                 staysBreakdown={pricingState?.formattedBreakdown?.staysBreakdown}
                 locale={locale}
               />
@@ -408,7 +618,8 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
             childrenCount={childrenCount}
             childAges={childAges}
             childBeddingModes={childBeddingModes}
-            requestedRooms={requestedRooms}
+            selectedAllocationId={effectiveAllocationId}
+            selectedAccommodationOptions={selectedAccommodationOptions}
             onSelectSlot={setSelectedSlotId}
             onSelectDate={setSelectedDate}
             onSelectTime={setSelectedTime}
@@ -417,7 +628,11 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
             onRemoveChild={handleRemoveChild}
             onChildAgeChange={handleChildAgeChange}
             onChildBeddingChange={handleChildBeddingChange}
-            onRequestedRoomsChange={handleRequestedRoomsChange}
+            onSelectAllocation={(id) => {
+              setCustomAllocationId(id)
+            }}
+            onApplyAllocationAsync={handleApplyAllocationAsync}
+            onSelectAccommodationOption={handleSelectAccommodationOption}
             onProceedToCheckout={handleProceedToCheckout}
           />
 

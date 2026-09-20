@@ -263,10 +263,124 @@
     }
   }
 
-  /* Horizontal scroll edge fade mask for mobile rails */
-  .mask-fade-edges {
-    mask-image: linear-gradient(to right, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
+  /* Luxury Futuristic Travel Keyframes & Animations */
+  @keyframes orbitalSpin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-orbital-slow {
+    animation: orbitalSpin 24s linear infinite;
+  }
+
+  .animate-orbital-reverse {
+    animation: orbitalSpin 30s linear infinite reverse;
+  }
+
+  @keyframes ambientPulse {
+    0%, 100% {
+      opacity: 0.35;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.65;
+      transform: scale(1.06);
+    }
+  }
+
+  .animate-ambient-glow {
+    animation: ambientPulse 5s ease-in-out infinite;
+  }
+
+  @keyframes flightDash {
+    to {
+      stroke-dashoffset: -40;
+    }
+  }
+
+  .animate-flight-stream {
+    stroke-dasharray: 6 10;
+    animation: flightDash 2s linear infinite;
+  }
+
+  @keyframes subtleFloatParticle {
+    0%, 100% {
+      transform: translateY(0px) translateX(0px);
+      opacity: 0.3;
+    }
+    50% {
+      transform: translateY(-18px) translateX(10px);
+      opacity: 0.8;
+    }
+  }
+
+  .animate-float-particle-1 {
+    animation: subtleFloatParticle 6s ease-in-out infinite;
+  }
+  .animate-float-particle-2 {
+    animation: subtleFloatParticle 8s ease-in-out infinite 2s;
+  }
+  .animate-float-particle-3 {
+    animation: subtleFloatParticle 7s ease-in-out infinite 4s;
+  }
+
+  @keyframes sheenWave {
+    0% {
+      transform: translateX(-150%) skewX(-20deg);
+    }
+    100% {
+      transform: translateX(250%) skewX(-20deg);
+    }
+  }
+
+  .animate-sheen-sweep {
+    animation: sheenWave 3.5s ease-in-out infinite;
+  }
+
+  @keyframes beamFlowLtr {
+    0% {
+      transform: translateX(-120%);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(220%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes beamFlowRtl {
+    0% {
+      transform: translateX(220%);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(-120%);
+      opacity: 0;
+    }
+  }
+
+  .animate-beam-flow-ltr {
+    animation: beamFlowLtr 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .animate-beam-flow-rtl {
+    animation: beamFlowRtl 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 }
 
@@ -329,6 +443,17 @@ html {
 :focus-visible {
   outline: 2px solid var(--color-secondary);
   outline-offset: 2px;
+}
+
+/* Dark Luxury Autofill Override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 40px #181516 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Scrollbar styling */

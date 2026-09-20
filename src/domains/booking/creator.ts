@@ -177,6 +177,20 @@ export class BookingCreator {
       }
       pointsRedeemed = params.pointsToRedeem
       pointsValueEGP = await this.loyaltyService.calculatePointValueInEGP(pointsRedeemed)
+
+      // Step 4: Authoritative Snapshot Invariant: Points redemption requires authoritative pricingSnapshot
+      if (!params.pricingSnapshot) {
+        throw new Error(
+          `[BookingCreator] Creating a booking with points redemption requires an authoritative pricingSnapshot.`,
+        )
+      }
+
+      const snapshotDiscount = params.pricingSnapshot.loyaltyDiscountEGP ?? 0
+      if (snapshotDiscount <= 0 || Math.abs(snapshotDiscount - pointsValueEGP) > 0.01) {
+        throw new Error(
+          `[BookingCreator] Inconsistent pricingSnapshot: loyaltyDiscountEGP (${snapshotDiscount}) does not match authoritative points valuation (${pointsValueEGP} EGP for ${pointsRedeemed} points).`,
+        )
+      }
     }
 
     // 4. Validate Passenger Manifest Invariants via BookingPolicy

@@ -7,6 +7,9 @@ export interface DepartureSlotDTO {
   departureDate: string
   startTime?: string
   availableSeats: number
+  totalCapacity?: number
+  heldSeats?: number
+  soldSeats?: number
   priceOverrideEGP?: number
   status: DepartureSlotStatus
 }
@@ -62,9 +65,11 @@ export interface FormattedCommercialBreakdown {
   }>
   staysBreakdown?: Array<{
     order: number
+    optionId?: string
     propertyName: string
     nights: number
     roomCategory?: string
+    boardBasis?: string
     pricingUnit: 'per_stay' | 'per_night'
     stayAccommodationTotalPrice: ConvertedPrice
     appliedRoomRates: Array<{
@@ -86,15 +91,24 @@ export interface RoomRateDTO {
   enabled: boolean
 }
 
-export interface AccommodationStayDTO {
-  order: number
+export interface AccommodationOptionDTO {
+  id: string
+  propertyId: number
   propertyName: string
   propertyType: string
-  nights: number
+  rating?: number
+  heroUrl?: string
   roomCategory?: string
   boardBasis?: string
   pricingUnit: 'per_stay' | 'per_night'
+  isDefault?: boolean
   roomRates: RoomRateDTO[]
+}
+
+export interface AccommodationStayDTO {
+  order: number
+  nights: number
+  options: AccommodationOptionDTO[]
 }
 
 export interface ChildPolicyDTO {
@@ -111,6 +125,7 @@ export interface DestinationStopDTO {
   slug: string
   countryName: string
   countrySlug: string
+  imageUrl?: string
 }
 
 export interface BaseExperienceDetailsDTO {
@@ -135,6 +150,9 @@ export interface BaseExperienceDetailsDTO {
     totalPrice: ConvertedPrice
     formattedBreakdown?: FormattedCommercialBreakdown
     commercialBreakdown?: any
+    availableAllocationOptions?: import('@/domains/experience/room-allocation-policy').RoomAllocationOption[]
+    selectedAllocationId?: string
+    selectedAccommodationOptions?: Record<number, string>
   } | null
 }
 
@@ -184,3 +202,4 @@ export interface DailyTourDetailsDTO extends BaseExperienceDetailsDTO {
 
 export type PackageDetailsDTO = FixedPackageDetailsDTO | FlexiblePackageDetailsDTO
 export type ExperienceDetailsDTO = FixedPackageDetailsDTO | FlexiblePackageDetailsDTO | DailyTourDetailsDTO
+

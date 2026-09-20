@@ -50,7 +50,7 @@ export default async function Page(props: {
           size="md"
           className="text-xs border border-secondary/25 bg-secondary/10 text-secondary self-start sm:self-auto uppercase font-semibold"
         >
-          {data.translatedCurrentTier} {data.uiLabels.tierMemberSuffix}
+          {data.formattedMemberTier || `${data.translatedCurrentTier} ${data.uiLabels.tierMemberSuffix}`}
         </Badge>
       </div>
 

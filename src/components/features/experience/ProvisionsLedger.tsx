@@ -48,13 +48,10 @@ export function ProvisionsLedger({
           <div className="flex flex-col mb-8 pb-3 border-b border-border/60">
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2 h-2 rounded-full bg-secondary" />
-              <span className="text-xs uppercase font-bold text-secondary">
-                Provisions & Protocol
-              </span>
+              <h2 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground">
+                {dict.get(locale, 'experience.servicesTitle')}
+              </h2>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground mt-1">
-              {dict.get(locale, 'experience.servicesTitle')}
-            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

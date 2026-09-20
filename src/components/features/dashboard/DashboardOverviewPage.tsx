@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { Badge, CurrencyDisplay, EmptyState, Button } from '@/components/ui'
-import type { CustomerPortalOverviewDTO, CustomerBookingCardDTO } from '@/application/dashboard/dto'
+import type { CustomerPortalOverviewDTO, CustomerBookingCardDTO, CustomerPortalOverviewLabelsDTO } from '@/application/dashboard/dto'
 
 function PinIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
   return (
@@ -38,19 +38,36 @@ function GemIcon({ className = 'w-4 h-4' }: { className?: string }) {
   )
 }
 
-function PrimaryJourneyCard({ booking }: { booking: CustomerBookingCardDTO }) {
+function PrimaryJourneyCard({
+  booking,
+  uiLabels,
+}: {
+  booking: CustomerBookingCardDTO
+  uiLabels: CustomerPortalOverviewLabelsDTO
+}) {
   const [isExpanded, setIsExpanded] = React.useState(false)
   const isConfirmed = booking.status === 'confirmed' || booking.status === 'completed'
   const isReview = booking.status === 'pending_admin_review'
 
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (target.closest('a, button, input, select, textarea, [data-prevent-toggle="true"]')) {
+      return
+    }
+    setIsExpanded((prev) => !prev)
+  }
+
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-sm transition-all duration-300 hover:border-secondary/40">
+    <div
+      onClick={handleCardClick}
+      className="relative overflow-hidden rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-sm transition-all duration-300 hover:border-secondary/40 cursor-pointer"
+    >
       {/* Top Ledger Strip */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-border/60">
         <div className="flex items-center gap-2.5">
           <span className="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_rgba(0,174,239,0.7)]" />
           <span className="text-xs font-bold uppercase text-muted-foreground">
-            PRIMARY VOYAGE DOSSIER
+            {uiLabels.primaryVoyageDossier}
           </span>
           <span className="text-xs font-bold text-secondary">
             #{booking.reference}
@@ -60,11 +77,11 @@ function PrimaryJourneyCard({ booking }: { booking: CustomerBookingCardDTO }) {
         <div className="flex items-center gap-2">
           {isConfirmed ? (
             <Badge variant="secondary" size="sm" className="text-xs uppercase bg-secondary/10 text-secondary border-secondary/25 font-semibold">
-              CONFIRMED
+              {uiLabels.statusConfirmed}
             </Badge>
           ) : isReview ? (
             <Badge variant="outline" size="sm" className="text-xs uppercase border-amber-500/30 text-amber-500 bg-amber-500/5 font-semibold">
-              PENDING REVIEW
+              {uiLabels.statusPendingReview}
             </Badge>
           ) : (
             <Badge variant="outline" size="sm" className="text-xs uppercase border-border text-muted-foreground font-semibold">
@@ -80,8 +97,17 @@ function PrimaryJourneyCard({ booking }: { booking: CustomerBookingCardDTO }) {
             aria-controls={`journey-details-${booking.id}`}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border border-border/80 bg-card-elevated text-foreground hover:border-secondary/40 hover:text-secondary focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer transition-colors"
           >
-            <span>Details</span>
-            <span className="font-bold text-xs">{isExpanded ? '−' : '+'}</span>
+            <span>{isExpanded ? uiLabels.hideDetails : uiLabels.details}</span>
+            <svg
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
         </div>
       </div>
@@ -121,12 +147,12 @@ function PrimaryJourneyCard({ booking }: { booking: CustomerBookingCardDTO }) {
           {/* Resting Summary Strip */}
           <div className="flex flex-wrap items-center justify-between gap-4 p-3.5 rounded-2xl bg-card-elevated/70 border border-border/60 text-xs">
             <div>
-              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Departure</span>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.departure}</span>
               <span className="font-semibold text-foreground mt-0.5 block">{booking.departureDate}</span>
             </div>
 
             <div>
-              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Settlement</span>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.settlement}</span>
               <div className="mt-0.5">
                 <CurrencyDisplay price={booking.totalCost} size="sm" />
               </div>
@@ -138,7 +164,7 @@ function PrimaryJourneyCard({ booking }: { booking: CustomerBookingCardDTO }) {
                 size="sm"
                 className="font-bold shadow-md cursor-pointer flex items-center gap-1.5"
               >
-                <span>Access Travel Dossier</span>
+                <span>{uiLabels.accessTravelDossier}</span>
                 <span>→</span>
               </Button>
             </Link>
@@ -156,29 +182,29 @@ function PrimaryJourneyCard({ booking }: { booking: CustomerBookingCardDTO }) {
         <div className="overflow-hidden">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-card-elevated/70 p-3.5 rounded-2xl border border-border/60">
             <div>
-              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Schedule</span>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.schedule}</span>
               <span className="font-semibold text-foreground mt-0.5 block">
-                {booking.departureTime || 'Standard'}
+                {booking.departureTime || uiLabels.standardSchedule}
                 {booking.destinationTimezone ? ` (${booking.destinationTimezone})` : ''}
               </span>
             </div>
             <div>
-              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Manifest</span>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.manifest}</span>
               <span className="font-semibold text-foreground mt-0.5 flex items-center gap-1">
                 <UsersIcon className="w-3 h-3 text-secondary inline" />
-                <span>{booking.passengersCount} {booking.passengersCount === 1 ? 'Traveler' : 'Travelers'}</span>
+                <span>{booking.passengersCount} {booking.passengersCount === 1 ? uiLabels.travelerSingle : uiLabels.travelerMultiple}</span>
               </span>
             </div>
             <div>
-              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Type</span>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.type}</span>
               <span className="font-semibold text-foreground mt-0.5 block">
-                {booking.productTypeLabel || 'Signature Tour'}
+                {booking.productTypeLabel || uiLabels.signatureTour}
               </span>
             </div>
             <div>
-              <span className="text-[11px] uppercase text-muted-foreground block font-medium">Payment Status</span>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.paymentStatus}</span>
               <span className="font-semibold text-foreground mt-0.5 capitalize block">
-                {booking.paymentStatus?.replace(/_/g, ' ') || 'Confirmed'}
+                {booking.paymentStatus?.replace(/_/g, ' ') || uiLabels.statusConfirmed}
               </span>
             </div>
           </div>
@@ -191,20 +217,31 @@ function PrimaryJourneyCard({ booking }: { booking: CustomerBookingCardDTO }) {
 function PersonalTravelWallet({ data }: { data: CustomerPortalOverviewDTO }) {
   const [isExpanded, setIsExpanded] = React.useState(false)
 
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (target.closest('a, button, input, select, textarea, [data-prevent-toggle="true"]')) {
+      return
+    }
+    setIsExpanded((prev) => !prev)
+  }
+
   return (
-    <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-sm transition-all duration-300 hover:border-secondary/40">
+    <div
+      onClick={handleCardClick}
+      className="rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-sm transition-all duration-300 hover:border-secondary/40 cursor-pointer"
+    >
       {/* Top Wallet Eyebrow & Toggle Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-border/60">
         <div className="flex items-center gap-2">
           <GemIcon className="w-4 h-4 text-secondary" />
           <span className="text-xs font-bold uppercase text-muted-foreground">
-            PERSONAL TRAVEL WALLET & PRIVILEGES
+            {data.uiLabels.travelWalletTitle}
           </span>
         </div>
 
         <div className="flex items-center gap-2.5">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase bg-secondary/10 text-secondary border border-secondary/25">
-            {data.currentTier} TIER
+            {data.formattedCurrentTier || `${data.translatedCurrentTier} ${data.uiLabels.tierSuffix}`}
           </span>
 
           {/* Accessible Details Toggle Button */}
@@ -215,8 +252,17 @@ function PersonalTravelWallet({ data }: { data: CustomerPortalOverviewDTO }) {
             aria-controls="travel-wallet-details"
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border border-border/80 bg-card-elevated text-foreground hover:border-secondary/40 hover:text-secondary focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer transition-colors"
           >
-            <span>Privileges</span>
-            <span className="font-bold text-xs">{isExpanded ? '−' : '+'}</span>
+            <span>{isExpanded ? data.uiLabels.hideDetails : data.uiLabels.viewDetails}</span>
+            <svg
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
         </div>
       </div>
@@ -229,17 +275,17 @@ function PersonalTravelWallet({ data }: { data: CustomerPortalOverviewDTO }) {
             {data.formattedPoints}
           </span>
           <span className="text-sm font-bold text-secondary uppercase">
-            Points
+            {data.uiLabels.points}
           </span>
           <span className="inline-flex items-center px-2.5 py-1 rounded-xl bg-secondary/10 border border-secondary/20 text-xs font-semibold text-secondary">
-            ≈ {data.pointsMonetaryValue.formatted} Points Value
+            ≈ {data.pointsMonetaryValue.formatted} {data.uiLabels.pointsValue}
           </span>
         </div>
 
         {/* Right: Compact Tier Progress Track */}
         <div className="md:col-span-5 space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground uppercase font-medium">{data.currentTier} Tier</span>
+            <span className="text-muted-foreground uppercase font-medium">{data.formattedCurrentTier || `${data.translatedCurrentTier} ${data.uiLabels.tierSuffix}`}</span>
             <span className="text-secondary font-bold">{data.nextTierProgressPercent}%</span>
           </div>
           <div className="w-full h-2 rounded-full bg-card-elevated border border-border/80 overflow-hidden">
@@ -272,7 +318,7 @@ function PersonalTravelWallet({ data }: { data: CustomerPortalOverviewDTO }) {
                     size="sm"
                     className="font-semibold text-xs uppercase flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>Loyalty Privileges Hub</span>
+                    <span>{data.uiLabels.loyaltyHubBtn}</span>
                     <span>→</span>
                   </Button>
                 </Link>
@@ -282,21 +328,21 @@ function PersonalTravelWallet({ data }: { data: CustomerPortalOverviewDTO }) {
             {/* Right: Qualifying Spend & Active Itineraries Matrix */}
             <div className="lg:col-span-5 p-4 rounded-2xl bg-card-elevated/70 border border-border/60 space-y-3 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground text-xs font-medium">Annual Qualifying Spend:</span>
+                <span className="text-muted-foreground text-xs font-medium">{data.uiLabels.totalSpend}:</span>
                 <span className="font-bold text-foreground">{data.formattedTotalSpentEGP}</span>
               </div>
 
               {data.formattedRemainingQualifyingSpend && (
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-muted-foreground font-medium">Spend to Next Tier:</span>
+                  <span className="text-muted-foreground font-medium">{data.uiLabels.spendToNextTier}:</span>
                   <span className="text-secondary font-semibold">{data.formattedRemainingQualifyingSpend}</span>
                 </div>
               )}
 
               <div className="pt-2 border-t border-border/60 flex justify-between items-center">
-                <span className="text-muted-foreground text-xs font-medium">Active Itineraries:</span>
+                <span className="text-muted-foreground text-xs font-medium">{data.uiLabels.activeItineraries}:</span>
                 <Link href="/dashboard/bookings" className="font-bold text-secondary hover:underline">
-                  {data.activeBookingsCount} {data.activeBookingsCount === 1 ? 'Voyage' : 'Voyages'} →
+                  {data.activeBookingsCount} {data.activeBookingsCount === 1 ? data.uiLabels.voyageSingle : data.uiLabels.voyageMultiple} →
                 </Link>
               </div>
             </div>
@@ -307,13 +353,30 @@ function PersonalTravelWallet({ data }: { data: CustomerPortalOverviewDTO }) {
   )
 }
 
-function RecentReservationRow({ booking }: { booking: CustomerBookingCardDTO }) {
+function RecentReservationRow({
+  booking,
+  uiLabels,
+}: {
+  booking: CustomerBookingCardDTO
+  uiLabels: CustomerPortalOverviewLabelsDTO
+}) {
   const [isExpanded, setIsExpanded] = React.useState(false)
   const isConfirmed = booking.status === 'confirmed' || booking.status === 'completed'
   const isReview = booking.status === 'pending_admin_review'
 
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement
+    if (target.closest('a, button, input, select, textarea, [data-prevent-toggle="true"]')) {
+      return
+    }
+    setIsExpanded((prev) => !prev)
+  }
+
   return (
-    <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-sm transition-all duration-300 hover:border-secondary/40">
+    <div
+      onClick={handleCardClick}
+      className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-sm transition-all duration-300 hover:border-secondary/40 cursor-pointer"
+    >
       {/* Resting Primary Row: Scan Path (Reference • Title/Destination • Date • Status • Amount • Details Toggle) */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5 min-w-0">
@@ -328,11 +391,11 @@ function RecentReservationRow({ booking }: { booking: CustomerBookingCardDTO }) 
               </span>
               {isConfirmed ? (
                 <Badge variant="secondary" size="sm" className="text-xs uppercase bg-secondary/10 text-secondary border-secondary/25 font-semibold">
-                  CONFIRMED
+                  {uiLabels.statusConfirmed}
                 </Badge>
               ) : isReview ? (
                 <Badge variant="outline" size="sm" className="text-xs uppercase border-amber-500/30 text-amber-500 bg-amber-500/5 font-semibold">
-                  PENDING REVIEW
+                  {uiLabels.statusPendingReview}
                 </Badge>
               ) : (
                 <Badge variant="outline" size="sm" className="text-xs uppercase border-border text-muted-foreground font-semibold">
@@ -369,8 +432,17 @@ function RecentReservationRow({ booking }: { booking: CustomerBookingCardDTO }) 
             aria-controls={`recent-booking-details-${booking.id}`}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border border-border/80 bg-card-elevated text-foreground hover:border-secondary/40 hover:text-secondary focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer transition-colors"
           >
-            <span>Details</span>
-            <span className="font-bold text-xs">{isExpanded ? '−' : '+'}</span>
+            <span>{isExpanded ? uiLabels.hideDetails : uiLabels.details}</span>
+            <svg
+              className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
         </div>
       </div>
@@ -386,28 +458,28 @@ function RecentReservationRow({ booking }: { booking: CustomerBookingCardDTO }) 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card-elevated/70 p-3.5 rounded-xl border border-border/60 text-xs">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 flex-grow">
               <div>
-                <span className="text-[11px] uppercase text-muted-foreground block font-medium">Manifest</span>
+                <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.manifest}</span>
                 <span className="font-semibold text-foreground mt-0.5 flex items-center gap-1">
                   <UsersIcon className="w-3 h-3 text-secondary inline" />
-                  <span>{booking.passengersCount} {booking.passengersCount === 1 ? 'Traveler' : 'Travelers'}</span>
+                  <span>{booking.passengersCount} {booking.passengersCount === 1 ? uiLabels.travelerSingle : uiLabels.travelerMultiple}</span>
                 </span>
               </div>
 
               <div>
-                <span className="text-[11px] uppercase text-muted-foreground block font-medium">Tour Type</span>
+                <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.tourType}</span>
                 <span className="font-semibold text-foreground mt-0.5 block">
-                  {booking.productTypeLabel || 'Signature Tour'}
+                  {booking.productTypeLabel || uiLabels.signatureTour}
                 </span>
               </div>
 
               <div>
-                <span className="text-[11px] uppercase text-muted-foreground block font-medium">Settlement Status</span>
+                <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.settlementStatus}</span>
                 <span className="font-semibold text-foreground mt-0.5 capitalize block">
                   {booking.paymentStatus === 'paid'
-                    ? 'Fully Settled'
+                    ? uiLabels.fullySettled
                     : booking.paymentStatus === 'partially_paid'
-                      ? 'Partially Paid'
-                      : 'Pending'}
+                      ? uiLabels.partiallyPaid
+                      : uiLabels.pending}
                 </span>
               </div>
             </div>
@@ -415,7 +487,7 @@ function RecentReservationRow({ booking }: { booking: CustomerBookingCardDTO }) 
             <div className="flex items-center gap-3 self-end sm:self-center">
               {booking.paymentStatus === 'partially_paid' && booking.outstandingBalance && (
                 <div className="text-right text-xs">
-                  <span className="text-muted-foreground block font-medium">Balance Due:</span>
+                  <span className="text-muted-foreground block font-medium">{uiLabels.balanceDue}:</span>
                   <span className="font-bold text-amber-500">{booking.outstandingBalance.formatted}</span>
                 </div>
               )}
@@ -425,7 +497,7 @@ function RecentReservationRow({ booking }: { booking: CustomerBookingCardDTO }) 
                   size="sm"
                   className="font-bold shadow-sm cursor-pointer whitespace-nowrap"
                 >
-                  Access Travel Dossier →
+                  {uiLabels.accessTravelDossier} →
                 </Button>
               </Link>
             </div>
@@ -446,34 +518,34 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/30 bg-secondary/10 text-secondary text-xs font-bold uppercase">
           <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-          <span>PERSONAL TRAVEL HOME</span>
+          <span>{data.uiLabels.personalTravelHome}</span>
         </div>
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-hornbill font-light text-foreground">
-          Welcome back, <span className="font-normal text-secondary">{data.fullName}</span>
+          {data.uiLabels.welcomeBack}, <span className="font-normal text-secondary">{data.fullName}</span>
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground font-light">
-          Your personal travel sanctuary and curated voyage ledger.
+          {data.uiLabels.welcomeSubtitle}
         </p>
       </div>
 
       {/* 5.1 Primary Journey Canvas */}
       {primaryBooking ? (
-        <PrimaryJourneyCard booking={primaryBooking} />
+        <PrimaryJourneyCard booking={primaryBooking} uiLabels={data.uiLabels} />
       ) : (
         <div className="p-8 sm:p-12 rounded-3xl border border-dashed border-border/80 bg-card/40 text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-secondary/10 border border-secondary/30 text-secondary mx-auto flex items-center justify-center text-xs font-bold">
             LBV
           </div>
           <h2 className="text-2xl font-hornbill font-light text-foreground">
-            No Active Reservations Found
+            {data.uiLabels.noActiveReservations}
           </h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Your travel sanctuary is ready. Begin curating your bespoke voyage today.
+            {data.uiLabels.noActiveReservationsDesc}
           </p>
           <div className="pt-2">
             <Link href="/experiences">
               <Button variant="primary" size="md" className="font-bold shadow-md cursor-pointer">
-                Explore Curated Experiences →
+                {data.uiLabels.exploreCuratedExperiences} →
               </Button>
             </Link>
           </div>
@@ -488,7 +560,7 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
         <div className="flex items-center justify-between border-b border-border/60 pb-4">
           <div>
             <h2 className="text-2xl font-serif font-light text-foreground">
-              Recent Reservations
+              {data.uiLabels.recentReservationsTitle}
             </h2>
             <div className="h-1 w-12 bg-secondary mt-1" />
           </div>
@@ -499,23 +571,23 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
               size="sm"
               className="uppercase text-xs font-semibold"
             >
-              View All →
+              {data.uiLabels.viewAll} →
             </Button>
           </Link>
         </div>
 
         {data.recentBookings.length === 0 ? (
           <EmptyState
-            title="No Bookings Found"
-            description="You don't have any recent trip reservations. Start planning your luxury journey with us today."
+            title={data.uiLabels.noBookingsFound}
+            description={data.uiLabels.noBookingsFoundDesc}
             icon="booking"
-            actionLabel="Explore Experiences"
+            actionLabel={data.uiLabels.exploreExperiencesBtn}
             actionHref="/experiences"
           />
         ) : (
           <div className="flex flex-col gap-3">
             {data.recentBookings.map((booking) => (
-              <RecentReservationRow key={booking.id} booking={booking} />
+              <RecentReservationRow key={booking.id} booking={booking} uiLabels={data.uiLabels} />
             ))}
           </div>
         )}

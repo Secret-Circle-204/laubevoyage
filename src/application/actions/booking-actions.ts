@@ -26,7 +26,8 @@ export async function confirmCheckoutAction(params: {
   childrenCount?: number
   childAges?: number[]
   childBeddingModes?: ('sharing_bed' | 'extra_bed')[]
-  requestedRooms?: number
+  selectedAllocationId?: string
+  selectedAccommodationOptions?: Record<number, string>
   travelers: TravelerInput[]
   gatewayId: string
   idempotencyKey?: string
@@ -79,7 +80,7 @@ export async function confirmCheckoutAction(params: {
         ? params.pointsToRedeem
         : undefined
 
-    const { booking, experience, payment, localization, payload, bookingPricingUseCase } =
+    const { booking, experience, payment, localization, payload, bookingPricingUseCase, loyalty } =
       await getApplicationServices()
 
     let cookieLocale: string | undefined
@@ -287,7 +288,8 @@ export async function confirmCheckoutAction(params: {
             childrenCount: submittedChildren,
             childAges: submittedChildAges,
             childBeddingModes: submittedChildBeddingModes,
-            requestedRooms: params.requestedRooms,
+            selectedAllocationId: params.selectedAllocationId,
+            selectedAccommodationOptions: params.selectedAccommodationOptions,
             ctx: localeCtx,
             pointsToRedeem,
             customerId: userId,
@@ -301,7 +303,8 @@ export async function confirmCheckoutAction(params: {
             childrenCount: submittedChildren,
             childAges: submittedChildAges,
             childBeddingModes: submittedChildBeddingModes,
-            requestedRooms: params.requestedRooms,
+            selectedAllocationId: params.selectedAllocationId,
+            selectedAccommodationOptions: params.selectedAccommodationOptions,
             ctx: localeCtx,
             pointsToRedeem,
             customerId: userId,
@@ -360,7 +363,7 @@ export async function confirmCheckoutAction(params: {
               idempotencyKey: params.idempotencyKey,
               pointsToRedeem,
               pricingSnapshot: authoritativePricingSnapshot as any,
-              requestedRooms: params.requestedRooms,
+              requestedRooms: pricingResult.commercialBreakdown?.roomCount || 1,
               pickupLocation: validatedPickupLocation,
             },
             context,
@@ -441,6 +444,25 @@ export async function confirmCheckoutAction(params: {
       }
       targetBookingId = bookingDoc.id
       bookingNumber = bookingDoc.bookingNumber
+
+      // Pre-Payment Policy Invariant: Validate stored pointHold & pricingSnapshot against active policy before checkout
+      if (bookingDoc.pointHold && bookingDoc.pointHold.pointsHeld > 0) {
+        if (loyalty) {
+          const activeConfig = await loyalty.getActiveConfig()
+          const redemptionCheck = BookingPolicy.validateBookingRedemptionForCheckout(
+            bookingDoc,
+            activeConfig,
+          )
+          if (!redemptionCheck.allowed) {
+            return {
+              success: false,
+              error: `Booking checkout rejected: ${redemptionCheck.reason}`,
+              code: redemptionCheck.code,
+              failureStage: 'booking' as const,
+            }
+          }
+        }
+      }
 
       // Move to next state based on gateway and current status
       if (params.gatewayId === 'bnpl') {

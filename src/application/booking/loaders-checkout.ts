@@ -13,7 +13,8 @@ export class CheckoutPageLoader {
       children?: number
       childAges?: number[]
       childBeddingModes?: ('sharing_bed' | 'extra_bed')[]
-      requestedRooms?: number
+      selectedAllocationId?: string
+      selectedAccommodationOptions?: Record<number, string>
       slotId?: number
       date?: string
       startTime?: string
@@ -194,6 +195,7 @@ export class CheckoutPageLoader {
           initialPickupLocation,
           destinationCityName,
           destinationCountryName,
+          selectedAccommodationOptions: options?.selectedAccommodationOptions,
         }
 
       }
@@ -234,7 +236,8 @@ export class CheckoutPageLoader {
           childrenCount,
           childAges: options.childAges,
           childBeddingModes: options.childBeddingModes,
-          requestedRooms: options.requestedRooms,
+          selectedAllocationId: options.selectedAllocationId,
+          selectedAccommodationOptions: options.selectedAccommodationOptions,
           ctx,
         })
       } else if (isFlexiblePackage && options.date) {
@@ -246,7 +249,8 @@ export class CheckoutPageLoader {
           childrenCount,
           childAges: options.childAges,
           childBeddingModes: options.childBeddingModes,
-          requestedRooms: options.requestedRooms,
+          selectedAllocationId: options.selectedAllocationId,
+          selectedAccommodationOptions: options.selectedAccommodationOptions,
           ctx,
         })
       } else if (isDailyTour && options.date && options.startTime) {
@@ -258,7 +262,6 @@ export class CheckoutPageLoader {
           childrenCount,
           childAges: options.childAges,
           childBeddingModes: options.childBeddingModes,
-          requestedRooms: options.requestedRooms,
           ctx,
         })
       } else {
@@ -320,7 +323,8 @@ export class CheckoutPageLoader {
         gateways,
         childAges: options.childAges,
         childBeddingModes: options.childBeddingModes,
-        requestedRooms: options.requestedRooms,
+        selectedAllocationId: calculatedPricing.selectedAllocationId || options.selectedAllocationId,
+        selectedAccommodationOptions: options.selectedAccommodationOptions || calculatedPricing.selectedAccommodationOptions,
         leadTraveler,
         destinationCityName,
         destinationCountryName,

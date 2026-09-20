@@ -37,7 +37,7 @@ export function CurrencyDisplay({
           {originalPrice.formatted}
         </span>
       )}
-      <span className={`${sizeClasses[size]} text-primary dark:text-secondary`}>
+      <span className={`${sizeClasses[size]} ${className && (className.includes('text-white') || className.includes('text-foreground') || className.includes('text-accent') || className.includes('text-secondary')) ? '' : 'text-primary dark:text-secondary'}`}>
         {price.formatted}
       </span>
     </div>

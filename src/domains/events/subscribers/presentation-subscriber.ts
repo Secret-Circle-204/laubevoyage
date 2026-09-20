@@ -1,5 +1,5 @@
 import { EventBus } from '../event-bus'
-import { RevalidationService } from '@/domains/shared/revalidation-service'
+import { RevalidationService, type RevalidationResult } from '@/domains/shared/revalidation-service'
 
 import type {
   SystemSettingsUpdatedEvent,
@@ -18,6 +18,14 @@ import type {
   TranslationCacheMutatedEvent
 } from '../cache-events'
 
+function handleRevalidationOutcome(subscriberName: string, result: RevalidationResult): void {
+  if (!result.success) {
+    console.warn(
+      `[PresentationSubscriber] ⚠️ Presentation cache invalidation failed in ${subscriberName} (Code: ${result.code || 'UNKNOWN'}, Status: ${result.status || 'N/A'}). Domain state intact.`
+    )
+  }
+}
+
 /**
  * Next.js Presentation Cache Invalidation Subscriber
  * Listens to primary business events and purges Next.js presentation caches (HTML/tags).
@@ -32,7 +40,8 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeLayoutOnSettings',
     async (event) => {
       console.log('[PresentationSubscriber] SYSTEM_SETTINGS_UPDATED Event received. Purging Next.js layout cache.')
-      await RevalidationService.purgeLayout()
+      const result = await RevalidationService.purgeLayout()
+      handleRevalidationOutcome('purgeLayoutOnSettings', result)
     }
   )
 
@@ -41,7 +50,8 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeDashboardOnLoyaltySettings',
     async (event) => {
       console.log('[PresentationSubscriber] LOYALTY_SETTINGS_UPDATED Event received. Purging Next.js dashboard/checkout caches.')
-      await RevalidationService.purgeLayout() // Settings could change currency points conversions
+      const result = await RevalidationService.purgeLayout()
+      handleRevalidationOutcome('purgeDashboardOnLoyaltySettings', result)
     }
   )
 
@@ -50,7 +60,8 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeCurrenciesOnCurrencyCatalog',
     async (event) => {
       console.log('[PresentationSubscriber] CURRENCY_CATALOG_UPDATED Event received. Purging Next.js currencies cache tag.')
-      await RevalidationService.purgeCurrencies()
+      const result = await RevalidationService.purgeCurrencies()
+      handleRevalidationOutcome('purgeCurrenciesOnCurrencyCatalog', result)
     }
   )
 
@@ -59,7 +70,8 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeLayoutOnLanguageCatalog',
     async (event) => {
       console.log('[PresentationSubscriber] LANGUAGE_CATALOG_UPDATED Event received. Purging Next.js layout cache.')
-      await RevalidationService.purgeLayout()
+      const result = await RevalidationService.purgeLayout()
+      handleRevalidationOutcome('purgeLayoutOnLanguageCatalog', result)
     }
   )
 
@@ -68,7 +80,8 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgePriceArtifactsOnRates',
     async (event) => {
       console.log('[PresentationSubscriber] CURRENCY_RATES_UPDATED Event received. Purging Next.js price-dependent experiences cache.')
-      await RevalidationService.purgeExperiences() // Re-cache experience card prices
+      const result = await RevalidationService.purgeExperiences()
+      handleRevalidationOutcome('purgePriceArtifactsOnRates', result)
     }
   )
 
@@ -77,9 +90,11 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeCountryPage',
     async (event) => {
       console.log(`[PresentationSubscriber] COUNTRY_MUTATED Event received for ${event.countryCode}. Purging destinations and country paths.`)
-      await RevalidationService.purgeDestinations()
+      const result = await RevalidationService.purgeDestinations()
+      handleRevalidationOutcome('purgeCountryPage.destinations', result)
       if (event.slug) {
-        await RevalidationService.purgeCountrySlug(event.slug)
+        const slugResult = await RevalidationService.purgeCountrySlug(event.slug)
+        handleRevalidationOutcome('purgeCountryPage.slug', slugResult)
       }
     }
   )
@@ -89,9 +104,11 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeCityPage',
     async (event) => {
       console.log(`[PresentationSubscriber] CITY_MUTATED Event received for ${event.slug}. Purging city layout path.`)
-      await RevalidationService.purgeDestinations()
+      const result = await RevalidationService.purgeDestinations()
+      handleRevalidationOutcome('purgeCityPage.destinations', result)
       if (event.countrySlug && event.slug) {
-        await RevalidationService.purgeCitySlug(event.countrySlug, event.slug)
+        const cityResult = await RevalidationService.purgeCitySlug(event.countrySlug, event.slug)
+        handleRevalidationOutcome('purgeCityPage.citySlug', cityResult)
       }
     }
   )
@@ -101,9 +118,11 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeExperiencePage',
     async (event) => {
       console.log(`[PresentationSubscriber] EXPERIENCE_MUTATED Event received for ${event.slug}. Purging experience details.`)
-      await RevalidationService.purgeExperiences()
+      const result = await RevalidationService.purgeExperiences()
+      handleRevalidationOutcome('purgeExperiencePage.experiences', result)
       if (event.slug) {
-        await RevalidationService.purgeExperienceSlug(event.slug)
+        const slugResult = await RevalidationService.purgeExperienceSlug(event.slug)
+        handleRevalidationOutcome('purgeExperiencePage.slug', slugResult)
       }
     }
   )
@@ -114,7 +133,8 @@ export function registerPresentationSubscriber(): void {
     async (event) => {
       console.log(`[PresentationSubscriber] SLOT_INVENTORY_MUTATED Event received for ${event.experienceSlug}. Purging slots cached layout.`)
       if (event.experienceSlug) {
-        await RevalidationService.purgeExperienceSlug(event.experienceSlug)
+        const result = await RevalidationService.purgeExperienceSlug(event.experienceSlug)
+        handleRevalidationOutcome('purgeExperienceSlots', result)
       }
     }
   )
@@ -124,11 +144,10 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeDashboardViews',
     async (event) => {
       console.log(`[PresentationSubscriber] DASHBOARD_PROJECTION_REBUILT Event received for Customer #${event.customerId}. Targeted Slices:`, event.slices || 'ALL')
-      if (event.slices && Array.isArray(event.slices) && event.slices.length > 0) {
-        await RevalidationService.purgeDashboardSlices(event.customerId, event.slices)
-      } else {
-        await RevalidationService.purgeDashboard(event.customerId)
-      }
+      const result = event.slices && Array.isArray(event.slices) && event.slices.length > 0
+        ? await RevalidationService.purgeDashboardSlices(event.customerId, event.slices)
+        : await RevalidationService.purgeDashboard(event.customerId)
+      handleRevalidationOutcome('purgeDashboardViews', result)
     }
   )
 
@@ -138,7 +157,8 @@ export function registerPresentationSubscriber(): void {
     async (event) => {
       console.log(`[PresentationSubscriber] CONTENT_PAGE_MUTATED Event received for ${event.slug}. Purging page content cache.`)
       if (event.slug) {
-        await RevalidationService.purgeContent(event.slug)
+        const result = await RevalidationService.purgeContent(event.slug)
+        handleRevalidationOutcome('purgePageContent', result)
       }
     }
   )
@@ -149,7 +169,8 @@ export function registerPresentationSubscriber(): void {
     async (event) => {
       console.log(`[PresentationSubscriber] BLOG_POST_MUTATED Event received for ${event.slug}. Purging blog views.`)
       if (event.slug) {
-        await RevalidationService.purgeBlog(event.slug)
+        const result = await RevalidationService.purgeBlog(event.slug)
+        handleRevalidationOutcome('purgeBlogPost', result)
       }
     }
   )
@@ -159,7 +180,8 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeFaqPage',
     async (event) => {
       console.log('[PresentationSubscriber] FAQ_MUTATED Event received. Purging FAQ view.')
-      await RevalidationService.purgeContent('faq')
+      const result = await RevalidationService.purgeContent('faq')
+      handleRevalidationOutcome('purgeFaqPage', result)
     }
   )
 
@@ -168,7 +190,8 @@ export function registerPresentationSubscriber(): void {
     'PresentationSubscriber.purgeTranslation',
     async (event) => {
       console.log(`[PresentationSubscriber] TRANSLATION_CACHE_MUTATED Event received for [${event.originalHash}] (${event.language}). Purging translation cache.`)
-      await RevalidationService.purgeTranslation(event.originalHash, event.language)
+      const result = await RevalidationService.purgeTranslation(event.originalHash, event.language)
+      handleRevalidationOutcome('purgeTranslation', result)
     }
   )
 }

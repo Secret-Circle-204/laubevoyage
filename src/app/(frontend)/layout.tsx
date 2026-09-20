@@ -84,6 +84,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
     <html lang={initialLocale} dir={dir} className="scroll-smooth dark" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

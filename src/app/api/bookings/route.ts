@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDomainServices } from '@/domains/factory'
+import { getApplicationServices } from '@/application/factory'
 
 export async function POST(request: NextRequest) {
   try {
-    const services = await getDomainServices()
+    const services = await getApplicationServices()
     const user = await services.customer.authenticateRequest(request.headers)
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
@@ -33,12 +34,74 @@ export async function POST(request: NextRequest) {
 
     const departure = await services.experience.resolveBookableDepartureBySlot(Number(body.experienceId), slotId)
 
+    const expDoc = await services.experience.getById(Number(body.experienceId))
+    if (!expDoc) {
+      return NextResponse.json({ error: 'Experience not found' }, { status: 404 })
+    }
+
+    const travelers = Array.isArray(body.travelers) ? body.travelers : []
+    const adultsCount =
+      body.adultsCount ||
+      travelers.filter((t: any) => t.type !== 'child' && t.type !== 'infant').length ||
+      travelers.length ||
+      1
+    const childrenCount =
+      body.childrenCount ||
+      travelers.filter((t: any) => t.type === 'child' || t.type === 'infant').length ||
+      0
+    const childAges =
+      body.childAges ||
+      travelers
+        .filter((t: any) => t.type === 'child' && typeof t.age === 'number')
+        .map((t: any) => t.age)
+
+    const localeCtx = await services.localization.buildContext({
+      cookieLocale: body.locale || 'en',
+      cookieCurrency: body.currency || 'EGP',
+    })
+
+    const pointsToRedeem = body.pointsToRedeem ? Number(body.pointsToRedeem) : undefined
+
+    // Authoritative Commercial Pricing (Single Source of Truth)
+    let pricingSnapshot: any = undefined
+    const isFixedPackage = expDoc.type === 'package' && expDoc.packageMode === 'fixed_date'
+
+    if (isFixedPackage) {
+      const pricingResult = await services.bookingPricingUseCase.calculate({
+        experienceId: Number(body.experienceId),
+        slotId,
+        adultsCount,
+        childrenCount,
+        childAges,
+        selectedAllocationId: body.selectedAllocationId,
+        ctx: localeCtx,
+        pointsToRedeem,
+        customerId: Number(user.id),
+      })
+      pricingSnapshot = pricingResult.snapshot
+    } else {
+      const pricingResult = await services.bookingPricingUseCase.calculatePreview({
+        experienceId: Number(body.experienceId),
+        date: departure.date,
+        startTime: departure.startTime || body.startTime || '',
+        adultsCount,
+        childrenCount,
+        childAges,
+        selectedAllocationId: body.selectedAllocationId,
+        ctx: localeCtx,
+        pointsToRedeem,
+        customerId: Number(user.id),
+      })
+      pricingSnapshot = pricingResult.snapshot
+    }
+
     const bookingId = await services.booking.create({
       userId: Number(user.id),
       departure,
       travelers: body.travelers,
       endDate: body.endDate || departure.date,
-      pointsToRedeem: body.pointsToRedeem ? Number(body.pointsToRedeem) : undefined,
+      pointsToRedeem,
+      pricingSnapshot,
       currency: body.currency,
       source: 'api',
     })
@@ -46,10 +109,15 @@ export async function POST(request: NextRequest) {
     const booking = await services.booking.getById(bookingId)
     return NextResponse.json(booking, { status: 201 })
   } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to create booking'
     console.error('Error creating booking:', error)
+    const isPolicyViolation =
+      errorMsg.includes('[PointsCalculator]') ||
+      errorMsg.includes('[BookingCreator]') ||
+      errorMsg.includes('[BookingPolicy]')
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create booking' },
-      { status: 500 },
+      { error: errorMsg },
+      { status: isPolicyViolation ? 400 : 500 },
     )
   }
 }

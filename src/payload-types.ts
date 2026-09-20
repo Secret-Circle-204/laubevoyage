@@ -664,35 +664,45 @@ export interface Experience {
          */
         order: number;
         /**
-         * Reusable Accommodation Property entity from catalog.
-         */
-        property: number | Accommodation;
-        /**
          * Number of nights for this stay (must be >= 1).
          */
         nights: number;
         /**
-         * Optional package-specific room category (e.g. Deluxe Nile View Room, Luxury Suite).
+         * Curated accommodation options (hotels/resorts) available for this stay stage.
          */
-        roomCategory?: string | null;
-        boardBasis?: ('bed_and_breakfast' | 'half_board' | 'full_board' | 'all_inclusive') | null;
-        /**
-         * Commercial pricing calculation unit for room rates in this stay.
-         */
-        pricingUnit: 'per_stay' | 'per_night';
-        /**
-         * Explicit commercial room rates and availability flags per occupancy type for this stay.
-         */
-        roomRates: {
-          occupancy: 'single' | 'double' | 'triple' | 'quad';
+        options: {
           /**
-           * Commercial room price in EGP for this stay (or per night if pricingUnit is per_night). Set 0 only if complimentary/bundled.
+           * Reusable Accommodation Property entity from catalog.
            */
-          rateEGP: number;
+          property: number | Accommodation;
           /**
-           * Enable to offer this occupancy type for booking. Uncheck to disable and prevent reservation.
+           * Designate this option as the authoritative default accommodation for this stay.
            */
-          enabled?: boolean | null;
+          isDefault?: boolean | null;
+          /**
+           * Optional package-specific room category (e.g. Deluxe Nile View Room, Luxury Suite).
+           */
+          roomCategory?: string | null;
+          boardBasis?: ('bed_and_breakfast' | 'half_board' | 'full_board' | 'all_inclusive') | null;
+          /**
+           * Commercial pricing calculation unit for room rates in this option.
+           */
+          pricingUnit: 'per_stay' | 'per_night';
+          /**
+           * Explicit commercial room rates and availability flags per occupancy type for this accommodation option.
+           */
+          roomRates: {
+            occupancy: 'single' | 'double' | 'triple' | 'quad';
+            /**
+             * Commercial room price in EGP for this stay (or per night if pricingUnit is per_night). Set 0 only if complimentary/bundled.
+             */
+            rateEGP: number;
+            /**
+             * Enable to offer this occupancy type for booking. Uncheck to disable and prevent reservation.
+             */
+            enabled?: boolean | null;
+            id?: string | null;
+          }[];
           id?: string | null;
         }[];
         id?: string | null;
@@ -867,6 +877,18 @@ export interface Booking {
     exchangeRateTimestamp?: string | null;
     roundingStrategy?: string | null;
     currencyDecimals?: number | null;
+    /**
+     * Immutable commercial and accommodation snapshot breakdown
+     */
+    commercialBreakdown?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
   };
   /**
    * Calculated by LoyaltyService
@@ -1958,17 +1980,23 @@ export interface ExperiencesSelect<T extends boolean = true> {
     | T
     | {
         order?: T;
-        property?: T;
         nights?: T;
-        roomCategory?: T;
-        boardBasis?: T;
-        pricingUnit?: T;
-        roomRates?:
+        options?:
           | T
           | {
-              occupancy?: T;
-              rateEGP?: T;
-              enabled?: T;
+              property?: T;
+              isDefault?: T;
+              roomCategory?: T;
+              boardBasis?: T;
+              pricingUnit?: T;
+              roomRates?:
+                | T
+                | {
+                    occupancy?: T;
+                    rateEGP?: T;
+                    enabled?: T;
+                    id?: T;
+                  };
               id?: T;
             };
         id?: T;
@@ -2066,6 +2094,7 @@ export interface BookingsSelect<T extends boolean = true> {
         exchangeRateTimestamp?: T;
         roundingStrategy?: T;
         currencyDecimals?: T;
+        commercialBreakdown?: T;
       };
   pointsEarned?: T;
   paymentId?: T;

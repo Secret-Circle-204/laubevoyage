@@ -16,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 import { redirect } from 'next/navigation'
 import { SessionResolver } from '@/application/auth/session-resolver'
+import { AccommodationParamsParser } from '@/application/shared/parsers'
 
 export default async function Page(props: {
   params: Promise<{ bookingId: string }>
@@ -51,7 +52,12 @@ export default async function Page(props: {
   const childBeddingModes = typeof searchParams.childBeddingModes === 'string'
     ? (searchParams.childBeddingModes.split(',') as ('sharing_bed' | 'extra_bed')[])
     : undefined
-  const requestedRooms = searchParams.requestedRooms ? Number(searchParams.requestedRooms) : undefined
+  const selectedAllocationId = typeof searchParams.roomAllocation === 'string' && searchParams.roomAllocation.trim() !== ''
+    ? searchParams.roomAllocation.trim()
+    : undefined
+  const selectedAccommodationOptions = typeof searchParams.accommodations === 'string'
+    ? AccommodationParamsParser.parse(searchParams.accommodations)
+    : undefined
   const slotId = searchParams.slotId ? Number(searchParams.slotId) : undefined
   const date = typeof searchParams.date === 'string' ? searchParams.date : undefined
   const startTime = typeof searchParams.startTime === 'string' ? searchParams.startTime : undefined
@@ -64,7 +70,8 @@ export default async function Page(props: {
     children,
     childAges,
     childBeddingModes,
-    requestedRooms,
+    selectedAllocationId,
+    selectedAccommodationOptions,
     slotId,
     date,
     startTime,

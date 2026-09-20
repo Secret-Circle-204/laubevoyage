@@ -132,6 +132,59 @@ import { LoyaltySettings } from './globals/LoyaltySettings'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+function normalizeAndValidateOrigin(raw: string): string | null {
+  const trimmed = raw.trim()
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    return null
+  }
+  const normalized = trimmed.replace(/\/+$/, '')
+  try {
+    const parsed = new URL(normalized)
+    if (
+      parsed.origin === normalized &&
+      (parsed.pathname === '/' || parsed.pathname === '') &&
+      parsed.search === '' &&
+      parsed.hash === '' &&
+      parsed.username === '' &&
+      parsed.password === ''
+    ) {
+      return parsed.origin
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+function buildCsrfOrigins(): string[] {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production'
+  const origins = new Set<string>()
+
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL
+  if (serverUrl) {
+    const validServerOrigin = normalizeAndValidateOrigin(serverUrl)
+    if (validServerOrigin) {
+      origins.add(validServerOrigin)
+    }
+  }
+
+  if (!isProduction) {
+    const rawDevOrigins = process.env.ALLOWED_DEV_ORIGINS
+    if (rawDevOrigins) {
+      const parsedOrigins = rawDevOrigins
+        .split(',')
+        .map(normalizeAndValidateOrigin)
+        .filter((origin): origin is string => origin !== null)
+
+      for (const origin of parsedOrigins) {
+        origins.add(origin)
+      }
+    }
+  }
+
+  return Array.from(origins)
+}
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -183,10 +236,14 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
-    push: process.env.NODE_ENV !== 'production' && process.env.VITEST !== 'true',
+    push:
+      process.env.NODE_ENV !== 'production' &&
+      process.env.VITEST !== 'true' &&
+      process.env.PAYLOAD_DISABLE_PUSH !== 'true',
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL,
+  csrf: buildCsrfOrigins(),
   sharp,
   email: () => ({
     name: 'payload-auth-email-adapter',

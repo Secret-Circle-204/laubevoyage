@@ -7,18 +7,26 @@ import { revalidatePath } from 'next/cache'
 import { getDomainServices } from '@/domains/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
 import { DomainException } from '@/domains/shared/exceptions/domain-exception'
+import { env } from '@/lib/env'
 
 export interface RegisterFormData {
   email: string
   firstName: string
   lastName: string
   password?: string
+  phone: string
 }
 
 export async function registerCustomerAction(formData: RegisterFormData) {
   try {
-    if (!formData.email || !formData.firstName || !formData.lastName || !formData.password) {
-      return { success: false, error: 'Email, First Name, Last Name, and Password are required' }
+    const email = formData.email ? formData.email.toLowerCase().trim() : ''
+    const firstName = formData.firstName ? formData.firstName.trim() : ''
+    const lastName = formData.lastName ? formData.lastName.trim() : ''
+    const phone = formData.phone ? formData.phone.trim() : ''
+    const password = formData.password
+
+    if (!email || !firstName || !lastName || !phone || !password) {
+      return { success: false, error: 'Email, First Name, Last Name, Phone Number, and Password are required' }
     }
 
     const payload = await getPayload({ config })
@@ -30,10 +38,11 @@ export async function registerCustomerAction(formData: RegisterFormData) {
 
     // 1. Register customer via the Domain Service (which manages DB creation and event publishing)
     const registeredCustomer = await customer.registerCustomer(
-      formData.email,
-      formData.firstName,
-      formData.lastName,
-      formData.password,
+      email,
+      firstName,
+      lastName,
+      phone,
+      password,
       { preferredLanguage, preferredCurrency },
       { eventSource: 'domain' },
     )
@@ -73,7 +82,7 @@ export async function loginCustomerAction(email: string, password?: string) {
     const cookieStore = await cookies()
     cookieStore.set('payload-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.SESSION_COOKIE_SECURE,
       sameSite: 'lax',
       path: '/',
     })

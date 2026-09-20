@@ -34,8 +34,9 @@ export function Header({ data }: HeaderProps) {
   const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null)
   const mobileCloseBtnRef = useRef<HTMLButtonElement>(null)
 
+  const currentPath = pathname || '/'
   const isDark = theme === 'dark'
-  const isHomePage = pathname === '/'
+  const isHomePage = currentPath === '/'
   const isHeaderSolid = isScrolled || !isHomePage
 
   const closeMobileMenu = useCallback(() => {
@@ -106,8 +107,8 @@ export function Header({ data }: HeaderProps) {
   const availableLocales = data.supportedLocales || []
 
   const isLinkActive = (href: string) => {
-    if (href === '/') return pathname === '/'
-    return pathname.startsWith(href)
+    if (href === '/') return currentPath === '/'
+    return currentPath.startsWith(href)
   }
 
   return (
@@ -115,8 +116,8 @@ export function Header({ data }: HeaderProps) {
       <header
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ease-out ${
           isHeaderSolid
-            ? 'bg-background/90 backdrop-blur-md shadow-xs py-2.5 sm:py-3 border-b border-border/60'
-            : 'bg-transparent py-3.5 sm:py-4 border-b border-transparent'
+            ? 'bg-gradient-to-r from-[#231f20] via-[#1a1e4e] to-[#f58220] text-white shadow-lg py-2.5 sm:py-3 border-b border-white/10 dark:bg-background/90 dark:text-foreground dark:backdrop-blur-md dark:shadow-xs dark:border-border/60 dark:bg-none'
+            : 'bg-gradient-to-r from-[#231f20]/95 via-[#1a1e4e]/95 to-[#f58220]/95 backdrop-blur-md text-white py-3.5 sm:py-4 border-b border-white/10 dark:bg-transparent dark:text-foreground dark:border-transparent dark:bg-none'
         }`}
       >
         <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4">
@@ -126,16 +127,12 @@ export function Header({ data }: HeaderProps) {
           {/* ================================================================= */}
           <Link
             href="/"
-            className="group flex items-center flex-shrink-0 transition-transform duration-300 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary/60 rounded-lg p-0.5"
+            className="group flex items-center flex-shrink-0 transition-transform duration-300 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 dark:focus-visible:ring-secondary/60 rounded-lg p-0.5"
             aria-label="L'Aube Voyage Home"
           >
             <div className="relative h-8 w-32 sm:h-9 sm:w-40 md:w-44">
               <Image
-                src={
-                  isDark
-                    ? '/logos/LAube-Voyage-logo-horizontal-colors-and-white.svg'
-                    : '/logos/LAube-Voyage-logo-horizontal -colors.svg'
-                }
+                src="/logos/LAube-Voyage-logo-horizontal-colors-and-white.svg"
                 alt="L'Aube Voyage"
                 fill
                 className="object-contain"
@@ -158,10 +155,10 @@ export function Header({ data }: HeaderProps) {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`relative py-1.5 text-xs font-medium uppercase transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 rounded-sm ${
+                  className={`relative py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-sm ${
                     active
-                      ? 'text-foreground font-bold'
-                      : 'text-foreground/70 hover:text-foreground group'
+                      ? 'text-white font-bold dark:text-foreground'
+                      : 'text-white/85 hover:text-white dark:text-foreground/70 dark:hover:text-foreground group'
                   }`}
                   aria-current={active ? 'page' : undefined}
                 >
@@ -173,12 +170,12 @@ export function Header({ data }: HeaderProps) {
                       className="absolute -bottom-1 left-0 right-0 flex items-center justify-center pointer-events-none"
                       aria-hidden="true"
                     >
-                      <span className="h-[1.5px] w-full bg-gradient-to-r from-transparent via-secondary/70 to-transparent rounded-full" />
-                      <span className="absolute w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_8px_rgba(0,174,239,0.85)] ring-2 ring-secondary/20" />
+                      <span className="h-[2px] w-full bg-gradient-to-r from-transparent via-white to-transparent dark:via-secondary/70 rounded-full" />
+                      <span className="absolute w-1.5 h-1.5 rounded-full bg-white dark:bg-secondary shadow-[0_0_8px_rgba(255,255,255,0.9)] dark:shadow-[0_0_8px_rgba(0,174,239,0.85)] ring-2 ring-white/30 dark:ring-secondary/20" />
                     </span>
                   ) : (
                     <span
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-secondary/40 opacity-0 scale-0 transition-all duration-250 group-hover:opacity-100 group-hover:scale-100 pointer-events-none"
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/60 dark:bg-secondary/40 opacity-0 scale-0 transition-all duration-250 group-hover:opacity-100 group-hover:scale-100 pointer-events-none"
                       aria-hidden="true"
                     />
                   )}
@@ -200,10 +197,10 @@ export function Header({ data }: HeaderProps) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search destinations..."
                 aria-label="Search destinations or experiences"
-                className="pl-8 pr-12 py-1.5 text-xs rounded-full border border-border/80 bg-card/60 hover:bg-card text-foreground placeholder:text-muted/60 transition-all duration-300 w-36 xl:w-52 focus:w-56 xl:focus:w-72 focus:outline-none focus:border-secondary/80 focus:ring-2 focus:ring-secondary/20 focus:bg-card shadow-xs"
+                className="pl-8 pr-12 py-1.5 text-xs rounded-full border border-white/30 bg-white/20 hover:bg-white/30 text-white placeholder:text-white/75 transition-all duration-300 w-36 xl:w-52 focus:w-56 xl:focus:w-72 focus:outline-none focus:border-white focus:ring-2 focus:ring-white/30 focus:bg-white focus:text-slate-900 focus:placeholder:text-slate-400 shadow-xs dark:border-border/80 dark:bg-card/60 dark:hover:bg-card dark:text-foreground dark:placeholder:text-muted/60 dark:focus:border-secondary/80 dark:focus:bg-card dark:focus:ring-secondary/20 dark:focus:text-foreground"
               />
               <svg
-                className="w-3.5 h-3.5 absolute left-2.5 text-muted group-focus-within:text-secondary pointer-events-none transition-colors"
+                className="w-3.5 h-3.5 absolute left-2.5 text-white/80 group-focus-within:text-white dark:text-muted dark:group-focus-within:text-secondary pointer-events-none transition-colors"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -216,7 +213,7 @@ export function Header({ data }: HeaderProps) {
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 text-muted hover:text-foreground cursor-pointer p-0.5 rounded-full focus:outline-none"
+                  className="absolute right-2.5 text-white/80 hover:text-white cursor-pointer p-0.5 rounded-full focus:outline-none dark:text-muted dark:hover:text-foreground"
                   aria-label="Clear search input"
                 >
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -225,7 +222,7 @@ export function Header({ data }: HeaderProps) {
                 </button>
               ) : (
                 <kbd
-                  className="absolute right-2.5 hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-medium rounded border border-border/60 bg-border/20 text-muted/70 pointer-events-none"
+                  className="absolute right-2.5 hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9px] font-medium rounded border border-white/40 bg-white/20 text-white/90 pointer-events-none dark:border-border/60 dark:bg-border/20 dark:text-muted/70"
                   title="Press ⌘K or Ctrl+K to focus search"
                 >
                   ⌘K
@@ -260,23 +257,23 @@ export function Header({ data }: HeaderProps) {
             {session.isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <Link href="/dashboard">
-                  <Badge variant="accent" size="md" className="cursor-pointer hover:opacity-90">
+                  <Badge variant="secondary" size="md" className="cursor-pointer bg-white text-[#f58220] hover:bg-white/90 font-bold dark:bg-accent dark:text-accent-foreground">
                     {data?.uiLabels?.myAccount || 'Dashboard'}
                   </Badge>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={logout}>
+                <Button variant="ghost" size="sm" onClick={logout} className="text-white hover:bg-white/20 dark:text-primary dark:hover:bg-primary/10 dark:text-secondary">
                   {data?.uiLabels?.signOut || 'Sign Out'}
                 </Button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Link href="/login">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 dark:text-primary dark:hover:bg-primary/10 dark:text-secondary">
                     {data?.uiLabels?.logIn || 'Log In'}
                   </Button>
                 </Link>
                 <Link href="/register">
-                  <Button variant="primary" size="sm">
+                  <Button variant="primary" size="sm" className="bg-[#1a1e4e] hover:bg-[#151840] text-white shadow-md border-0 dark:bg-primary dark:text-primary-foreground">
                     {data?.uiLabels?.bookNow || 'Book Now'}
                   </Button>
                 </Link>
@@ -317,7 +314,7 @@ export function Header({ data }: HeaderProps) {
             <button
               ref={mobileMenuTriggerRef}
               onClick={toggleMobileMenu}
-              className="p-2 rounded-full border border-border/80 bg-card/60 hover:bg-card text-foreground transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 cursor-pointer shadow-xs active:scale-95"
+              className="p-2 rounded-full border border-white/30 bg-white/20 hover:bg-white/30 text-white transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 cursor-pointer shadow-xs active:scale-95 dark:border-border/80 dark:bg-card/60 dark:hover:bg-card dark:text-foreground"
               aria-label="Open Travel Command Menu"
               aria-expanded={isMobileMenuOpen}
               aria-haspopup="dialog"
@@ -363,11 +360,7 @@ export function Header({ data }: HeaderProps) {
             <div className="px-5 py-3 border-b border-border/40 flex items-center justify-between">
               <div className="relative h-7 w-32">
                 <Image
-                  src={
-                    isDark
-                      ? '/logos/LAube-Voyage-logo-horizontal-colors-and-white.svg'
-                      : '/logos/LAube-Voyage-logo-horizontal -colors.svg'
-                  }
+                  src="/logos/LAube-Voyage-logo-horizontal-colors-and-white.svg"
                   alt="L'Aube Voyage"
                   fill
                   className="object-contain"
