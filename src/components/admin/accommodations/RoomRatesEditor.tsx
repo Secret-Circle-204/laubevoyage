@@ -3,11 +3,12 @@
 import React from 'react'
 import type { OccupancyType, RoomRateItem } from './types'
 import { OCCUPANCY_LABELS } from './types'
+import './RoomRatesEditor.css'
 
 interface RoomRatesEditorProps {
   rates: RoomRateItem[]
   readOnly?: boolean
-  onChange: (occupancy: OccupancyType, field: 'rateEGP' | 'enabled', value: any) => void
+  onChange: (occupancy: OccupancyType, field: 'rateEGP' | 'enabled', value: number | boolean) => void
 }
 
 export const RoomRatesEditor: React.FC<RoomRatesEditorProps> = ({
@@ -16,53 +17,59 @@ export const RoomRatesEditor: React.FC<RoomRatesEditorProps> = ({
   onChange,
 }) => {
   return (
-    <div className="ae-form-group">
-      <label className="ae-form-label">
-        Occupancy Room Rates (EGP) <span className="ae-form-label-required">*</span>
-      </label>
-      <p className="ae-form-desc">
-        Specify commercial rates in Egyptian Pounds (EGP) for each supported occupancy.
-        Disable occupancies that are not offered.
-      </p>
-
-      <table className="ae-rates-table">
+    <div className="ae-rates-matrix-container">
+      <table className="ae-rates-matrix-table">
         <thead>
           <tr>
-            <th>Occupancy</th>
-            <th>Rate (EGP)</th>
-            <th style={{ textAlign: 'center' }}>Enabled</th>
+            <th style={{ width: '40%' }}>Occupancy</th>
+            <th style={{ width: '20%', textAlign: 'center' }}>Enabled</th>
+            <th style={{ width: '40%' }}>Rate</th>
           </tr>
         </thead>
         <tbody>
           {rates.map((rate) => {
             const info = OCCUPANCY_LABELS[rate.occupancy]
+            const occName =
+              rate.occupancy === 'single'
+                ? 'Single'
+                : rate.occupancy === 'double'
+                  ? 'Double'
+                  : rate.occupancy === 'triple'
+                    ? 'Triple'
+                    : 'Quad'
+
             return (
-              <tr key={rate.occupancy}>
+              <tr key={rate.occupancy} className={!rate.enabled ? 'ae-rate-row--disabled' : ''}>
                 <td>
-                  <strong>{info.label}</strong>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--theme-elevation-400)' }}>
-                    {info.guests} {info.guests === 1 ? 'Guest' : 'Guests'}
+                  <div className="ae-rate-occupancy-title">{occName}</div>
+                  <div className="ae-rate-occupancy-caption">
+                    {info.guests} {info.guests === 1 ? 'Guest' : 'Guests'} max
                   </div>
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    min="0"
-                    step="10"
-                    className="ae-rate-input"
-                    value={rate.rateEGP}
-                    disabled={readOnly || !rate.enabled}
-                    onChange={(e) => onChange(rate.occupancy, 'rateEGP', e.target.value)}
-                  />
                 </td>
                 <td style={{ textAlign: 'center' }}>
                   <input
                     type="checkbox"
+                    className="ae-rate-checkbox"
                     checked={rate.enabled}
                     disabled={readOnly}
                     onChange={(e) => onChange(rate.occupancy, 'enabled', e.target.checked)}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
+                </td>
+                <td>
+                  <div className="ae-rate-input-wrap">
+                    <input
+                      type="number"
+                      min="0"
+                      step="50"
+                      className="ae-rate-number-input"
+                      value={rate.rateEGP}
+                      disabled={readOnly || !rate.enabled}
+                      onChange={(e) =>
+                        onChange(rate.occupancy, 'rateEGP', Number(e.target.value) || 0)
+                      }
+                    />
+                    <span className="ae-rate-currency-label">EGP</span>
+                  </div>
                 </td>
               </tr>
             )

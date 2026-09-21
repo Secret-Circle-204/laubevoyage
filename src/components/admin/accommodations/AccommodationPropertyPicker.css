@@ -1,0 +1,320 @@
+/* ==========================================================================
+   AccommodationPropertyPicker.css — Catalog Browser Surface
+   Balanced, medium scale enterprise UI
+   ========================================================================== */
+
+.ae-picker-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+/* 1. Search Bar */
+.ae-picker-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.ae-picker-search-icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.ae-picker-search-input {
+  width: 100%;
+  background: #161c28;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 13.5px;
+  padding: 8px 32px 8px 36px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.ae-picker-search-input:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.ae-picker-clear-search {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.ae-picker-clear-search:hover {
+  color: #ffffff;
+}
+
+/* 2. Filter Groups */
+.ae-picker-filter-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ae-picker-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ae-picker-filter-heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.ae-picker-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ae-picker-tab {
+  background: #161c28;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  color: #94a3b8;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ae-picker-tab:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.ae-picker-tab--active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.ae-picker-tab--active:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+/* 3. Results List */
+.ae-picker-results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ae-picker-results-header {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.ae-picker-results-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #141926;
+}
+
+.ae-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.12s ease;
+}
+
+.ae-picker-item:last-child {
+  border-bottom: none;
+}
+
+.ae-picker-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ae-picker-item--selected {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.ae-picker-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ae-picker-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.ae-picker-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #94a3b8;
+  flex-wrap: wrap;
+}
+
+.ae-picker-item-action {
+  flex-shrink: 0;
+}
+
+.ae-picker-btn-select {
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  border-radius: 5px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ae-picker-btn-select:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.ae-picker-status-selected {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 4px 10px;
+  border-radius: 5px;
+}
+
+.ae-picker-status-in-stay {
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+  padding: 4px 8px;
+}
+
+.ae-picker-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 12px;
+  background: #161c28;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  text-align: center;
+  color: #94a3b8;
+  gap: 8px;
+}
+
+.ae-picker-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.ae-picker-reset-btn {
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  border-radius: 5px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ae-picker-loading-badge {
+  color: #3b82f6;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.ae-picker-results-list--loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ─── Established Pagination Bar ─────────────────────────────────────────── */
+
+.ae-picker-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #141926;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+
+.ae-picker-pagination-info strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.ae-picker-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ae-picker-page-btn {
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e2e8f0;
+  border-radius: 5px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ae-picker-page-btn:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.ae-picker-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ae-picker-page-indicator {
+  font-size: 12px;
+  color: #cbd5e1;
+  font-weight: 600;
+  padding: 0 4px;
+}

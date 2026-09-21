@@ -199,12 +199,12 @@ export function ExperienceHero({
             fill
             priority
             sizes="100vw"
-            className="object-cover opacity-85 transition-all duration-500 ease-out group-hover:scale-[1.018]"
+            className="object-cover opacity-95 transition-all duration-500 ease-out group-hover:scale-[1.018]"
           />
         ) : (
           <div className="absolute inset-0 bg-neutral-900" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/20 group-hover:via-black/35 transition-colors duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent group-hover:via-black/20 transition-colors duration-500" />
 
         {/* External Gallery Navigation Arrows */}
         {galleryImages.length > 1 && (
@@ -239,7 +239,7 @@ export function ExperienceHero({
         {/* Top Supra Badges & Gallery Affordance */}
         <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase bg-black/60 backdrop-blur-md border border-white/20 text-secondary-light">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-black/60 backdrop-blur-md border border-white/20 text-secondary-light">
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
               {type === 'package'
                 ? dict.get(locale, 'catalog.packageLabel')
@@ -289,7 +289,7 @@ export function ExperienceHero({
           <div className="flex items-center gap-4 sm:gap-6 flex-wrap pt-4 border-t border-white/15 text-xs text-white/90">
             <div className="inline-flex items-center gap-2">
               <PinIcon className="w-4 h-4 text-secondary shrink-0" />
-              <span className="uppercase text-xs font-semibold text-white/95">{location}</span>
+              <span className="text-xs font-semibold text-white/95">{location}</span>
             </div>
             <span className="text-white/30">•</span>
             <div className="inline-flex items-center gap-2">
@@ -301,14 +301,16 @@ export function ExperienceHero({
                 <span className="text-white/30">•</span>
                 <div className="inline-flex items-center gap-2">
                   <BedIcon className="w-4 h-4 text-secondary shrink-0" />
-                  <span className="text-xs font-semibold text-white/95">{durationNights} Nights Accommodated</span>
+                  <span className="text-xs font-semibold text-white/95">
+                    {dict.get(locale, 'experience.nightsAccommodated', { count: String(durationNights) })}
+                  </span>
                 </div>
               </>
             )}
 
             {/* Gallery Click Hint */}
             {galleryImages.length > 1 && (
-              <div className="ml-auto hidden sm:inline-flex items-center gap-1.5 text-secondary text-xs font-semibold uppercase group-hover:underline">
+              <div className="ml-auto hidden sm:inline-flex items-center gap-1.5 text-secondary text-xs font-semibold group-hover:underline">
                 <span>{dict.get(locale, 'experience.viewGallery')}</span>
                 <ChevronRightIcon className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
               </div>
@@ -333,7 +335,7 @@ export function ExperienceHero({
             <div className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse" />
               <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
-                <span className="text-xs uppercase font-bold text-secondary">
+                <span className="text-xs font-bold text-secondary">
                   {dict.get(locale, 'experience.viewGallery')}
                 </span>
                 <span className="font-hornbill text-sm text-foreground/85 font-light hidden sm:inline-block pl-3 border-l border-border/40 line-clamp-1">
@@ -394,8 +396,8 @@ export function ExperienceHero({
           <div className="flex flex-col items-center gap-3 pt-4 border-t border-border/60 max-w-4xl w-full mx-auto">
             <div className="flex items-center justify-between w-full text-xs">
               {/* Keyboard hint */}
-              <span className="text-[10px] text-muted-foreground uppercase hidden sm:inline-block">
-                ESC to close · ← → to navigate
+              <span className="text-xs text-muted-foreground hidden sm:inline-block">
+                {dict.get(locale, 'experience.galleryKeyboardHint')}
               </span>
 
               {/* Counter with Orange Precision */}
@@ -410,7 +412,7 @@ export function ExperienceHero({
               </div>
 
               {/* Location indicator */}
-              <span className="text-[10px] text-muted-foreground uppercase hidden sm:inline-block">
+              <span className="text-xs text-muted-foreground hidden sm:inline-block">
                 {location}
               </span>
             </div>

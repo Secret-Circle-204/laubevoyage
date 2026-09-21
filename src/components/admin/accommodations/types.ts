@@ -7,8 +7,15 @@ export interface CatalogAccommodation {
   name: string
   slug?: string
   type?: string
-  rating?: number
+  rating?: number | null
   city?: number | { id: number; name?: string }
+  cityId?: number
+  cityName?: string
+  citySlug?: string
+  countryId?: number
+  countryName?: string
+  countrySlug?: string
+  imageUrl?: string
 }
 
 export type OccupancyType = 'single' | 'double' | 'triple' | 'quad'
@@ -38,11 +45,11 @@ export interface AccommodationStayItem {
   nights: number
   options: AccommodationOptionItem[]
   // Transitional fields for unmigrated flat records
-  property?: any
+  property?: number | { id: number | string; name?: string; type?: string; rating?: number }
   roomCategory?: string
-  boardBasis?: any
-  pricingUnit?: any
-  roomRates?: any
+  boardBasis?: BoardBasis
+  pricingUnit?: PricingUnit
+  roomRates?: RoomRateItem[]
 }
 
 export const DEFAULT_ROOM_RATES: RoomRateItem[] = [
@@ -95,6 +102,42 @@ export function resolvePropertyName(
   const found = catalog.find((c) => c.id === id)
   if (found) return found.name
   return `Hotel #${id}`
+}
+
+export function resolvePropertyLocation(
+  prop: AccommodationOptionItem['property'],
+  catalog: CatalogAccommodation[],
+): string {
+  const id = getPropertyId(prop)
+  if (!id) return ''
+  const found = catalog.find((c) => c.id === id)
+  if (found && found.cityName && found.countryName) {
+    return `${found.cityName} · ${found.countryName}`
+  }
+  if (found && found.cityName) {
+    return found.cityName
+  }
+  return ''
+}
+
+export function resolvePropertyTypeAndRating(
+  prop: AccommodationOptionItem['property'],
+  catalog: CatalogAccommodation[],
+): string {
+  const id = getPropertyId(prop)
+  if (!id) return ''
+  const found = catalog.find((c) => c.id === id)
+  if (!found) return ''
+  const typeMap: Record<string, string> = {
+    hotel: 'Hotel',
+    resort: 'Resort',
+    cruise: 'Nile Cruise',
+    camp: 'Desert Camp',
+    lodge: 'Lodge',
+  }
+  const typeLabel = found.type ? typeMap[found.type] || found.type : 'Hotel'
+  const ratingLabel = found.rating ? ` • ★${found.rating}` : ''
+  return `${typeLabel}${ratingLabel}`
 }
 
 /**

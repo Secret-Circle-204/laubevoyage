@@ -1,6 +1,8 @@
 import type { ConvertedPrice } from '@/domains/currency/types'
 import type { ScheduleConfig, DepartureSlotStatus } from '@/domains/experience/types'
 
+export type { ScheduleConfig, DepartureSlotStatus }
+
 export interface DepartureSlotDTO {
   id: number
   departureId: string

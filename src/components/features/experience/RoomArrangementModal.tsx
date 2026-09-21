@@ -1,7 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { RoomAllocationPolicy, type OccupancyType, type RoomAllocationOption } from '@/domains/experience/room-allocation-policy'
+import {
+  RoomAllocationPolicy,
+  type OccupancyType,
+  type RoomAllocationOption,
+} from '@/domains/experience/room-allocation-policy'
 import { JsonTranslationDictionary } from '@/domains/translation/dictionary'
 
 const dict = new JsonTranslationDictionary()
@@ -9,7 +13,14 @@ const dict = new JsonTranslationDictionary()
 /* Minimalist geometric SVG icons */
 function CloseIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   )
@@ -17,15 +28,33 @@ function CloseIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 function BedIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+      />
     </svg>
   )
 }
 
 function ChevronDownIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
     </svg>
   )
@@ -33,32 +62,40 @@ function ChevronDownIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 function AlertIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 7.5h.008v.008H12v-.008z" />
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 7.5h.008v.008H12v-.008z"
+      />
     </svg>
   )
 }
 
 function SparklesIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
+      />
     </svg>
   )
-}
-
-const ROOM_NAMES_AR: Record<OccupancyType, string> = {
-  quad: 'غرفة رباعية',
-  triple: 'غرفة ثلاثية',
-  double: 'غرفة مزدوجة',
-  single: 'غرفة مفردة',
-}
-
-const ROOM_NAMES_EN: Record<OccupancyType, string> = {
-  quad: 'Quad Room',
-  triple: 'Triple Room',
-  double: 'Double Room',
-  single: 'Single Room',
 }
 
 export function formatOptionLabel(opt: RoomAllocationOption, locale: string): string {
@@ -67,28 +104,16 @@ export function formatOptionLabel(opt: RoomAllocationOption, locale: string): st
     counts[r.occupancy] = (counts[r.occupancy] || 0) + 1
   })
 
-  const labelsEn: Record<OccupancyType, { singular: string; plural: string }> = {
-    quad: { singular: '1 Quad Room', plural: '{n} Quad Rooms' },
-    triple: { singular: '1 Triple Room', plural: '{n} Triple Rooms' },
-    double: { singular: '1 Double Room', plural: '{n} Double Rooms' },
-    single: { singular: '1 Single Room', plural: '{n} Single Rooms' },
-  }
-
-  const labelsAr: Record<OccupancyType, { singular: string; plural: string }> = {
-    quad: { singular: '1 غرفة رباعية', plural: '{n} غرف رباعية' },
-    triple: { singular: '1 غرفة ثلاثية', plural: '{n} غرف ثلاثية' },
-    double: { singular: '1 غرفة مزدوجة', plural: '{n} غرف مزدوجة' },
-    single: { singular: '1 غرفة مفردة', plural: '{n} غرف مفردة' },
-  }
-
-  const dictMap = locale === 'ar' ? labelsAr : labelsEn
   const parts: string[] = []
   const order: OccupancyType[] = ['quad', 'triple', 'double', 'single']
 
   order.forEach((occ) => {
     const c = counts[occ]
     if (c > 0) {
-      const template = c === 1 ? dictMap[occ].singular : dictMap[occ].plural.replace('{n}', String(c))
+      const template =
+        c === 1
+          ? `1 ${dict.get(locale, `experience.occupancy.${occ}Room`)}`
+          : dict.get(locale, `experience.occupancy.${occ}RoomsPlural`, { count: String(c) })
       parts.push(template)
     }
   })
@@ -97,17 +122,17 @@ export function formatOptionLabel(opt: RoomAllocationOption, locale: string): st
 }
 
 export type DraftMatchStatus =
-  | 'unavailable'              // availableOptions is empty
-  | 'incomplete'               // Nominal capacity < totalGuests
-  | 'excess_capacity'          // Nominal capacity > totalGuests
-  | 'unsupported_combination'  // Capacity == totalGuests but no match in availableOptions
-  | 'locally_matched'          // Matches an approved availableOption locally (candidateOption !== null)
+  | 'unavailable' // availableOptions is empty
+  | 'incomplete' // Nominal capacity < totalGuests
+  | 'excess_capacity' // Nominal capacity > totalGuests
+  | 'unsupported_combination' // Capacity == totalGuests but no match in availableOptions
+  | 'locally_matched' // Matches an approved availableOption locally (candidateOption !== null)
 
 export type ServerValidationState =
-  | 'idle'                     // No active server request
-  | 'validating'               // Server validation in-flight
-  | 'valid'                    // Server confirmed pricing, availability, and allocation
-  | 'invalid'                  // Server rejected allocation or pricing
+  | 'idle' // No active server request
+  | 'validating' // Server validation in-flight
+  | 'valid' // Server confirmed pricing, availability, and allocation
+  | 'invalid' // Server rejected allocation or pricing
 
 export interface RebalancingSuggestion {
   option: RoomAllocationOption
@@ -167,7 +192,7 @@ export function resolveSmartRebalancingSuggestion(params: {
     let optCapacity = 0
     opt.rooms.forEach((r) => {
       optCounts[r.occupancy] = (optCounts[r.occupancy] || 0) + 1
-      optCapacity += (r.adults + (r.children || 0))
+      optCapacity += r.adults + (r.children || 0)
     })
 
     const delta =
@@ -201,16 +226,16 @@ export function resolveSmartRebalancingSuggestion(params: {
 
   const label =
     reason === 'excess_capacity'
-      ? (locale === 'ar'
-          ? `التوزيع الحالي يستوعب ${capacityBefore} فردًا بينما عدد الضيوف ${totalGuests}. يمكنك إعادة التوازن إلى:`
-          : `Current arrangement accommodates ${capacityBefore} guests for party of ${totalGuests}. You can rebalance to:`)
+      ? dict.get(locale, 'experience.roomArrangement.excessCapacityNotice', {
+          capacity: String(capacityBefore),
+          totalGuests: String(totalGuests),
+        })
       : reason === 'incomplete'
-        ? (locale === 'ar'
-            ? `السعة الحالية (${capacityBefore}) غير كافية لجميع الضيوف (${totalGuests}). يمكنك إعادة التوازن إلى:`
-            : `Current capacity (${capacityBefore}) is insufficient for all ${totalGuests} guests. You can rebalance to:`)
-        : (locale === 'ar'
-            ? 'هذا التوزيع غير متاح لهذه الباقة. التوزيع المعتمد البديل:'
-            : 'This combination is not available for this package. Approved alternative:')
+        ? dict.get(locale, 'experience.roomArrangement.insufficientCapacityNotice', {
+            capacity: String(capacityBefore),
+            totalGuests: String(totalGuests),
+          })
+        : dict.get(locale, 'experience.roomArrangement.unsupportedComboNotice')
 
   return {
     option: best,
@@ -418,7 +443,12 @@ function RoomArrangementModalDialog({
     if (!availableOptions || availableOptions.length === 0) return null
     return (
       availableOptions.find((opt) => {
-        const optCounts: Record<OccupancyType, number> = { quad: 0, triple: 0, double: 0, single: 0 }
+        const optCounts: Record<OccupancyType, number> = {
+          quad: 0,
+          triple: 0,
+          double: 0,
+          single: 0,
+        }
         opt.rooms.forEach((r) => {
           optCounts[r.occupancy] = (optCounts[r.occupancy] || 0) + 1
         })
@@ -560,10 +590,7 @@ function RoomArrangementModalDialog({
         setServerValidationState('invalid')
         setIsApplying(false)
         setErrorMessage(
-          dict.get(locale, 'experience.pricingResolutionFailed') ||
-            (locale === 'ar'
-              ? 'تعذر تأكيد التسعير أو التوافر لهذا التوزيع. يرجى المحاولة مرة أخرى أو اختيار توزيع آخر.'
-              : 'Unable to resolve pricing or availability for this arrangement. Please try another combination.'),
+          dict.get(locale, 'experience.pricingResolutionFailed') || 'Failed to update pricing.',
         )
       }
     } catch (err: unknown) {
@@ -575,7 +602,6 @@ function RoomArrangementModalDialog({
     }
   }
 
-
   const occupancyCapacityMap: Record<OccupancyType, number> = {
     quad: 4,
     triple: 3,
@@ -586,24 +612,23 @@ function RoomArrangementModalDialog({
   // Dynamic Status Banner Text Generator
   const renderStatusBannerText = () => {
     if (matchStatus === 'locally_matched') {
-      return locale === 'ar'
-        ? 'مطابق لتوزيع معتمد. اضغط تطبيق لتأكيد السعر.'
-        : 'Matches approved arrangement. Click Apply to confirm pricing.'
+      return dict.get(locale, 'experience.roomArrangement.statusMatched')
     }
     if (matchStatus === 'incomplete') {
       const remaining = totalGuests - allocatedNominalCapacity
-      return locale === 'ar'
-        ? `تم تسكين ${allocatedNominalCapacity} من ${totalGuests} ضيوف · متبقي ${remaining} ضيوف`
-        : `${allocatedNominalCapacity} / ${totalGuests} guests allocated · ${remaining} guests remaining`
+      return dict.get(locale, 'experience.roomArrangement.statusIncomplete', {
+        allocated: String(allocatedNominalCapacity),
+        total: String(totalGuests),
+        remaining: String(remaining),
+      })
     }
     if (matchStatus === 'excess_capacity') {
-      return locale === 'ar'
-        ? `السعة المحددة (${allocatedNominalCapacity}) أكبر من عدد الضيوف (${totalGuests}).`
-        : `Selected capacity (${allocatedNominalCapacity}) exceeds party size (${totalGuests}).`
+      return dict.get(locale, 'experience.roomArrangement.statusExcess', {
+        allocated: String(allocatedNominalCapacity),
+        total: String(totalGuests),
+      })
     }
-    return locale === 'ar'
-      ? 'هذا التوزيع غير متاح لهذه الباقة.'
-      : 'This combination is not available for this package.'
+    return dict.get(locale, 'experience.roomArrangement.statusUnsupported')
   }
 
   return (
@@ -614,11 +639,7 @@ function RoomArrangementModalDialog({
       aria-labelledby="room-arrangement-title"
     >
       {/* Click outside to cancel */}
-      <div
-        className="fixed inset-0"
-        onClick={handleClose}
-        aria-hidden="true"
-      />
+      <div className="fixed inset-0" onClick={handleClose} aria-hidden="true" />
 
       {/* Modal Dialog Card */}
       <div
@@ -632,12 +653,19 @@ function RoomArrangementModalDialog({
               <BedIcon className="w-4 h-4 text-white" />
             </span>
             <div>
-              <h3 id="room-arrangement-title" className="font-hornbill text-base sm:text-lg font-bold text-foreground">
-                {locale === 'ar' ? 'اختر توزيع الغرف' : 'Choose Room Arrangement'}
+              <h3
+                id="room-arrangement-title"
+                className="font-hornbill text-base sm:text-lg font-bold text-foreground"
+              >
+                {dict.get(locale, 'experience.roomArrangement.title')}
               </h3>
               <p className="text-[11px] text-muted-foreground">
-                {totalGuests} {totalGuests === 1 ? (locale === 'ar' ? 'فرد' : 'Guest') : (locale === 'ar' ? 'أفراد' : 'Guests')}
-                {childrenCount > 0 && ` (${adultsCount} ${locale === 'ar' ? 'بالغين' : 'Adults'} + ${childrenCount} ${locale === 'ar' ? 'أطفال' : 'Children'})`}
+                {totalGuests}{' '}
+                {totalGuests === 1
+                  ? dict.get(locale, 'experience.travellerSingular')
+                  : dict.get(locale, 'experience.travellerPlural')}
+                {childrenCount > 0 &&
+                  ` (${adultsCount} ${adultsCount === 1 ? dict.get(locale, 'experience.adultSingular') : dict.get(locale, 'experience.adultPlural')} + ${childrenCount} ${childrenCount === 1 ? dict.get(locale, 'experience.childSingular') : dict.get(locale, 'experience.childPlural')})`}
               </p>
             </div>
           </div>
@@ -667,23 +695,20 @@ function RoomArrangementModalDialog({
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs flex items-center gap-2.5">
               <AlertIcon className="w-5 h-5 shrink-0" />
               <span>
-                {locale === 'ar'
-                  ? 'لا توجد توزيعة غرف متاحة حاليًا تستوعب جميع الضيوف لهذه الباقة.'
-                  : 'No room arrangement is currently available to accommodate all guests for this package.'}
+                {dict.get(locale, 'experience.roomArrangement.noArrangementAvailable')}
               </span>
             </div>
           )}
-
 
           {/* 2. Build Your Arrangement Section */}
           {matchStatus !== 'unavailable' && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground uppercase tracking-wide">
-                  {locale === 'ar' ? 'كوّن توزيع الغرف' : 'Build your arrangement'}
+                <span className="text-xs sm:text-sm font-semibold text-foreground">
+                  {dict.get(locale, 'experience.roomArrangement.buildArrangement')}
                 </span>
-                <span className="text-[11px] text-muted-foreground">
-                  {locale === 'ar' ? 'تحكم في أعداد الغرف' : 'Adjust room counts'}
+                <span className="text-xs text-muted-foreground">
+                  {dict.get(locale, 'experience.roomArrangement.adjustRoomCounts')}
                 </span>
               </div>
 
@@ -692,7 +717,7 @@ function RoomArrangementModalDialog({
                 {supportedOccupancies.map((occ) => {
                   const currentCount = draftCounts[occ] || 0
                   const capacityPerRoom = occupancyCapacityMap[occ]
-                  const occLabel = locale === 'ar' ? ROOM_NAMES_AR[occ] : ROOM_NAMES_EN[occ]
+                  const occLabel = dict.get(locale, `experience.occupancy.${occ}Room`)
 
                   return (
                     <div
@@ -703,10 +728,10 @@ function RoomArrangementModalDialog({
                         <span className="text-xs sm:text-sm font-bold text-foreground truncate">
                           {occLabel}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {locale === 'ar'
-                            ? `السعة: حتى ${capacityPerRoom} أفراد`
-                            : `Capacity: up to ${capacityPerRoom} guests`}
+                        <span className="text-xs text-muted-foreground">
+                          {dict.get(locale, 'experience.roomArrangement.capacityUpTo', {
+                            capacity: String(capacityPerRoom),
+                          })}
                         </span>
                       </div>
 
@@ -716,19 +741,22 @@ function RoomArrangementModalDialog({
                           type="button"
                           onClick={() => handleRoomCountChange(occ, Math.max(0, currentCount - 1))}
                           disabled={currentCount === 0 || isApplying}
-                          aria-label={`${locale === 'ar' ? 'إنقاص عدد' : 'Decrease'} ${occLabel}`}
+                          aria-label={dict.get(locale, 'experience.roomArrangement.decreaseRoomCount', { roomType: occLabel })}
                           className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-white dark:bg-[#171514] text-foreground border border-gray-200 dark:border-secondary/25 hover:bg-gray-100 dark:hover:bg-card active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
                           −
                         </button>
-                        <span className="w-8 text-center font-hornbill text-base font-bold text-foreground px-1" aria-live="polite">
+                        <span
+                          className="w-8 text-center font-hornbill text-base font-bold text-foreground px-1"
+                          aria-live="polite"
+                        >
                           {currentCount}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleRoomCountChange(occ, currentCount + 1)}
                           disabled={isApplying}
-                          aria-label={`${locale === 'ar' ? 'زيادة عدد' : 'Increase'} ${occLabel}`}
+                          aria-label={dict.get(locale, 'experience.roomArrangement.increaseRoomCount', { roomType: occLabel })}
                           className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm bg-white dark:bg-[#171514] text-foreground border border-gray-200 dark:border-secondary/25 hover:bg-gray-100 dark:hover:bg-card active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
                           +
@@ -761,12 +789,13 @@ function RoomArrangementModalDialog({
                   ) : (
                     <AlertIcon className="w-4 h-4 shrink-0" />
                   )}
-                  <span>
-                    {renderStatusBannerText()}
-                  </span>
+                  <span>{renderStatusBannerText()}</span>
                 </div>
                 <span className="font-bold shrink-0">
-                  {draftRoomCount} {draftRoomCount === 1 ? (locale === 'ar' ? 'غرفة' : 'Room') : (locale === 'ar' ? 'غرف' : 'Rooms')}
+                  {draftRoomCount}{' '}
+                  {draftRoomCount === 1
+                    ? dict.get(locale, 'experience.roomSingular')
+                    : dict.get(locale, 'experience.roomPlural')}
                 </span>
               </div>
 
@@ -776,10 +805,15 @@ function RoomArrangementModalDialog({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 text-xs font-bold">
                       <SparklesIcon className="w-4 h-4 shrink-0" />
-                      <span>{locale === 'ar' ? 'اقتراح إعادة التوازن' : 'Rebalancing Suggestion'}</span>
+                      <span>
+                        {dict.get(locale, 'experience.roomArrangement.rebalancingSuggestion')}
+                      </span>
                     </div>
                     <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-400">
-                      {rebalancingSuggestion.option.roomCount} {rebalancingSuggestion.option.roomCount === 1 ? (locale === 'ar' ? 'غرفة' : 'Room') : (locale === 'ar' ? 'غرف' : 'Rooms')}
+                      {rebalancingSuggestion.option.roomCount}{' '}
+                      {rebalancingSuggestion.option.roomCount === 1
+                        ? dict.get(locale, 'experience.roomSingular')
+                        : dict.get(locale, 'experience.roomPlural')}
                     </span>
                   </div>
 
@@ -798,7 +832,7 @@ function RoomArrangementModalDialog({
                       disabled={isApplying}
                       className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white text-xs font-bold transition-all shrink-0 cursor-pointer self-start sm:self-auto shadow-xs disabled:opacity-50"
                     >
-                      {locale === 'ar' ? 'تطبيق إعادة التوازن' : 'Apply Rebalancing'}
+                      {dict.get(locale, 'experience.roomArrangement.applyRebalancing')}
                     </button>
                   </div>
                 </div>
@@ -816,8 +850,8 @@ function RoomArrangementModalDialog({
               >
                 <span>
                   {isDetailsOpen
-                    ? (locale === 'ar' ? 'إخفاء تفاصيل الغرف' : 'Hide room details')
-                    : (locale === 'ar' ? 'عرض تفاصيل الغرف' : 'View room details')}
+                    ? dict.get(locale, 'experience.roomArrangement.hideRoomDetails')
+                    : dict.get(locale, 'experience.roomArrangement.viewRoomDetails')}
                 </span>
                 <ChevronDownIcon
                   className={`w-3.5 h-3.5 transition-transform duration-200 ${isDetailsOpen ? 'rotate-180' : ''}`}
@@ -827,18 +861,23 @@ function RoomArrangementModalDialog({
               {isDetailsOpen && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 animate-in fade-in duration-150">
                   {candidateOption.rooms.map((rm) => {
-                    const occLabel = locale === 'ar' ? ROOM_NAMES_AR[rm.occupancy] : ROOM_NAMES_EN[rm.occupancy]
+                    const occLabel = dict.get(locale, `experience.occupancy.${rm.occupancy}Room`)
                     return (
                       <div
                         key={rm.roomIndex}
                         className="p-2.5 rounded-xl bg-gray-50 dark:bg-card/40 border border-gray-200/60 dark:border-secondary/15 text-xs flex flex-col gap-0.5"
                       >
                         <span className="font-bold text-[#1a1e4e] dark:text-secondary text-[11px]">
-                          {locale === 'ar' ? `الغرفة ${rm.roomIndex}` : `Room ${rm.roomIndex}`}
+                          {dict.get(locale, 'experience.roomArrangement.roomNumber', { number: String(rm.roomIndex) })}
                         </span>
                         <span className="text-foreground font-medium text-[11px]">
-                          {rm.adults} {rm.adults === 1 ? (locale === 'ar' ? 'بالغ' : 'Adult') : (locale === 'ar' ? 'بالغين' : 'Adults')} · {occLabel}
-                          {rm.children > 0 && ` + ${rm.children} ${locale === 'ar' ? 'أطفال' : 'Children'}`}
+                          {rm.adults}{' '}
+                          {rm.adults === 1
+                            ? dict.get(locale, 'experience.adultSingular')
+                            : dict.get(locale, 'experience.adultPlural')}{' '}
+                          · {occLabel}
+                          {rm.children > 0 &&
+                            ` + ${rm.children} ${rm.children === 1 ? dict.get(locale, 'experience.childSingular') : dict.get(locale, 'experience.childPlural')}`}
                         </span>
                       </div>
                     )
@@ -857,7 +896,7 @@ function RoomArrangementModalDialog({
             disabled={isApplying}
             className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-secondary/30 text-xs font-semibold text-foreground hover:bg-gray-100 dark:hover:bg-card transition-colors cursor-pointer disabled:opacity-50"
           >
-            {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+            {dict.get(locale, 'experience.cancel')}
           </button>
           <button
             type="button"
@@ -874,8 +913,8 @@ function RoomArrangementModalDialog({
             )}
             <span>
               {isApplying
-                ? (locale === 'ar' ? 'جاري التحقق والتسعير...' : 'Verifying & Pricing...')
-                : (locale === 'ar' ? 'تطبيق التوزيع' : 'Apply Arrangement')}
+                ? dict.get(locale, 'experience.roomArrangement.verifyingPricing')
+                : dict.get(locale, 'experience.roomArrangement.applyArrangement')}
             </span>
           </button>
         </div>

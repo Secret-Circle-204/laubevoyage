@@ -104,7 +104,7 @@ export function ExperienceCard({
                   <path d="M12 3v18M3 12h18" strokeDasharray="2 2" />
                   <polygon points="12,7 14,12 12,17 10,12" fill="currentColor" />
                 </svg>
-                <span className="text-[10px] uppercase font-semibold tracking-widest text-neutral-400">
+                <span className="text-xs font-semibold text-neutral-400">
                   L&apos;Aube Voyage
                 </span>
               </div>
@@ -112,7 +112,7 @@ export function ExperienceCard({
 
             {/* Top Floating Badge (Crown Category Pill) */}
             <div className="absolute top-3.5 left-3.5 z-10">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white text-[10px] font-bold tracking-wider uppercase shadow-md">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-semibold shadow-md">
                 <svg
                   className="w-3 h-3 text-accent shrink-0"
                   viewBox="0 0 24 24"
@@ -153,11 +153,11 @@ export function ExperienceCard({
                       d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
                     />
                   </svg>
-                  <div className="truncate text-neutral-200 tracking-wide font-light flex items-center gap-1.5">
+                  <div className="truncate text-neutral-200 font-normal flex items-center gap-1.5">
                     {experience.routeCities.map((city, idx) => (
                       <React.Fragment key={idx}>
                         {idx > 0 && (
-                          <span className="text-accent/90 text-[11px] font-bold inline-block rtl:rotate-180 select-none">
+                          <span className="text-accent/90 text-xs font-bold inline-block rtl:rotate-180 select-none">
                             &rarr;
                           </span>
                         )}
@@ -188,7 +188,7 @@ export function ExperienceCard({
                       d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"
                     />
                   </svg>
-                  <span className="truncate text-neutral-200 tracking-wide font-light">
+                  <span className="truncate text-neutral-200 font-normal">
                     {experience.location}
                   </span>
                 </div>
@@ -197,7 +197,7 @@ export function ExperienceCard({
               )}
 
               {experience.durationDays > 0 && (
-                <span className="shrink-0 text-neutral-200 font-medium tracking-wide">
+                <span className="shrink-0 text-neutral-200 font-medium">
                   {experience.durationDays} {dayUnit}
                 </span>
               )}
@@ -316,7 +316,7 @@ export function ExperienceCard({
             <div className="relative z-10 pt-4 border-t border-white/10 flex items-end justify-between gap-4 mt-auto">
               {/* Price Block */}
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase font-semibold text-neutral-400 tracking-wider">
+                <span className="text-xs font-semibold text-neutral-400">
                   {fromPerAdult || 'From'}
                 </span>
                 <div className="flex items-baseline gap-1 mt-0.5">

@@ -1,0 +1,104 @@
+/* ==========================================================================
+   RoomRatesEditor.css — Operational Matrix Table for Room Rates
+   Balanced, medium scale enterprise UI
+   ========================================================================== */
+
+.ae-rates-matrix-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.ae-rates-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #161c28;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.ae-rates-matrix-table th {
+  background: #141926;
+  color: #94a3b8;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ae-rates-matrix-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
+}
+
+.ae-rates-matrix-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ae-rate-occupancy-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.ae-rate-occupancy-caption {
+  font-size: 11.5px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+.ae-rate-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+
+.ae-rate-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ae-rate-number-input {
+  width: 100px;
+  background: #111622;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 6px 10px;
+  box-sizing: border-box;
+  text-align: right;
+  transition: border-color 0.15s ease;
+}
+
+.ae-rate-number-input:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.ae-rate-number-input:disabled {
+  opacity: 0.35;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.06);
+  cursor: not-allowed;
+}
+
+.ae-rate-currency-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.ae-rate-row--disabled {
+  opacity: 0.5;
+}

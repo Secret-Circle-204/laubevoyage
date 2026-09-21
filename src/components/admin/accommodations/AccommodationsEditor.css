@@ -1,0 +1,582 @@
+/* ==========================================================================
+   AccommodationsEditor.css — Root Timeline & Editorial Operations Layout
+   Balanced, medium scale enterprise UI (neither tiny nor oversized)
+   ========================================================================== */
+
+.ae-root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  margin: 10px 0;
+  box-sizing: border-box;
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* 1. Main Header                                                            */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+.ae-main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ae-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ae-header-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f8fafc;
+  flex-shrink: 0;
+}
+
+.ae-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ae-main-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.ae-main-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.ae-btn-primary-add-stay {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 15px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.ae-btn-primary-add-stay:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.ae-btn-primary-add-stay:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* 2. Journey Destinations Strip                                             */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+.ae-destinations-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  background: #141926;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.ae-destinations-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.ae-destinations-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ae-destinations-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.ae-destinations-sub {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ae-destinations-cards {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ae-dest-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 12px;
+}
+
+.ae-dest-pin {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+}
+
+.ae-dest-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.ae-dest-city {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.ae-dest-country {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.ae-destinations-count-pill {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cbd5e1;
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 10px;
+  border-radius: 16px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* 3. Stays List (Connected via Timeline Rail)                               */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+.ae-stays-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 2px;
+}
+
+/* Operational Empty State Bar */
+.ae-empty-stays {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 12px 16px;
+  background: #141926;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.ae-empty-stays-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ae-empty-stays-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.ae-empty-stays-desc {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ae-stay-timeline-row {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+
+/* Timeline Rail Column */
+.ae-timeline-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 48px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.ae-timeline-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.ae-timeline-number {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.ae-timeline-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.ae-timeline-node-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.ae-timeline-circle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #64748b;
+  background: #111622;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.ae-timeline-line {
+  position: absolute;
+  top: 10px;
+  bottom: -20px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  z-index: 1;
+}
+
+/* Main Stay Content Panel */
+.ae-stay-content-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+.ae-stay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ae-stay-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ae-stay-city-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ae-stay-dest-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ae-stay-dest-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding: 3px 26px 3px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.ae-stay-dest-select:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.ae-stay-dest-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.ae-stay-dest-select option {
+  background: #111722;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 10px;
+}
+
+.ae-stay-dest-caret {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: #94a3b8;
+}
+
+.ae-stay-city-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.ae-stay-edit-pencil-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.ae-stay-edit-pencil-btn:hover {
+  color: #ffffff;
+}
+
+.ae-stay-nights-caption {
+  font-size: 12.5px;
+  color: #cbd5e1;
+  cursor: pointer;
+  display: inline-block;
+  transition: color 0.15s ease;
+}
+
+.ae-stay-nights-caption:hover {
+  color: #ffffff;
+}
+
+.ae-stay-nights-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ae-stay-nights-input {
+  width: 50px;
+  background: #1a2233;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 13px;
+  padding: 3px 6px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.ae-stay-nights-text {
+  font-size: 12.5px;
+  color: #cbd5e1;
+}
+
+.ae-stay-nights-done-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.ae-stay-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ae-stage-btn {
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #94a3b8;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ae-stage-btn:hover:not(:disabled) {
+  background: #263147;
+  color: #ffffff;
+}
+
+.ae-stage-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ae-stage-btn--danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+}
+
+/* Inner Accommodation Options Card */
+.ae-options-card {
+  background: #141926;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.ae-options-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ae-options-card-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ae-options-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ae-options-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.ae-options-count-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.ae-options-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ae-btn-add-option {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ae-btn-add-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.ae-options-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Responsive Breakpoints                                                    */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .ae-timeline-rail {
+    display: none;
+  }
+
+  .ae-stay-timeline-row {
+    gap: 0;
+  }
+
+  .ae-options-card {
+    padding: 10px 12px;
+  }
+
+  .ae-destinations-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ae-empty-stays {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

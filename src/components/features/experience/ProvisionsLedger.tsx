@@ -57,7 +57,7 @@ export function ProvisionsLedger({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {includedServices && includedServices.length > 0 && (
               <div className="p-7 rounded-2xl border border-border/80 bg-card shadow-xs">
-                <h3 className="text-sm font-bold uppercase mb-4 text-secondary flex items-center gap-2">
+                <h3 className="text-base font-bold mb-4 text-secondary flex items-center gap-2">
                   <CheckIcon className="w-4 h-4 text-secondary" />
                   <span>{dict.get(locale, 'experience.whatsIncluded')}</span>
                 </h3>
@@ -74,7 +74,7 @@ export function ProvisionsLedger({
 
             {excludedServices && excludedServices.length > 0 && (
               <div className="p-7 rounded-2xl border border-border/80 bg-card shadow-xs">
-                <h3 className="text-sm font-bold uppercase mb-4 text-muted-foreground flex items-center gap-2">
+                <h3 className="text-base font-bold mb-4 text-muted-foreground flex items-center gap-2">
                   <CrossIcon className="w-4 h-4 text-muted-foreground" />
                   <span>{dict.get(locale, 'experience.whatsExcluded')}</span>
                 </h3>

@@ -5,6 +5,7 @@ export {
   AccommodationStayCard,
   AccommodationOptionCard,
   AccommodationOptionDrawer,
+  AccommodationPropertyPicker,
   RoomRatesEditor,
   type CatalogAccommodation,
   type OccupancyType,
@@ -19,5 +20,7 @@ export {
   OCCUPANCY_LABELS,
   getPropertyId,
   resolvePropertyName,
+  resolvePropertyLocation,
+  resolvePropertyTypeAndRating,
   cloneRates,
 } from './accommodations'

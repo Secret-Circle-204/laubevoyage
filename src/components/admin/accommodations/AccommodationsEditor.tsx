@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { useField, useModal, useDrawerSlug, useForm } from '@payloadcms/ui'
+import { useField, useModal, useDrawerSlug, useForm, useFormFields, Button, Banner } from '@payloadcms/ui'
 import type { ArrayFieldClientComponent } from 'payload'
 import '../AccommodationsEditor.css'
 import type {
@@ -12,17 +12,55 @@ import type {
   OccupancyType,
   PricingUnit,
 } from './types'
-import {
-  cloneRates,
-  getPropertyId,
-} from './types'
+import { cloneRates, getPropertyId } from './types'
 import { AccommodationStayCard } from './AccommodationStayCard'
 import { AccommodationOptionDrawer } from './AccommodationOptionDrawer'
+import {
+  getAccommodationsForAdminAction,
+  type CatalogAccommodationDTO,
+  type DestinationStopOption,
+} from '@/application/actions/accommodation-admin-actions'
 
 export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
   const { path, readOnly } = props
   const { value, setValue, errorMessage } = useField<AccommodationStayItem[]>({ path })
   const { dispatchFields, getFields, getDataByPath } = useForm()
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Reactive Destination Context (Payload Form State SSOT)
+  // ───────────────────────────────────────────────────────────────────────────
+  const journeyFormFields = useFormFields(([fields]) => ({
+    city: fields.city?.value,
+    destinations: fields.destinations?.value,
+  }))
+
+  const journeyCityIds = useMemo(() => {
+    const ids: number[] = []
+    const cVal = journeyFormFields?.city
+    if (typeof cVal === 'number' && !isNaN(cVal) && cVal > 0) {
+      ids.push(cVal)
+    } else if (typeof cVal === 'string' && !isNaN(Number(cVal)) && Number(cVal) > 0) {
+      ids.push(Number(cVal))
+    } else if (typeof cVal === 'object' && cVal !== null && 'id' in cVal) {
+      const numId = Number((cVal as { id: unknown }).id)
+      if (!isNaN(numId) && numId > 0) ids.push(numId)
+    }
+
+    const dVal = journeyFormFields?.destinations
+    if (Array.isArray(dVal)) {
+      for (const d of dVal) {
+        if (typeof d === 'number' && !isNaN(d) && d > 0) {
+          ids.push(d)
+        } else if (typeof d === 'string' && !isNaN(Number(d)) && Number(d) > 0) {
+          ids.push(Number(d))
+        } else if (typeof d === 'object' && d !== null && 'id' in d) {
+          const numId = Number((d as { id: unknown }).id)
+          if (!isNaN(numId) && numId > 0) ids.push(numId)
+        }
+      }
+    }
+    return Array.from(new Set(ids))
+  }, [journeyFormFields?.city, journeyFormFields?.destinations])
 
   // Prune any stale flattened child field paths (e.g. accommodations.0.options.0.roomRates.0.*)
   // that Payload's form builder may have initialized. AccommodationsEditor is the sole authoritative
@@ -52,9 +90,10 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
   const drawerSlug = useDrawerSlug('stay-accommodation-option-drawer')
   const { openModal, closeModal } = useModal()
 
-  // Catalog properties state (fetched from Payload's /api/accommodations)
+  // Catalog properties & destination stops state
   const [catalog, setCatalog] = useState<CatalogAccommodation[]>([])
-  const [catalogLoading, setCatalogLoading] = useState(true)
+  const [destinationStops, setDestinationStops] = useState<DestinationStopOption[]>([])
+  const [lastFetchedKey, setLastFetchedKey] = useState<string>('')
 
   // Side Drawer state
   const [activeStayIndex, setActiveStayIndex] = useState<number | null>(null)
@@ -67,30 +106,6 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
     roomRates: cloneRates(),
   })
   const [drawerError, setDrawerError] = useState<string | null>(null)
-
-  // Fetch catalog accommodations on mount
-  useEffect(() => {
-    let isMounted = true
-    fetch('/api/accommodations?limit=300&depth=0')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .then((data) => {
-        if (isMounted && Array.isArray(data?.docs)) {
-          setCatalog(data.docs)
-          setCatalogLoading(false)
-        }
-      })
-      .catch((err) => {
-        console.warn('[AccommodationsEditor] Catalog fetch error:', err)
-        if (isMounted) setCatalogLoading(false)
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
 
   // Resolve stays: use `value` if already set as array; fallback to `getDataByPath(path)` on initial load
   const rawStays = useMemo(() => {
@@ -119,13 +134,13 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
         }))
       } else if (stay.property || stay.roomRates) {
         // Transitional Grace: Existing unmigrated single-hotel stay record
-        // Never inject synthetic prefixed IDs (e.g. opt_...) — leave undefined for Payload generation
         options = [
           {
-            property: stay.property,
+            property: stay.property as
+              number | { id: number | string; name?: string; type?: string; rating?: number },
             roomCategory: stay.roomCategory || '',
-            boardBasis: stay.boardBasis || 'bed_and_breakfast',
-            pricingUnit: stay.pricingUnit || 'per_stay',
+            boardBasis: stay.boardBasis as BoardBasis,
+            pricingUnit: stay.pricingUnit as PricingUnit,
             roomRates: cloneRates(stay.roomRates),
           },
         ]
@@ -138,7 +153,63 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
         options,
       }
     })
-  }, [value])
+  }, [rawStays])
+
+  // Extract all property IDs currently assigned in any stay to prevent missing metadata
+  const assignedPropertyIds = useMemo(() => {
+    const ids = new Set<number>()
+    for (const stay of normalizedStays) {
+      for (const opt of stay.options) {
+        const propId = getPropertyId(opt.property)
+        if (propId > 0) ids.add(propId)
+      }
+    }
+    return Array.from(ids)
+  }, [normalizedStays])
+
+  const currentQueryKey = useMemo(
+    () => `${journeyCityIds.join(',')}:${assignedPropertyIds.join(',')}`,
+    [journeyCityIds, assignedPropertyIds],
+  )
+  const catalogLoading = lastFetchedKey !== currentQueryKey
+
+  // Fetch destination-filtered catalog accommodations
+  useEffect(() => {
+    let isMounted = true
+
+    getAccommodationsForAdminAction({
+      journeyCityIds,
+      assignedPropertyIds,
+    })
+      .then((res) => {
+        if (!isMounted) return
+        if (res.success) {
+          // Combine main docs and assigned docs into unified catalog (no duplicates)
+          const map = new Map<number, CatalogAccommodation>()
+          for (const doc of res.docs) {
+            map.set(doc.id, doc)
+          }
+          for (const doc of res.assignedDocs) {
+            if (!map.has(doc.id)) {
+              map.set(doc.id, doc)
+            }
+          }
+          setCatalog(Array.from(map.values()))
+          setDestinationStops(res.destinationStops)
+        } else {
+          console.warn('[AccommodationsEditor] Failed to fetch accommodations:', res.message)
+        }
+        setLastFetchedKey(currentQueryKey)
+      })
+      .catch((err) => {
+        console.warn('[AccommodationsEditor] Action error:', err)
+        if (isMounted) setLastFetchedKey(currentQueryKey)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [journeyCityIds, assignedPropertyIds, currentQueryKey])
 
   // ───────────────────────────────────────────────────────────────────────────
   // Stay Card Actions
@@ -146,7 +217,16 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
 
   const handleAddStay = useCallback(() => {
     if (readOnly) return
-    const defaultProp = catalog[0]?.id || 0
+
+    // Sequentially assign destination based on existing stay count
+    const destCount = destinationStops.length || 1
+    const destIdx = normalizedStays.length % destCount
+    const targetStop = destinationStops[destIdx]
+    const matchingHotel = targetStop
+      ? catalog.find((c) => c.cityId === targetStop.id)
+      : null
+    const defaultProp = matchingHotel?.id || catalog[0]?.id || 0
+
     const nextOrder = normalizedStays.length + 1
     const newStay: AccommodationStayItem = {
       order: nextOrder,
@@ -157,12 +237,46 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
           roomCategory: '',
           boardBasis: 'bed_and_breakfast',
           pricingUnit: 'per_stay',
+          isDefault: true,
           roomRates: cloneRates(),
         },
       ],
     }
     updateAccommodations([...normalizedStays, newStay])
-  }, [catalog, normalizedStays, readOnly, updateAccommodations])
+  }, [catalog, destinationStops, normalizedStays, readOnly, updateAccommodations])
+
+  const handleStayDestinationChange = useCallback(
+    (stayIdx: number, newCityId: number) => {
+      if (readOnly) return
+      const stay = normalizedStays[stayIdx]
+      if (!stay) return
+
+      // Find first catalog hotel in the selected destination city
+      const newHotel = catalog.find((c) => c.cityId === newCityId)
+      if (!newHotel) {
+        console.warn(`[AccommodationsEditor] No hotel found for cityId ${newCityId}`)
+        return
+      }
+
+      // Replace stay options with default hotel in the new destination
+      const newOptions: AccommodationOptionItem[] = [
+        {
+          property: newHotel.id,
+          roomCategory: '',
+          boardBasis: 'bed_and_breakfast',
+          pricingUnit: 'per_stay',
+          isDefault: true,
+          roomRates: cloneRates(),
+        },
+      ]
+
+      const updated = normalizedStays.map((s, idx) =>
+        idx === stayIdx ? { ...s, options: newOptions } : s,
+      )
+      updateAccommodations(updated)
+    },
+    [catalog, normalizedStays, readOnly, updateAccommodations],
+  )
 
   const handleRemoveStay = useCallback(
     (stayIdx: number) => {
@@ -215,11 +329,24 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
       setActiveStayIndex(stayIdx)
       setActiveOptionIndex(null)
 
-      // Find first catalog hotel not already in this stay
       const stay = normalizedStays[stayIdx]
       const existingPropIds = new Set(stay.options.map((o) => getPropertyId(o.property)))
-      const availableHotel = catalog.find((c) => !existingPropIds.has(c.id))
-      const chosenPropId = availableHotel?.id || catalog[0]?.id || 0
+
+      // Resolve destination city for this stay
+      const defaultOption = stay.options.find((o) => o.isDefault) || stay.options[0]
+      const currentPropId = defaultOption ? getPropertyId(defaultOption.property) : 0
+      const currentHotel = catalog.find((c) => c.id === currentPropId)
+      const stayCityId =
+        currentHotel?.cityId ||
+        destinationStops[stayIdx % (destinationStops.length || 1)]?.id
+
+      // Prefer available hotel in the same destination city
+      const sameCityAvailable = catalog.find(
+        (c) => c.cityId === stayCityId && !existingPropIds.has(c.id),
+      )
+      const anyAvailable = catalog.find((c) => !existingPropIds.has(c.id))
+      const chosenPropId =
+        sameCityAvailable?.id || anyAvailable?.id || currentPropId || catalog[0]?.id || 0
 
       setDraftOption({
         property: chosenPropId,
@@ -232,7 +359,7 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
       setDrawerError(null)
       openModal(drawerSlug)
     },
-    [catalog, drawerSlug, normalizedStays, openModal, readOnly],
+    [catalog, destinationStops, drawerSlug, normalizedStays, openModal, readOnly],
   )
 
   const handleOpenEditOption = useCallback(
@@ -288,10 +415,17 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
   // Drawer Editing & Save
   // ───────────────────────────────────────────────────────────────────────────
 
-  const handlePropertyChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedId = Number(e.target.value)
+  const handlePropertySelect = useCallback(
+    (selectedId: number, selectedDTO?: CatalogAccommodationDTO) => {
       setDraftOption((prev) => ({ ...prev, property: selectedId }))
+
+      // Retain selected property DTO locally so the active stay card immediately has its metadata
+      if (selectedDTO) {
+        setCatalog((prev) => {
+          if (prev.some((c) => c.id === selectedId)) return prev
+          return [...prev, selectedDTO]
+        })
+      }
 
       // Duplicate Check within current Stay
       if (activeStayIndex !== null) {
@@ -313,7 +447,7 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
   )
 
   const handleRateChange = useCallback(
-    (occ: OccupancyType, field: 'rateEGP' | 'enabled', val: any) => {
+    (occ: OccupancyType, field: 'rateEGP' | 'enabled', val: number | boolean) => {
       setDraftOption((prev) => {
         const updatedRates = prev.roomRates.map((r) => {
           if (r.occupancy !== occ) return r
@@ -395,80 +529,176 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
     updateAccommodations,
   ])
 
+  // Compute existing property IDs in the active stay (excluding the one currently being edited)
+  const currentStayPropertyIds = useMemo(() => {
+    if (activeStayIndex === null || !normalizedStays[activeStayIndex]) return []
+    const stay = normalizedStays[activeStayIndex]
+    return stay.options
+      .filter((_, idx) => activeOptionIndex === null || idx !== activeOptionIndex)
+      .map((opt) => getPropertyId(opt.property))
+  }, [activeOptionIndex, activeStayIndex, normalizedStays])
+
   // ───────────────────────────────────────────────────────────────────────────
   // Render
   // ───────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="ae-container">
-      {/* Editor Section Header */}
-      <div className="ae-header">
-        <div className="ae-title-block">
-          <h3>
+    <div className="ae-root">
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* 1. Main Header                                                    */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      <div className="ae-main-header">
+        <div className="ae-header-left">
+          <div className="ae-header-icon-wrap">
             <svg
-              width="18"
-              height="18"
+              width="22"
+              height="22"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="1.75"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+              <path d="M6 12H4a2 2 0 0 0-2 2v8h4" />
+              <path d="M18 9h2a2 2 0 0 1 2 2v11h-4" />
+              <path d="M10 6h4" />
+              <path d="M10 10h4" />
+              <path d="M10 14h4" />
+              <path d="M10 18h4" />
             </svg>
-            Package Accommodations (Lodging Stages &amp; Hotel Options)
-          </h3>
-          <p>
-            Configure sequential itinerary lodging stages (Stays). Each Stay represents a duration
-            in nights and holds one or more alternative hotel options for travelers to choose from.
-          </p>
+          </div>
+          <div className="ae-header-text">
+            <h2 className="ae-main-title">Accommodations</h2>
+            <p className="ae-main-desc">
+              Manage the lodging stages for this journey. Each stage represents a stop in a destination
+              with one or more accommodation options.
+            </p>
+          </div>
         </div>
+
         {!readOnly && (
           <button
             type="button"
-            className="ae-add-stay-btn"
+            className="ae-btn-primary-add-stay"
             onClick={handleAddStay}
             disabled={catalogLoading}
           >
             <svg
-              width="16"
-              height="16"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
             </svg>
-            Add Lodging Stay
+            <span>Add Stay</span>
           </button>
         )}
       </div>
 
-      {/* Error / Validation display */}
-      {errorMessage && (
-        <div className="ae-alert ae-alert--error" style={{ marginBottom: '1rem' }}>
-          {errorMessage}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* 2. Journey Destinations Strip                                      */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {destinationStops.length > 0 ? (
+        <div className="ae-destinations-bar">
+          <div className="ae-destinations-left">
+            <div className="ae-destinations-info">
+              <span className="ae-destinations-title">Journey Destinations</span>
+              <span className="ae-destinations-sub">These are the cities included in this package.</span>
+            </div>
+
+            <div className="ae-destinations-cards">
+              {destinationStops.map((stop) => (
+                <div key={stop.id} className="ae-dest-card">
+                  <div className="ae-dest-pin">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <div className="ae-dest-details">
+                    <span className="ae-dest-city">{stop.name}</span>
+                    {stop.countryName && <span className="ae-dest-country">{stop.countryName}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="ae-destinations-count-pill">
+            {destinationStops.length} {destinationStops.length === 1 ? 'destination' : 'destinations'}
+          </div>
         </div>
+      ) : (
+        <Banner type="info">
+          Please select an <strong>Origin City</strong> and <strong>Destinations</strong> in the
+          Experience sidebar to configure accommodations for this journey.
+        </Banner>
       )}
 
-      {/* Stays List */}
-      <div className="ae-stays-list">
+      {/* Warning if journey destinations selected but zero catalog accommodations found */}
+      {journeyCityIds.length > 0 && !catalogLoading && catalog.length === 0 && (
+        <Banner type="default">
+          No accommodations in catalog are currently linked to this journey&apos;s destinations (
+          {destinationStops.map((d) => d.name).join(' · ')}). Please create or link accommodations
+          for these destinations in the Accommodations catalog.
+        </Banner>
+      )}
+
+      {/* Error / Validation display */}
+      {errorMessage && <Banner type="error">{errorMessage}</Banner>}
+
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* 3. Stays List (Connected via Timeline Rail)                       */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      <div className="ae-stays-timeline-list">
         {normalizedStays.length === 0 ? (
-          <div className="ae-empty-state">
-            <p>No accommodation stays configured yet.</p>
+          <div className="ae-empty-stays">
+            <div className="ae-empty-stays-info">
+              <span className="ae-empty-stays-title">
+                No accommodation stay stages configured for this itinerary yet.
+              </span>
+              <span className="ae-empty-stays-desc">
+                Configure sequential lodging stops for travelers across the journey destinations.
+              </span>
+            </div>
             {!readOnly && (
               <button
                 type="button"
-                className="ae-add-stay-btn"
+                className="ae-btn-primary-add-stay"
                 onClick={handleAddStay}
-                style={{ marginTop: '0.75rem' }}
                 disabled={catalogLoading}
               >
-                + Add First Stay
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+                <span>Add First Stay</span>
               </button>
             )}
           </div>
@@ -480,24 +710,26 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
               stayIndex={stayIdx}
               totalStays={normalizedStays.length}
               catalog={catalog}
+              destinationStops={destinationStops}
               readOnly={readOnly}
+              onDestinationChange={handleStayDestinationChange}
               onNightsChange={handleNightsChange}
               onMoveStay={handleMoveStay}
               onRemoveStay={handleRemoveStay}
               onOpenAddOption={handleOpenAddOption}
               onOpenEditOption={handleOpenEditOption}
               onRemoveOption={handleRemoveOption}
-              onSetDefaultOption={(stayIdx, optIdx, e) => {
+              onSetDefaultOption={(sIdx, optIdx, e) => {
                 e.stopPropagation()
                 if (readOnly) return
-                const currentStay = normalizedStays[stayIdx]
+                const currentStay = normalizedStays[sIdx]
                 if (!currentStay) return
                 const newOptions = currentStay.options.map((opt, idx) => ({
                   ...opt,
                   isDefault: idx === optIdx,
                 }))
                 const newStays = normalizedStays.map((s, idx) =>
-                  idx === stayIdx ? { ...s, options: newOptions } : s,
+                  idx === sIdx ? { ...s, options: newOptions } : s,
                 )
                 updateAccommodations(newStays)
               }}
@@ -506,16 +738,21 @@ export const AccommodationsEditor: ArrayFieldClientComponent = (props) => {
         )}
       </div>
 
-      {/* Side Drawer */}
+      {/* ───────────────────────────────────────────────────────────────── */}
+      {/* 4. Side Drawer Workspace                                          */}
+      {/* ───────────────────────────────────────────────────────────────── */}
       <AccommodationOptionDrawer
         drawerSlug={drawerSlug}
         activeStayIndex={activeStayIndex}
         activeOptionIndex={activeOptionIndex}
         draftOption={draftOption}
         catalog={catalog}
+        journeyCityIds={journeyCityIds}
+        destinationStops={destinationStops}
+        stayExistingPropertyIds={currentStayPropertyIds}
         readOnly={readOnly}
         drawerError={drawerError}
-        onPropertyChange={handlePropertyChange}
+        onPropertySelect={handlePropertySelect}
         onDefaultChange={(val) => setDraftOption((prev) => ({ ...prev, isDefault: val }))}
         onRoomCategoryChange={(val) => setDraftOption((prev) => ({ ...prev, roomCategory: val }))}
         onBoardBasisChange={(val) => setDraftOption((prev) => ({ ...prev, boardBasis: val }))}

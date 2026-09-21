@@ -283,9 +283,7 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
               : null,
           )
           setPricingError(
-            locale === 'ar'
-              ? 'توزيع الغرف المختار سابقاً غير مدعوم في خيار الإقامة هذا. يرجى تعديل الغرف أو اختيار فندق آخر.'
-              : 'Your previously selected room arrangement is not supported by this accommodation option. Please adjust your rooms or choose another hotel.',
+            dict.get(locale, 'experience.accommodationOptionMismatch')
           )
           return
         }
@@ -412,14 +410,10 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
   const handleProceedToCheckout = () => {
     if (!accommodationValidation.complete && accommodationValidation.missingStayOrder) {
       const stayNum = accommodationValidation.missingStayOrder
-      const msg =
-        locale === 'ar'
-          ? `يرجى اختيار أحد فنادق المرحلة ${stayNum} قبل المتابعة.`
-          : `Please select an accommodation option for Stay #${stayNum} before proceeding.`
       addToast({
         type: 'error',
-        title: locale === 'ar' ? 'الاختيار مطلوب' : 'Accommodation Selection Required',
-        description: msg,
+        title: dict.get(locale, 'experience.toast.selectionRequiredTitle'),
+        description: dict.get(locale, 'experience.toast.selectionRequiredMsg', { order: String(stayNum) }),
       })
       const el = document.getElementById(`stay-segment-${stayNum}`)
       el?.scrollIntoView({ behavior: 'smooth' })
@@ -548,22 +542,22 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
           locale={locale}
         />
 
+        {/* 2. JOURNEY SUMMARY (FULL CONTAINER WIDTH) */}
+        <JourneySummary
+          formattedDuration={data.formattedDuration}
+          location={data.location}
+          type={data.type}
+          destinations={data.destinations}
+          descriptionHtml={data.descriptionHtml}
+          backgroundImage={data.images?.[0]}
+          locale={locale}
+        />
+
         {/* 2-Column Master Layout: Dossier Chronicle (Left) + Journey Control Instrument (Right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12">
+        <div className="mt-8 sm:mt-10 lg:mt-14 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12">
           
           {/* LEFT COLUMN: THE EDITORIAL CHRONICLE (7 Columns) */}
           <div className="lg:col-span-7 flex flex-col gap-12">
-            {/* 2. JOURNEY SUMMARY */}
-            <JourneySummary
-              formattedDuration={data.formattedDuration}
-              location={data.location}
-              type={data.type}
-              destinations={data.destinations}
-              descriptionHtml={data.descriptionHtml}
-              backgroundImage={data.images?.[0]}
-              locale={locale}
-            />
-
             {/* 3. ITINERARY CHRONICLE */}
             <JourneyItinerary
               itinerary={data.itinerary}

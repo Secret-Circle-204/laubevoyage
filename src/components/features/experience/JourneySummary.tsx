@@ -174,61 +174,60 @@ export function JourneySummary({
   const isRtl = locale === 'ar'
   const validDestinations = Array.isArray(destinations) ? destinations.filter(isValidStop) : []
   const hasRoute = validDestinations.length > 1
+  const isTwoStops = validDestinations.length === 2
   const hasSingleStop = validDestinations.length === 1
 
   return (
-    <section className="animate-editorial-reveal stagger-2">
-      {/* MASTER LUXURY CARD */}
-      <div className="relative overflow-hidden rounded-3xl border border-primary/15 dark:border-accent/40 bg-gradient-to-br from-white via-[#f8f9fc] to-[#eef1f9] dark:from-[#1D1815] dark:via-[#1A1614] dark:to-[#171514] text-foreground shadow-lg dark:shadow-2xl p-6 sm:p-8 flex flex-col gap-6 transition-colors duration-300">
-        {/* Gallery Hero Background Image (Dark Mode Only) */}
+    <section className="animate-editorial-reveal stagger-2 my-8 sm:my-10 lg:my-12">
+      {/* MASTER LUXURY OVERVIEW CARD */}
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-primary/20 dark:border-accent/40 bg-gradient-to-br from-white via-slate-50/60 to-slate-100/80 dark:from-[#171412] dark:via-[#141110] dark:to-[#100e0d] text-foreground shadow-sm dark:shadow-2xl p-4 sm:p-6 flex flex-col gap-4 sm:gap-5 transition-all duration-300">
+        
+        {/* Ambient Dark Mode Hero Silhouette */}
         {backgroundImage && (
           <div
-            className="hidden dark:block absolute top-0 right-0 rtl:right-auto rtl:left-0 w-full sm:w-2/3 h-64 sm:h-72 pointer-events-none overflow-hidden select-none"
+            className="hidden dark:block absolute top-0 right-0 rtl:right-auto rtl:left-0 w-full sm:w-2/3 h-52 pointer-events-none overflow-hidden select-none opacity-20"
             aria-hidden="true"
           >
             <img
               src={backgroundImage}
               alt=""
-              className="w-full h-full object-cover object-center opacity-35"
+              className="w-full h-full object-cover object-center"
             />
-            {/* Horizontal Gradient Mask */}
-            <div className="absolute inset-0 bg-gradient-to-r rtl:bg-gradient-to-l from-[#1D1815] via-[#1A1614]/70 to-transparent" />
-            {/* Vertical Gradient Mask */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#1A1614]/60 to-[#1A1614]" />
+            <div className="absolute inset-0 bg-gradient-to-r rtl:bg-gradient-to-l from-[#171412] via-[#141110]/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#141110]/70 to-[#100e0d]" />
           </div>
         )}
 
-        {/* Ambient Corner Accent Glow */}
+        {/* Ambient Glows */}
         <div
-          className="absolute -top-20 -left-20 rtl:-right-20 rtl:-left-auto w-72 h-72 rounded-full bg-primary/8 dark:bg-accent/15 blur-3xl pointer-events-none"
+          className="absolute -top-16 -left-16 rtl:-right-16 rtl:-left-auto w-48 h-48 rounded-full bg-primary/10 dark:bg-accent/15 blur-3xl pointer-events-none"
           aria-hidden="true"
         />
         <div
-          className="absolute -bottom-20 -right-20 rtl:-left-20 rtl:-right-auto w-64 h-64 rounded-full bg-secondary/10 dark:bg-accent/10 blur-3xl pointer-events-none"
+          className="absolute -bottom-16 -right-16 rtl:-left-16 rtl:-right-auto w-48 h-48 rounded-full bg-secondary/10 dark:bg-accent/10 blur-3xl pointer-events-none"
           aria-hidden="true"
         />
-        {/* ==================================================================
+
+        {/* ==============================================================
             1. TOP HEADER ROW: TITLE & TYPE BADGE
-            ================================================================== */}
-        <div className="relative z-10 flex items-center justify-between pb-5 border-b border-primary/15 dark:border-accent/15 gap-3 flex-wrap">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2.5">
-              {/* Pulsing Live Beacon */}
-              <div className="relative flex h-2.5 w-2.5 items-center justify-center">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary dark:bg-accent opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary dark:bg-accent" />
-              </div>
-              <span className="text-xs uppercase font-bold text-[#1a1e4e] dark:text-accent font-mono tracking-widest">
-                {dict.get(locale, 'experience.journeyOverview')}
-              </span>
+            ============================================================== */}
+        <div className="relative z-10 flex items-center justify-between gap-3 pb-3 sm:pb-3.5 border-b border-slate-200/80 dark:border-accent/20 flex-wrap">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Live Pulsing Beacon */}
+            <div className="relative flex h-2.5 w-2.5 items-center justify-center shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary dark:bg-accent opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary dark:bg-accent" />
             </div>
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-muted-foreground/75 mt-1">
-              • TIMELESS DESTINATIONS • EXTRAORDINARY EXPERIENCES
+            <h3 className="font-hornbill text-sm sm:text-base md:text-lg font-bold text-slate-900 dark:text-white tracking-wide">
+              {dict.get(locale, 'experience.journeyOverview')}
+            </h3>
+            <span className="hidden md:inline text-xs text-slate-500 dark:text-slate-400 font-normal">
+              • {dict.get(locale, 'experience.summaryTagline')}
             </span>
           </div>
 
           {/* Luxury Crown Pill Badge */}
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/20 dark:border-accent/40 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent font-mono text-xs font-bold uppercase tracking-wider backdrop-blur-xs shadow-xs">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/20 dark:border-accent/40 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent text-xs font-semibold backdrop-blur-xs shadow-2xs shrink-0">
             <CrownIcon className="w-3.5 h-3.5 text-primary dark:text-accent" />
             <span>
               {type === 'package'
@@ -238,35 +237,36 @@ export function JourneySummary({
           </div>
         </div>
 
-        {/* ==================================================================
-            2. TRAVEL ESSENTIALS (3 LUXURY COLUMNS - ICON ON TOP)
-            ================================================================== */}
-        <div className="relative z-10 rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-card/60 backdrop-blur-md p-6 sm:p-7 grid grid-cols-1 sm:grid-cols-3 gap-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-200/80 dark:divide-accent/15 rtl:divide-x-reverse shadow-xs">
+        {/* ==============================================================
+            2. KEY TRAVEL ESSENTIALS (3 LUXURY CARDS - NEVER CLIPPED)
+            ============================================================== */}
+        <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
+          
           {/* Item 1: Trip Duration */}
-          <div className="flex flex-col items-start gap-2.5 pt-3 sm:pt-0 sm:pe-5">
-            <div className="w-10 h-10 rounded-xl bg-primary text-white dark:rounded-full dark:border dark:border-accent/40 dark:bg-accent/10 dark:text-accent flex items-center justify-center shrink-0 ring-2 ring-primary/15 dark:ring-accent/15 shadow-xs">
-              <CalendarIcon className="w-5 h-5 text-white dark:text-accent" />
+          <div className="rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3 sm:p-4 flex items-center gap-3 shadow-2xs transition-all hover:border-primary/40 dark:hover:border-accent/40">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent border border-primary/15 dark:border-accent/20 flex items-center justify-center shrink-0">
+              <CalendarIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary dark:text-accent" />
             </div>
-            <div className="flex flex-col w-full text-start">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono font-bold block">
-                {dict.get(locale, 'experience.tripDuration').replace(/:$/, '')}
+            <div className="flex flex-col min-w-0 text-start">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {dict.get(locale, 'experience.tripDuration')?.replace(/:$/, '')}
               </span>
-              <span className="font-hornbill text-lg sm:text-xl font-bold text-foreground block leading-tight mt-0.5">
+              <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight mt-0.5">
                 {formattedDuration}
               </span>
             </div>
           </div>
 
           {/* Item 2: Experience Type */}
-          <div className="flex flex-col items-start gap-2.5 pt-5 sm:pt-0 sm:px-6">
-            <div className="w-10 h-10 rounded-xl bg-primary text-white dark:rounded-full dark:border dark:border-accent/40 dark:bg-accent/10 dark:text-accent flex items-center justify-center shrink-0 ring-2 ring-primary/15 dark:ring-accent/15 shadow-xs">
-              <CompassIcon className="w-5 h-5 text-white dark:text-accent" />
+          <div className="rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3 sm:p-4 flex items-center gap-3 shadow-2xs transition-all hover:border-primary/40 dark:hover:border-accent/40">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent border border-primary/15 dark:border-accent/20 flex items-center justify-center shrink-0">
+              <CompassIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary dark:text-accent" />
             </div>
-            <div className="flex flex-col w-full text-start">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono font-bold block">
+            <div className="flex flex-col min-w-0 text-start">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {dict.get(locale, 'experience.experienceType')}
               </span>
-              <span className="font-hornbill text-lg sm:text-xl font-bold text-foreground block leading-tight mt-0.5">
+              <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight mt-0.5">
                 {type === 'package'
                   ? dict.get(locale, 'catalog.packageLabel')
                   : dict.get(locale, 'catalog.dailyTourLabel')}
@@ -275,264 +275,139 @@ export function JourneySummary({
           </div>
 
           {/* Item 3: Destinations */}
-          <div className="flex flex-col items-start gap-2.5 pt-5 sm:pt-0 sm:ps-6">
-            <div className="w-10 h-10 rounded-xl bg-primary text-white dark:rounded-full dark:border dark:border-accent/40 dark:bg-accent/10 dark:text-accent flex items-center justify-center shrink-0 ring-2 ring-primary/15 dark:ring-accent/15 shadow-xs">
-              <LocationPinIcon className="w-5 h-5 text-white dark:text-accent" />
+          <div className="rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3 sm:p-4 flex items-center gap-3 shadow-2xs transition-all hover:border-primary/40 dark:hover:border-accent/40">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent border border-primary/15 dark:border-accent/20 flex items-center justify-center shrink-0">
+              <LocationPinIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary dark:text-accent" />
             </div>
-            <div className="flex flex-col w-full text-start">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono font-bold block">
+            <div className="flex flex-col min-w-0 text-start">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {dict.get(locale, 'experience.destinations')}
               </span>
-              <span className="font-hornbill text-lg sm:text-xl font-bold text-foreground block leading-tight mt-0.5">
+              <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight mt-0.5">
                 {location}
               </span>
             </div>
           </div>
+
         </div>
 
-        {/* ==================================================================
-            3. ROUTE CORRIDOR SUB-CARD (WAYPOINTS & SMOOTH CONTINUOUS TRAJECTORY)
-            ================================================================== */}
+        {/* ==============================================================
+            3. ROUTE CORRIDOR (BALANCED, INTENTIONAL TRAJECTORY)
+            ============================================================== */}
         {hasRoute && (
-          <div className="relative z-10 rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-card/60 backdrop-blur-md p-5 sm:p-7 flex flex-col gap-6 shadow-xs">
-            {/* Sub-Card Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-accent/15 gap-3 flex-wrap">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <RouteMapIcon className="w-4 h-4 text-primary dark:text-accent" />
-                  <span className="text-xs sm:text-sm font-mono uppercase font-bold text-[#1a1e4e] dark:text-accent tracking-widest">
-                    {dict.get(locale, 'experience.route')}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground/80 font-serif italic mt-1">
+          <div className="relative z-10 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3.5 sm:p-5 flex flex-col gap-3.5 shadow-2xs">
+            
+            {/* Corridor Sub-Header */}
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/70 dark:border-accent/15 gap-2 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <RouteMapIcon className="w-4 h-4 text-primary dark:text-accent shrink-0" />
+                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  {dict.get(locale, 'experience.route')}
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-serif italic hidden sm:inline">
                   {dict.get(locale, 'experience.routeSubtitle', {
                     start: validDestinations[0]?.name || '',
                     end: validDestinations[validDestinations.length - 1]?.name || '',
                   })}
-                </p>
+                </span>
               </div>
 
-              <span className="px-3 py-1 rounded-full border border-slate-200 dark:border-border/60 bg-white dark:bg-card-elevated/80 text-foreground dark:text-muted-foreground font-mono text-xs font-semibold shadow-2xs">
-                {validDestinations.length} {isRtl ? 'محطات' : 'Stops'}
+              <span className="px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-border/60 bg-slate-100 dark:bg-card-elevated/80 text-slate-700 dark:text-muted-foreground font-mono text-xs font-semibold shrink-0">
+                {dict.get(locale, 'experience.stopsCount', { count: String(validDestinations.length) })}
               </span>
             </div>
 
-            {/* DESKTOP & TABLET: Horizontal Waypoint Corridor (Smart Adaptive Scaling) */}
-            <div className="hidden sm:flex items-center justify-between w-full max-w-full pt-2 pb-1">
-              {validDestinations.map((stop, idx) => {
-                const stopCount = validDestinations.length
-                const stopNumber = String(idx + 1).padStart(2, '0')
-                const stopImage =
-                  stop.imageUrl || `/media-assets/destinations/city-hero-${stop.slug}.jpg`
+            {/* Waypoints Trajectory Track */}
+            {/* If exactly 2 stops: gracefully centered with a balanced connection beam */}
+            {/* If 3+ stops: smoothly distributed across the container */}
+            <div className={`w-full overflow-x-auto no-scrollbar py-1 px-1 flex items-center ${isTwoStops ? 'justify-center' : 'justify-between'} gap-3 sm:gap-6`}>
+              <div className={`flex items-center ${isTwoStops ? 'w-full max-w-xl justify-between' : 'w-full justify-between'} gap-2 sm:gap-4 shrink-0`}>
+                {validDestinations.map((stop, idx) => {
+                  const stopNumber = String(idx + 1).padStart(2, '0')
+                  const stopImage =
+                    stop.imageUrl || `/media-assets/destinations/city-hero-${stop.slug}.jpg`
 
-                // Dynamic adaptive sizing tokens based on stop count
-                const isTwoStops = stopCount <= 2
-                const isThreeStops = stopCount === 3
-
-                const avatarSizeClass = isTwoStops
-                  ? 'w-14 h-14 sm:w-16 sm:h-16'
-                  : isThreeStops
-                    ? 'w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12'
-                    : 'w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10'
-
-                const badgeSizeClass = isTwoStops
-                  ? 'w-5 h-5 sm:w-6 sm:h-6 text-[10px] sm:text-[11px] -top-1 -right-1 rtl:-left-1 rtl:right-auto'
-                  : isThreeStops
-                    ? 'w-4 h-4 sm:w-4.5 sm:h-4.5 text-[8px] sm:text-[9px] -top-0.5 -right-0.5 rtl:-left-0.5 rtl:right-auto'
-                    : 'w-3.5 h-3.5 sm:w-4 sm:h-4 text-[7px] sm:text-[8px] -top-0.5 -right-0.5 rtl:-left-0.5 rtl:right-auto'
-
-                const cityNameSizeClass = isTwoStops
-                  ? 'text-sm sm:text-base md:text-lg'
-                  : isThreeStops
-                    ? 'text-xs sm:text-sm'
-                    : 'text-[11px] sm:text-xs'
-
-                const countryNameSizeClass = isTwoStops
-                  ? 'text-[11px] sm:text-xs'
-                  : isThreeStops
-                    ? 'text-[10px] sm:text-[11px]'
-                    : 'text-[9px] sm:text-[10px]'
-
-                const arrowContainerSizeClass = isTwoStops
-                  ? 'w-7 h-7 sm:w-8 sm:h-8'
-                  : isThreeStops
-                    ? 'w-5.5 h-5.5 sm:w-6.5 sm:h-6.5'
-                    : 'w-4.5 h-4.5 sm:w-5 sm:h-5'
-
-                const arrowIconSizeClass = isTwoStops
-                  ? 'w-3.5 h-3.5 sm:w-4 sm:h-4'
-                  : isThreeStops
-                    ? 'w-2.5 h-2.5 sm:w-3 sm:h-3'
-                    : 'w-2 h-2 sm:w-2.5 sm:h-2.5'
-
-                const nodeGapClass = isTwoStops
-                  ? 'gap-2.5 sm:gap-3'
-                  : isThreeStops
-                    ? 'gap-1.5 sm:gap-2'
-                    : 'gap-1 sm:gap-1.5'
-
-                const nodeMaxWidthClass = isTwoStops
-                  ? 'max-w-[40%]'
-                  : isThreeStops
-                    ? 'max-w-[28%]'
-                    : 'max-w-[22%]'
-
-                return (
-                  <React.Fragment key={stop.id}>
-                    {/* Waypoint Hub Node (Adaptive Sizing & Fluid Bounding) */}
-                    <div
-                      className={`group flex items-center ${nodeGapClass} shrink min-w-0 ${nodeMaxWidthClass} transition-transform duration-300 hover:scale-105`}
-                    >
-                      {/* Relative Photo Container with Dynamic Corner Badge */}
-                      <div className="relative shrink-0">
-                        {/* Circular City Photo */}
-                        <div
-                          className={`${avatarSizeClass} rounded-full border-2 border-primary dark:border-accent ring-2 sm:ring-4 ring-primary/20 dark:ring-accent/20 overflow-hidden shadow-sm bg-card`}
-                        >
-                          <img
-                            src={stopImage}
-                            alt={stop.name}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none'
-                            }}
-                          />
+                  return (
+                    <React.Fragment key={stop.id}>
+                      {/* Waypoint Node */}
+                      <div className="group flex items-center gap-2.5 shrink-0 transition-transform duration-200 hover:scale-105">
+                        {/* Circular City Photo with Ring and Stop Number */}
+                        <div className="relative shrink-0">
+                          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 border-primary/50 dark:border-accent/70 ring-2 sm:ring-3 ring-primary/15 dark:ring-accent/20 overflow-hidden shadow-sm bg-card">
+                            <img
+                              src={stopImage}
+                              alt={stop.name}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                              }}
+                            />
+                          </div>
+                          <div className="absolute -top-0.5 -right-0.5 rtl:-left-0.5 rtl:right-auto w-4.5 h-4.5 rounded-full bg-[#1a1e4e] text-white dark:bg-[#171514] border border-primary/60 dark:border-accent/70 dark:text-accent font-mono text-[9px] font-bold flex items-center justify-center shadow-xs z-10">
+                            {stopNumber}
+                          </div>
                         </div>
 
-                        {/* Attached Waypoint Number Badge */}
-                        <div
-                          className={`absolute ${badgeSizeClass} rounded-full bg-[#1a1e4e] text-white dark:bg-[#171514] border-2 border-primary dark:border-accent dark:text-accent font-mono font-bold flex items-center justify-center shadow-xs z-20`}
-                          aria-hidden="true"
-                        >
-                          {stopNumber}
-                        </div>
-                      </div>
-
-                      {/* City Name & Country Stack (Truncates safely within container) */}
-                      <div className="flex flex-col text-start min-w-0 overflow-hidden">
-                        <span
-                          className={`font-hornbill ${cityNameSizeClass} font-bold text-foreground leading-tight truncate transition-colors group-hover:text-primary dark:group-hover:text-accent`}
-                        >
-                          {stop.name}
-                        </span>
-                        {stop.countryName && (
-                          <span
-                            className={`${countryNameSizeClass} text-muted-foreground font-medium truncate mt-0.5`}
-                          >
-                            {stop.countryName}
+                        {/* City & Country Text (Crystal Clear) */}
+                        <div className="flex flex-col text-start min-w-0">
+                          <span className="font-hornbill text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                            {stop.name}
                           </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Smooth Continuous Trajectory Line with Directional Arrow */}
-                    {idx < validDestinations.length - 1 && (
-                      <div className="relative flex-1 min-w-[12px] sm:min-w-[16px] mx-1 flex items-center justify-center shrink">
-                        {/* Base Track with Flowing Energy Pulse */}
-                        <div className="w-full h-[2px] bg-primary/20 dark:bg-accent/20 rounded-full relative overflow-hidden">
-                          {/* Flowing Energy Beam */}
-                          <div
-                            className={`absolute inset-y-0 w-3/5 bg-gradient-to-r ${
-                              isRtl
-                                ? 'from-transparent via-primary dark:via-accent to-transparent animate-beam-flow-rtl'
-                                : 'from-transparent via-primary dark:via-accent to-transparent animate-beam-flow-ltr'
-                            } rounded-full`}
-                          />
-                        </div>
-
-                        {/* Directional Arrow Badge looking towards next stop */}
-                        <div
-                          className={`absolute ${arrowContainerSizeClass} rounded-full bg-white dark:bg-[#171514] border border-primary/50 dark:border-accent/70 text-primary dark:text-accent flex items-center justify-center shadow-xs ring-1.5 sm:ring-2 ring-primary/20 dark:ring-accent/20 z-10 transition-transform duration-300 hover:scale-110`}
-                          aria-label="Direction of travel"
-                        >
-                          <ArrowDirectionIcon
-                            className={`${arrowIconSizeClass} text-primary dark:text-accent`}
-                            isRtl={isRtl}
-                            direction="horizontal"
-                          />
+                          {stop.countryName && (
+                            <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-tight">
+                              {stop.countryName}
+                            </span>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </React.Fragment>
-                )
-              })}
+
+                      {/* Connection Laser Beam with Transit Arrow */}
+                      {idx < validDestinations.length - 1 && (
+                        <div className="flex-1 min-w-[36px] sm:min-w-[60px] max-w-[200px] flex items-center justify-center relative px-1 sm:px-2">
+                          <div className="w-full h-[2px] bg-primary/25 dark:bg-accent/25 rounded-full relative overflow-hidden">
+                            <div
+                              className={`absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-primary dark:via-accent to-transparent ${
+                                isRtl ? 'animate-beam-flow-rtl' : 'animate-beam-flow-ltr'
+                              } rounded-full`}
+                            />
+                          </div>
+                          <div className="absolute w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white dark:bg-[#171514] border border-primary/50 dark:border-accent/60 text-primary dark:text-accent flex items-center justify-center shadow-xs ring-1 ring-primary/10 dark:ring-accent/15">
+                            <ArrowDirectionIcon
+                              className="w-3 h-3 text-primary dark:text-accent"
+                              isRtl={isRtl}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* MOBILE: Clean Vertical Route Rail */}
-            <div className="flex sm:hidden flex-col gap-4 pt-2">
-              {validDestinations.map((stop, idx) => {
-                const stopNumber = String(idx + 1).padStart(2, '0')
-                const stopImage =
-                  stop.imageUrl || `/media-assets/destinations/city-hero-${stop.slug}.jpg`
-
-                return (
-                  <React.Fragment key={stop.id}>
-                    <div className="flex items-center gap-3">
-                      {/* Circular Photo with unclipped badge */}
-                      <div className="relative shrink-0">
-                        <div className="w-14 h-14 rounded-full border-2 border-primary dark:border-accent ring-2 ring-primary/20 dark:ring-accent/20 overflow-hidden shadow-md bg-card">
-                          <img
-                            src={stopImage}
-                            alt={stop.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none'
-                            }}
-                          />
-                        </div>
-                        <div className="absolute -top-1 -right-1 rtl:-left-1 rtl:right-auto w-5 h-5 rounded-full bg-[#1a1e4e] text-white dark:bg-[#171514] border-2 border-primary dark:border-accent dark:text-accent font-mono text-[10px] font-bold flex items-center justify-center shadow-md z-20">
-                          {stopNumber}
-                        </div>
-                      </div>
-
-                      <div className="flex-1 flex flex-col">
-                        <span className="font-hornbill text-base font-bold text-foreground">
-                          {stop.name}
-                        </span>
-                        {stop.countryName && (
-                          <span className="text-xs text-muted-foreground">{stop.countryName}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Mobile Center Connector with Flowing Energy Pulse and Downward Arrow */}
-                    {idx < validDestinations.length - 1 && (
-                      <div className="relative py-2 flex items-center justify-center">
-                        <div className="w-full h-[2px] bg-primary/20 dark:bg-accent/20 rounded-full relative overflow-hidden">
-                          <div className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-primary dark:via-accent to-transparent animate-beam-flow-ltr rounded-full" />
-                        </div>
-                        <div className="absolute w-6.5 h-6.5 rounded-full bg-white dark:bg-[#171514] border border-primary/50 dark:border-accent/60 text-primary dark:text-accent flex items-center justify-center shadow-xs">
-                          <ArrowDirectionIcon
-                            className="w-3.5 h-3.5 text-primary dark:text-accent"
-                            direction="down"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </React.Fragment>
-                )
-              })}
-            </div>
           </div>
         )}
 
-        {/* Single-City Hub Display (If only 1 destination is present) */}
+        {/* ==============================================================
+            4. SINGLE STOP HUB (If 1 destination)
+            ============================================================== */}
         {hasSingleStop && (
-          <div className="relative z-10 rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-card/60 backdrop-blur-md p-4 sm:p-5 flex items-center gap-3.5 shadow-xs">
-            <div className="w-11 h-11 rounded-xl bg-primary text-white dark:rounded-full dark:border dark:border-accent/40 dark:bg-accent/10 dark:text-accent flex items-center justify-center shrink-0 ring-2 ring-primary/15 dark:ring-accent/15">
-              <LocationPinIcon className="w-5 h-5 text-white dark:text-accent" />
+          <div className="relative z-10 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3 sm:p-4 flex items-center gap-3 shadow-2xs">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent border border-primary/15 dark:border-accent/20 flex items-center justify-center shrink-0">
+              <LocationPinIcon className="w-4.5 h-4.5 text-primary dark:text-accent" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-primary dark:text-accent font-mono tracking-wider">
-                {dict.get(locale, 'experience.destinations')}
+            <div className="flex flex-col text-start">
+              <span className="text-[11px] font-semibold text-primary dark:text-accent uppercase tracking-wider">
+                {dict.get(locale, 'experience.destinationSingle')}
               </span>
-              <span className="font-hornbill text-base font-bold text-foreground">
+              <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-0.5">
                 {validDestinations[0].name}
                 {validDestinations[0].countryName ? ` • ${validDestinations[0].countryName}` : ''}
               </span>
             </div>
           </div>
         )}
+
       </div>
     </section>
   )

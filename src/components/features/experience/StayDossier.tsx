@@ -93,7 +93,7 @@ export function StayDossier({
       <div className="flex flex-col mb-8 pb-3 border-b border-border/60">
         <div className="flex items-center gap-2 mb-1">
           <span className="w-2 h-2 rounded-full bg-secondary" />
-          <span className="text-xs uppercase font-bold text-secondary tracking-wider">
+          <span className="text-xs sm:text-sm font-semibold text-secondary">
             {dict.get(locale, 'experience.sanctuariesAndStays')}
           </span>
         </div>
@@ -182,8 +182,8 @@ export function StayDossier({
               {/* Stay Segment Header */}
               <div className="flex items-center justify-between gap-4 flex-wrap pb-4 border-b border-border/40">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase bg-secondary/10 text-secondary border border-secondary/20">
-                    {locale === 'ar' ? `المرحلة ${stay.order}` : `Stay #${stay.order}`}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-secondary/10 text-secondary border border-secondary/20">
+                    {dict.get(locale, 'experience.stayDossier.stayOrder', { order: String(stay.order) })}
                   </span>
                   <span className="text-border">·</span>
                   <span className="text-xs font-semibold text-foreground">
@@ -196,9 +196,7 @@ export function StayDossier({
                     <>
                       <span className="text-border">·</span>
                       <span className="text-xs text-muted-foreground font-medium">
-                        {locale === 'ar'
-                          ? `${options.length} خيارات فندقية متاحة`
-                          : `${options.length} hotel options available`}
+                        {dict.get(locale, 'experience.stayDossier.optionsAvailable', { count: String(options.length) })}
                       </span>
                     </>
                   )}
@@ -207,13 +205,13 @@ export function StayDossier({
                 {selectedOption && isMultiOption && (
                   <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     {selectedOption.isDefault
-                      ? (locale === 'ar' ? 'الإقامة الافتراضية المعتمدة' : 'Default accommodation')
-                      : (locale === 'ar' ? 'الإقامة المختارة' : 'Selected accommodation')}
+                      ? dict.get(locale, 'experience.stayDossier.defaultOptionBadge')
+                      : dict.get(locale, 'experience.stayDossier.selectedOptionBadge')}
                   </span>
                 )}
                 {!selectedOption && isMultiOption && (
                   <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    {locale === 'ar' ? 'الاختيار مطلوب' : 'Selection required'}
+                    {dict.get(locale, 'experience.stayDossier.selectionRequired')}
                   </span>
                 )}
               </div>
@@ -222,11 +220,11 @@ export function StayDossier({
               {isMultiOption && (
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-secondary">
-                      {locale === 'ar' ? 'اختر فندق الإقامة للمرحلة:' : 'Select accommodation option for this stay:'}
+                    <span className="text-sm font-semibold text-foreground">
+                      {dict.get(locale, 'experience.stayDossier.selectOptionPrompt')}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {locale === 'ar' ? 'اختر بديلاً واحداً' : 'Select 1 alternative'}
+                    <span className="text-xs text-muted-foreground">
+                      {dict.get(locale, 'experience.stayDossier.selectOneAlternative')}
                     </span>
                   </div>
 
@@ -252,13 +250,13 @@ export function StayDossier({
                                   {option.propertyType}
                                 </span>
                                 {option.rating && (
-                                  <span className="text-[11px] font-semibold text-amber-500">
+                                  <span className="text-xs font-semibold text-amber-500">
                                     ★ {option.rating.toFixed(1)}
                                   </span>
                                 )}
                                 {option.isDefault && (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary/15 text-secondary border border-secondary/25">
-                                    {locale === 'ar' ? 'الخيار الافتراضي' : 'Default'}
+                                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-secondary/15 text-secondary border border-secondary/25">
+                                    {dict.get(locale, 'experience.stayDossier.defaultChoiceTag')}
                                   </span>
                                 )}
                               </div>
@@ -295,8 +293,8 @@ export function StayDossier({
 
                             <span className="text-[11px] font-medium text-muted-foreground">
                               {option.pricingUnit === 'per_night'
-                                ? (locale === 'ar' ? 'سعر لليلة' : 'Priced per night')
-                                : (locale === 'ar' ? 'سعر للإقامة كاملة' : 'Priced per stay')}
+                                ? dict.get(locale, 'experience.stayDossier.pricedPerNight')
+                                : dict.get(locale, 'experience.stayDossier.pricedPerStay')}
                             </span>
                           </div>
                         </button>
@@ -342,7 +340,7 @@ export function StayDossier({
                     <div className="p-4 sm:p-5 rounded-2xl bg-card-elevated/60 border border-secondary/20 flex flex-col gap-3">
                       <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div>
-                          <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block mb-0.5">
+                          <span className="text-xs font-semibold text-secondary block mb-0.5">
                             {dict.get(locale, 'experience.yourRoomAllocation')}
                           </span>
                           <span className="text-xs sm:text-sm font-semibold text-foreground">
@@ -352,7 +350,7 @@ export function StayDossier({
                         </div>
 
                         <div className="text-right">
-                          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                          <span className="text-xs font-semibold text-muted-foreground block mb-0.5">
                             {dict.get(locale, 'experience.yourStayTotal')}
                           </span>
                           <span className="text-base sm:text-lg font-hornbill font-bold text-foreground">
@@ -423,7 +421,7 @@ export function StayDossier({
                         <div className="overflow-hidden">
                           <div className="pt-3.5 pb-1 border-t border-border/50 mt-2">
                             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                              <span className="text-xs font-semibold text-muted-foreground">
                                 {dict.get(locale, 'experience.supportedOccupancyOptions')}
                               </span>
                               <span className="text-[11px] font-medium text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-full">
@@ -453,14 +451,14 @@ export function StayDossier({
                                         {roomLabel}
                                       </span>
                                       {guestHint && (
-                                        <span className="text-[10px] text-muted-foreground block mt-0.5">
+                                        <span className="text-xs text-muted-foreground block mt-0.5">
                                           {guestHint}
                                         </span>
                                       )}
                                     </div>
                                     <span className="text-xs font-semibold mt-1 block">
                                       {!rateObj.enabled ? (
-                                        <span className="text-muted-foreground text-[11px]">
+                                        <span className="text-muted-foreground text-xs">
                                           {dict.get(locale, 'experience.unavailable')}
                                         </span>
                                       ) : rateObj.rateEGP === 0 ? (
@@ -470,7 +468,7 @@ export function StayDossier({
                                       ) : (
                                         <span className="text-accent font-bold">
                                           {rateObj.ratePrice?.formatted || ''}
-                                          <span className="text-[10px] font-normal text-muted-foreground ml-1">
+                                          <span className="text-xs font-normal text-muted-foreground ml-1">
                                             {selectedOption.pricingUnit === 'per_night'
                                               ? dict.get(locale, 'experience.perNightShort')
                                               : dict.get(locale, 'experience.perStayShort')}
@@ -490,9 +488,7 @@ export function StayDossier({
                 </div>
               ) : (
                 <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400 font-medium">
-                  {locale === 'ar'
-                    ? `يرجى اختيار أحد فنادق المرحلة ${stay.order} لتأكيد التسعير والمتابعة.`
-                    : `Please select an accommodation option for Stay #${stay.order} to view pricing and proceed.`}
+                  {dict.get(locale, 'experience.stayDossier.selectionRequiredPrompt', { order: String(stay.order) })}
                 </div>
               )}
             </div>

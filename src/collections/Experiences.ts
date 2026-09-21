@@ -1,4 +1,4 @@
-import type { CollectionConfig, Field } from 'payload'
+import type { CollectionConfig, Field, Where } from 'payload'
 import type { Experience } from '@/payload-types'
 import { extractSlotsPayload } from './hooks/extractSlotsPayload'
 import { syncDepartureSlots } from './hooks/syncDepartureSlots'
@@ -25,15 +25,23 @@ export const Experiences: CollectionConfig = {
         if (data) {
           // Domain Invariant: Duplicate Origin Protection
           if (data.city && Array.isArray(data.destinations) && data.destinations.length > 0) {
-            const originId = typeof data.city === 'object' ? Number((data.city as any).id) : Number(data.city)
-            const destIds = data.destinations.map((d: any) => (typeof d === 'object' ? Number(d.id) : Number(d)))
+            const originId =
+              typeof data.city === 'object' ? Number((data.city as any).id) : Number(data.city)
+            const destIds = data.destinations.map((d: any) =>
+              typeof d === 'object' ? Number(d.id) : Number(d),
+            )
             if (destIds.includes(originId)) {
-              throw new Error(`[Experiences Validation] Origin city (#${originId}) cannot be included in subsequent destinations list. Destinations represent cities visited AFTER departing the Origin.`)
+              throw new Error(
+                `[Experiences Validation] Origin city (#${originId}) cannot be included in subsequent destinations list. Destinations represent cities visited AFTER departing the Origin.`,
+              )
             }
           }
 
           if (data.type === 'daily_tour') {
-            if (Array.isArray((data as any).accommodations) && (data as any).accommodations.length > 0) {
+            if (
+              Array.isArray((data as any).accommodations) &&
+              (data as any).accommodations.length > 0
+            ) {
               throw new Error('[Experiences] Daily Tours cannot contain accommodation stays.')
             }
             if (data.duration) {
@@ -92,7 +100,9 @@ export const Experiences: CollectionConfig = {
           req,
         })
         if (activeBookings.docs.length > 0) {
-          throw new Error('Cannot delete experience: there are active, paid, or confirmed bookings associated with it.')
+          throw new Error(
+            'Cannot delete experience: there are active, paid, or confirmed bookings associated with it.',
+          )
         }
 
         // Cascade delete all departure slots associated with this experience
@@ -153,7 +163,8 @@ export const Experiences: CollectionConfig = {
       required: true,
       admin: {
         position: 'sidebar',
-        description: 'Origin / Departure Gateway City (where the journey officially commences and initial meeting occurs).',
+        description:
+          'Origin / Departure Gateway City (where the journey officially commences and initial meeting occurs).',
       },
     },
     {
@@ -163,7 +174,8 @@ export const Experiences: CollectionConfig = {
       hasMany: true,
       validate: (val: unknown, { data }: { data: Partial<Experience> }) => {
         if (Array.isArray(val) && val.length > 0 && data?.city) {
-          const originId = typeof data.city === 'object' ? Number((data.city as any).id) : Number(data.city)
+          const originId =
+            typeof data.city === 'object' ? Number((data.city as any).id) : Number(data.city)
           const destIds = val.map((d: any) => (typeof d === 'object' ? Number(d.id) : Number(d)))
           if (destIds.includes(originId)) {
             return 'Origin city cannot be included in subsequent destinations list. Destinations represent cities visited AFTER departing from the Origin.'
@@ -173,7 +185,8 @@ export const Experiences: CollectionConfig = {
       },
       admin: {
         position: 'sidebar',
-        description: 'Ordered Post-Origin Destinations (all sequential cities visited AFTER departing from the Origin city). Do NOT re-add the Origin city.',
+        description:
+          'Ordered Post-Origin Destinations (all sequential cities visited AFTER departing from the Origin city). Do NOT re-add the Origin city.',
       },
     },
     {
@@ -206,7 +219,8 @@ export const Experiences: CollectionConfig = {
           type: 'number',
           min: 1,
           admin: {
-            description: 'Total tour duration in days for multi-day Packages (e.g. 5). Required for packages.',
+            description:
+              'Total tour duration in days for multi-day Packages (e.g. 5). Required for packages.',
             condition: (data: Partial<Experience>) => data?.type === 'package',
           },
           validate: (val: unknown, { data }: { data: Partial<Experience> }) => {
@@ -235,7 +249,8 @@ export const Experiences: CollectionConfig = {
           type: 'number',
           min: 15,
           admin: {
-            description: 'Tour duration for Daily Tours entered in Hours (e.g. 3 for 3 hours, 1.5 for 90 minutes) and stored deterministically as minutes. Required for daily_tour.',
+            description:
+              'Tour duration for Daily Tours entered in Hours (e.g. 3 for 3 hours, 1.5 for 90 minutes) and stored deterministically as minutes. Required for daily_tour.',
             condition: (data: Partial<Experience>) => data?.type === 'daily_tour',
             components: {
               Field: '@/components/admin/DurationHoursField#DurationHoursField',
@@ -387,7 +402,8 @@ export const Experiences: CollectionConfig = {
           required: true,
           minRows: 1,
           admin: {
-            description: 'Curated accommodation options (hotels/resorts) available for this stay stage.',
+            description:
+              'Curated accommodation options (hotels/resorts) available for this stay stage.',
           },
           fields: [
             {
@@ -395,6 +411,30 @@ export const Experiences: CollectionConfig = {
               type: 'relationship',
               relationTo: 'accommodations',
               required: true,
+              filterOptions: ({ data }): Where => {
+                const originId =
+                  data?.city && typeof data.city === 'object' && 'id' in data.city
+                    ? (data.city as { id: number | string }).id
+                    : data?.city
+                const destIds = Array.isArray(data?.destinations)
+                  ? data.destinations.map((d: unknown) =>
+                      d && typeof d === 'object' && 'id' in d
+                        ? (d as { id: number | string }).id
+                        : d,
+                    )
+                  : []
+                const allCityIds = [originId, ...destIds]
+                  .map((id) => Number(id))
+                  .filter((id) => !isNaN(id) && id > 0)
+
+                if (allCityIds.length === 0) {
+                  return { id: { equals: 0 } }
+                }
+
+                return {
+                  and: [{ isActive: { equals: true } }, { city: { in: allCityIds } }],
+                }
+              },
               admin: {
                 description: 'Reusable Accommodation Property entity from catalog.',
               },
@@ -404,14 +444,16 @@ export const Experiences: CollectionConfig = {
               type: 'checkbox',
               defaultValue: false,
               admin: {
-                description: 'Designate this option as the authoritative default accommodation for this stay.',
+                description:
+                  'Designate this option as the authoritative default accommodation for this stay.',
               },
             },
             {
               name: 'roomCategory',
               type: 'text',
               admin: {
-                description: 'Optional package-specific room category (e.g. Deluxe Nile View Room, Luxury Suite).',
+                description:
+                  'Optional package-specific room category (e.g. Deluxe Nile View Room, Luxury Suite).',
               },
             },
             {
@@ -430,7 +472,10 @@ export const Experiences: CollectionConfig = {
               required: true,
               defaultValue: 'per_stay',
               options: [
-                { label: 'Per Stay (Fixed room rate for the entire stay duration)', value: 'per_stay' },
+                {
+                  label: 'Per Stay (Fixed room rate for the entire stay duration)',
+                  value: 'per_stay',
+                },
                 { label: 'Per Night (Room rate multiplied by stay nights)', value: 'per_night' },
               ],
               admin: {
@@ -443,7 +488,8 @@ export const Experiences: CollectionConfig = {
               required: true,
               minRows: 1,
               admin: {
-                description: 'Explicit commercial room rates and availability flags per occupancy type for this accommodation option.',
+                description:
+                  'Explicit commercial room rates and availability flags per occupancy type for this accommodation option.',
               },
               fields: [
                 {
@@ -463,7 +509,8 @@ export const Experiences: CollectionConfig = {
                   required: true,
                   min: 0,
                   admin: {
-                    description: 'Commercial room price in EGP for this stay (or per night if pricingUnit is per_night). Set 0 only if complimentary/bundled.',
+                    description:
+                      'Commercial room price in EGP for this stay (or per night if pricingUnit is per_night). Set 0 only if complimentary/bundled.',
                   },
                 },
                 {
@@ -471,7 +518,8 @@ export const Experiences: CollectionConfig = {
                   type: 'checkbox',
                   defaultValue: true,
                   admin: {
-                    description: 'Enable to offer this occupancy type for booking. Uncheck to disable and prevent reservation.',
+                    description:
+                      'Enable to offer this occupancy type for booking. Uncheck to disable and prevent reservation.',
                   },
                 },
               ],
@@ -484,7 +532,8 @@ export const Experiences: CollectionConfig = {
       name: 'childPolicy',
       type: 'group',
       admin: {
-        description: 'Commercial child and infant pricing configuration (controlled by Administration).',
+        description:
+          'Commercial child and infant pricing configuration (controlled by Administration).',
         condition: (data) => data?.type === 'package',
       },
       fields: [
@@ -503,7 +552,8 @@ export const Experiences: CollectionConfig = {
           max: 100,
           defaultValue: 50,
           admin: {
-            description: 'Price percentage for child (2-11 yrs) sharing parents bed (e.g. 50 = 50% of adult base price).',
+            description:
+              'Price percentage for child (2-11 yrs) sharing parents bed (e.g. 50 = 50% of adult base price).',
           },
         },
         {
@@ -513,7 +563,8 @@ export const Experiences: CollectionConfig = {
           max: 100,
           defaultValue: 75,
           admin: {
-            description: 'Price percentage for child (2-11 yrs) requiring an extra rollaway bed (e.g. 75 = 75% of adult base price).',
+            description:
+              'Price percentage for child (2-11 yrs) requiring an extra rollaway bed (e.g. 75 = 75% of adult base price).',
           },
         },
       ],
@@ -646,7 +697,8 @@ export const Experiences: CollectionConfig = {
       name: 'departureSlots',
       type: 'ui',
       admin: {
-        condition: (data: Partial<Experience>) => data?.type === 'package' && (!data?.packageMode || data?.packageMode === 'fixed_date'),
+        condition: (data: Partial<Experience>) =>
+          data?.type === 'package' && (!data?.packageMode || data?.packageMode === 'fixed_date'),
         components: {
           Field: '@/components/admin/DepartureSlotsEditor#DepartureSlotsEditor',
         },
@@ -654,5 +706,3 @@ export const Experiences: CollectionConfig = {
     },
   ],
 }
-
-

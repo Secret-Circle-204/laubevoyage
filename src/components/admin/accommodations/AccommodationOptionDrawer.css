@@ -1,0 +1,354 @@
+/* ==========================================================================
+   AccommodationOptionDrawer.css — 2-Mode Focused Editing Workspace
+   Balanced, medium scale enterprise UI
+   ========================================================================== */
+
+.ae-drawer-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+  background: #111622;
+  color: #f8fafc;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Drawer Top Bar                                                            */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+.ae-drawer-top-bar {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #141926;
+  flex-shrink: 0;
+}
+
+.ae-drawer-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ae-drawer-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.ae-drawer-heading {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.ae-drawer-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ae-drawer-back-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.ae-drawer-error-wrap {
+  padding: 10px 18px 0 18px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Mode B: Catalog Browser Mode                                              */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+.ae-drawer-browser-mode {
+  flex: 1;
+  padding: 16px 18px;
+  overflow-y: auto;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Mode A: Focused Workspace Mode                                            */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+.ae-drawer-workspace-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ae-drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ae-drawer-section-header {
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ae-drawer-section-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+/* Property Summary Card */
+.ae-property-summary-card {
+  background: #161c28;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ae-property-summary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ae-property-summary-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.ae-property-summary-meta {
+  font-size: 12.5px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ae-btn-change-property {
+  background: #1f2738;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+  border-radius: 5px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.ae-btn-change-property:hover {
+  background: #29344a;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+/* Commercial Terms Form Rows */
+.ae-drawer-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ae-drawer-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.ae-drawer-text-input {
+  background: #161c28;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 13.5px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  width: 100%;
+  transition: border-color 0.15s ease;
+}
+
+.ae-drawer-text-input:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.ae-drawer-select-input {
+  background: #161c28;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 13.5px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.ae-drawer-select-input:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.ae-drawer-select-input option {
+  background: #161c28;
+  color: #ffffff;
+}
+
+/* Default Switch Row */
+.ae-drawer-default-row {
+  display: flex;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
+  background: #161c28;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.ae-default-switch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ae-default-switch-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.ae-default-switch-sub {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Toggle Switch */
+.ae-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.ae-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ae-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #253147;
+  transition: 0.2s;
+  border-radius: 22px;
+}
+
+.ae-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+.ae-toggle-switch input:checked + .ae-toggle-slider {
+  background: #10b981;
+}
+
+.ae-toggle-switch input:checked + .ae-toggle-slider:before {
+  transform: translateX(16px);
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Sticky Drawer Footer                                                      */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+.ae-drawer-sticky-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #141926;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.ae-drawer-btn-cancel {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 7px 15px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ae-drawer-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.ae-drawer-btn-save {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ae-drawer-btn-save:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.ae-drawer-btn-save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

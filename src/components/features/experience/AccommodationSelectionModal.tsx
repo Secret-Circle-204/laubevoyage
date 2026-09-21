@@ -52,12 +52,10 @@ export function AccommodationSelectionModal({
 
   const nightLabel =
     nights === 1
-      ? dict.get(locale, 'experience.nightSingular') || (locale === 'ar' ? 'ليلة' : 'night')
-      : dict.get(locale, 'experience.nightPlural') || (locale === 'ar' ? 'ليالٍ' : 'nights')
+      ? dict.get(locale, 'experience.nightSingular')
+      : dict.get(locale, 'experience.nightPlural')
 
-  const titleText =
-    dict.get(locale, 'experience.chooseAccommodation') ||
-    (locale === 'ar' ? 'اختر فندق الإقامة' : 'Choose Accommodation')
+  const titleText = dict.get(locale, 'experience.accommodationModal.title')
 
   const handleSelect = (optionId: string) => {
     if (optionId !== selectedOptionId) {
@@ -91,7 +89,7 @@ export function AccommodationSelectionModal({
         {/* Header */}
         <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-secondary/15 flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-[11px] font-bold text-primary dark:text-secondary uppercase tracking-wider">
+            <span className="text-xs font-semibold text-primary dark:text-secondary">
               {destinationName ? `${destinationName} · ${nights} ${nightLabel}` : `${nights} ${nightLabel}`}
             </span>
             <h3 id="accommodation-modal-title" className="text-base sm:text-lg font-bold text-foreground mt-0.5">
@@ -150,8 +148,8 @@ export function AccommodationSelectionModal({
                       {opt.propertyName}
                     </span>
                     {opt.isDefault && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                        {dict.get(locale, 'experience.defaultBadge') || (locale === 'ar' ? 'الافتراضي' : 'Default')}
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                        {dict.get(locale, 'experience.defaultBadge')}
                       </span>
                     )}
                   </div>
@@ -160,7 +158,7 @@ export function AccommodationSelectionModal({
                   {opt.rating && opt.rating > 0 ? (
                     <div className="flex items-center gap-1 text-xs text-amber-500">
                       <span>{'★'.repeat(Math.min(opt.rating, 5))}</span>
-                      <span className="text-[11px] font-medium text-muted-foreground ml-1 rtl:ml-0 rtl:mr-1">
+                      <span className="text-xs font-medium text-muted-foreground ml-1 rtl:ml-0 rtl:mr-1">
                         {opt.rating} / 5
                       </span>
                     </div>
@@ -189,14 +187,14 @@ export function AccommodationSelectionModal({
             onClick={handleScrollToDossier}
             className="text-primary dark:text-secondary hover:underline font-semibold cursor-pointer"
           >
-            {locale === 'ar' ? 'عرض تفاصيل الفنادق الكاملة في البرنامج ←' : 'View full hotel dossiers in itinerary →'}
+            {dict.get(locale, 'experience.accommodationModal.viewFullDossier')}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-card hover:bg-slate-300 dark:hover:bg-secondary/20 text-foreground font-bold transition-all cursor-pointer"
           >
-            {dict.get(locale, 'experience.close') || (locale === 'ar' ? 'إغلاق' : 'Close')}
+            {dict.get(locale, 'experience.close')}
           </button>
         </div>
       </div>

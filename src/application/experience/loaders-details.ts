@@ -282,6 +282,9 @@ export class ExperienceDetailsLoader {
             departureDate: s.date,
             startTime: s.startTime || undefined,
             availableSeats: Math.max(0, s.capacityAvailable),
+            totalCapacity: s.capacityTotal,
+            heldSeats: s.capacityReserved,
+            soldSeats: s.capacitySold,
             priceOverrideEGP: s.priceOverrideEGP,
             status,
           }

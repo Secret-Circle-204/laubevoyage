@@ -521,6 +521,48 @@ input:-webkit-autofill:active {
   }
 }
 
+/* Departure Card Slider Motion */
+@keyframes departureSlideInRight {
+  0% {
+    opacity: 0;
+    transform: translate3d(24px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes departureSlideInLeft {
+  0% {
+    opacity: 0;
+    transform: translate3d(-24px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-date-slide-in-right {
+  animation: departureSlideInRight 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-date-slide-in-left {
+  animation: departureSlideInLeft 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Utility: Hide Scrollbar completely across all browsers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
 /* Accessibility: Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -532,3 +574,5 @@ input:-webkit-autofill:active {
     scroll-behavior: auto !important;
   }
 }
+
+

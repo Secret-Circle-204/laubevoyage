@@ -86,7 +86,7 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full mb-6">
         {/* Editorial Page Header */}
         <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16 animate-editorial-reveal">
-          <span className="text-[11px] uppercase font-semibold text-secondary dark:text-secondary-light block mb-3">
+          <span className="text-xs font-semibold text-secondary dark:text-secondary-light block mb-3">
             {data.labels.badge || 'Curated Collection'}
           </span>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-hornbill font-light tracking-tight text-foreground">
@@ -111,7 +111,7 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
         {/* Harmonized Active Filter Chips */}
         {hasActiveFilters && (
           <div className="flex flex-wrap items-center gap-2.5 mb-10 p-3.5 rounded-2xl bg-card/60 dark:bg-card/40 border border-border/70 backdrop-blur-sm relative z-10 animate-editorial-reveal stagger-2">
-            <span className="text-[10px] font-bold uppercase text-muted-foreground mr-1.5 flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-muted-foreground mr-1.5 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
               Active Criteria
             </span>
@@ -312,7 +312,7 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
           {/* Section Header / Results Counter */}
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10 animate-editorial-reveal">
-            <span className="text-xs uppercase font-medium text-neutral-400 tracking-wider">
+            <span className="text-xs sm:text-sm font-semibold text-neutral-300">
               Curated Journeys
             </span>
             <span className="text-xs font-medium text-neutral-400">

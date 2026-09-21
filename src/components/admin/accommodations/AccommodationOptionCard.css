@@ -1,0 +1,290 @@
+/* ==========================================================================
+   AccommodationOptionCard.css — Hotel Option Row Layout
+   Balanced, medium scale enterprise UI
+   ========================================================================== */
+
+.ae-option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  box-sizing: border-box;
+}
+
+.ae-option-row:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.ae-option-row:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* 1. Thumbnail Wrap */
+.ae-option-thumb-wrap {
+  width: 108px;
+  height: 68px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ae-option-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ae-option-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1c2333 0%, #151a26 100%);
+}
+
+/* 2. Hotel Details & Metadata */
+.ae-option-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ae-option-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ae-option-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.ae-default-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 14px;
+  padding: 2px 7px;
+  line-height: 1;
+}
+
+.ae-option-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #94a3b8;
+  flex-wrap: wrap;
+}
+
+.ae-meta-sep {
+  color: #475569;
+}
+
+.ae-option-chips {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.ae-chip {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cbd5e1;
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+/* 3. Room Rates Column */
+.ae-option-rates-col {
+  width: 125px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ae-rates-col-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a99ad;
+}
+
+.ae-rates-col-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ae-rate-col-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+}
+
+.ae-rate-col-label {
+  color: #8a99ad;
+}
+
+.ae-rate-col-val {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.ae-rate-col-empty {
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* 4. Action Buttons Column */
+.ae-option-actions-col {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ae-btn-make-default {
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.ae-btn-make-default:hover {
+  background: #263147;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.ae-btn-action-edit {
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.ae-btn-action-edit:hover {
+  background: #263147;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.ae-btn-action-trash {
+  background: #1c2333;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #8a99ad;
+  border-radius: 5px;
+  padding: 5px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ae-btn-action-trash:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+}
+
+.ae-btn-action-trash:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Responsive Breakpoints                                                    */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 992px) {
+  .ae-option-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .ae-option-rates-col {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    padding-left: calc(108px + 14px);
+  }
+
+  .ae-rates-col-list {
+    flex-direction: row;
+    gap: 14px;
+  }
+
+  .ae-option-actions-col {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .ae-option-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ae-option-thumb-wrap {
+    width: 100%;
+    height: 120px;
+  }
+
+  .ae-option-rates-col {
+    padding-left: 0;
+  }
+
+  .ae-option-actions-col {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
