@@ -1,0 +1,301 @@
+// ==========================================================================
+// _components.scss — Tactile Action Buttons, Glowing Badges, Modals & Tabs
+// Physical Depth, Rim Highlights, Subtle Micro-Animations & Travel Luxury
+// ==========================================================================
+
+// --------------------------------------------------------------------------
+// 1. ACTION BUTTONS WITH PHYSICAL TACTILE DEPTH
+// --------------------------------------------------------------------------
+.btn,
+button.btn,
+a.btn {
+  border-radius: var(--style-radius-m, 8px) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  letter-spacing: 0.015em;
+  padding: 9px 18px !important;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid transparent;
+  position: relative;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+
+  // Primary Button (Deep Royal Indigo Brand Gradient)
+  &--style-primary,
+  &.btn--style-primary {
+    background: var(--gradient-primary) !important;
+    border-color: rgba(0, 174, 239, 0.42) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px var(--brand-primary-glow), var(--highlight-rim-strong) !important;
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--brand-primary-light) 0%, var(--brand-primary) 100%) !important;
+      border-color: var(--brand-secondary, #00aeef) !important;
+      box-shadow: 0 6px 18px rgba(46, 49, 146, 0.5), var(--highlight-rim-strong) !important;
+      transform: translateY(-1.5px);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px var(--brand-primary-glow) !important;
+    }
+  }
+
+  // Secondary Button (Elevated Translucent Surface with Rim Light)
+  &--style-secondary,
+  &.btn--style-secondary {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-color: rgba(148, 163, 210, 0.22) !important;
+    box-shadow: var(--highlight-rim), var(--shadow-subtle) !important;
+    color: var(--theme-text, #f1f5f9) !important;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(148, 163, 210, 0.4) !important;
+      color: #ffffff !important;
+      transform: translateY(-1.5px);
+      box-shadow: var(--highlight-rim), 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
+
+  // Warm Orange CTA Button (Hero Actions, Publish, Confirm Booking)
+  &--style-orange,
+  &.btn--style-orange,
+  &--accent {
+    background: var(--gradient-orange) !important;
+    border-color: rgba(245, 130, 32, 0.55) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(245, 130, 32, 0.35), var(--highlight-rim-strong) !important;
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--brand-orange-hover) 0%, var(--brand-orange) 100%) !important;
+      box-shadow: 0 6px 20px rgba(245, 130, 32, 0.5), var(--highlight-rim-strong) !important;
+      transform: translateY(-1.5px);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
+
+  // Danger / Delete Button
+  &--style-danger,
+  &.btn--style-danger,
+  &--delete {
+    background: rgba(239, 68, 68, 0.14) !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    color: #fca5a5 !important;
+    box-shadow: var(--highlight-rim) !important;
+
+    &:hover:not(:disabled) {
+      background: #ef4444 !important;
+      border-color: #ef4444 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45) !important;
+      transform: translateY(-1.5px);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
+
+  // Disabled State
+  &:disabled,
+  &.btn--disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+// --------------------------------------------------------------------------
+// 2. STATUS BADGES, CHIPS & LIVE INDICATOR DOTS
+// --------------------------------------------------------------------------
+.pill,
+.badge,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--style-radius-s, 6px) !important;
+  padding: 4px 10px !important;
+  font-family: var(--font-body) !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-subtle);
+
+  // Warm Brand Orange Badge (Default Hotel, Featured, Warning)
+  &--default,
+  &--featured,
+  &--warning {
+    background: var(--brand-orange-soft, rgba(245, 130, 32, 0.14)) !important;
+    color: var(--brand-orange, #f58220) !important;
+    border: 1px solid var(--brand-orange-border, rgba(245, 130, 32, 0.38)) !important;
+
+    &::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--brand-orange);
+      box-shadow: 0 0 6px var(--brand-orange);
+    }
+  }
+
+  // Brand Sky Blue Badge (Info, Secondary Status)
+  &--info,
+  &--secondary {
+    background: var(--brand-secondary-soft, rgba(0, 174, 239, 0.14)) !important;
+    color: var(--brand-secondary, #00aeef) !important;
+    border: 1px solid var(--brand-secondary-border, rgba(0, 174, 239, 0.38)) !important;
+
+    &::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--brand-secondary);
+      box-shadow: 0 0 6px var(--brand-secondary);
+    }
+  }
+
+  // Published / Active / Confirmed Badge (Luminous Green)
+  &--success,
+  &--published {
+    background: rgba(34, 197, 94, 0.14) !important;
+    color: #4ade80 !important;
+    border: 1px solid rgba(34, 197, 94, 0.35) !important;
+
+    &::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+    }
+  }
+
+  // Draft / Archived / Neutral Badge
+  &--draft,
+  &--neutral {
+    background: rgba(148, 163, 210, 0.1) !important;
+    color: var(--theme-text-secondary, #94a3b8) !important;
+    border: 1px solid rgba(148, 163, 210, 0.2) !important;
+  }
+}
+
+// Luxury Hotel Rating Stars (★)
+.star-rating,
+.rating-star,
+.ae-option-meta-star {
+  color: var(--brand-orange, #f58220) !important;
+  filter: drop-shadow(0 0 3px rgba(245, 130, 32, 0.45));
+}
+
+// --------------------------------------------------------------------------
+// 3. FROSTED MODALS & DIALOGS
+// --------------------------------------------------------------------------
+.modal,
+.modal__content,
+.dialog,
+dialog {
+  border-radius: var(--style-radius-xl, 16px) !important;
+  background-color: var(--color-surface-modal, #182542) !important;
+  border: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.24)) !important;
+  box-shadow: var(--shadow-floating), var(--highlight-rim) !important;
+  overflow: hidden;
+
+  .modal__header {
+    border-bottom: 1px solid rgba(148, 163, 210, 0.16);
+    padding: 20px 26px;
+    background: rgba(13, 20, 36, 0.85);
+
+    h3, h4 {
+      font-family: var(--font-heading) !important;
+      font-weight: 600 !important;
+      color: #ffffff;
+      margin: 0;
+    }
+  }
+
+  .modal__body {
+    padding: 22px 26px;
+  }
+
+  .modal__footer {
+    border-top: 1px solid rgba(148, 163, 210, 0.16);
+    padding: 16px 26px;
+    background: rgba(13, 20, 36, 0.85);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+}
+
+// Modal Backdrop Overlay with Deep Blur
+.modal__backdrop,
+.dialog-backdrop {
+  background: rgba(6, 9, 16, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+// --------------------------------------------------------------------------
+// 4. TABS & SWITCHERS
+// --------------------------------------------------------------------------
+.tabs,
+.tab-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.16));
+  margin-bottom: 22px;
+  padding-bottom: 2px;
+
+  .tab,
+  button.tab {
+    border-radius: var(--style-radius-m, 8px) var(--style-radius-m, 8px) 0 0 !important;
+    padding: 10px 18px !important;
+    font-family: var(--font-body) !important;
+    font-weight: 500 !important;
+    font-size: 0.88rem !important;
+    color: var(--theme-text-secondary, #94a3b8) !important;
+    background: transparent;
+    border: none;
+    border-bottom: 2.5px solid transparent;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+
+    &:hover {
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    // Active Tab (Warm Brand Orange Glowing Accent)
+    &.active,
+    &[aria-selected='true'] {
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      border-bottom-color: var(--brand-orange, #f58220) !important;
+      background: rgba(245, 130, 32, 0.05);
+    }
+  }
+}

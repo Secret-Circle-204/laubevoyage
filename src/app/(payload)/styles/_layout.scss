@@ -1,0 +1,224 @@
+// ==========================================================================
+// _layout.scss — Immersive Admin Navigation, Frosted Header & Shell
+// Glassmorphic Cockpit, Ambient Glows, and Luminous Luxury Travel Hierarchy
+// ==========================================================================
+
+// Master App Canvas
+.template-default,
+#app {
+  background-color: var(--color-surface-canvas, #090e1a) !important;
+  min-height: 100vh;
+}
+
+// --------------------------------------------------------------------------
+// 1. ADMIN SIDEBAR NAVIGATION
+// --------------------------------------------------------------------------
+.nav,
+.nav__wrapper,
+aside.nav {
+  background: rgba(14, 21, 38, 0.96) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-right: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.14)) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35) !important;
+  position: relative;
+
+  // Header / Brand Area with Ambient Gradient Accent
+  .nav__header {
+    padding: 20px 22px !important;
+    border-bottom: 1px solid rgba(148, 163, 210, 0.12) !important;
+    position: relative;
+
+    // Glowing Multi-Color Brand Line at Top
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(
+        90deg,
+        var(--brand-primary) 0%,
+        var(--brand-secondary) 50%,
+        var(--brand-orange) 100%
+      );
+      box-shadow: 0 0 10px rgba(0, 174, 239, 0.4);
+    }
+
+    a,
+    .brand-logo {
+      font-family: var(--font-heading) !important;
+      font-weight: 600 !important;
+      font-size: 1.2rem !important;
+      letter-spacing: -0.02em;
+      color: #ffffff !important;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+  }
+
+  // Group Headers (Collections, Globals, Admin)
+  .nav-group__toggle,
+  .nav__group-label {
+    font-family: var(--font-body) !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.09em !important;
+    color: var(--theme-text-muted, #64748b) !important;
+    padding: 16px 20px 6px 20px !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  // Navigation Links
+  .nav__link,
+  a.nav__link,
+  .nav-group__content a {
+    display: flex !important;
+    align-items: center !important;
+    gap: 11px !important;
+    padding: 9px 14px !important;
+    margin: 3px 12px !important;
+    border-radius: var(--style-radius-m, 8px) !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+    color: var(--theme-text-secondary, #94a3b8) !important;
+    text-decoration: none !important;
+    border-left: 3px solid transparent !important;
+    transition:
+      background-color var(--transition-fast),
+      color var(--transition-fast),
+      transform var(--transition-fast),
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast) !important;
+
+    svg,
+    .icon {
+      width: 17px;
+      height: 17px;
+      opacity: 0.75;
+      transition: opacity var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    // Hover Micro-Animation
+    &:hover {
+      background: rgba(255, 255, 255, 0.05) !important;
+      color: #ffffff !important;
+      transform: translateX(2px);
+
+      svg,
+      .icon {
+        opacity: 1;
+        color: var(--brand-secondary, #00aeef) !important;
+        transform: scale(1.08);
+      }
+    }
+
+    // Active Navigation Item (Warm Orange Left Indicator + Luminous Gradient Pill)
+    &.active,
+    &--active,
+    &[aria-current='page'] {
+      background: linear-gradient(90deg, rgba(46, 49, 146, 0.48) 0%, rgba(26, 38, 70, 0.28) 100%) !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      border-left: 3.5px solid var(--brand-orange, #f58220) !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+
+      svg,
+      .icon {
+        opacity: 1;
+        color: var(--brand-orange, #f58220) !important;
+      }
+    }
+  }
+}
+
+// --------------------------------------------------------------------------
+// 2. TOP APP HEADER & FROSTED GLASS
+// --------------------------------------------------------------------------
+.app-header,
+header.app-header {
+  background: var(--gradient-header) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.14)) !important;
+  box-shadow: var(--highlight-rim), 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 26px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+
+  // Breadcrumb Navigation
+  .step-nav,
+  .breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-body) !important;
+    font-size: 0.88rem;
+
+    a {
+      color: var(--theme-text-secondary, #94a3b8);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color var(--transition-fast);
+
+      &:hover {
+        color: var(--brand-secondary, #00aeef);
+      }
+    }
+
+    span,
+    .step-nav__last {
+      color: var(--theme-text-heading, #ffffff);
+      font-weight: 600;
+    }
+
+    .step-nav__separator {
+      color: var(--theme-text-muted, #64748b);
+      opacity: 0.5;
+    }
+  }
+
+  // Account / User Pill Button
+  .app-header__account,
+  .account-button {
+    border-radius: var(--style-radius-m, 8px) !important;
+    border: 1px solid rgba(148, 163, 210, 0.22) !important;
+    padding: 7px 14px;
+    background: rgba(255, 255, 255, 0.04) !important;
+    box-shadow: var(--highlight-rim) !important;
+    transition: all var(--transition-fast);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(148, 163, 210, 0.38) !important;
+      box-shadow: 0 0 10px rgba(0, 174, 239, 0.2) !important;
+    }
+  }
+}
+
+// --------------------------------------------------------------------------
+// 3. STICKY DOCUMENT CONTROLS / ACTION BAR
+// --------------------------------------------------------------------------
+.doc-controls,
+.doc-header__controls {
+  background: rgba(13, 20, 36, 0.94) !important;
+  backdrop-filter: blur(14px) !important;
+  border-bottom: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.15)) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+  padding: 12px 26px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}

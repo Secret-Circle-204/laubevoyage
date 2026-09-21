@@ -1,0 +1,145 @@
+// ==========================================================================
+// _fields-upload.scss — Immersive Media Upload Dropzones & Cards
+// Radial Spotlights, Hover Zoom Previews, and Tactile Floating Actions
+// ==========================================================================
+
+// --------------------------------------------------------------------------
+// 1. FILE UPLOAD DROPZONE
+// --------------------------------------------------------------------------
+.file-field,
+.upload,
+.dropzone,
+.file-upload {
+  border-radius: var(--style-radius-l, 12px) !important;
+  border: 2px dashed rgba(148, 163, 210, 0.25) !important;
+  background: var(--gradient-input) !important;
+  box-shadow: none !important;
+  padding: 30px 24px !important;
+  text-align: center;
+  position: relative;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+
+  // Drag Over & Hover (Spotlight Radial Glow)
+  &:hover,
+  &--drag-over,
+  &.drag-over {
+    border-color: var(--brand-orange, #f58220) !important;
+    background: radial-gradient(circle at center, rgba(245, 130, 32, 0.12) 0%, rgba(17, 26, 46, 0.8) 100%) !important;
+    box-shadow: 0 0 24px rgba(245, 130, 32, 0.2) !important;
+  }
+
+  // Upload Icon
+  .upload__icon,
+  svg {
+    color: var(--brand-secondary, #00aeef);
+    margin-bottom: 12px;
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+
+  &:hover svg {
+    transform: translateY(-3px) scale(1.1);
+    color: var(--brand-orange, #f58220);
+  }
+
+  p,
+  .upload__label {
+    font-family: var(--font-body) !important;
+    font-weight: 500;
+    font-size: 0.92rem;
+    color: var(--theme-text, #f1f5f9);
+
+    span {
+      color: var(--brand-secondary, #00aeef);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  // Subtitle / Supported Formats Note
+  .upload__description,
+  small {
+    font-size: 0.8rem;
+    color: var(--theme-text-muted, #64748b);
+    margin-top: 6px;
+    display: block;
+  }
+}
+
+// --------------------------------------------------------------------------
+// 2. MEDIA CARD PREVIEW THUMBNAIL
+// --------------------------------------------------------------------------
+.thumbnail,
+.file-details,
+.media-card {
+  border-radius: var(--style-radius-m, 8px) !important;
+  overflow: hidden;
+  border: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.2)) !important;
+  background: var(--gradient-card) !important;
+  box-shadow: var(--shadow-card), var(--highlight-rim) !important;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elevated), 0 0 16px rgba(0, 174, 239, 0.15) !important;
+  }
+
+  // Image Thumbnail Container
+  .thumbnail__image-wrap,
+  .media-card__image-wrap {
+    overflow: hidden;
+    position: relative;
+
+    img {
+      border-radius: var(--style-radius-m, 8px) var(--style-radius-m, 8px) 0 0;
+      object-fit: cover;
+      transition: transform var(--transition-smooth);
+    }
+
+    &:hover img {
+      transform: scale(1.04);
+    }
+  }
+
+  // Meta info Details
+  .file-details__main,
+  .media-card__meta {
+    padding: 12px 16px;
+    font-family: var(--font-body) !important;
+
+    .file-details__filename {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--theme-text-heading, #ffffff);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-details__size,
+    .file-details__dimensions {
+      font-size: 0.78rem;
+      color: var(--theme-text-muted, #64748b);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
+  }
+
+  // Action Buttons on Thumbnail
+  .file-details__remove,
+  .file-details__edit {
+    border-radius: var(--style-radius-s, 6px) !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    padding: 5px 10px;
+    backdrop-filter: blur(8px);
+    transition: all var(--transition-fast);
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.2) !important;
+      color: #ef4444 !important;
+      transform: scale(1.05);
+    }
+  }
+}

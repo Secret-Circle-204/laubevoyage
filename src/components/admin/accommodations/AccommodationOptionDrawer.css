@@ -11,7 +11,7 @@
   background: #111622;
   color: #f8fafc;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */
@@ -33,7 +33,7 @@
 
 .ae-drawer-eyebrow {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #94a3b8;
@@ -41,7 +41,7 @@
 
 .ae-drawer-heading {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: #ffffff;
   margin: 0;
   letter-spacing: -0.01em;
@@ -109,7 +109,7 @@
 
 .ae-drawer-section-title {
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #94a3b8;

@@ -12,7 +12,7 @@
   margin: 10px 0;
   box-sizing: border-box;
   color: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body, 'Montserrat', sans-serif);
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */
@@ -57,7 +57,7 @@
 .ae-main-title {
   margin: 0;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.01em;
   color: #f8fafc;
   line-height: 1.2;
@@ -255,7 +255,7 @@
 
 .ae-timeline-number {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: #ffffff;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -263,7 +263,7 @@
 
 .ae-timeline-label {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.1em;
   color: #94a3b8;
   margin-top: 2px;
@@ -338,7 +338,7 @@
   border-radius: 6px;
   color: #ffffff;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.01em;
   padding: 3px 26px 3px 10px;
   cursor: pointer;
@@ -374,7 +374,7 @@
 .ae-stay-city-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: #ffffff;
   letter-spacing: -0.01em;
 }

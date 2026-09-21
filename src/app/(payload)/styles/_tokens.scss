@@ -1,0 +1,189 @@
+// ==========================================================================
+// _tokens.scss — L'AUBE VOYAGE Enterprise Admin Design Tokens
+// Immersive Glassmorphic & Tactile Surface System with Depth & Ambience
+// ==========================================================================
+
+:root {
+  // --------------------------------------------------------------------------
+  // 1. BRAND IDENTITY TOKENS (L'Aube Voyage)
+  // --------------------------------------------------------------------------
+  --brand-primary: #2e3192;            // Deep Blue/Royal Indigo
+  --brand-primary-light: #4448b0;
+  --brand-primary-hover: #3b3fad;
+  --brand-primary-dark: #1e2166;
+  --brand-primary-glow: rgba(46, 49, 146, 0.35);
+
+  --brand-secondary: #00aeef;          // Bright Cyan/Sky Blue
+  --brand-secondary-light: #33bef2;
+  --brand-secondary-dark: #008bc0;
+  --brand-secondary-soft: rgba(0, 174, 239, 0.12);
+  --brand-secondary-border: rgba(0, 174, 239, 0.35);
+  --brand-secondary-glow: rgba(0, 174, 239, 0.28);
+
+  // Warm Brand Orange (Accents, Statuses, Focus, Highlights — Never Overwhelming)
+  --brand-orange: #f58220;             // Vibrant Warm Orange
+  --brand-orange-light: #f79b4d;
+  --brand-orange-hover: #ff8e2b;
+  --brand-orange-dark: #d66a0a;
+  --brand-orange-soft: rgba(245, 130, 32, 0.14);
+  --brand-orange-border: rgba(245, 130, 32, 0.42);
+  --brand-orange-glow: 0 0 16px rgba(245, 130, 32, 0.28);
+
+  // --------------------------------------------------------------------------
+  // 2. UNIFIED BORDER RADII (Balanced & Sensible)
+  // --------------------------------------------------------------------------
+  --style-radius-xs: 4px;
+  --style-radius-s: 6px;               // Badges, tags, chips, mini-buttons
+  --style-radius-m: 8px;               // Standard inputs, buttons, selects, cards
+  --style-radius-l: 12px;              // Panels, containers, collection wrappers
+  --style-radius-xl: 16px;             // Modals, drawers, floating dialogs
+  --style-radius-pill: 9999px;         // Pill status indicators
+
+  // --------------------------------------------------------------------------
+  // 3. TYPOGRAPHY TOKENS
+  // --------------------------------------------------------------------------
+  --font-body: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+
+  // --------------------------------------------------------------------------
+  // 4. TRANSITIONS & TIMING
+  // --------------------------------------------------------------------------
+  --transition-fast: 140ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  // --------------------------------------------------------------------------
+  // 5. TACTILE LIGHTING & SURFACE DEPTH
+  // --------------------------------------------------------------------------
+  --shadow-inner-inset: none;
+  --highlight-rim: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --highlight-rim-strong: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.35), 0 2px 6px -1px rgba(0, 0, 0, 0.2);
+  --shadow-elevated: 0 12px 32px -4px rgba(0, 0, 0, 0.55), 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+  --shadow-floating: 0 24px 54px -8px rgba(0, 0, 0, 0.7), 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+
+  // Focus Rings
+  --focus-ring-blue: 0 0 0 1px var(--brand-secondary), 0 0 0 4px rgba(0, 174, 239, 0.2), 0 4px 12px rgba(0, 174, 239, 0.15);
+  --focus-ring-orange: 0 0 0 1px var(--brand-orange), 0 0 0 4px rgba(245, 130, 32, 0.22), 0 4px 12px rgba(245, 130, 32, 0.18);
+}
+
+// --------------------------------------------------------------------------
+// 6. ELEVATED, LUMINOUS DARK MODE PALETTE
+// Multi-Tier Sapphire / Oceanic Midnight Surfaces with Ambient Depth
+// --------------------------------------------------------------------------
+html[data-theme='dark'],
+:root[data-theme='dark'] {
+  // Core Surfaces (Layered Oceanic Midnight Depth)
+  --color-surface-canvas: #090e1a;      // Deep Master Background
+  --color-surface-base: #0d1424;        // Main Page Canvas
+  --color-surface-inset: #111a2e;       // Inset Wells, Inputs, Editor Area
+  --color-surface-card: #15213b;        // Cards, Panels, Sidebar Background
+  --color-surface-card-hover: #1c2c4d;  // Hover Surface for Rows & Cards
+  --color-surface-elevated: #22355b;    // Floating Dropdowns, Popovers
+  --color-surface-modal: #182542;       // Modals & Flyout Drawers
+  --color-surface-glass: rgba(19, 29, 52, 0.82); // Frosted Glassmorphism
+
+  // Gradients for Depth & Visual Richness
+  --gradient-card: linear-gradient(180deg, rgba(24, 37, 66, 0.85) 0%, rgba(17, 26, 46, 0.95) 100%);
+  --gradient-input: #111a2e;
+  --gradient-header: linear-gradient(180deg, rgba(13, 20, 36, 0.92) 0%, rgba(9, 14, 26, 0.96) 100%);
+  --gradient-orange: linear-gradient(135deg, #f58220 0%, #d66a0a 100%);
+  --gradient-primary: linear-gradient(135deg, #3236a0 0%, #1e2166 100%);
+  --gradient-secondary: linear-gradient(135deg, #00aeef 0%, #007bb5 100%);
+
+  // Borders (Crisp, Fine-Lined, Crystalline Multi-Layer Borders)
+  --theme-border-color: rgba(148, 163, 210, 0.16);
+  --theme-border-subtle: rgba(255, 255, 255, 0.07);
+  --theme-border-hover: rgba(148, 163, 210, 0.32);
+  --theme-border-glow: rgba(0, 174, 239, 0.45);
+  --theme-border-focus: var(--brand-secondary);
+
+  // Typography Palette (High-Contrast, Pure Clarity)
+  --theme-text: #f1f5f9;               // Primary Bright Text (Slate 100)
+  --theme-text-heading: #ffffff;       // Ultra Crisp Headings
+  --theme-text-secondary: #94a3b8;     // Secondary Text & Labels (Slate 400)
+  --theme-text-muted: #64748b;         // Placeholder & Muted Notes (Slate 500)
+
+  // Payload Base Color Overrides
+  --color-base-0: #ffffff;
+  --color-base-50: #f8fafc;
+  --color-base-100: #e2eaf8;
+  --color-base-150: #bdcff0;
+  --color-base-200: #96aee0;
+  --color-base-250: #7290cc;
+  --color-base-300: #4f6fae;
+  --color-base-350: #3b5691;
+  --color-base-400: #2f4577;
+  --color-base-450: #273a65;
+  --color-base-500: #223459;
+  --color-base-550: #1d2c4c;
+  --color-base-600: #182540;
+  --color-base-650: #15213b;
+  --color-base-700: #131d35;
+  --color-base-750: #111a2e;
+  --color-base-800: #0d1424;
+  --color-base-850: #0a101d;
+  --color-base-900: #080d17;
+  --color-base-950: #050911;
+  --color-base-1000: #020408;
+
+  // Payload Elevation Mapping
+  --theme-bg: var(--color-surface-base);
+  --theme-input-bg: var(--color-surface-inset);
+  --theme-elevation-0: var(--color-surface-base);
+  --theme-elevation-50: var(--color-surface-inset);
+  --theme-elevation-100: var(--color-surface-card);
+  --theme-elevation-150: var(--color-surface-card-hover);
+  --theme-elevation-200: var(--color-surface-elevated);
+  --theme-elevation-250: #2a406e;
+  --theme-elevation-300: #324c82;
+  --theme-elevation-350: #3d5c9c;
+  --theme-elevation-400: #5577b7;
+  --theme-elevation-450: #7496d4;
+  --theme-elevation-500: #94b2ec;
+  --theme-elevation-550: #b4ccf5;
+  --theme-elevation-600: #cee0fb;
+  --theme-elevation-650: #e2eaf8;
+  --theme-elevation-700: #edf3fd;
+  --theme-elevation-750: #f4f7fe;
+  --theme-elevation-800: #f8fafc;
+  --theme-elevation-850: #ffffff;
+  --theme-elevation-900: #ffffff;
+  --theme-elevation-950: #ffffff;
+  --theme-elevation-1000: #ffffff;
+
+  // Status Colors
+  --theme-success-500: #22c55e;
+  --theme-warning-500: var(--brand-orange);
+  --theme-error-500: #ef4444;
+
+  // Global Selection Highlight
+  ::selection {
+    background: rgba(245, 130, 32, 0.35);
+    color: #ffffff;
+  }
+}
+
+// Custom Luxury Scrollbars
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(9, 14, 26, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 210, 0.22);
+  border-radius: 9999px;
+  border: 2px solid rgba(9, 14, 26, 0.5);
+  transition: background var(--transition-fast);
+
+  &:hover {
+    background: rgba(245, 130, 32, 0.45);
+  }
+}

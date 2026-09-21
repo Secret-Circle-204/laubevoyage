@@ -1,0 +1,599 @@
+// ==========================================================================
+// _fields-base.scss — Immersive Form Controls, Tactile Inputs, & Rich Cards
+// Multi-Layer Inset Depths, Rim Lighting Highlights, and Dual-Glow Focus Rings
+// ==========================================================================
+
+// --------------------------------------------------------------------------
+// 1. STANDARD FORM INPUTS & TEXTAREAS
+// (Strictly standalone inputs — NEVER targets React-Select internal elements)
+// --------------------------------------------------------------------------
+.field-type:not(.select):not(.relationship) input:not([type='checkbox']):not([type='radio']):not([class*='rs__']),
+input[type='text']:not([class*='rs__']):not([id*='react-select']),
+input[type='number']:not([class*='rs__']),
+input[type='email']:not([class*='rs__']),
+input[type='password']:not([class*='rs__']),
+input[type='url']:not([class*='rs__']),
+input[type='tel']:not([class*='rs__']),
+input[type='search']:not([class*='rs__']),
+input[type='date']:not([class*='rs__']),
+input[type='datetime-local']:not([class*='rs__']),
+input[type='time']:not([class*='rs__']),
+textarea,
+.field-type textarea {
+  border-radius: var(--style-radius-m, 8px) !important;
+  background: var(--gradient-input, #111a2e) !important;
+  border: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.2)) !important;
+  color: var(--theme-text, #f1f5f9) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+  padding: 9px 14px !important;
+  min-height: 40px;
+  line-height: 1.45;
+  box-shadow: none !important;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+
+  &::placeholder {
+    color: var(--theme-text-muted, #64748b) !important;
+    font-weight: 400 !important;
+    font-size: 0.875rem !important;
+  }
+
+  // Hover State
+  &:hover:not(:disabled):not([readonly]) {
+    border-color: var(--theme-border-hover, rgba(148, 163, 210, 0.38)) !important;
+    box-shadow: none !important;
+  }
+
+  // Dual-Glow Focus State (Vibrant & Eye-Friendly)
+  &:focus,
+  &:focus-within,
+  &:active {
+    outline: none !important;
+    border-color: var(--brand-secondary, #00aeef) !important;
+    box-shadow: var(--focus-ring-blue) !important;
+  }
+
+  &:disabled,
+  &[readonly] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: rgba(13, 20, 36, 0.6) !important;
+    border-color: rgba(148, 163, 210, 0.1) !important;
+    box-shadow: none !important;
+  }
+}
+
+// Textareas with Fluid Vertical Resize
+textarea,
+.field-type textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+// --------------------------------------------------------------------------
+// 2. UNIVERSAL SELECT CONTROLS (Shell, Frame, Single & Multi-Value Alignment)
+// Strict single-row horizontal alignment; indicators NEVER wrap or displace
+// --------------------------------------------------------------------------
+.rs__control,
+.react-select__control,
+.field-type.select .rs__control,
+.field-type.relationship .rs__control,
+div[class*='rs__control'] {
+  border-radius: var(--style-radius-m, 8px) !important;
+  background: var(--gradient-input, #111a2e) !important;
+  border: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.2)) !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  max-height: 40px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 6px 0 12px !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast) !important;
+
+  &:hover {
+    border-color: var(--theme-border-hover, rgba(148, 163, 210, 0.38)) !important;
+  }
+
+  &.rs__control--is-focused,
+  &[class*='--is-focused'],
+  &:focus-within {
+    border-color: var(--brand-secondary, #00aeef) !important;
+    box-shadow: var(--focus-ring-blue) !important;
+  }
+
+  // Multi-select containers expand vertically ONLY when tags require wrapping
+  &:has(.rs__value-container--is-multi),
+  &:has(.rs__multi-value),
+  &:has(.multi-value) {
+    height: auto !important;
+    min-height: 40px !important;
+    max-height: none !important;
+    padding: 3px 6px 3px 8px !important;
+  }
+}
+
+// --------------------------------------------------------------------------
+// 3. VALUE CONTAINERS & TEXT TRUNCATION (Ellipsis on Overlong Text)
+// --------------------------------------------------------------------------
+.value-container,
+div[class*='value-container'],
+.rs__value-container,
+div[class*='rs__value-container'] {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  gap: 4px !important;
+
+  // Single select: strictly nowrap so text never pushes indicators down
+  &:not(.rs__value-container--is-multi):not([class*='--is-multi']) {
+    flex-wrap: nowrap !important;
+  }
+
+  // Multi select: allow tags to wrap naturally
+  &.rs__value-container--is-multi,
+  &[class*='--is-multi'] {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    padding: 2px 0 !important;
+    gap: 6px !important;
+  }
+}
+
+// Single Value Text (Always single-line, clips gracefully with ellipsis)
+.rs__single-value,
+.single-value,
+.react-select--single-value,
+div[class*='rs__single-value'],
+div[class*='react-select--single-value'] {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: var(--theme-text, #f1f5f9) !important;
+  font-family: var(--font-body) !important;
+  font-size: 0.88rem !important;
+  font-weight: 500 !important;
+  line-height: normal !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+// Placeholder Text in Selects
+.rs__placeholder,
+div[class*='rs__placeholder'] {
+  color: var(--theme-text-muted, #64748b) !important;
+  font-family: var(--font-body) !important;
+  font-size: 0.88rem !important;
+  font-weight: 400 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  line-height: normal !important;
+  margin: 0 !important;
+}
+
+// --------------------------------------------------------------------------
+// 4. REACT-SELECT INTERNAL SEARCH INPUT HARD RESET
+// Guarantees search input never takes an extra line or breaks single-select layout
+// --------------------------------------------------------------------------
+.rs__input-container,
+div[class*='rs__input-container'] {
+  display: inline-flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 auto !important;
+  max-width: 2px !important;
+  overflow: hidden !important;
+
+  &:has(input:focus),
+  &[data-value]:not([data-value='']) {
+    max-width: none !important;
+    flex: 1 1 auto !important;
+  }
+
+  input,
+  .rs__input {
+    all: unset !important;
+    color: var(--theme-text, #f1f5f9) !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.88rem !important;
+    line-height: normal !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 0 !important;
+    display: inline-block !important;
+    position: static !important;
+    opacity: 1 !important;
+  }
+}
+
+.rs__control input,
+.react-select input,
+.react-select-container input,
+.rs__input,
+.rs__input input,
+input[id*='react-select'],
+div[class*='rs__input'] input,
+div[class*='rs__value-container'] input {
+  all: unset !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  color: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  display: inline-block !important;
+  position: static !important;
+  opacity: 1 !important;
+}
+
+.rs__control input:focus,
+.react-select input:focus,
+input[id*='react-select']:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+// --------------------------------------------------------------------------
+// 5. INDICATORS (Clear X & Dropdown Chevron) — ALWAYS PINNED RIGHT ON SAME LINE
+// --------------------------------------------------------------------------
+.rs__indicators,
+.indicators-container,
+div[class*='rs__indicators'],
+div[class*='indicators-container'] {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+  padding: 0 !important;
+  gap: 2px !important;
+  align-self: center !important;
+  height: 100% !important;
+  min-height: 38px !important;
+
+  // Clear Indicator (X) and Dropdown Indicator (V)
+  .rs__indicator,
+  div[class*='rs__indicator'],
+  .clear-indicator,
+  .dropdown-indicator,
+  button.dropdown-indicator {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    width: 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 4px !important;
+    color: var(--theme-text-secondary, #94a3b8) !important;
+    cursor: pointer !important;
+    transition:
+      color var(--transition-fast),
+      background-color var(--transition-fast),
+      transform var(--transition-fast) !important;
+
+    svg,
+    .icon {
+      width: 14px !important;
+      height: 14px !important;
+      stroke-width: 2px !important;
+      color: inherit !important;
+      stroke: currentColor !important;
+      fill: none !important;
+      display: block !important;
+    }
+
+    &:hover {
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+    }
+  }
+
+  .rs__clear-indicator:hover,
+  .clear-indicator:hover {
+    color: var(--brand-orange, #f58220) !important;
+    background: rgba(245, 130, 32, 0.14) !important;
+  }
+}
+
+// --------------------------------------------------------------------------
+// 4. TACTILE CHECKBOXES & TOGGLES
+// --------------------------------------------------------------------------
+.field-type.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+
+  input[type='checkbox'] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px !important;
+    border: 1.5px solid rgba(148, 163, 210, 0.32) !important;
+    background: var(--gradient-input) !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    position: relative;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+
+    &:hover {
+      border-color: var(--brand-secondary, #00aeef) !important;
+      box-shadow: 0 0 8px rgba(0, 174, 239, 0.25) !important;
+    }
+
+    &:checked {
+      background: var(--gradient-primary) !important;
+      border-color: var(--brand-secondary) !important;
+      box-shadow: 0 0 12px var(--brand-secondary-glow), var(--highlight-rim-strong) !important;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 2.5px;
+        left: 6px;
+        width: 5px;
+        height: 10px;
+        border: solid #ffffff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring-blue) !important;
+    }
+  }
+
+  label {
+    margin-bottom: 0 !important;
+    cursor: pointer;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    color: var(--theme-text, #f1f5f9) !important;
+    user-select: none;
+  }
+}
+
+// --------------------------------------------------------------------------
+// 5. RICH FIELDSET CARDS, COLLAPSIBLES & BLOCKS
+// --------------------------------------------------------------------------
+.field-type.group,
+.field-type.collapsible,
+.field-type.array,
+.field-type.blocks {
+  border-radius: var(--style-radius-l, 12px) !important;
+  border: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.18)) !important;
+  background: var(--gradient-card) !important;
+  box-shadow: var(--shadow-card), var(--highlight-rim) !important;
+  padding: 18px 22px !important;
+  margin-bottom: 22px !important;
+  position: relative;
+  transition:
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  }
+
+  &:hover {
+    border-color: var(--theme-border-hover, rgba(148, 163, 210, 0.28)) !important;
+  }
+
+  .collapsible__toggle-wrap {
+    border-radius: var(--style-radius-m, 8px) !important;
+    padding: 10px 14px;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.04) !important;
+    }
+  }
+
+  .array-field__row,
+  .blocks-field__row {
+    border-radius: var(--style-radius-m, 8px) !important;
+    border: 1px solid rgba(148, 163, 210, 0.14) !important;
+    background: rgba(13, 20, 36, 0.6) !important;
+    box-shadow: var(--shadow-subtle);
+    margin-bottom: 12px;
+    padding: 14px;
+  }
+}
+
+// --------------------------------------------------------------------------
+// 6. ERROR STATES
+// --------------------------------------------------------------------------
+.field-has-error,
+.field-error,
+.field-type.has-error {
+  input:not(.rs__control input),
+  textarea,
+  .rs__control {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 1px #ef4444, 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
+  }
+
+  .field-error-message,
+  .field-error {
+    color: #f87171 !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+}
+
+// --------------------------------------------------------------------------
+// 7. NATIVE SELECT DROPDOWNS & DATE PICKERS
+// --------------------------------------------------------------------------
+select:not([class*='rs__']),
+.field-type:not(.relationship):not(.select) select {
+  border-radius: var(--style-radius-m, 8px) !important;
+  background: var(--gradient-input, #111a2e) !important;
+  border: 1px solid var(--theme-border-color, rgba(148, 163, 210, 0.2)) !important;
+  color: var(--theme-text, #f1f5f9) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 500 !important;
+  font-size: 0.88rem !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 36px 0 12px !important;
+  line-height: 38px !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 16px !important;
+  cursor: pointer !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+
+  &:hover {
+    border-color: var(--theme-border-hover, rgba(148, 163, 210, 0.38)) !important;
+  }
+
+  &:focus {
+    outline: none !important;
+    border-color: var(--brand-secondary, #00aeef) !important;
+    box-shadow: var(--focus-ring-blue) !important;
+  }
+}
+
+// Crisp Calendar Picker Icons
+input[type='date'],
+input[type='datetime-local'],
+input[type='time'] {
+  &::-webkit-calendar-picker-indicator {
+    filter: invert(0.8) sepia(0.2) hue-rotate(170deg) !important;
+    cursor: pointer !important;
+    padding: 2px !important;
+    border-radius: 4px !important;
+    transition: filter var(--transition-fast) !important;
+
+    &:hover {
+      filter: invert(1) !important;
+    }
+  }
+}
+
+// --------------------------------------------------------------------------
+// 8. SIDEBAR & MULTI-COLUMN RESPONSIVE LAYOUT CONSTRAINTS
+// --------------------------------------------------------------------------
+.doc-sidebar,
+.collection-edit__sidebar,
+aside.sidebar,
+.sidebar,
+.field-type.column,
+.field-type.columns,
+.field-type.row,
+.render-fields {
+  min-width: 0 !important;
+
+  .field-type {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+
+    .field-label {
+      font-size: 0.82rem !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.01em;
+      margin-bottom: 5px;
+    }
+
+    input,
+    select,
+    textarea,
+    .rs__control,
+    .react-select-container,
+    .react-select {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+    }
+  }
+}
+
