@@ -43,6 +43,7 @@ import * as migration_20260911_170000_drop_legacy_occupancy_options from './2026
 import * as migration_20260919_011500_create_accommodations_options_schema from './20260919_011500_create_accommodations_options_schema';
 import * as migration_20260919_150000_add_pricing_snapshot_commercial_breakdown from './20260919_150000_add_pricing_snapshot_commercial_breakdown';
 import * as migration_20260920_150000_add_is_default_to_accommodations_options from './20260920_150000_add_is_default_to_accommodations_options';
+import * as migration_20260921_233000_add_collection_list_indexes from './20260921_233000_add_collection_list_indexes';
 
 export const migrations = [
   {
@@ -269,5 +270,10 @@ export const migrations = [
     up: migration_20260920_150000_add_is_default_to_accommodations_options.up,
     down: migration_20260920_150000_add_is_default_to_accommodations_options.down,
     name: '20260920_150000_add_is_default_to_accommodations_options'
+  },
+  {
+    up: migration_20260921_233000_add_collection_list_indexes.up,
+    down: migration_20260921_233000_add_collection_list_indexes.down,
+    name: '20260921_233000_add_collection_list_indexes'
   },
 ];

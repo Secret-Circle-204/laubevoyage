@@ -14,8 +14,27 @@ export const Experiences: CollectionConfig = {
   slug: 'experiences',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'city', 'type', 'price', 'availability'],
+    enableListViewSelectAPI: true,
+    listSearchableFields: ['title', 'slug'],
+    defaultColumns: ['hero', 'title', 'city', 'type', 'price', 'availability'],
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/universal-table/UniversalListView#UniversalListView',
+        },
+      },
+    },
   },
+  forceSelect: {
+    title: true,
+    slug: true,
+    availability: true,
+  },
+  indexes: [
+    {
+      fields: ['city', 'updatedAt'],
+    },
+  ],
   access: {
     read: () => true,
   },
@@ -121,6 +140,7 @@ export const Experiences: CollectionConfig = {
       name: 'title',
       type: 'text',
       required: true,
+      index: true,
     },
     {
       name: 'slug',
@@ -135,6 +155,7 @@ export const Experiences: CollectionConfig = {
       name: 'type',
       type: 'select',
       required: true,
+      index: true,
       options: [
         { label: 'Package', value: 'package' },
         { label: 'Daily Tour', value: 'daily_tour' },
@@ -161,6 +182,7 @@ export const Experiences: CollectionConfig = {
       type: 'relationship',
       relationTo: 'cities',
       required: true,
+      index: true,
       admin: {
         position: 'sidebar',
         description:
@@ -274,6 +296,7 @@ export const Experiences: CollectionConfig = {
       name: 'price',
       type: 'number',
       min: 0,
+      index: true,
       validate: (val: unknown, { data }: { data: Partial<Experience> }) => {
         if (data?.type === 'daily_tour') {
           if (val === undefined || val === null || val === '') {
@@ -296,6 +319,7 @@ export const Experiences: CollectionConfig = {
       name: 'availability',
       type: 'select',
       required: true,
+      index: true,
       defaultValue: 'available',
       options: [
         { label: 'Available', value: 'available' },

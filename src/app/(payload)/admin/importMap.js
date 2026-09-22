@@ -24,6 +24,7 @@ import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0
 import { DurationHoursField as DurationHoursField_cfebf3e08b081faa627e9c76b4ae976d } from '@/components/admin/DurationHoursField'
 import { AccommodationsEditor as AccommodationsEditor_8f3130c847aa5539e48a56c00b7af6f2 } from '@/components/admin/AccommodationsEditor'
 import { DepartureSlotsEditor as DepartureSlotsEditor_0a21e2f4ae31ad83e9e65f93bbccf7dc } from '@/components/admin/DepartureSlotsEditor'
+import { UniversalListView as UniversalListView_ffe35bbbe496adfc85fb2d03812faea2 } from '@/components/admin/universal-table/UniversalListView'
 import { BookingStatusField as BookingStatusField_cf146a4a2c9b6435470a488e2d787984 } from '@/components/admin/BookingStatusField'
 import { CalendarDateCell as CalendarDateCell_792460ba378d690e0aef26d86be1a3b0 } from '@/components/admin/CalendarDateCell'
 import { OperationalCompletionCell as OperationalCompletionCell_105d161b8d42a752f14c357f9758c300 } from '@/components/admin/OperationalCompletionCell'
@@ -59,6 +60,7 @@ export const importMap = {
   "@/components/admin/DurationHoursField#DurationHoursField": DurationHoursField_cfebf3e08b081faa627e9c76b4ae976d,
   "@/components/admin/AccommodationsEditor#AccommodationsEditor": AccommodationsEditor_8f3130c847aa5539e48a56c00b7af6f2,
   "@/components/admin/DepartureSlotsEditor#DepartureSlotsEditor": DepartureSlotsEditor_0a21e2f4ae31ad83e9e65f93bbccf7dc,
+  "@/components/admin/universal-table/UniversalListView#UniversalListView": UniversalListView_ffe35bbbe496adfc85fb2d03812faea2,
   "@/components/admin/BookingStatusField#BookingStatusField": BookingStatusField_cf146a4a2c9b6435470a488e2d787984,
   "@/components/admin/CalendarDateCell#CalendarDateCell": CalendarDateCell_792460ba378d690e0aef26d86be1a3b0,
   "@/components/admin/OperationalCompletionCell#OperationalCompletionCell": OperationalCompletionCell_105d161b8d42a752f14c357f9758c300,

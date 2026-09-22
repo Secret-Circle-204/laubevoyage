@@ -1,0 +1,1468 @@
+/* ==========================================================================
+   Universal Table Luxury Presentation Styles
+   100% Scoped to .universal-table-root | ZERO Global Resets | ZERO Tailwind Preflight
+   ========================================================================== */
+
+.universal-table-root {
+  font-family: var(--font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  color: #e2e8f0;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   KPI Summary Strip
+   -------------------------------------------------------------------------- */
+.universal-table-root .ut-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 8px 0 20px 0;
+  width: 100%;
+}
+
+.universal-table-root .ut-kpi-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.universal-table-root .ut-kpi-card:hover {
+  border-color: rgba(148, 163, 184, 0.4);
+  transform: translateY(-1px);
+}
+
+.universal-table-root .ut-kpi-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.universal-table-root .ut-kpi-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.universal-table-root .ut-kpi-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  display: block;
+}
+
+.universal-table-root .ut-kpi-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.universal-table-root .ut-kpi-stat-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.universal-table-root .ut-kpi-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.universal-table-root .ut-kpi-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.universal-table-root .ut-kpi-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.universal-table-root .ut-kpi-bar {
+  width: 48px;
+  height: 5px;
+  border-radius: 9999px;
+  background: rgba(30, 41, 59, 0.9);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.universal-table-root .ut-kpi-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: #10b981;
+}
+
+/* --------------------------------------------------------------------------
+   Table Shell & Card
+   -------------------------------------------------------------------------- */
+.universal-table-root .ut-card {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 16px;
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  margin: 12px 0 24px 0;
+  width: 100%;
+}
+
+.universal-table-root .ut-card.ut-grid-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.universal-table-root .ut-grid-viewport {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.universal-table-root .ut-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.universal-table-root .ut-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 13px;
+}
+
+/* --------------------------------------------------------------------------
+   Table Head & Header Cells
+   -------------------------------------------------------------------------- */
+.universal-table-root .ut-thead {
+  background: rgba(10, 15, 28, 0.95);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.universal-table-root .ut-th {
+  padding: 13px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+}
+
+.universal-table-root .ut-th-checkbox {
+  width: 44px;
+  text-align: center;
+  padding: 13px 12px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+}
+
+/* --------------------------------------------------------------------------
+   Table Body & Rows
+   -------------------------------------------------------------------------- */
+.universal-table-root .ut-tbody tr {
+  border-bottom: 1px solid rgba(51, 65, 85, 0.25);
+  transition: background 0.15s ease;
+}
+
+.universal-table-root .ut-tbody tr:last-child {
+  border-bottom: none;
+}
+
+.universal-table-root .ut-tbody tr:hover {
+  background: rgba(30, 41, 59, 0.45);
+}
+
+.universal-table-root .ut-tbody tr.ut-row-selected {
+  background: rgba(245, 158, 11, 0.07);
+}
+
+.universal-table-root .ut-td {
+  padding: 13px 16px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.2);
+  color: #cbd5e1;
+}
+
+.universal-table-root .ut-td-checkbox {
+  width: 44px;
+  text-align: center;
+  padding: 13px 12px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.2);
+}
+
+/* Checkbox styling */
+.universal-table-root .ut-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  background: rgba(15, 23, 42, 0.9);
+  accent-color: #f59e0b;
+  cursor: pointer;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* --------------------------------------------------------------------------
+   Cell Presentation Elements
+   -------------------------------------------------------------------------- */
+.universal-table-root .ut-thumb {
+  width: 56px;
+  height: 40px;
+  min-width: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  background: rgba(30, 41, 59, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.universal-table-root .ut-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.universal-table-root .ut-title-cell {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  line-height: 1.35 !important;
+}
+
+.universal-table-root .ut-title-link {
+  font-family: var(--font-body, 'Montserrat', sans-serif) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #f8fafc !important;
+  text-decoration: none !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  line-height: 1.35 !important;
+  display: block !important;
+  transition: color 0.15s ease !important;
+}
+
+.universal-table-root .ut-title-link:hover {
+  color: #38bdf8 !important;
+}
+
+.universal-table-root .ut-subtitle {
+  font-family: var(--font-body, 'Montserrat', sans-serif) !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  color: #94a3b8 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  line-height: 1.25 !important;
+  display: block !important;
+  margin-top: 3px !important;
+}
+
+.universal-table-root .ut-location-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.universal-table-root .ut-location-cell svg {
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.universal-table-root .ut-price-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.universal-table-root .ut-price-cell svg {
+  width: 14px;
+  height: 14px;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.universal-table-root .ut-price-currency {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(251, 191, 36, 0.7);
+}
+
+/* Badges */
+.universal-table-root .ut-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.universal-table-root .ut-badge-daily {
+  background: rgba(168, 85, 247, 0.12);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 6px;
+}
+
+.universal-table-root .ut-badge-package {
+  background: rgba(14, 165, 233, 0.12);
+  color: #7dd3fc;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: 6px;
+}
+
+.universal-table-root .ut-badge-available {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.universal-table-root .ut-badge-unavailable {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.universal-table-root .ut-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  display: inline-block;
+}
+
+.universal-table-root .ut-badge-dot.available {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+}
+
+.universal-table-root .ut-badge-dot.unavailable {
+  background: #fbbf24;
+}
+
+.universal-table-root .ut-date-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.universal-table-root .ut-date-primary {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.universal-table-root .ut-date-secondary {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* --------------------------------------------------------------------------
+   Row Action Dropdown
+   -------------------------------------------------------------------------- */
+.universal-table-root .ut-actions-container {
+  position: relative;
+  display: inline-block;
+  text-align: left;
+}
+
+.universal-table-root .ut-actions-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  background: rgba(15, 23, 42, 0.8);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.universal-table-root .ut-actions-btn:hover {
+  background: rgba(30, 41, 59, 0.9);
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.universal-table-root .ut-actions-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.universal-table-root .ut-actions-menu,
+.ut-actions-menu-portal {
+  width: 155px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  padding: 6px;
+  z-index: 999999 !important;
+}
+
+.universal-table-root .ut-actions-item,
+.ut-actions-menu-portal .ut-actions-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.universal-table-root .ut-actions-item:hover,
+.ut-actions-menu-portal .ut-actions-item:hover {
+  background: rgba(30, 41, 59, 0.85);
+  color: #fbbf24;
+}
+
+.universal-table-root .ut-actions-item.danger,
+.ut-actions-menu-portal .ut-actions-item.danger {
+  color: #f87171;
+}
+
+.universal-table-root .ut-actions-item.danger:hover,
+.ut-actions-menu-portal .ut-actions-item.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+/* --------------------------------------------------------------------------
+   Empty State
+   -------------------------------------------------------------------------- */
+.universal-table-root .ut-empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.universal-table-root .ut-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.universal-table-root .ut-empty-desc {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Custom scrollbar for horizontal table scrolling */
+.universal-table-root .universal-table-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.universal-table-root .universal-table-scroll::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.universal-table-root .universal-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 210, 0.25);
+  border-radius: 9999px;
+}
+
+.universal-table-root .universal-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 210, 0.45);
+}
+
+/* --------------------------------------------------------------------------
+   AG Grid Community Luxury Theme Scoped Polish
+   -------------------------------------------------------------------------- */
+.universal-table-root .ag-root-wrapper {
+  border: none !important;
+  border-radius: 16px;
+  background: transparent !important;
+}
+
+.universal-table-root .ag-header {
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5) !important;
+}
+
+.universal-table-root .ag-header-cell {
+  padding: 0 14px !important;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.universal-table-root .ag-header-cell-resize {
+  width: 12px !important;
+  opacity: 0.25;
+  transition: opacity 0.15s ease;
+}
+
+.universal-table-root .ag-header-cell-resize:hover {
+  opacity: 1;
+}
+
+.universal-table-root .ag-header-cell-resize::after {
+  background-color: #f59e0b !important;
+  width: 2px !important;
+  height: 60% !important;
+  top: 20% !important;
+}
+
+.universal-table-root .ag-cell {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 14px !important;
+  outline: none !important;
+  line-height: normal !important;
+}
+
+.universal-table-root .ag-cell-focus {
+  border: none !important;
+}
+
+.universal-table-root .ag-row {
+  transition: background-color 0.15s ease;
+}
+
+.universal-table-root .ag-pinned-left-header,
+.universal-table-root .ag-pinned-left-cols-container {
+  border-right: 1px solid rgba(51, 65, 85, 0.35) !important;
+}
+
+.universal-table-root .ag-pinned-right-header,
+.universal-table-root .ag-pinned-right-cols-container {
+  border-left: 1px solid rgba(51, 65, 85, 0.35) !important;
+}
+
+.universal-table-root .ag-header-cell[col-id="__actions"] {
+  text-align: center;
+}
+
+.universal-table-root .ag-header-cell[col-id="__actions"] .ag-header-cell-comp-wrapper,
+.universal-table-root .ag-header-cell[col-id="__actions"] .ag-cell-label-container {
+  justify-content: center !important;
+}
+
+.universal-table-root .ag-cell[col-id="__actions"] {
+  justify-content: center !important;
+}
+
+/* --------------------------------------------------------------------------
+   Universal Collection Toolbar Presentation (100% Scoped to .universal-table-root)
+   -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   Collection List View Layout & Ordering
+   Guarantees: 1. Header -> 2. KPI Cards -> 3. Toolbar -> 4. Table -> 5. Pagination
+   -------------------------------------------------------------------------- */
+.universal-table-root .collection-list__wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+}
+
+.universal-table-root .collection-list__wrap > .list-header {
+  order: 1 !important;
+}
+
+.universal-table-root .collection-list__wrap > .ut-kpi-strip {
+  order: 2 !important;
+  margin: 10px 0 16px 0 !important;
+}
+
+.universal-table-root .collection-list__wrap > .list-controls {
+  order: 3 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 0 16px 0 !important;
+  width: 100% !important;
+  position: relative !important;
+  z-index: 100 !important;
+  overflow: visible !important;
+}
+
+.universal-table-root .collection-list__wrap > .collection-list__tables,
+.universal-table-root .collection-list__wrap > .ut-card {
+  order: 4 !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+.universal-table-root .collection-list__wrap > .no-list-results {
+  order: 5 !important;
+}
+
+.universal-table-root .collection-list__wrap > .page-controls {
+  order: 6 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Universal Collection Toolbar Presentation (Native Payload ListControls)
+   -------------------------------------------------------------------------- */
+.universal-table-root .list-controls .search-bar {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 46px !important;
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
+  padding: 4px 10px !important;
+  gap: 10px !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  position: relative !important;
+  z-index: 20 !important;
+  overflow: visible !important;
+}
+
+.universal-table-root .list-controls .search-bar:focus-within {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18) !important;
+}
+
+.universal-table-root .list-controls .search-bar .icon--search {
+  width: 15px !important;
+  height: 15px !important;
+  max-width: 15px !important;
+  max-height: 15px !important;
+  color: #94a3b8 !important;
+  stroke: #94a3b8 !important;
+  margin-left: 6px !important;
+  pointer-events: none !important;
+  grid-column: 1/2 !important;
+  grid-row: 1/2 !important;
+}
+
+.universal-table-root .list-controls .search-bar .icon--search path {
+  stroke: #94a3b8 !important;
+  stroke-width: 1.75 !important;
+}
+
+.universal-table-root .list-controls .search-bar .search-filter {
+  grid-column: 2/3 !important;
+  grid-row: 1/2 !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.universal-table-root .list-controls .search-bar .search-filter input,
+.universal-table-root .list-controls .search-bar .search-filter__input {
+  width: 100% !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  font-family: inherit !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
+  padding: 6px 8px !important;
+  line-height: normal !important;
+}
+
+.universal-table-root .list-controls .search-bar .search-filter input::placeholder,
+.universal-table-root .list-controls .search-bar .search-filter__input::placeholder {
+  color: #94a3b8 !important;
+  font-size: 13px !important;
+}
+
+/* Actions group: Quick Filters + Native Pills */
+.universal-table-root .list-controls .search-bar__actions {
+  grid-column: 3/4 !important;
+  grid-row: 1/2 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  padding: 0 !important;
+  position: relative !important;
+  z-index: 30 !important;
+  overflow: visible !important;
+}
+
+.universal-table-root .ut-quick-filters-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  order: 1 !important;
+  position: relative !important;
+  z-index: 40 !important;
+  overflow: visible !important;
+}
+
+/* Native Pills: Columns, Filters, Sort */
+.universal-table-root .list-controls .pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 7px 12px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  font-family: inherit !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.15s ease !important;
+}
+
+.universal-table-root .list-controls__toggle-columns {
+  order: 2 !important;
+}
+
+.universal-table-root .list-controls__toggle-where {
+  order: 3 !important;
+}
+
+.universal-table-root .list-controls__toggle-sort {
+  order: 4 !important;
+}
+
+.universal-table-root .ut-reset-control {
+  order: 5 !important;
+}
+
+.universal-table-root .list-controls .pill:hover {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+.universal-table-root .list-controls .pill[aria-expanded="true"] {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+}
+
+.universal-table-root .list-controls .pill__icon svg {
+  width: 12px !important;
+  height: 12px !important;
+  color: inherit !important;
+}
+
+/* Drawers for ColumnSelector and WhereBuilder */
+.universal-table-root .list-controls__columns,
+.universal-table-root .list-controls__where {
+  width: 100% !important;
+  /* Local theme variables sandbox to completely prevent Payload dark-mode leakage */
+  --theme-bg: #ffffff !important;
+  --theme-input-bg: #ffffff !important;
+  --theme-elevation-0: #ffffff !important;
+  --theme-elevation-50: #ffffff !important;
+  --theme-elevation-100: #f8fafc !important;
+  --theme-elevation-150: #f1f5f9 !important;
+  --theme-elevation-200: #e2e8f0 !important;
+  --theme-elevation-250: #cbd5e1 !important;
+  --theme-elevation-300: #94a3b8 !important;
+  --theme-elevation-400: #64748b !important;
+  --theme-elevation-500: #475569 !important;
+  --theme-elevation-600: #334155 !important;
+  --theme-elevation-700: #1e293b !important;
+  --theme-elevation-800: #0f172a !important;
+  --theme-elevation-850: #0f172a !important;
+  --theme-elevation-900: #0f172a !important;
+  --theme-elevation-950: #020617 !important;
+  --theme-elevation-1000: #020617 !important;
+  --theme-text: #1e293b !important;
+  --theme-text-heading: #0f172a !important;
+  --theme-text-secondary: #475569 !important;
+  --theme-text-muted: #64748b !important;
+  --theme-border-color: #e2e8f0 !important;
+  --theme-border-subtle: #f1f5f9 !important;
+  --theme-border-hover: #cbd5e1 !important;
+  --theme-border-focus: #f59e0b !important;
+}
+
+/* Drawers for ColumnSelector and WhereBuilder */
+.universal-table-root .list-controls__columns,
+.universal-table-root .list-controls__where {
+  width: 100% !important;
+  position: relative !important;
+  z-index: 50 !important;
+  /* Local theme variables sandbox to completely prevent Payload dark-mode leakage */
+  --theme-bg: #ffffff !important;
+  --theme-input-bg: #ffffff !important;
+  --theme-elevation-0: #ffffff !important;
+  --theme-elevation-50: #ffffff !important;
+  --theme-elevation-100: #f8fafc !important;
+  --theme-elevation-150: #f1f5f9 !important;
+  --theme-elevation-200: #e2e8f0 !important;
+  --theme-elevation-250: #cbd5e1 !important;
+  --theme-elevation-300: #94a3b8 !important;
+  --theme-elevation-400: #64748b !important;
+  --theme-elevation-500: #475569 !important;
+  --theme-elevation-600: #334155 !important;
+  --theme-elevation-700: #1e293b !important;
+  --theme-elevation-800: #0f172a !important;
+  --theme-elevation-850: #0f172a !important;
+  --theme-elevation-900: #0f172a !important;
+  --theme-elevation-950: #020617 !important;
+  --theme-elevation-1000: #020617 !important;
+  --theme-text: #1e293b !important;
+  --theme-text-heading: #0f172a !important;
+  --theme-text-secondary: #475569 !important;
+  --theme-text-muted: #64748b !important;
+  --theme-border-color: #e2e8f0 !important;
+  --theme-border-subtle: #f1f5f9 !important;
+  --theme-border-hover: #cbd5e1 !important;
+  --theme-border-focus: #f59e0b !important;
+}
+
+.universal-table-root .list-controls__columns,
+.universal-table-root .list-controls__where,
+.universal-table-root .list-controls__where.rah-static,
+.universal-table-root .list-controls__where.rah-static--height-auto,
+.universal-table-root .list-controls__columns.rah-static,
+.universal-table-root .list-controls__columns.rah-static--height-auto {
+  overflow: visible !important;
+}
+
+.universal-table-root .list-controls__columns > div,
+.universal-table-root .list-controls__where > div {
+  margin-top: 8px !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04) !important;
+  padding: 16px 20px !important;
+  color: #1e293b !important;
+  overflow: visible !important;
+}
+
+/* ==========================================================================
+   WhereBuilder Luxury Light Theme Skin
+   Eliminates Payload's dark elevation background and styles all rules & controls
+   ========================================================================== */
+.universal-table-root .where-builder,
+.universal-table-root .list-controls__where .where-builder {
+  background-color: transparent !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: #1e293b !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  overflow: visible !important;
+}
+
+.universal-table-root .where-builder__no-filters,
+.universal-table-root .list-controls__where .where-builder__no-filters {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 6px 0 !important;
+  background: transparent !important;
+}
+
+.universal-table-root .where-builder__label,
+.universal-table-root .list-controls__where .where-builder__label {
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+/* Add Filter & + OR Buttons */
+.universal-table-root .where-builder__add-first-filter,
+.universal-table-root .where-builder__add-or {
+  --color: #d97706 !important;
+  --bg-color: #ffffff !important;
+  --hover-color: #b45309 !important;
+  --hover-bg: #fffbeb !important;
+  --btn-border: 1px solid #fcd34d !important;
+  --hover-btn-border: 1px solid #f59e0b !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #d97706 !important;
+  border: 1px solid #fcd34d !important;
+  border-radius: 8px !important;
+  padding: 7px 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  align-self: flex-start !important;
+}
+
+.universal-table-root .where-builder__add-first-filter:hover,
+.universal-table-root .where-builder__add-or:hover {
+  background-color: #fffbeb !important;
+  background: #fffbeb !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+}
+
+.universal-table-root .where-builder__add-first-filter .btn__icon,
+.universal-table-root .where-builder__add-or .btn__icon {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 14px !important;
+  height: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.universal-table-root .where-builder__add-first-filter svg path,
+.universal-table-root .where-builder__add-or svg path,
+.universal-table-root .where-builder__add-first-filter .stroke,
+.universal-table-root .where-builder__add-or .stroke {
+  stroke: #d97706 !important;
+  stroke-width: 2px !important;
+  fill: none !important;
+}
+
+.universal-table-root .where-builder__add-first-filter:hover svg path,
+.universal-table-root .where-builder__add-or:hover svg path {
+  stroke: #b45309 !important;
+}
+
+.universal-table-root .where-builder__add-first-filter .btn__label,
+.universal-table-root .where-builder__add-or .btn__label {
+  color: inherit !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+/* WhereBuilder Condition Row */
+.universal-table-root .where-builder .condition,
+.universal-table-root .list-controls__where .condition {
+  background-color: #f8fafc !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  margin-bottom: 8px !important;
+  overflow: visible !important;
+}
+
+.universal-table-root .where-builder .condition__wrap,
+.universal-table-root .list-controls__where .condition__wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  overflow: visible !important;
+}
+
+.universal-table-root .where-builder .condition__inputs,
+.universal-table-root .list-controls__where .condition__inputs {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex: 1 1 auto !important;
+  overflow: visible !important;
+}
+
+.universal-table-root .condition__field,
+.universal-table-root .condition__operator,
+.universal-table-root .condition__value {
+  flex: 1 1 0 !important;
+  min-width: 140px !important;
+  position: relative !important;
+}
+
+/* ReactSelect Container & Control */
+.universal-table-root .condition .react-select,
+.universal-table-root .condition .react-select-container {
+  width: 100% !important;
+  position: relative !important;
+}
+
+.universal-table-root .condition .rs__control {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 0 8px !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+  display: flex !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.universal-table-root .condition .rs__control:hover {
+  border-color: #94a3b8 !important;
+}
+
+.universal-table-root .condition .rs__control--is-focused {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18) !important;
+}
+
+.universal-table-root .condition .value-container,
+.universal-table-root .condition .rs__value-container {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  flex-grow: 1 !important;
+}
+
+.universal-table-root .condition .rs__single-value {
+  color: #1e293b !important;
+  font-size: 13px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+  transform: none !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* CRITICAL: ReactSelect Hidden Search Input Reset */
+.universal-table-root .condition .rs__input-container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.universal-table-root .condition .rs__input,
+.universal-table-root .condition .rs__input-container input,
+.universal-table-root .condition .rs__input input {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  width: auto !important;
+  color: inherit !important;
+}
+
+.universal-table-root .condition .rs__indicators {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+.universal-table-root .condition .rs__indicator {
+  padding: 0 4px !important;
+  color: #94a3b8 !important;
+}
+
+.universal-table-root .condition .rs__indicator:hover {
+  color: #475569 !important;
+}
+
+/* Value Input Field (Text, Number, etc.) */
+.universal-table-root .condition input.condition-value-text,
+.universal-table-root .condition .condition__value input:not(.rs__input input) {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  color: #1e293b !important;
+  font-size: 13px !important;
+  height: 38px !important;
+  padding: 0 12px !important;
+  width: 100% !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.universal-table-root .condition input.condition-value-text:focus,
+.universal-table-root .condition .condition__value input:not(.rs__input input):focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18) !important;
+}
+
+.universal-table-root .condition input.condition-value-text::placeholder,
+.universal-table-root .condition .condition__value input:not(.rs__input input)::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Dropdown Menu Floating Over Everything */
+.universal-table-root .condition .rs__menu {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  width: 100% !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  z-index: 9999 !important;
+  margin-top: 4px !important;
+  overflow: hidden !important;
+}
+
+.universal-table-root .condition .rs__menu-list {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  padding: 4px !important;
+  max-height: 220px !important;
+  overflow-y: auto !important;
+}
+
+.universal-table-root .condition .rs__option {
+  color: #334155 !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  background-color: transparent !important;
+  transition: background-color 0.12s ease !important;
+}
+
+.universal-table-root .condition .rs__option--is-focused {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+.universal-table-root .condition .rs__option--is-selected {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309 !important;
+  font-weight: 600 !important;
+}
+
+/* Condition Action Buttons (Remove / Add) */
+.universal-table-root .condition__actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.universal-table-root .condition__actions .btn {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border-radius: 50% !important;
+  border: 1px solid #e2e8f0 !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+}
+
+.universal-table-root .condition__actions .btn .btn__content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.universal-table-root .condition__actions .btn .btn__icon {
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.universal-table-root .condition__actions .btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  display: block !important;
+}
+
+.universal-table-root .condition__actions-remove svg path,
+.universal-table-root .condition__actions-remove .stroke {
+  stroke: #64748b !important;
+  stroke-width: 2px !important;
+  fill: none !important;
+}
+
+.universal-table-root .condition__actions-remove:hover {
+  background-color: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+}
+
+.universal-table-root .condition__actions-remove:hover svg path,
+.universal-table-root .condition__actions-remove:hover .stroke {
+  stroke: #ef4444 !important;
+}
+
+.universal-table-root .condition__actions-add svg path,
+.universal-table-root .condition__actions-add .stroke {
+  stroke: #d97706 !important;
+  stroke-width: 2px !important;
+  fill: none !important;
+}
+
+.universal-table-root .condition__actions-add:hover {
+  background-color: #fffbeb !important;
+  border-color: #fcd34d !important;
+}
+
+.universal-table-root .condition__actions-add:hover svg path,
+.universal-table-root .condition__actions-add:hover .stroke {
+  stroke: #b45309 !important;
+}
+
+/* ==========================================================================
+   ColumnSelector / PillSelector Luxury Light Theme Skin
+   ========================================================================== */
+.universal-table-root .list-controls__columns .pill-selector,
+.universal-table-root .pill-selector {
+  background: transparent !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.universal-table-root .list-controls__columns .pill-selector__pill,
+.universal-table-root .pill-selector__pill {
+  background-color: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+  border-radius: 8px !important;
+  color: #475569 !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  padding: 6px 12px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.universal-table-root .list-controls__columns .pill-selector__pill:hover,
+.universal-table-root .pill-selector__pill:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #1e293b !important;
+}
+
+.universal-table-root .list-controls__columns .pill-selector__pill--selected,
+.universal-table-root .pill-selector__pill--selected {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+  font-weight: 600 !important;
+}
+
+.universal-table-root .list-controls__columns .pill-selector__pill--selected:hover,
+.universal-table-root .pill-selector__pill--selected:hover {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+  border-color: #d97706 !important;
+  color: #92400e !important;
+}
+
+/* Quick Filter Dropdown */
+.universal-table-root .ut-filter-dropdown {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+}
+
+.universal-table-root .ut-filter-dropdown:focus-within,
+.universal-table-root .ut-filter-dropdown:has(.ut-filter-menu) {
+  z-index: 1000 !important;
+}
+
+.universal-table-root .ut-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  color: #334155;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.universal-table-root .ut-filter-btn:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.universal-table-root .ut-filter-btn-active {
+  background-color: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #b45309;
+}
+
+.universal-table-root .ut-filter-btn-label {
+  display: inline-block;
+  line-height: normal;
+}
+
+.universal-table-root .ut-filter-chevron {
+  color: #64748b;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.universal-table-root .ut-filter-chevron-open {
+  transform: rotate(180deg);
+}
+
+.universal-table-root .ut-filter-menu {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  margin-top: 6px !important;
+  min-width: 185px !important;
+  max-height: 280px !important;
+  overflow-y: auto !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.18), 0 8px 12px -6px rgba(0, 0, 0, 0.1) !important;
+  padding: 4px !important;
+  z-index: 99999 !important;
+}
+
+.universal-table-root .ut-filter-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #334155;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.universal-table-root .ut-filter-option:hover {
+  background-color: #f1f5f9;
+}
+
+.universal-table-root .ut-filter-option-active {
+  font-weight: 600;
+  color: #d97706;
+  background-color: rgba(245, 158, 11, 0.08);
+}
+
+.universal-table-root .ut-filter-divider {
+  height: 1px;
+  background-color: #f1f5f9;
+  margin: 3px 0;
+}
+
+/* Reset Button */
+.universal-table-root .ut-reset-control button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: all 0.15s ease;
+}
+
+.universal-table-root .ut-reset-control button:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.universal-table-root .ut-reset-control button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
