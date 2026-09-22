@@ -16,7 +16,15 @@ export const AccommodationsCell: React.FC<CellRendererProps> = ({ value, row }) 
 
   return (
     <div className="flex items-center gap-1.5 whitespace-nowrap">
-      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+      <span
+        className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold"
+        style={{
+          backgroundColor: '#181a52',
+          color: '#ffffff',
+          border: '1px solid #3c40a4',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+        }}
+      >
         {stayCount} {stayCount === 1 ? 'Stay' : 'Stays'}
       </span>
       {totalNights > 0 && (

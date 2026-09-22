@@ -1,14 +1,31 @@
 import React from 'react'
 import type { TableCellProps } from '../types'
 
-export const TitleSubtitleCell: React.FC<TableCellProps> = ({ row, field = 'title' }) => {
+export const TitleSubtitleCell: React.FC<TableCellProps> = ({ row, field = 'title', value }) => {
+  const rawVal = value !== undefined ? value : (field ? row?.[field] : null)
+
+  // Explicit Contract Violation detection: Cell must receive a display scalar from projection boundary
+  if (typeof rawVal === 'object' && rawVal !== null) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error(
+        `[TitleSubtitleCell Contract Violation] Field '${field}' received an unprojected object instead of a display scalar:`,
+        rawVal,
+      )
+    }
+  }
+
   const title =
-    (row?.[field] as string) ||
-    (row?.title as string) ||
-    (row?.name as string) ||
-    'Untitled'
+    typeof rawVal === 'string' || typeof rawVal === 'number'
+      ? String(rawVal)
+      : typeof row?.title === 'string'
+        ? row.title
+        : typeof row?.name === 'string'
+          ? row.name
+          : 'Untitled'
+
   const subtitle = (row?.subtitle as string) || (row?.slug as string) || null
-  const editHref = `/admin/collections/experiences/${row?.id}`
+  const collectionSlug = row?.bookingNumber ? 'bookings' : 'experiences'
+  const editHref = `/admin/collections/${collectionSlug}/${row?.id}`
 
   return (
     <div

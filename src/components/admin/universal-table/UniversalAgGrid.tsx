@@ -1,6 +1,14 @@
 'use client'
 
-import React, { useMemo, useCallback, useRef, useEffect, useState } from 'react'
+import React, {
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+  useState,
+  useImperativeHandle,
+  forwardRef,
+} from 'react'
 import { AgGridReact } from 'ag-grid-react'
 import {
   ModuleRegistry,
@@ -13,9 +21,10 @@ import {
   type ColumnResizedEvent,
   type GridReadyEvent,
   type GridApi,
+  type CellClickedEvent,
 } from 'ag-grid-community'
 import { useListQuery, useSelection, useTableColumns, usePreferences } from '@payloadcms/ui'
-import type { CollectionPresentationConfig } from './types'
+import type { CollectionPresentationConfig, DensityMode } from './types'
 import {
   ThumbnailCell,
   TitleSubtitleCell,
@@ -33,16 +42,16 @@ import {
 // Register all official AG Grid Community modules (36.2.0)
 ModuleRegistry.registerModules([AllCommunityModule])
 
-// Scoped Dark Luxury Quartz Theme for L'Aube Voyage Admin
+// Scoped Luxury Quartz Theme with Brand #2E3191 for L'Aube Voyage Admin
 export const luxuryAgGridTheme = themeQuartz.withPart(colorSchemeDark).withParams({
-  backgroundColor: '#0c1322',
-  foregroundColor: '#f8fafc',
-  headerBackgroundColor: '#0f172a',
-  headerTextColor: '#94a3b8',
-  borderColor: 'rgba(51, 65, 85, 0.45)',
-  rowBorder: { color: 'rgba(51, 65, 85, 0.22)' },
-  rowHoverColor: 'rgba(30, 41, 59, 0.65)',
-  selectedRowBackgroundColor: 'rgba(245, 158, 11, 0.08)',
+  backgroundColor: '#2E3191',
+  foregroundColor: '#ffffff',
+  headerBackgroundColor: '#232573',
+  headerTextColor: '#f8fafc',
+  borderColor: 'rgba(255, 255, 255, 0.15)',
+  rowBorder: { color: 'rgba(255, 255, 255, 0.1)' },
+  rowHoverColor: 'rgba(255, 255, 255, 0.14)',
+  selectedRowBackgroundColor: 'rgba(245, 158, 11, 0.24)',
   accentColor: '#f59e0b',
   fontFamily: "var(--font-body, 'Montserrat', sans-serif)",
   fontSize: 13,
@@ -126,14 +135,24 @@ const SelectionCellComponent: React.FC<{ rowId: string | number }> = ({ rowId })
   )
 }
 
-interface UniversalAgGridProps {
-  presentation: CollectionPresentationConfig
+export interface UniversalAgGridRef {
+  updateRow: (doc: any) => void
 }
 
-export const UniversalAgGrid: React.FC<UniversalAgGridProps> = ({ presentation }) => {
+export interface UniversalAgGridProps {
+  presentation: CollectionPresentationConfig
+  onRowClick?: (docId: string | number, rowData: any) => void
+  density?: DensityMode
+}
+
+export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridProps>(
+  ({ presentation, onRowClick, density = 'comfortable' }, ref) => {
   const { data, query, handleSortChange } = useListQuery()
   const { columns: payloadColumns, moveColumn } = useTableColumns()
   const { getPreference, setPreference } = usePreferences()
+
+  const rowHeight = density === 'dense' ? 36 : density === 'compact' ? 48 : 64
+  const headerHeight = density === 'dense' ? 38 : density === 'compact' ? 42 : 46
 
   const gridApiRef = useRef<GridApi | null>(null)
   const isSyncingSortRef = useRef(false)
@@ -517,14 +536,208 @@ export const UniversalAgGrid: React.FC<UniversalAgGridProps> = ({ presentation }
     }
   }, [preferenceKey, setPreference])
 
+  /**
+   * Project a populated relationship document to its canonical grid display value
+   * based on the specific column configuration and collection relationship contract.
+   */
+  const projectRelationForColumn = useCallback(
+    (accessor: string, rawVal: any, col: any): any => {
+      if (rawVal == null || typeof rawVal !== 'object') return rawVal
+
+      const relationTo = (col.field as any)?.relationTo
+
+      // 1. Customer relationship column (e.g. Bookings 'user' -> Customers)
+      if (accessor === 'user' || relationTo === 'customers') {
+        return (
+          rawVal.email ||
+          [rawVal.firstName, rawVal.lastName].filter(Boolean).join(' ') ||
+          rawVal.name ||
+          String(rawVal.id || '')
+        )
+      }
+
+      // 2. Experience relationship column (e.g. Bookings 'experience' -> Experiences)
+      if (accessor === 'experience' || relationTo === 'experiences') {
+        return rawVal.title || rawVal.name || rawVal.slug || String(rawVal.id || '')
+      }
+
+      // 3. DepartureSlot relationship column
+      if (accessor === 'departureSlot' || relationTo === 'departure-slots') {
+        return rawVal.slotCode || rawVal.startDate || String(rawVal.id || '')
+      }
+
+      // 4. City / Destination relationship column
+      if (accessor === 'city' || relationTo === 'destinations') {
+        return rawVal.name || rawVal.title || String(rawVal.id || '')
+      }
+
+      // 5. Generic relationship with explicit relationTo
+      if (relationTo) {
+        if (Array.isArray(rawVal)) {
+          return rawVal
+            .map((item) =>
+              typeof item === 'object' && item !== null
+                ? item.title || item.name || item.email || String(item.id || '')
+                : String(item ?? ''),
+            )
+            .filter(Boolean)
+            .join(', ')
+        }
+        return rawVal.title || rawVal.name || rawVal.email || rawVal.label || String(rawVal.id || '')
+      }
+
+      return rawVal
+    },
+    [],
+  )
+
+  // 11. Shape row for grid updating (Context Preservation & Schema Conformance)
+  // Ensures saved document matches the exact projection active in the grid before updating
+  const shapeRowForGrid = useCallback(
+    (sourceDoc: any, existingRowData?: any) => {
+      if (!sourceDoc) return existingRowData || {}
+
+      const updatedRow = { ...(existingRowData || {}), id: sourceDoc.id }
+
+      activePayloadColumns.forEach((col) => {
+        const accessor = col.accessor
+        if (!accessor || accessor.startsWith('__')) return
+
+        const override = presentation.overrides?.[accessor]
+        const cellType = override?.cellType
+        const fieldType = (col.field as any)?.type
+
+        let rawVal: any
+        if (accessor.includes('.')) {
+          const parts = accessor.split('.')
+          let curr = sourceDoc
+          for (const part of parts) {
+            if (curr == null) break
+            curr = curr[part]
+          }
+          rawVal = curr
+        } else if (accessor in sourceDoc) {
+          rawVal = sourceDoc[accessor]
+        }
+
+        if (rawVal === undefined) return
+
+        // Media thumbnail columns expect the media object or image url
+        const isThumbnailField =
+          cellType === 'thumbnail' ||
+          accessor === 'hero' ||
+          accessor === 'thumbnail' ||
+          (typeof rawVal === 'object' && rawVal !== null && ('url' in rawVal || 'filename' in rawVal))
+
+        // Structured array columns handled by specialized array cell renderers
+        const isStructuredArray =
+          Array.isArray(rawVal) &&
+          (cellType === 'accommodations' ||
+            cellType === 'itinerary' ||
+            cellType === 'gallery' ||
+            accessor === 'accommodations' ||
+            accessor === 'itinerary' ||
+            accessor === 'gallery')
+
+        // If this is a relationship field or customer/experience/slot column,
+        // project to the canonical grid display value according to its column contract.
+        if (
+          !isThumbnailField &&
+          !isStructuredArray &&
+          typeof rawVal === 'object' &&
+          rawVal !== null &&
+          (fieldType === 'relationship' ||
+            accessor === 'user' ||
+            accessor === 'experience' ||
+            accessor === 'departureSlot')
+        ) {
+          updatedRow[accessor] = projectRelationForColumn(accessor, rawVal, col)
+          return
+        }
+
+        updatedRow[accessor] = rawVal
+      })
+
+      // Retain common top-level metadata fields if present
+      if (sourceDoc.updatedAt) updatedRow.updatedAt = sourceDoc.updatedAt
+      if (sourceDoc.createdAt) updatedRow.createdAt = sourceDoc.createdAt
+      if (sourceDoc.title) updatedRow.title = sourceDoc.title
+      if (sourceDoc.slug) updatedRow.slug = sourceDoc.slug
+      if (sourceDoc.availability !== undefined) updatedRow.availability = sourceDoc.availability
+      if (sourceDoc.status) updatedRow.status = sourceDoc.status
+      if (sourceDoc.bookingNumber) updatedRow.bookingNumber = sourceDoc.bookingNumber
+
+      return updatedRow
+    },
+    [activePayloadColumns, presentation.overrides, projectRelationForColumn],
+  )
+
+  // Symmetrically shape docs to guarantee exact grid contract conformance on load
+  const shapedDocs = useMemo(() => {
+    return docs.map((doc) => shapeRowForGrid(doc, doc))
+  }, [docs, shapeRowForGrid])
+
+  // 12. Expose updateRow to parent via imperative ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      updateRow: (savedDoc: any) => {
+        const api = gridApiRef.current
+        if (!api || !savedDoc?.id) return
+
+        const rowNode = api.getRowNode(String(savedDoc.id))
+        if (rowNode && rowNode.data) {
+          const shapedRow = shapeRowForGrid(savedDoc, rowNode.data)
+          api.applyTransaction({ update: [shapedRow] })
+        }
+      },
+    }),
+    [shapeRowForGrid],
+  )
+
+  // 13. Single Click Row Inspection Handler (Peek Trigger)
+  const onCellClicked = useCallback(
+    (event: CellClickedEvent) => {
+      // Ignore system columns (selection checkbox and row actions)
+      const colId = event.colDef.colId
+      if (colId === '__selection' || colId === '__actions') {
+        return
+      }
+
+      // Check if user clicked an interactive link or button inside a cell
+      const target = event.event?.target as HTMLElement | null
+      if (target && (target.closest('a') || target.closest('button') || target.closest('input'))) {
+        return
+      }
+
+      const rowData = event.data
+      const rowId = rowData?.id
+      if (rowId != null && onRowClick) {
+        onRowClick(rowId, rowData)
+      }
+    },
+    [onRowClick],
+  )
+
+  useEffect(() => {
+    if (gridApiRef.current && typeof gridApiRef.current.resetRowHeights === 'function') {
+      gridApiRef.current.resetRowHeights()
+    }
+  }, [density])
+
   return (
-    <div className="ut-card ut-grid-card my-3 w-full overflow-hidden flex flex-col">
+    <div className="ut-grid-outer w-full relative">
+      {/* Visual Reset Layout Bar (Visible when custom widths are saved) */}
       {savedWidths && Object.keys(savedWidths).length > 0 && (
-        <div className="flex justify-end pt-2 px-3 pb-1 flex-shrink-0">
+        <div className="ut-reset-layout-bar flex items-center justify-between px-3 py-1.5 bg-[#181a52] border-b border-[#2E3191] text-xs text-slate-300">
+          <span className="flex items-center gap-1.5 text-slate-300 font-medium">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            Custom column layout applied
+          </span>
           <button
             type="button"
             onClick={handleResetWidths}
-            className="text-xs text-amber-500/80 hover:text-amber-400 hover:underline flex items-center gap-1.5 transition-colors cursor-pointer bg-slate-900/60 px-2.5 py-1 rounded border border-slate-700/50"
+            className="text-xs text-amber-300 hover:text-amber-200 hover:bg-[#1a1c58] hover:border-amber-400/60 flex items-center gap-1.5 transition-all cursor-pointer bg-[#232573] px-2.5 py-1 rounded border border-[#2E3191] shadow-sm hover:shadow-md"
             title="Reset column widths to default balanced layout"
           >
             <svg
@@ -544,23 +757,31 @@ export const UniversalAgGrid: React.FC<UniversalAgGridProps> = ({ presentation }
           </button>
         </div>
       )}
-      <div className="ut-grid-viewport flex-1 w-full min-w-0" style={{ height: 560, minHeight: 480 }}>
+      <div className={`ut-grid-viewport is-density-${density} flex-1 w-full min-w-0`} style={{ height: 560, minHeight: 480 }}>
         <AgGridReact
           theme={luxuryAgGridTheme}
-          rowData={docs}
+          rowData={shapedDocs}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
+          rowHeight={rowHeight}
+          headerHeight={headerHeight}
+          getRowId={(params) => String(params.data?.id)}
           onGridReady={onGridReady}
           onSortChanged={onSortChanged}
           onColumnMoved={onColumnMoved}
           onColumnResized={onColumnResized}
+          onCellClicked={onCellClicked}
           domLayout="normal"
           suppressCellFocus={true}
           animateRows={true}
           suppressMovableColumns={false}
           suppressDragLeaveHidesColumns={true}
+          rowClass="cursor-pointer"
         />
       </div>
     </div>
   )
-}
+})
+
+UniversalAgGrid.displayName = 'UniversalAgGrid'
+

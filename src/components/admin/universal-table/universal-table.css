@@ -21,8 +21,8 @@
 }
 
 .universal-table-root .ut-kpi-card {
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(51, 65, 85, 0.6);
+  background: rgba(46, 49, 145, 0.25);
+  border: 1px solid rgba(46, 49, 145, 0.45);
   border-radius: 14px;
   padding: 14px 18px;
   display: flex;
@@ -34,8 +34,16 @@
 }
 
 .universal-table-root .ut-kpi-card:hover {
-  border-color: rgba(148, 163, 184, 0.4);
-  transform: translateY(-1px);
+  border-color: #5559c9;
+  background: rgba(46, 49, 145, 0.42);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(46, 49, 145, 0.4);
+}
+
+.universal-table-root .ut-kpi-card:hover .ut-kpi-icon {
+  background: #232573;
+  border-color: rgba(255, 255, 255, 0.45);
+  transform: scale(1.06);
 }
 
 .universal-table-root .ut-kpi-card-content {
@@ -49,13 +57,14 @@
   height: 36px;
   min-width: 36px;
   border-radius: 10px;
-  background: rgba(30, 41, 59, 0.8);
-  border: 1px solid rgba(71, 85, 105, 0.4);
+  background: #2E3191;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: #ffffff;
   flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .universal-table-root .ut-kpi-icon svg {
@@ -79,7 +88,7 @@
 
 .universal-table-root .ut-kpi-value {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: #f8fafc;
   line-height: 1.2;
 }
@@ -116,10 +125,10 @@
    Table Shell & Card
    -------------------------------------------------------------------------- */
 .universal-table-root .ut-card {
-  background: rgba(15, 23, 42, 0.75);
+  background: #2E3191;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5);
   overflow: hidden;
@@ -161,10 +170,10 @@
 
 .universal-table-root .ut-th {
   padding: 13px 16px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
   color: #94a3b8;
   white-space: nowrap;
   border-bottom: 1px solid rgba(51, 65, 85, 0.4);
@@ -216,12 +225,18 @@
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  border: 1px solid rgba(71, 85, 105, 0.8);
-  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(46, 49, 145, 0.4);
   accent-color: #f59e0b;
   cursor: pointer;
   display: inline-block;
   vertical-align: middle;
+  transition: all 0.15s ease;
+}
+
+.universal-table-root .ut-checkbox:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.45);
 }
 
 /* --------------------------------------------------------------------------
@@ -273,7 +288,8 @@
 }
 
 .universal-table-root .ut-title-link:hover {
-  color: #38bdf8 !important;
+  color: #fbbf24 !important;
+  text-decoration: underline !important;
 }
 
 .universal-table-root .ut-subtitle {
@@ -323,8 +339,8 @@
 
 .universal-table-root .ut-price-currency {
   font-size: 10px;
-  font-weight: 700;
-  color: rgba(251, 191, 36, 0.7);
+  font-weight: 600;
+  color: rgba(251, 191, 36, 0.9);
 }
 
 /* Badges */
@@ -348,10 +364,12 @@
 }
 
 .universal-table-root .ut-badge-package {
-  background: rgba(14, 165, 233, 0.12);
-  color: #7dd3fc;
-  border: 1px solid rgba(14, 165, 233, 0.3);
+  background: #181a52;
+  color: #ffffff;
+  border: 1px solid #3c40a4;
   border-radius: 6px;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 .universal-table-root .ut-badge-available {
@@ -536,9 +554,10 @@
 
 .universal-table-root .ag-header-cell {
   padding: 0 14px !important;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
 }
 
 .universal-table-root .ag-header-cell-resize {
@@ -1466,3 +1485,51 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* --------------------------------------------------------------------------
+   Density Switcher (Comfortable, Compact, Dense)
+   -------------------------------------------------------------------------- */
+.universal-table-root .ut-density-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #2E3191;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+  box-shadow: 0 1px 4px rgba(46, 49, 145, 0.15);
+}
+
+.universal-table-root .ut-density-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #2E3191;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.2;
+}
+
+.universal-table-root .ut-density-btn:hover {
+  color: #1a1c58;
+  background: rgba(46, 49, 145, 0.12);
+}
+
+.universal-table-root .ut-density-btn.is-active {
+  background: #2E3191;
+  color: #ffffff;
+  font-weight: 600;
+  border-color: #2E3191;
+  box-shadow: 0 1px 4px rgba(46, 49, 145, 0.35);
+}
+
+.universal-table-root .ut-density-btn.is-active:hover {
+  background: #232573;
+  color: #ffffff;
+}
+

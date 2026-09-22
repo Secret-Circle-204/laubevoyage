@@ -12,6 +12,7 @@ const PRICING_SOURCE_BY_TYPE = {
 
 export const Experiences: CollectionConfig = {
   slug: 'experiences',
+  enableQueryPresets: true,
   admin: {
     useAsTitle: 'title',
     enableListViewSelectAPI: true,

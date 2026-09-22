@@ -44,6 +44,7 @@ import * as migration_20260919_011500_create_accommodations_options_schema from 
 import * as migration_20260919_150000_add_pricing_snapshot_commercial_breakdown from './20260919_150000_add_pricing_snapshot_commercial_breakdown';
 import * as migration_20260920_150000_add_is_default_to_accommodations_options from './20260920_150000_add_is_default_to_accommodations_options';
 import * as migration_20260921_233000_add_collection_list_indexes from './20260921_233000_add_collection_list_indexes';
+import * as migration_20260922_141634_add_payload_query_presets from './20260922_141634_add_payload_query_presets';
 
 export const migrations = [
   {
@@ -249,31 +250,36 @@ export const migrations = [
   {
     up: migration_20260911_154717_update_accommodations_room_rates.up,
     down: migration_20260911_154717_update_accommodations_room_rates.down,
-    name: '20260911_154717_update_accommodations_room_rates'
+    name: '20260911_154717_update_accommodations_room_rates',
   },
   {
     up: migration_20260911_170000_drop_legacy_occupancy_options.up,
     down: migration_20260911_170000_drop_legacy_occupancy_options.down,
-    name: '20260911_170000_drop_legacy_occupancy_options'
+    name: '20260911_170000_drop_legacy_occupancy_options',
   },
   {
     up: migration_20260919_011500_create_accommodations_options_schema.up,
     down: migration_20260919_011500_create_accommodations_options_schema.down,
-    name: '20260919_011500_create_accommodations_options_schema'
+    name: '20260919_011500_create_accommodations_options_schema',
   },
   {
     up: migration_20260919_150000_add_pricing_snapshot_commercial_breakdown.up,
     down: migration_20260919_150000_add_pricing_snapshot_commercial_breakdown.down,
-    name: '20260919_150000_add_pricing_snapshot_commercial_breakdown'
+    name: '20260919_150000_add_pricing_snapshot_commercial_breakdown',
   },
   {
     up: migration_20260920_150000_add_is_default_to_accommodations_options.up,
     down: migration_20260920_150000_add_is_default_to_accommodations_options.down,
-    name: '20260920_150000_add_is_default_to_accommodations_options'
+    name: '20260920_150000_add_is_default_to_accommodations_options',
   },
   {
     up: migration_20260921_233000_add_collection_list_indexes.up,
     down: migration_20260921_233000_add_collection_list_indexes.down,
-    name: '20260921_233000_add_collection_list_indexes'
+    name: '20260921_233000_add_collection_list_indexes',
+  },
+  {
+    up: migration_20260922_141634_add_payload_query_presets.up,
+    down: migration_20260922_141634_add_payload_query_presets.down,
+    name: '20260922_141634_add_payload_query_presets'
   },
 ];

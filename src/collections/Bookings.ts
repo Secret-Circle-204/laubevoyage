@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 export const Bookings: CollectionConfig = {
   slug: 'bookings',
+  enableQueryPresets: true,
   admin: {
     useAsTitle: 'bookingNumber',
     defaultColumns: [
@@ -15,6 +16,13 @@ export const Bookings: CollectionConfig = {
       'destinationTimezone',
       'createdAt',
     ],
+    components: {
+      views: {
+        list: {
+          Component: '@/components/admin/universal-table/UniversalListView#UniversalListView',
+        },
+      },
+    },
   },
   access: {
     read: ({ req: { user } }) => {

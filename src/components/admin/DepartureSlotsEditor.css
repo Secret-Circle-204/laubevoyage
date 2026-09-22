@@ -1,7 +1,7 @@
 /* Departure Slots Control Surface Modern Styles */
 
 .dse-container {
-  border: 1px solid var(--theme-elevation-150, #2d3748);
+  border: 1px solid rgba(46, 49, 145, 0.4);
   border-radius: 12px;
   padding: 20px;
   background: var(--theme-elevation-50, #1a202c);
@@ -48,12 +48,20 @@
 }
 
 .dse-stat-card {
-  background: var(--theme-elevation-100, #2d3748);
-  border: 1px solid var(--theme-elevation-200, #4a5568);
+  background: rgba(46, 49, 145, 0.12);
+  border: 1px solid rgba(46, 49, 145, 0.35);
   border-radius: 8px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dse-stat-card:hover {
+  background: rgba(46, 49, 145, 0.22);
+  border-color: #2E3191;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46, 49, 145, 0.25);
 }
 
 .dse-stat-label {
@@ -76,7 +84,7 @@
 }
 
 .dse-stat-val--available {
-  color: #00aeef;
+  color: #2E3191;
 }
 
 .dse-stat-val--sold {
@@ -103,31 +111,40 @@
 .dse-tabs {
   display: flex;
   gap: 6px;
-  background: var(--theme-elevation-100, #2d3748);
+  background: rgba(46, 49, 145, 0.15);
+  border: 1px solid rgba(46, 49, 145, 0.3);
   padding: 4px;
   border-radius: 8px;
 }
 
 .dse-tab {
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: var(--theme-elevation-400, #a0aec0);
   font-size: 0.8rem;
   font-weight: 600;
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dse-tab:hover {
-  color: var(--theme-elevation-800, #f7fafc);
+  color: #ffffff;
+  background: rgba(46, 49, 145, 0.25);
+  border-color: rgba(46, 49, 145, 0.4);
 }
 
 .dse-tab--active {
-  background: var(--theme-elevation-200, #4a5568);
-  color: var(--theme-elevation-900, #ffffff);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background: #2E3191;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 6px rgba(46, 49, 145, 0.35);
+}
+
+.dse-tab--active:hover {
+  background: #242777;
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* ─── Alerts ─────────────────────────────────────────────────── */
@@ -178,15 +195,19 @@
 
 .dse-table th {
   font-weight: 600;
-  color: var(--theme-elevation-500, #cbd5e0);
-  background: var(--theme-elevation-100, #2d3748);
+  color: #ffffff;
+  background: #2E3191;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
+.dse-table tr {
+  transition: background 0.15s ease;
+}
+
 .dse-table tr:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(46, 49, 145, 0.12);
 }
 
 .dse-row--cancelled td {
@@ -199,7 +220,7 @@
 }
 
 .dse-row--edit-active {
-  background: rgba(0, 174, 239, 0.05) !important;
+  background: rgba(46, 49, 145, 0.08) !important;
 }
 
 /* ─── Badges ─────────────────────────────────────────────────── */
@@ -244,8 +265,15 @@
 }
 
 .dse-tag--override {
-  background: rgba(0, 174, 239, 0.15);
-  color: #00aeef;
+  background: #181a52;
+  color: #ffffff;
+  border: 1px solid #3c40a4;
+}
+
+.dse-badge--override {
+  background: #181a52;
+  color: #ffffff;
+  border: 1px solid #3c40a4;
 }
 
 .dse-meta {
@@ -269,7 +297,7 @@
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: all 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -277,22 +305,36 @@
 }
 
 .dse-btn--primary {
-  background: #00aeef;
+  background: #2E3191;
   color: #ffffff;
+  border: 1px solid #2E3191;
+  box-shadow: 0 2px 4px rgba(46, 49, 145, 0.25);
 }
 
 .dse-btn--primary:hover:not(:disabled) {
-  background: #0098d4;
+  background: #22256f;
+  border-color: #22256f;
+  box-shadow: 0 4px 12px rgba(46, 49, 145, 0.4);
+  transform: translateY(-1px);
+}
+
+.dse-btn--primary:active:not(:disabled) {
+  transform: translateY(0);
+  background: #191b52;
 }
 
 .dse-btn--edit {
   background: transparent;
-  color: #63b3ed;
-  border-color: rgba(99, 179, 237, 0.3);
+  color: #2E3191;
+  border-color: rgba(46, 49, 145, 0.4);
 }
 
 .dse-btn--edit:hover {
-  background: rgba(99, 179, 237, 0.1);
+  background: rgba(46, 49, 145, 0.15);
+  border-color: #2E3191;
+  color: #2E3191;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(46, 49, 145, 0.2);
 }
 
 .dse-btn--open {
@@ -302,8 +344,10 @@
 }
 
 .dse-btn--open:hover {
-  background: var(--theme-elevation-150, #3a4556);
+  background: rgba(46, 49, 145, 0.15);
+  border-color: #2E3191;
   color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .dse-btn--cancel {
@@ -387,7 +431,7 @@
 .dse-input:focus,
 .dse-select:focus {
   outline: none;
-  border-color: #00aeef;
+  border-color: #2E3191;
 }
 
 .dse-form-actions {

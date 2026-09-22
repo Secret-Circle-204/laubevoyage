@@ -1,3 +1,5 @@
+export type DensityMode = 'comfortable' | 'compact' | 'dense'
+
 export type TableAlign = 'left' | 'center' | 'right'
 
 export type TableCellType =
@@ -94,6 +96,7 @@ export interface TableMetric {
   percentage?: number
   variant?: TableMetricVariant
   icon?: TableMetricIcon
+  onClick?: () => void
 }
 
 export interface TableCapabilities {

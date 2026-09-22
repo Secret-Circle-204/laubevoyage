@@ -38,7 +38,7 @@ function renderIcon(icon?: string) {
       )
     case 'pin':
       return (
-        <svg width="18" height="18" fill="none" stroke="#38bdf8" viewBox="0 0 24 24">
+        <svg width="18" height="18" fill="none" stroke="#2E3191" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -69,7 +69,13 @@ export const TableKpiStrip: React.FC<TableKpiStripProps> = ({ metrics }) => {
   return (
     <div className={tableTokens.kpiStrip}>
       {metrics.map((m) => (
-        <div key={m.id} className={tableTokens.kpiCard}>
+        <div
+          key={m.id}
+          className={`${tableTokens.kpiCard} ${m.onClick ? 'cursor-pointer hover:border-amber-500/40 transition-all' : ''}`}
+          onClick={m.onClick}
+          role={m.onClick ? 'button' : undefined}
+          tabIndex={m.onClick ? 0 : undefined}
+        >
           <div className={tableTokens.kpiCardContent}>
             {m.icon && <div className={tableTokens.kpiIcon}>{renderIcon(m.icon)}</div>}
             <div className={tableTokens.kpiText}>
