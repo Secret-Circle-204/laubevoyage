@@ -3,8 +3,6 @@ import type { Metadata } from 'next'
 import { FaqLoader } from '@/application/blog/loaders'
 import { FaqAccordionPage } from '@/components/features/faq/FaqAccordionPage'
 
-export const dynamic = 'force-static'
-
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Frequently Asked Questions | L'Aube Voyage",

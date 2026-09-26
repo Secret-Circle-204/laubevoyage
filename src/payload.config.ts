@@ -236,10 +236,7 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL || '',
     },
-    push:
-      process.env.NODE_ENV !== 'production' &&
-      process.env.VITEST !== 'true' &&
-      process.env.PAYLOAD_DISABLE_PUSH !== 'true',
+    push: false,
     migrationDir: path.resolve(dirname, 'migrations'),
   }),
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL,

@@ -1456,16 +1456,21 @@ export async function seedCatalogExperiences(
         accommodationsLinkedCount++
         return {
           order: stay.order,
-          property: Number(propertyDoc.id),
           nights: stay.nights,
-          roomCategory: stay.roomCategory,
-          boardBasis: stay.boardBasis,
-          pricingUnit: stay.pricingUnit || 'per_stay',
-          roomRates: stay.roomRates.map((r) => ({
-            occupancy: r.occupancy,
-            rateEGP: r.rateEGP,
-            enabled: r.enabled !== false,
-          })),
+          options: [
+            {
+              property: Number(propertyDoc.id),
+              isDefault: true,
+              roomCategory: stay.roomCategory,
+              boardBasis: stay.boardBasis,
+              pricingUnit: stay.pricingUnit || 'per_stay',
+              roomRates: stay.roomRates.map((r) => ({
+                occupancy: r.occupancy,
+                rateEGP: r.rateEGP,
+                enabled: r.enabled !== false,
+              })),
+            },
+          ],
         }
       })
     }
