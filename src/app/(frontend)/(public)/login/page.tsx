@@ -14,11 +14,27 @@ export const metadata: Metadata = {
   description: 'Sign in to access your luxury travel bookings and loyalty ledger.',
 }
 
-export default async function LoginPage() {
+export default async function LoginPage(props: {
+  searchParams?: Promise<{ redirect?: string }>
+}) {
+  const searchParams = props.searchParams ? await props.searchParams : undefined
+  const redirectTarget =
+    searchParams?.redirect &&
+    searchParams.redirect.startsWith('/') &&
+    !searchParams.redirect.startsWith('//')
+      ? searchParams.redirect
+      : '/dashboard'
+
   const session = await SessionResolver.resolve()
-  if (session.isAuthenticated) {
-    redirect('/dashboard')
+  const isCustomer =
+    session.isAuthenticated && session.role === 'customer' && !!session.customerId
+
+  if (isCustomer) {
+    redirect(redirectTarget)
   }
+
+  const isAdminSession =
+    session.isAuthenticated && (session.role === 'admin' || session.role === 'super_admin')
 
   const ctx = await getLocaleContext()
   const { localization } = await getDomainServices()
@@ -200,6 +216,20 @@ export default async function LoginPage() {
                   </Link>
                 </div>
               </div>
+
+              {/* Staff Session Notice (Zero redirect, clear UX) */}
+              {isAdminSession && (
+                <div className="mb-5 p-3.5 rounded-xl bg-[#2E3191]/40 border border-[#00ADEE]/40 text-slate-200 text-xs flex items-start gap-2.5">
+                  <span className="text-[#00ADEE] text-base leading-none">ℹ</span>
+                  <div>
+                    <span className="font-semibold text-white block mb-0.5">Staff Account Active</span>
+                    <span>You are currently signed in with a Staff account. To continue as a traveler, please sign in with a customer account or return to the{' '}</span>
+                    <Link href="/admin" className="text-[#00ADEE] hover:underline font-bold">
+                      Admin Portal →
+                    </Link>
+                  </div>
+                </div>
+              )}
 
               {/* Login Form Client Component */}
               <Suspense

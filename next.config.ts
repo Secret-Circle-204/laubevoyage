@@ -6,8 +6,7 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
-const allowedDevOrigins = process.env.ALLOWED_DEV_ORIGINS
-  ?.split(',')
+const allowedDevOrigins = process.env.ALLOWED_DEV_ORIGINS?.split(',')
   .map((origin) => origin.trim())
   .filter(Boolean)
 
@@ -22,6 +21,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'plus.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
       },
     ],
     localPatterns: [

@@ -5,14 +5,14 @@ import type { CellRendererProps } from '../types'
 
 export const AccommodationsCell: React.FC<CellRendererProps> = ({ value, row }) => {
   if (!Array.isArray(value) || value.length === 0) {
-    if (row?.type === 'daily_tour') {
-      return <span className="text-xs text-slate-500 italic">N/A (Daily Tour)</span>
-    }
     return <span className="text-xs text-slate-500">None</span>
   }
 
   const stayCount = value.length
-  const totalNights = value.reduce((sum: number, stay: any) => sum + (Number(stay?.nights) || 0), 0)
+  const totalNights = value.reduce((sum: number, stay: unknown) => {
+    const nights = typeof stay === 'object' && stay !== null && 'nights' in stay ? Number((stay as { nights?: unknown }).nights) : 0
+    return sum + (Number.isFinite(nights) ? nights : 0)
+  }, 0)
 
   return (
     <div className="flex items-center gap-1.5 whitespace-nowrap">

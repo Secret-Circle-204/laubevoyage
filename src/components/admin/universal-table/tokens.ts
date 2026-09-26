@@ -25,6 +25,8 @@ export const tableTokens = {
   kpiText: 'ut-kpi-text',
   kpiStatRow: 'ut-kpi-stat-row',
   kpiValue: 'ut-kpi-value',
+  kpiSkeleton: 'ut-kpi-skeleton',
+  kpiError: 'ut-kpi-error',
   kpiBadge: 'ut-kpi-badge',
   kpiLabel: 'ut-kpi-label',
   kpiBar: 'ut-kpi-bar',

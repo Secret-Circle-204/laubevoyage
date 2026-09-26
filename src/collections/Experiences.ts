@@ -12,13 +12,15 @@ const PRICING_SOURCE_BY_TYPE = {
 
 export const Experiences: CollectionConfig = {
   slug: 'experiences',
-  enableQueryPresets: true,
   admin: {
     useAsTitle: 'title',
     enableListViewSelectAPI: true,
     listSearchableFields: ['title', 'slug'],
     defaultColumns: ['hero', 'title', 'city', 'type', 'price', 'availability'],
     components: {
+      beforeListTable: [
+        '@/components/admin/universal-table/UniversalKpiStrip#UniversalKpiStrip',
+      ],
       views: {
         list: {
           Component: '@/components/admin/universal-table/UniversalListView#UniversalListView',

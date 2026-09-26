@@ -48,11 +48,18 @@ export const OperationalCompletionCell: React.FC<DefaultCellComponentProps> = ({
   if (!timezone || typeof timezone !== 'string' || timezone.trim().length === 0) {
     return (
       <span
-        style={{ color: 'var(--theme-error-500)', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}
-        title={`Missing destinationTimezone snapshot on Booking. Frozen UTC: ${date.toISOString()}`}
+        style={{
+          color: 'var(--theme-error-500)',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          whiteSpace: 'nowrap',
+        }}
+        title={`Data Contract Violation: Missing destinationTimezone snapshot on Booking #${rowData?.bookingNumber || rowData?.id || ''}. Frozen UTC: ${date.toISOString()}`}
       >
         <AlertTriangleIcon />
-        Missing Timezone ({date.toISOString()})
+        <span>No Timezone</span>
       </span>
     )
   }
@@ -60,7 +67,7 @@ export const OperationalCompletionCell: React.FC<DefaultCellComponentProps> = ({
   const { formatted, isError } = formatCompletionDate(date, timezone)
 
   const title = isError
-    ? `Frozen UTC: ${date.toISOString()}`
+    ? `Invalid IANA Timezone (${timezone}) | Frozen UTC: ${date.toISOString()}`
     : `Frozen UTC: ${date.toISOString()} | Timezone: ${timezone}`
 
   return <span title={title}>{formatted}</span>

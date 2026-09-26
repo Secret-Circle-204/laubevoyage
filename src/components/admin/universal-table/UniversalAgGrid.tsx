@@ -9,7 +9,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from 'react'
-import { AgGridReact } from 'ag-grid-react'
+import { AgGridReact, type CustomCellRendererProps } from 'ag-grid-react'
 import {
   ModuleRegistry,
   AllCommunityModule,
@@ -22,9 +22,10 @@ import {
   type GridReadyEvent,
   type GridApi,
   type CellClickedEvent,
+  type ValueFormatterParams,
 } from 'ag-grid-community'
-import { useListQuery, useSelection, useTableColumns, usePreferences } from '@payloadcms/ui'
-import type { CollectionPresentationConfig, DensityMode } from './types'
+import { useListQuery, useSelection, useTableColumns, usePreferences, DefaultCell } from '@payloadcms/ui'
+import type { CollectionPresentationConfig, DensityMode, TableCellProps, TableCellType } from './types'
 import {
   ThumbnailCell,
   TitleSubtitleCell,
@@ -61,7 +62,7 @@ export const luxuryAgGridTheme = themeQuartz.withPart(colorSchemeDark).withParam
   cellHorizontalPadding: 16,
 })
 
-const CELL_COMPONENT_MAP = {
+const CELL_COMPONENT_MAP: Partial<Record<TableCellType, React.FC<TableCellProps>>> = {
   thumbnail: ThumbnailCell,
   title: TitleSubtitleCell,
   location: LocationCell,
@@ -72,7 +73,7 @@ const CELL_COMPONENT_MAP = {
   accommodations: AccommodationsCell,
   itinerary: ItineraryCell,
   gallery: GalleryCell,
-} as const
+}
 
 function formatHeaderName(accessor: string): string {
   if (!accessor || typeof accessor !== 'string') return ''
@@ -136,19 +137,20 @@ const SelectionCellComponent: React.FC<{ rowId: string | number }> = ({ rowId })
 }
 
 export interface UniversalAgGridRef {
-  updateRow: (doc: any) => void
+  updateRow: (doc: Record<string, unknown>) => void
+  resetWidths?: () => void
 }
 
 export interface UniversalAgGridProps {
   presentation: CollectionPresentationConfig
-  onRowClick?: (docId: string | number, rowData: any) => void
+  onRowClick?: (docId: string | number, rowData: Record<string, unknown>) => void
   density?: DensityMode
 }
 
 export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridProps>(
   ({ presentation, onRowClick, density = 'comfortable' }, ref) => {
   const { data, query, handleSortChange } = useListQuery()
-  const { columns: payloadColumns, moveColumn } = useTableColumns()
+  const { columns: payloadColumns } = useTableColumns()
   const { getPreference, setPreference } = usePreferences()
 
   const rowHeight = density === 'dense' ? 36 : density === 'compact' ? 48 : 64
@@ -156,42 +158,61 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
 
   const gridApiRef = useRef<GridApi | null>(null)
   const isSyncingSortRef = useRef(false)
-  const isMovingColumnRef = useRef(false)
   const isInitialFitDoneRef = useRef(false)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const [savedWidths, setSavedWidths] = useState<Record<string, number> | null>(null)
+  const [savedColOrder, setSavedColOrder] = useState<string[] | null>(null)
   const [isPreferencesLoaded, setIsPreferencesLoaded] = useState(false)
 
-  const docs = (data?.docs as any[]) || []
+  const docs = (data?.docs as Record<string, unknown>[]) || []
   const collectionSlug = presentation.collectionSlug
-  const preferenceKey = `universal-grid-widths:${collectionSlug}`
+  const widthsPreferenceKey = `universal-grid-widths:${collectionSlug}`
+  const orderPreferenceKey = `universal-grid-columns:${collectionSlug}`
 
-  // 1. Fetch saved column widths from Payload's native usePreferences
+  // 1. Fetch saved column widths and user column order from Payload's native usePreferences
   useEffect(() => {
     let isMounted = true
-    getPreference<Record<string, number>>(preferenceKey)
-      .then((res) => {
+    Promise.all([
+      getPreference<Record<string, number>>(widthsPreferenceKey).catch((err) => {
+        console.error(`[UniversalAgGrid] Failed to load widths preference for ${widthsPreferenceKey}:`, err)
+        return null
+      }),
+      getPreference<string[]>(orderPreferenceKey).catch((err) => {
+        console.error(`[UniversalAgGrid] Failed to load column order preference for ${orderPreferenceKey}:`, err)
+        return null
+      }),
+    ])
+      .then(([widthsRes, orderRes]) => {
         if (isMounted) {
-          setSavedWidths(res && typeof res === 'object' && Object.keys(res).length > 0 ? res : null)
+          setSavedWidths(
+            widthsRes && typeof widthsRes === 'object' && Object.keys(widthsRes).length > 0
+              ? widthsRes
+              : null,
+          )
+          setSavedColOrder(
+            Array.isArray(orderRes) && orderRes.length > 0 ? (orderRes as string[]) : null,
+          )
           setIsPreferencesLoaded(true)
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error(`[UniversalAgGrid] Unexpected error loading preferences for ${collectionSlug}:`, err)
         if (isMounted) {
           setSavedWidths(null)
+          setSavedColOrder(null)
           setIsPreferencesLoaded(true)
         }
       })
     return () => {
       isMounted = false
     }
-  }, [getPreference, preferenceKey])
+  }, [getPreference, widthsPreferenceKey, orderPreferenceKey])
 
-  // 2. Determine active columns from Payload useTableColumns() as single source of truth
+  // 2. Determine active columns from Payload useTableColumns() and order by user preferences
   const activePayloadColumns = useMemo(() => {
     if (Array.isArray(payloadColumns) && payloadColumns.length > 0) {
-      return payloadColumns.filter((c) => {
+      const active = payloadColumns.filter((c) => {
         if (!c || !c.active) return false
         if (typeof c.accessor !== 'string') return false
         const acc = c.accessor.trim()
@@ -200,9 +221,25 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
         if (acc === 'actions' || acc === 'select') return false
         return true
       })
+
+      if (!savedColOrder || savedColOrder.length === 0) return active
+
+      const colMap = new Map(active.map((col) => [col.accessor, col]))
+      const ordered: typeof active = []
+      for (const acc of savedColOrder) {
+        const col = colMap.get(acc)
+        if (col) {
+          ordered.push(col)
+          colMap.delete(acc)
+        }
+      }
+      for (const remaining of colMap.values()) {
+        ordered.push(remaining)
+      }
+      return ordered
     }
     return []
-  }, [payloadColumns])
+  }, [payloadColumns, savedColOrder])
 
   // 3. Build ColDefs dynamically from Payload's active column state + Presentation Overrides.
   const columnDefs = useMemo<ColDef[]>(() => {
@@ -222,7 +259,7 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
         lockPosition: 'left',
         pinned: 'left',
         headerComponent: SelectionHeaderComponent,
-        cellRenderer: (params: any) => <SelectionCellComponent rowId={params.data?.id} />,
+        cellRenderer: (params: CustomCellRendererProps) => <SelectionCellComponent rowId={params.data?.id} />,
       })
     }
 
@@ -238,10 +275,11 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
           headerText = payloadCol.Heading.trim()
         } else if (
           payloadCol.field &&
-          typeof (payloadCol.field as any).label === 'string' &&
-          (payloadCol.field as any).label.trim()
+          'label' in payloadCol.field &&
+          typeof payloadCol.field.label === 'string' &&
+          payloadCol.field.label.trim()
         ) {
-          headerText = (payloadCol.field as any).label.trim()
+          headerText = payloadCol.field.label.trim()
         } else {
           headerText = formatHeaderName(accessor)
         }
@@ -251,6 +289,7 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
       }
 
       const cellType = override?.cellType || 'text'
+      const fieldType = payloadCol.field && 'type' in payloadCol.field ? payloadCol.field.type : undefined
       const CellComponent = CELL_COMPONENT_MAP[cellType] || TextCell
 
       const colDef: ColDef = {
@@ -268,29 +307,58 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
         unSortIcon: true,
         // Controlled server sorting comparator: returns 0 so AG Grid does NOT reorder rows locally
         comparator: () => 0,
-        valueFormatter: (params: any) => {
+        valueFormatter: (params: ValueFormatterParams) => {
           if (params.value == null) return ''
-          if (accessor === 'accommodations' && Array.isArray(params.value)) {
-            const totalNts = params.value.reduce((s: number, stay: any) => s + (Number(stay?.nights) || 0), 0)
-            return `${params.value.length} Stays (${totalNts} nts)`
+          // 1. Column presentation override formatter (configured in presentation.overrides)
+          if (typeof override?.valueFormatter === 'function') {
+            return override.valueFormatter(params.value, params.data)
           }
-          if (accessor === 'itinerary' && Array.isArray(params.value)) {
-            return `${params.value.length} Days`
-          }
-          if (accessor === 'gallery' && Array.isArray(params.value)) {
-            return `${params.value.length} Photos`
-          }
+          // 2. Generic fallback formatters
           if (Array.isArray(params.value)) {
             return `${params.value.length} items`
           }
           if (typeof params.value === 'object') {
-            return params.value.name || params.value.title || params.value.id || ''
+            const obj = params.value as Record<string, unknown>
+            return String(obj.name || obj.title || obj.id || '')
           }
           return String(params.value)
         },
-        cellRenderer: (params: any) => (
-          <CellComponent row={params.data} value={params.value} field={accessor} />
-        ),
+        cellRenderer: (params: CustomCellRendererProps) => {
+          // 1. Strictly-typed Custom Cell Renderer from Column Presentation Override
+          if (override?.customCell) {
+            const CustomCellRenderer = override.customCell
+            return (
+              <CustomCellRenderer
+                cellData={params.value}
+                rowData={params.data}
+                field={payloadCol.field}
+                collectionSlug={collectionSlug}
+              />
+            )
+          }
+
+          // 2. Official Payload Relationship Cell
+          if (cellType === 'relationship' || fieldType === 'relationship') {
+            return (
+              <DefaultCell
+                cellData={params.value}
+                rowData={params.data}
+                field={payloadCol.field}
+                collectionSlug={collectionSlug}
+              />
+            )
+          }
+
+          // 3. Generic Built-in Universal Cell
+          return (
+            <CellComponent
+              row={params.data}
+              value={params.value}
+              field={accessor}
+              collectionSlug={collectionSlug}
+            />
+          )
+        },
       }
 
       cols.push(colDef)
@@ -309,7 +377,7 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
         suppressMovable: true,
         lockPosition: 'right',
         pinned: 'right',
-        cellRenderer: (params: any) => (
+        cellRenderer: (params: CustomCellRendererProps) => (
           <ActionsCell
             row={params.data}
             actions={presentation.rowActions}
@@ -328,10 +396,13 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
       resizable: true,
       sortable: true,
       minWidth: 80,
-      valueFormatter: (params) => {
+      valueFormatter: (params: ValueFormatterParams) => {
         if (params.value == null) return ''
         if (Array.isArray(params.value)) return `${params.value.length} items`
-        if (typeof params.value === 'object') return params.value.name || params.value.title || params.value.id || ''
+        if (typeof params.value === 'object') {
+          const obj = params.value as Record<string, unknown>
+          return String(obj.name || obj.title || obj.id || '')
+        }
         return String(params.value)
       },
     }),
@@ -442,59 +513,30 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
     [handleSortChange, activeSortStr],
   )
 
-  // 8. Direct Column Reorder Sync with Payload useTableColumns().moveColumn
+  // 8. User Column Reorder Persisted via Payload usePreferences (Zero URL serialization)
   const onColumnMoved = useCallback(
     (event: ColumnMovedEvent) => {
-      // Only process when user has actually dropped the column
-      if (!event.finished) return
+      // Only process when user has actually dropped the column manually in the UI
+      if (!event.finished || event.source !== 'uiColumnDragged') return
       if (!event.api || typeof event.api.getAllGridColumns !== 'function') return
-      if (typeof moveColumn !== 'function') return
-      if (isMovingColumnRef.current) return
 
       const movedColId = event.column?.getColId()
       if (!movedColId || movedColId.startsWith('__')) return
 
-      // 1. Get exact visual sequence of active data columns from AG Grid
+      // Get visual sequence of active data columns from AG Grid
       const gridCols = event.api
         .getAllGridColumns()
         .map((c) => c.getColId())
         .filter((id) => !id.startsWith('__'))
 
-      const newGridIdx = gridCols.indexOf(movedColId)
-      if (newGridIdx < 0) return
-
-      const currentColumns = Array.isArray(payloadColumns) ? payloadColumns : []
-      const fromIndex = currentColumns.findIndex((c) => c.accessor === movedColId)
-      if (fromIndex < 0) return
-
-      // 2. Calculate exact toIndex in Payload's full column array
-      let toIndex = -1
-      if (newGridIdx === 0) {
-        // Moved to first visible position: place before the first OTHER active column
-        const firstOtherActiveIdx = currentColumns.findIndex(
-          (c) => c.active && c.accessor !== movedColId,
-        )
-        toIndex = firstOtherActiveIdx >= 0 ? firstOtherActiveIdx : 0
-      } else {
-        // Moved after previous visible column
-        const prevColId = gridCols[newGridIdx - 1]
-        const prevPayloadIdx = currentColumns.findIndex((c) => c.accessor === prevColId)
-        if (prevPayloadIdx >= 0) {
-          toIndex = fromIndex < prevPayloadIdx ? prevPayloadIdx : prevPayloadIdx + 1
-        }
-      }
-
-      // 3. Dispatch to Payload immediately without timeout hacks
-      if (toIndex >= 0 && fromIndex !== toIndex) {
-        isMovingColumnRef.current = true
-        Promise.resolve(moveColumn({ fromIndex, toIndex }))
-          .catch(() => {})
-          .finally(() => {
-            isMovingColumnRef.current = false
-          })
+      if (gridCols.length > 0) {
+        setSavedColOrder(gridCols)
+        setPreference(orderPreferenceKey, gridCols).catch((err) => {
+          console.error(`[UniversalAgGrid] Failed to persist column order for ${orderPreferenceKey}:`, err)
+        })
       }
     },
-    [moveColumn, payloadColumns],
+    [setPreference, orderPreferenceKey],
   )
 
   // 9. Save user-resized column widths natively to Payload usePreferences (Debounced)
@@ -518,86 +560,35 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
         clearTimeout(debounceTimerRef.current)
       }
       debounceTimerRef.current = setTimeout(() => {
-        setPreference(preferenceKey, newWidths).catch(() => {})
+        setPreference(widthsPreferenceKey, newWidths).catch((err) => {
+          console.error(`[UniversalAgGrid] Failed to persist column widths for ${widthsPreferenceKey}:`, err)
+        })
       }, 300)
     },
-    [preferenceKey, setPreference],
+    [widthsPreferenceKey, setPreference],
   )
 
   // 10. Reset Column Widths: Clears preference and performs one-time clean balanced fit
   const handleResetWidths = useCallback(() => {
     setSavedWidths(null)
-    setPreference(preferenceKey, null).catch(() => {})
+    setPreference(widthsPreferenceKey, null).catch((err) => {
+      console.error(`[UniversalAgGrid] Failed to reset column widths for ${widthsPreferenceKey}:`, err)
+    })
     if (gridApiRef.current) {
       gridApiRef.current.resetColumnState()
       if (typeof gridApiRef.current.sizeColumnsToFit === 'function') {
         gridApiRef.current.sizeColumnsToFit()
       }
     }
-  }, [preferenceKey, setPreference])
-
-  /**
-   * Project a populated relationship document to its canonical grid display value
-   * based on the specific column configuration and collection relationship contract.
-   */
-  const projectRelationForColumn = useCallback(
-    (accessor: string, rawVal: any, col: any): any => {
-      if (rawVal == null || typeof rawVal !== 'object') return rawVal
-
-      const relationTo = (col.field as any)?.relationTo
-
-      // 1. Customer relationship column (e.g. Bookings 'user' -> Customers)
-      if (accessor === 'user' || relationTo === 'customers') {
-        return (
-          rawVal.email ||
-          [rawVal.firstName, rawVal.lastName].filter(Boolean).join(' ') ||
-          rawVal.name ||
-          String(rawVal.id || '')
-        )
-      }
-
-      // 2. Experience relationship column (e.g. Bookings 'experience' -> Experiences)
-      if (accessor === 'experience' || relationTo === 'experiences') {
-        return rawVal.title || rawVal.name || rawVal.slug || String(rawVal.id || '')
-      }
-
-      // 3. DepartureSlot relationship column
-      if (accessor === 'departureSlot' || relationTo === 'departure-slots') {
-        return rawVal.slotCode || rawVal.startDate || String(rawVal.id || '')
-      }
-
-      // 4. City / Destination relationship column
-      if (accessor === 'city' || relationTo === 'destinations') {
-        return rawVal.name || rawVal.title || String(rawVal.id || '')
-      }
-
-      // 5. Generic relationship with explicit relationTo
-      if (relationTo) {
-        if (Array.isArray(rawVal)) {
-          return rawVal
-            .map((item) =>
-              typeof item === 'object' && item !== null
-                ? item.title || item.name || item.email || String(item.id || '')
-                : String(item ?? ''),
-            )
-            .filter(Boolean)
-            .join(', ')
-        }
-        return rawVal.title || rawVal.name || rawVal.email || rawVal.label || String(rawVal.id || '')
-      }
-
-      return rawVal
-    },
-    [],
-  )
+  }, [widthsPreferenceKey, setPreference])
 
   // 11. Shape row for grid updating (Context Preservation & Schema Conformance)
   // Ensures saved document matches the exact projection active in the grid before updating
   const shapeRowForGrid = useCallback(
-    (sourceDoc: any, existingRowData?: any) => {
+    (sourceDoc: Record<string, unknown>, existingRowData?: Record<string, unknown>) => {
       if (!sourceDoc) return existingRowData || {}
 
-      const updatedRow = { ...(existingRowData || {}), id: sourceDoc.id }
+      const updatedRow: Record<string, unknown> = { ...(existingRowData || {}), id: sourceDoc.id }
 
       activePayloadColumns.forEach((col) => {
         const accessor = col.accessor
@@ -605,15 +596,15 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
 
         const override = presentation.overrides?.[accessor]
         const cellType = override?.cellType
-        const fieldType = (col.field as any)?.type
+        const fieldType = col.field && 'type' in col.field ? col.field.type : undefined
 
-        let rawVal: any
+        let rawVal: unknown
         if (accessor.includes('.')) {
           const parts = accessor.split('.')
-          let curr = sourceDoc
+          let curr: unknown = sourceDoc
           for (const part of parts) {
-            if (curr == null) break
-            curr = curr[part]
+            if (curr == null || typeof curr !== 'object') break
+            curr = (curr as Record<string, unknown>)[part]
           }
           rawVal = curr
         } else if (accessor in sourceDoc) {
@@ -622,54 +613,47 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
 
         if (rawVal === undefined) return
 
-        // Media thumbnail columns expect the media object or image url
+        // 1. Media thumbnail columns expect the media object or image url
         const isThumbnailField =
           cellType === 'thumbnail' ||
-          accessor === 'hero' ||
-          accessor === 'thumbnail' ||
           (typeof rawVal === 'object' && rawVal !== null && ('url' in rawVal || 'filename' in rawVal))
 
-        // Structured array columns handled by specialized array cell renderers
-        const isStructuredArray =
-          Array.isArray(rawVal) &&
-          (cellType === 'accommodations' ||
-            cellType === 'itinerary' ||
-            cellType === 'gallery' ||
-            accessor === 'accommodations' ||
-            accessor === 'itinerary' ||
-            accessor === 'gallery')
+        // 2. Array columns (structured data, multiple relations, media galleries) are preserved intact
+        if (Array.isArray(rawVal)) {
+          updatedRow[accessor] = rawVal
+          return
+        }
 
-        // If this is a relationship field or customer/experience/slot column,
-        // project to the canonical grid display value according to its column contract.
+        // 3. Single relationship object fields: normalize to canonical scalar ID symmetrically across initial load and in-place updates
         if (
           !isThumbnailField &&
-          !isStructuredArray &&
-          typeof rawVal === 'object' &&
-          rawVal !== null &&
-          (fieldType === 'relationship' ||
-            accessor === 'user' ||
-            accessor === 'experience' ||
-            accessor === 'departureSlot')
+          (cellType === 'relationship' ||
+            fieldType === 'relationship' ||
+            (typeof rawVal === 'object' && rawVal !== null && 'id' in rawVal && !('url' in rawVal) && !('filename' in rawVal)))
         ) {
-          updatedRow[accessor] = projectRelationForColumn(accessor, rawVal, col)
+          updatedRow[accessor] =
+            rawVal && typeof rawVal === 'object' && 'id' in rawVal
+              ? (rawVal as { id: unknown }).id
+              : rawVal
           return
         }
 
         updatedRow[accessor] = rawVal
       })
 
-      // Retain common top-level metadata fields if present
-      if (sourceDoc.updatedAt) updatedRow.updatedAt = sourceDoc.updatedAt
-      if (sourceDoc.createdAt) updatedRow.createdAt = sourceDoc.createdAt
-      if (sourceDoc.title) updatedRow.title = sourceDoc.title
-      if (sourceDoc.slug) updatedRow.slug = sourceDoc.slug
-      if (sourceDoc.availability !== undefined) updatedRow.availability = sourceDoc.availability
-      if (sourceDoc.status) updatedRow.status = sourceDoc.status
-      if (sourceDoc.bookingNumber) updatedRow.bookingNumber = sourceDoc.bookingNumber
+      // Retain common top-level scalar metadata fields if present without collection assumptions
+      Object.keys(sourceDoc).forEach((key) => {
+        if (updatedRow[key] === undefined) {
+          const val = sourceDoc[key]
+          if (val === null || typeof val !== 'object' || Array.isArray(val)) {
+            updatedRow[key] = val
+          }
+        }
+      })
 
       return updatedRow
     },
-    [activePayloadColumns, presentation.overrides, projectRelationForColumn],
+    [activePayloadColumns, presentation.overrides],
   )
 
   // Symmetrically shape docs to guarantee exact grid contract conformance on load
@@ -677,11 +661,11 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
     return docs.map((doc) => shapeRowForGrid(doc, doc))
   }, [docs, shapeRowForGrid])
 
-  // 12. Expose updateRow to parent via imperative ref
+  // 12. Expose updateRow and resetWidths to parent via imperative ref
   useImperativeHandle(
     ref,
     () => ({
-      updateRow: (savedDoc: any) => {
+      updateRow: (savedDoc: Record<string, unknown>) => {
         const api = gridApiRef.current
         if (!api || !savedDoc?.id) return
 
@@ -691,8 +675,9 @@ export const UniversalAgGrid = forwardRef<UniversalAgGridRef, UniversalAgGridPro
           api.applyTransaction({ update: [shapedRow] })
         }
       },
+      resetWidths: handleResetWidths,
     }),
-    [shapeRowForGrid],
+    [shapeRowForGrid, handleResetWidths],
   )
 
   // 13. Single Click Row Inspection Handler (Peek Trigger)

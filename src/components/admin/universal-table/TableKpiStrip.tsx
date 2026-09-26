@@ -1,4 +1,7 @@
+'use client'
+
 import React from 'react'
+import { useListQuery } from '@payloadcms/ui'
 import type { TableMetric } from './types'
 import { tableTokens } from './tokens'
 
@@ -58,30 +61,62 @@ function renderIcon(icon?: string) {
           />
         </svg>
       )
+    case 'creditCard':
+      return (
+        <svg width="18" height="18" fill="none" stroke="#f59e0b" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.8}
+            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+          />
+        </svg>
+      )
     default:
       return null
   }
 }
 
 export const TableKpiStrip: React.FC<TableKpiStripProps> = ({ metrics }) => {
+  const { refineListData } = useListQuery()
   if (!metrics || metrics.length === 0) return null
 
   return (
     <div className={tableTokens.kpiStrip}>
-      {metrics.map((m) => (
-        <div
-          key={m.id}
-          className={`${tableTokens.kpiCard} ${m.onClick ? 'cursor-pointer hover:border-amber-500/40 transition-all' : ''}`}
-          onClick={m.onClick}
-          role={m.onClick ? 'button' : undefined}
-          tabIndex={m.onClick ? 0 : undefined}
-        >
+      {metrics.map((m) => {
+        const hasAction = Boolean(m.onClick || m.whereFilter !== undefined || m.id === 'total')
+        const handleCardClick = () => {
+          if (m.onClick) {
+            m.onClick()
+          } else if (m.whereFilter !== undefined) {
+            void refineListData({ where: m.whereFilter, page: 1 })
+          } else if (m.id === 'total') {
+            void refineListData({ where: undefined, page: 1 })
+          }
+        }
+
+        return (
+          <div
+            key={m.id}
+            className={`${tableTokens.kpiCard} ${hasAction ? 'cursor-pointer hover:border-amber-500/40 transition-all' : ''}`}
+            onClick={hasAction ? handleCardClick : undefined}
+            role={hasAction ? 'button' : undefined}
+            tabIndex={hasAction ? 0 : undefined}
+          >
           <div className={tableTokens.kpiCardContent}>
             {m.icon && <div className={tableTokens.kpiIcon}>{renderIcon(m.icon)}</div>}
             <div className={tableTokens.kpiText}>
               <div className={tableTokens.kpiStatRow}>
-                <span className={tableTokens.kpiValue}>{m.value}</span>
-                {m.percentage !== undefined && (
+                {m.loading ? (
+                  <span className={tableTokens.kpiSkeleton} aria-label="Loading metric" />
+                ) : m.error ? (
+                  <span className={tableTokens.kpiError} title={m.error}>
+                    Unavailable
+                  </span>
+                ) : (
+                  <span className={tableTokens.kpiValue}>{m.value ?? '—'}</span>
+                )}
+                {m.percentage !== undefined && !m.loading && (
                   <span className={tableTokens.kpiBadge}>{m.percentage}%</span>
                 )}
               </div>
@@ -99,7 +134,8 @@ export const TableKpiStrip: React.FC<TableKpiStripProps> = ({ metrics }) => {
             </div>
           )}
         </div>
-      ))}
+      )
+    })}
     </div>
   )
 }

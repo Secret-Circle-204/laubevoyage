@@ -1,0 +1,1008 @@
+/* ==========================================================================
+   Universal Table: Bulk Actions Bar Styles
+   Floating Action Bar for multi-record operations
+   ========================================================================== */
+
+.ut-bulk-bar-container {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 850;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 16px;
+  background: linear-gradient(135deg, rgba(31, 34, 97, 0.94) 0%, rgba(21, 23, 69, 0.96) 100%);
+  border: 1px solid rgba(46, 49, 145, 0.75);
+  border-radius: 9999px;
+  box-shadow: 
+    0 16px 36px -8px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(245, 158, 11, 0.2),
+    0 0 24px -4px rgba(46, 49, 145, 0.5);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: utBulkSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: auto;
+}
+
+.ut-bulk-bar-selection-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.ut-bulk-bar-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: #f59e0b;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ut-bulk-bar-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ut-bulk-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ut-bulk-edit-container {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ut-bulk-edit-container .edit-many {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ut-bulk-edit-container .edit-many .list-selection__button {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 14px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  cursor: pointer !important;
+  line-height: 1.4 !important;
+  height: auto !important;
+  min-height: unset !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
+  text-decoration: none !important;
+  user-select: none !important;
+}
+
+.ut-bulk-edit-container .edit-many .list-selection__button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.ut-bulk-edit-container .edit-many .list-selection__button::before {
+  content: '';
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  background-color: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z'/%3E%3C/svg%3E") no-repeat center / contain;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+.ut-bulk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.ut-bulk-btn-inspect {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.ut-bulk-btn-inspect:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.ut-bulk-btn-review {
+  background: rgba(46, 49, 145, 0.5);
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.35);
+}
+
+.ut-bulk-btn-review:hover:not(:disabled) {
+  background: rgba(46, 49, 145, 0.85);
+  color: #ffffff;
+  border-color: #93c5fd;
+}
+
+.ut-bulk-btn-cancel {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.ut-bulk-btn-cancel:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+.ut-bulk-btn-deselect {
+  background: transparent;
+  color: #94a3b8;
+  padding: 6px 8px;
+}
+
+.ut-bulk-btn-deselect:hover:not(:disabled) {
+  color: #f1f5f9;
+}
+
+.ut-bulk-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ut-bulk-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: utSpin 0.7s linear infinite;
+}
+
+@keyframes utBulkSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes utSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Universal Workspace: Centered Modal Popup for Bulk Edit
+   - Beautiful, spacious centered modal popup (760px) in the exact center of screen
+   - Closed state completely hidden and dormant (never intercepts clicks)
+   - Rock-solid stacking context: Sub-drawers (+) ALWAYS open on top (z-index 2500)
+   - High-contrast, sharp typography and rich dark executive palette
+   - Dropdown menus unclipped with focus-within layer promotion
+   - Action footer cleanly pinned at bottom (never jumps to top or overlaps fields)
+   ========================================================================== */
+
+/* 1. Closed State: Completely Dormant */
+dialog[id^="ut-bulk-edit"]:not([open]):not(.drawer--is-open) {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  z-index: -1 !important;
+}
+
+/* 2. Open State: Fullscreen Centering Stage */
+dialog[id^="ut-bulk-edit"]:is([open], .drawer--is-open) {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 500 !important;
+  pointer-events: none !important;
+}
+
+/* 3. Backdrop Dimmer & Blur */
+dialog[id^="ut-bulk-edit"]::backdrop {
+  background: rgba(8, 12, 22, 0.78) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 499 !important;
+  pointer-events: auto !important;
+}
+
+dialog[id^="ut-bulk-edit"] .drawer__blur-bg {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(8, 12, 22, 0.78) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 499 !important;
+  pointer-events: auto !important;
+}
+
+/* Backdrop Click-to-Close Area */
+dialog[id^="ut-bulk-edit"] .drawer__close {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  z-index: 499 !important;
+  pointer-events: auto !important;
+}
+
+/* 4. Sub-Drawer / Nested Modal Stack Protection */
+/* Ensures DocumentDrawers opened via '+' ALWAYS render on top of the Bulk Edit Modal */
+dialog.drawer:not([id^="ut-bulk-edit"]),
+.payload__modal-item:not([id^="ut-bulk-edit"]),
+.doc-drawer,
+.drawer--nested {
+  z-index: 2500 !important;
+}
+
+dialog.drawer:not([id^="ut-bulk-edit"])::backdrop,
+.payload__modal-item:not([id^="ut-bulk-edit"])::backdrop {
+  z-index: 2499 !important;
+}
+
+/* 5. The Centered Modal Window Card (760px) - Luxury Layered Pastel Design */
+dialog[id^="ut-bulk-edit"] .drawer__content {
+  position: relative !important;
+  width: 760px !important;
+  max-width: 92vw !important;
+  min-height: 560px !important;
+  max-height: 88vh !important;
+  height: auto !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 18px !important;
+  box-shadow: 
+    0 25px 70px -12px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 0 48px -4px rgba(37, 99, 235, 0.25) !important;
+  color: #0f172a !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  z-index: 501 !important;
+  pointer-events: auto !important;
+  animation: utModalZoom 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+dialog[id^="ut-bulk-edit"] .drawer__content-children {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #ffffff !important;
+}
+
+/* 6. Main Container & Vibrant Royal Blue Header */
+dialog[id^="ut-bulk-edit"] .edit-many__main {
+  width: 100% !important;
+  min-height: 560px !important;
+  max-height: 88vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__header {
+  height: 68px !important;
+  min-height: 68px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 28px !important;
+  margin: 0 !important;
+  background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #2563eb 100%) !important;
+  border-bottom: 2px solid #1d4ed8 !important;
+  box-shadow: 0 4px 16px rgba(30, 64, 175, 0.35) !important;
+  flex-shrink: 0 !important;
+  z-index: 150 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__header__title {
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.015em !important;
+  margin: 0 !important;
+  line-height: 1.3 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__header__close {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  transition: all 0.15s ease !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__header__close:hover {
+  background: rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+  transform: scale(1.06);
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__header__close svg {
+  width: 18px !important;
+  height: 18px !important;
+  position: static !important;
+  inset-inline-start: auto !important;
+  top: auto !important;
+  margin: 0 !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.5px !important;
+}
+
+/* 7. Scrollable Form Body (White Backdrop, Rich Contrast) */
+dialog[id^="ut-bulk-edit"] .edit-many__form {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: calc(560px - 68px) !important;
+  max-height: calc(88vh - 68px) !important;
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+  padding: 26px 28px 26px 28px !important;
+  gap: 22px !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  background: #ffffff !important;
+}
+
+/* Custom Clean Scrollbar */
+dialog[id^="ut-bulk-edit"] ::-webkit-scrollbar {
+  width: 7px !important;
+  height: 7px !important;
+}
+dialog[id^="ut-bulk-edit"] ::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+  border-radius: 9999px !important;
+}
+dialog[id^="ut-bulk-edit"] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 9999px !important;
+}
+dialog[id^="ut-bulk-edit"] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* 8. Field Selection Area (Top Multi-Select with Bold White Tabs) */
+dialog[id^="ut-bulk-edit"] .field-select {
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 120 !important;
+}
+
+/* "Select fields to edit" title label */
+dialog[id^="ut-bulk-edit"] .field-select > span.field-label,
+dialog[id^="ut-bulk-edit"] .field-select > .field-label,
+dialog[id^="ut-bulk-edit"] .field-select label {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  margin-bottom: 10px !important;
+  display: block !important;
+}
+
+dialog[id^="ut-bulk-edit"] .field-select .rs__control {
+  background: #f8fafc !important;
+  border: 2px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  min-height: 52px !important;
+  padding: 4px 12px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+dialog[id^="ut-bulk-edit"] .field-select .rs__control--is-focused {
+  background: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+}
+
+dialog[id^="ut-bulk-edit"] .field-select .rs__placeholder {
+  color: #475569 !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .field-select .rs__single-value {
+  color: #0f172a !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+}
+
+/* Selected Tabs: Royal Blue with Large Pure White Font */
+dialog[id^="ut-bulk-edit"] .field-select .multi-value,
+dialog[id^="ut-bulk-edit"] .field-select .rs__multi-value {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  border: 1px solid #1e40af !important;
+  border-radius: 8px !important;
+  margin: 4px !important;
+  padding: 2px 4px 2px 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35) !important;
+}
+
+/* Pure White, Bold, 15px font for tab label */
+dialog[id^="ut-bulk-edit"] .field-select .multi-value .multi-value-label,
+dialog[id^="ut-bulk-edit"] .field-select .multi-value .multi-value-label__text,
+dialog[id^="ut-bulk-edit"] .field-select .multi-value .field-label,
+dialog[id^="ut-bulk-edit"] .field-select .multi-value span,
+dialog[id^="ut-bulk-edit"] .field-select .rs__multi-value__label {
+  color: #ffffff !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.4 !important;
+  text-transform: none !important;
+}
+
+/* Remove 'x' button inside tab */
+dialog[id^="ut-bulk-edit"] .field-select .multi-value button.multi-value-remove,
+dialog[id^="ut-bulk-edit"] .field-select .rs__multi-value__remove {
+  background: transparent !important;
+  border: none !important;
+  padding: 4px 6px !important;
+  margin-left: 4px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 6px !important;
+  transition: background 0.15s ease !important;
+}
+
+dialog[id^="ut-bulk-edit"] .field-select .multi-value button.multi-value-remove:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+dialog[id^="ut-bulk-edit"] .field-select .multi-value button.multi-value-remove svg,
+dialog[id^="ut-bulk-edit"] .field-select .multi-value button.multi-value-remove svg path {
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+  fill: none !important;
+  width: 16px !important;
+  height: 16px !important;
+  stroke-width: 2.5px !important;
+}
+
+/* FieldSelect Dropdown Menu */
+dialog[id^="ut-bulk-edit"] .field-select .rs__menu {
+  position: absolute !important;
+  top: 100% !important;
+  bottom: auto !important;
+  left: 0 !important;
+  width: 100% !important;
+  background: #ffffff !important;
+  border: 2px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18) !important;
+  z-index: 99999 !important;
+  margin-top: 6px !important;
+  max-height: 260px !important;
+  overflow-y: auto !important;
+}
+
+dialog[id^="ut-bulk-edit"] .field-select .rs__option {
+  color: #0f172a !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  padding: 13px 20px !important;
+  cursor: pointer !important;
+  transition: all 0.12s ease !important;
+  border-left: 4px solid transparent !important;
+}
+
+/* Explicitly override Payload global .field-label inside options */
+dialog[id^="ut-bulk-edit"] .field-select .rs__option *,
+dialog[id^="ut-bulk-edit"] .field-select .rs__option span,
+dialog[id^="ut-bulk-edit"] .field-select .rs__option .field-label {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: inherit !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.4 !important;
+  text-transform: none !important;
+}
+
+dialog[id^="ut-bulk-edit"] .field-select .rs__option--is-focused {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-left-color: #2563eb !important;
+}
+
+dialog[id^="ut-bulk-edit"] .field-select .rs__option--is-selected {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-left-color: #1d4ed8 !important;
+}
+
+/* Empty State Guidance */
+dialog[id^="ut-bulk-edit"] .edit-many__form:not(:has(.render-fields)) .field-select::after {
+  content: 'Select one or more fields above to start updating values across all selected records.' !important;
+  display: block !important;
+  margin-top: 24px !important;
+  padding: 36px 28px !important;
+  background: #f8fafc !important;
+  border: 2px dashed #cbd5e1 !important;
+  border-radius: 14px !important;
+  color: #64748b !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.6 !important;
+  text-align: center !important;
+}
+
+/* 9. Selected Field Cards (Pastel Layers with Crisp Blue Accent Border) */
+dialog[id^="ut-bulk-edit"] .render-fields {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+  z-index: 50 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields:focus-within {
+  z-index: 150 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .field-type {
+  background: #f8fafc !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-left: 5px solid #2563eb !important;
+  border-radius: 14px !important;
+  padding: 22px 26px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  position: relative !important;
+  z-index: 10 !important;
+  transition: all 0.15s ease !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .field-type:hover {
+  border-color: #cbd5e1 !important;
+  border-left-color: #1d4ed8 !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+  z-index: 30 !important;
+}
+
+/* Focus-within lifts active card above all following sibling cards */
+dialog[id^="ut-bulk-edit"] .render-fields .field-type:focus-within {
+  background: #ffffff !important;
+  border-color: #93c5fd !important;
+  border-left-color: #1d4ed8 !important;
+  box-shadow: 0 8px 28px rgba(37, 99, 235, 0.14) !important;
+  z-index: 100 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields label.field-label {
+  color: #0f172a !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+  margin-bottom: 10px !important;
+  display: block !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .field-description {
+  color: #475569 !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  font-weight: 500 !important;
+  margin-top: 10px !important;
+}
+
+/* 10. Input Controls & Relationship Protection */
+dialog[id^="ut-bulk-edit"] .render-fields .rs__input-container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields input.rs__input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  color: #0f172a !important;
+  outline: none !important;
+}
+
+/* Standard inputs (Text, Number, Textarea, Select) */
+dialog[id^="ut-bulk-edit"] .render-fields input:not(.rs__input),
+dialog[id^="ut-bulk-edit"] .render-fields textarea,
+dialog[id^="ut-bulk-edit"] .render-fields select:not(.rs__input) {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 9px !important;
+  color: #0f172a !important;
+  padding: 11px 16px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  width: 100% !important;
+  height: 48px !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields textarea {
+  height: auto !important;
+  min-height: 90px !important;
+  line-height: 1.5 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields input:not(.rs__input):focus,
+dialog[id^="ut-bulk-edit"] .render-fields textarea:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Relationship Field Controls (e.g. Destinations, City) */
+dialog[id^="ut-bulk-edit"] .render-fields .relationship {
+  position: relative !important;
+  z-index: 40 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship:focus-within {
+  z-index: 100 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship__wrap {
+  display: flex !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship .rs__control {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 9px !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  padding: 0 14px !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship .rs__control--is-focused {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship--allow-create .rs__control {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: none !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship .rs__placeholder,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__placeholder {
+  color: #334155 !important;
+  font-size: 15.5px !important;
+  font-weight: 600 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship .rs__single-value,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__single-value {
+  color: #0f172a !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+/* Multi-select relationship pills (e.g. Destinations) */
+dialog[id^="ut-bulk-edit"] .render-fields .multi-value,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__multi-value {
+  background: #eff6ff !important;
+  border: 1.5px solid #bfdbfe !important;
+  border-radius: 8px !important;
+  margin: 3px !important;
+  padding: 2px 6px 2px 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .multi-value *,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__multi-value * {
+  color: #1d4ed8 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .multi-value button.multi-value-remove,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__multi-value__remove {
+  background: transparent !important;
+  border: none !important;
+  padding: 2px 4px !important;
+  margin-left: 4px !important;
+  cursor: pointer !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .multi-value button.multi-value-remove svg,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__multi-value__remove svg {
+  stroke: #1d4ed8 !important;
+  width: 15px !important;
+  height: 15px !important;
+  stroke-width: 2.2px !important;
+}
+
+/* Dropdown Chevrons and Indicators */
+dialog[id^="ut-bulk-edit"] .rs__indicator svg {
+  stroke: #0f172a !important;
+  color: #0f172a !important;
+  stroke-width: 2.2px !important;
+  opacity: 0.9 !important;
+}
+
+/* Relationship Dropdown Menu */
+dialog[id^="ut-bulk-edit"] .render-fields .relationship .rs__menu,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__menu {
+  position: absolute !important;
+  top: 100% !important;
+  bottom: auto !important;
+  left: 0 !important;
+  width: 100% !important;
+  background: #ffffff !important;
+  border: 2px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18) !important;
+  z-index: 99999 !important;
+  margin-top: 6px !important;
+  max-height: 250px !important;
+  overflow-y: auto !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship .rs__option,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__option {
+  color: #0f172a !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  padding: 13px 20px !important;
+  cursor: pointer !important;
+  transition: all 0.12s ease !important;
+  border-left: 4px solid transparent !important;
+}
+
+/* Ensure inner spans in relationship options are crisp and large */
+dialog[id^="ut-bulk-edit"] .render-fields .relationship .rs__option *,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__option * {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: inherit !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship .rs__option--is-focused,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__option--is-focused {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-left-color: #2563eb !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields .relationship .rs__option--is-selected,
+dialog[id^="ut-bulk-edit"] .render-fields .rs__option--is-selected {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-left-color: #1d4ed8 !important;
+}
+
+/* Relationship Add-New '+' Button */
+dialog[id^="ut-bulk-edit"] .render-fields button.relationship-add-new__add-button {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  border: 1.5px solid #1d4ed8 !important;
+  border-top-right-radius: 9px !important;
+  border-bottom-right-radius: 9px !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  padding: 0 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #ffffff !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields button.relationship-add-new__add-button:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+  transform: scale(1.02);
+}
+
+dialog[id^="ut-bulk-edit"] .render-fields button.relationship-add-new__add-button svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.5px !important;
+}
+
+/* 11. Clean Pinned Bottom Action Bar (Save Button) */
+dialog[id^="ut-bulk-edit"] .edit-many__sidebar-wrap {
+  position: relative !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  width: 100% !important;
+  margin-top: auto !important;
+  padding: 24px 0 8px 0 !important;
+  height: auto !important;
+  min-height: 68px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  background: transparent !important;
+  border: none !important;
+  border-top: 1.5px solid #e2e8f0 !important;
+  box-sizing: border-box !important;
+  z-index: 20 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__sidebar {
+  width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+  border: none !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__sidebar-sticky-wrap {
+  min-height: auto !important;
+  display: block !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__document-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  width: 100% !important;
+  position: static !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__document-actions .form-submit {
+  width: auto !important;
+  margin: 0 !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__save,
+dialog[id^="ut-bulk-edit"] .edit-many__publish {
+  width: auto !important;
+  min-width: 160px !important;
+  height: 48px !important;
+  padding: 0 28px !important;
+  border-radius: 10px !important;
+  font-size: 15.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.01em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__save:not(:disabled),
+dialog[id^="ut-bulk-edit"] .edit-many__publish:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45) !important;
+  cursor: pointer !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__save:not(:disabled):hover,
+dialog[id^="ut-bulk-edit"] .edit-many__publish:not(:disabled):hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55) !important;
+  transform: translateY(-1px);
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__save:disabled,
+dialog[id^="ut-bulk-edit"] .edit-many__publish:disabled {
+  background: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  border: none !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__draft {
+  height: 48px !important;
+  padding: 0 20px !important;
+  border-radius: 10px !important;
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1.5px solid #cbd5e1 !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+dialog[id^="ut-bulk-edit"] .edit-many__draft:hover:not(:disabled) {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+@keyframes utModalZoom {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

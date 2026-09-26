@@ -24,19 +24,13 @@ import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0
 import { DurationHoursField as DurationHoursField_cfebf3e08b081faa627e9c76b4ae976d } from '@/components/admin/DurationHoursField'
 import { AccommodationsEditor as AccommodationsEditor_8f3130c847aa5539e48a56c00b7af6f2 } from '@/components/admin/AccommodationsEditor'
 import { DepartureSlotsEditor as DepartureSlotsEditor_0a21e2f4ae31ad83e9e65f93bbccf7dc } from '@/components/admin/DepartureSlotsEditor'
+import { UniversalKpiStrip as UniversalKpiStrip_318f517ed94d4bf9f476612da979a74a } from '@/components/admin/universal-table/UniversalKpiStrip'
 import { UniversalListView as UniversalListView_ffe35bbbe496adfc85fb2d03812faea2 } from '@/components/admin/universal-table/UniversalListView'
 import { BookingStatusField as BookingStatusField_cf146a4a2c9b6435470a488e2d787984 } from '@/components/admin/BookingStatusField'
 import { CalendarDateCell as CalendarDateCell_792460ba378d690e0aef26d86be1a3b0 } from '@/components/admin/CalendarDateCell'
 import { OperationalCompletionCell as OperationalCompletionCell_105d161b8d42a752f14c357f9758c300 } from '@/components/admin/OperationalCompletionCell'
 import { OperationalCompletionField as OperationalCompletionField_a29e11e303c31188a365bf7983cf90cc } from '@/components/admin/OperationalCompletionField'
 import { SyncExchangeRatesButton as SyncExchangeRatesButton_76754489361d6da158e350b1f998e39c } from '@/components/admin/SyncExchangeRatesButton'
-import { QueryPresetsAccessCell as QueryPresetsAccessCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
-import { QueryPresetsWhereCell as QueryPresetsWhereCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
-import { QueryPresetsWhereField as QueryPresetsWhereField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
-import { QueryPresetsColumnsCell as QueryPresetsColumnsCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
-import { QueryPresetsColumnField as QueryPresetsColumnField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
-import { QueryPresetsGroupByCell as QueryPresetsGroupByCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
-import { QueryPresetsGroupByField as QueryPresetsGroupByField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -67,18 +61,12 @@ export const importMap = {
   "@/components/admin/DurationHoursField#DurationHoursField": DurationHoursField_cfebf3e08b081faa627e9c76b4ae976d,
   "@/components/admin/AccommodationsEditor#AccommodationsEditor": AccommodationsEditor_8f3130c847aa5539e48a56c00b7af6f2,
   "@/components/admin/DepartureSlotsEditor#DepartureSlotsEditor": DepartureSlotsEditor_0a21e2f4ae31ad83e9e65f93bbccf7dc,
+  "@/components/admin/universal-table/UniversalKpiStrip#UniversalKpiStrip": UniversalKpiStrip_318f517ed94d4bf9f476612da979a74a,
   "@/components/admin/universal-table/UniversalListView#UniversalListView": UniversalListView_ffe35bbbe496adfc85fb2d03812faea2,
   "@/components/admin/BookingStatusField#BookingStatusField": BookingStatusField_cf146a4a2c9b6435470a488e2d787984,
   "@/components/admin/CalendarDateCell#CalendarDateCell": CalendarDateCell_792460ba378d690e0aef26d86be1a3b0,
   "@/components/admin/OperationalCompletionCell#OperationalCompletionCell": OperationalCompletionCell_105d161b8d42a752f14c357f9758c300,
   "@/components/admin/OperationalCompletionField#OperationalCompletionField": OperationalCompletionField_a29e11e303c31188a365bf7983cf90cc,
   "@/components/admin/SyncExchangeRatesButton#SyncExchangeRatesButton": SyncExchangeRatesButton_76754489361d6da158e350b1f998e39c,
-  "@payloadcms/next/client#QueryPresetsAccessCell": QueryPresetsAccessCell_2b8867833a34864a02ddf429b0728a40,
-  "@payloadcms/next/client#QueryPresetsWhereCell": QueryPresetsWhereCell_2b8867833a34864a02ddf429b0728a40,
-  "@payloadcms/next/client#QueryPresetsWhereField": QueryPresetsWhereField_2b8867833a34864a02ddf429b0728a40,
-  "@payloadcms/next/client#QueryPresetsColumnsCell": QueryPresetsColumnsCell_2b8867833a34864a02ddf429b0728a40,
-  "@payloadcms/next/client#QueryPresetsColumnField": QueryPresetsColumnField_2b8867833a34864a02ddf429b0728a40,
-  "@payloadcms/next/client#QueryPresetsGroupByCell": QueryPresetsGroupByCell_2b8867833a34864a02ddf429b0728a40,
-  "@payloadcms/next/client#QueryPresetsGroupByField": QueryPresetsGroupByField_2b8867833a34864a02ddf429b0728a40,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

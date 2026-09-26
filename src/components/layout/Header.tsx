@@ -254,11 +254,22 @@ export function Header({ data }: HeaderProps) {
             )}
 
             {/* User Session Auth / Portal Link */}
-            {session.isAuthenticated ? (
+            {session.isAuthenticated && session.role === 'customer' ? (
               <div className="flex items-center gap-2">
                 <Link href="/dashboard">
                   <Badge variant="secondary" size="md" className="cursor-pointer bg-white text-[#f58220] hover:bg-white/90 font-bold dark:bg-accent dark:text-accent-foreground">
                     {data?.uiLabels?.myAccount || 'Dashboard'}
+                  </Badge>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={logout} className="text-white hover:bg-white/20 dark:text-primary dark:hover:bg-primary/10 dark:text-secondary">
+                  {data?.uiLabels?.signOut || 'Sign Out'}
+                </Button>
+              </div>
+            ) : session.isAuthenticated && (session.role === 'admin' || session.role === 'super_admin') ? (
+              <div className="flex items-center gap-2">
+                <Link href="/admin">
+                  <Badge variant="secondary" size="md" className="cursor-pointer bg-[#2E3191] text-white hover:bg-[#2E3191]/90 font-bold border border-white/20">
+                    Admin Portal
                   </Badge>
                 </Link>
                 <Button variant="ghost" size="sm" onClick={logout} className="text-white hover:bg-white/20 dark:text-primary dark:hover:bg-primary/10 dark:text-secondary">
@@ -456,7 +467,7 @@ export function Header({ data }: HeaderProps) {
 
               {/* Session Account Bar */}
               <div className="pt-4 border-t border-border/60">
-                {session.isAuthenticated ? (
+                {session.isAuthenticated && session.role === 'customer' ? (
                   <div className="flex items-center justify-between gap-3">
                     <Link
                       href="/dashboard"
@@ -465,6 +476,21 @@ export function Header({ data }: HeaderProps) {
                     >
                       <Button variant="accent" size="md" className="w-full">
                         {data?.uiLabels?.myAccount || 'My Dashboard'}
+                      </Button>
+                    </Link>
+                    <Button variant="ghost" size="md" onClick={logout}>
+                      {data?.uiLabels?.signOut || 'Sign Out'}
+                    </Button>
+                  </div>
+                ) : session.isAuthenticated && (session.role === 'admin' || session.role === 'super_admin') ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <Link
+                      href="/admin"
+                      onClick={closeMobileMenu}
+                      className="flex-1"
+                    >
+                      <Button variant="accent" size="md" className="w-full bg-[#2E3191] hover:bg-[#2E3191]/90 text-white">
+                        Admin Portal
                       </Button>
                     </Link>
                     <Button variant="ghost" size="md" onClick={logout}>

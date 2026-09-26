@@ -11,7 +11,7 @@ import { getLocaleContext } from '@/lib/get-locale-context'
 
 export default async function CustomerLayout({ children }: { children: React.ReactNode }) {
   const session = await SessionResolver.resolve()
-  if (!session.isAuthenticated || !session.customerId) {
+  if (!session.isAuthenticated || session.role !== 'customer' || !session.customerId) {
     redirect('/login')
   }
 

@@ -2,9 +2,9 @@ import type { CollectionConfig } from 'payload'
 
 export const Bookings: CollectionConfig = {
   slug: 'bookings',
-  enableQueryPresets: true,
   admin: {
     useAsTitle: 'bookingNumber',
+    enableListViewSelectAPI: true,
     defaultColumns: [
       'bookingNumber',
       'user',
@@ -17,12 +17,23 @@ export const Bookings: CollectionConfig = {
       'createdAt',
     ],
     components: {
+      beforeListTable: [
+        '@/components/admin/universal-table/UniversalKpiStrip#UniversalKpiStrip',
+      ],
       views: {
         list: {
           Component: '@/components/admin/universal-table/UniversalListView#UniversalListView',
         },
       },
     },
+  },
+  forceSelect: {
+    bookingNumber: true,
+    status: true,
+    paymentStatus: true,
+    startDate: true,
+    endDate: true,
+    destinationTimezone: true,
   },
   access: {
     read: ({ req: { user } }) => {

@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useListQuery, useConfig } from '@payloadcms/ui'
 import type { Where } from 'payload'
 import type { FilterDefinition, TableFilterOption } from '../types'
+import { composeWhere } from '../utils/composeWhere'
 
 interface QuickFilterDropdownProps {
   filter: FilterDefinition
@@ -11,76 +12,74 @@ interface QuickFilterDropdownProps {
   resolvedOptions?: TableFilterOption[]
 }
 
-function extractFieldValue(where: Where | undefined, field: string): string | undefined {
-  if (!where || typeof where !== 'object') return undefined
-  const directField = where[field] as Record<string, any> | undefined
-  if (directField?.equals !== undefined) {
-    return String(directField.equals)
-  }
-  if (Array.isArray(where.and)) {
-    for (const condition of where.and) {
-      const condField = condition?.[field] as Record<string, any> | undefined
-      if (condField?.equals !== undefined) {
-        return String(condField.equals)
+function matchesOptionCondition(condVal: unknown, option: TableFilterOption): boolean {
+  if (option.whereCondition) {
+    if (condVal && typeof condVal === 'object') {
+      const condObj = condVal as Record<string, unknown>
+      const condIn = condObj.in
+      const optIn = option.whereCondition.in
+      if (Array.isArray(optIn) && Array.isArray(condIn)) {
+        const optInStr = [...optIn].map(String).sort().join(',')
+        const condInStr = [...condIn].map(String).sort().join(',')
+        return optInStr === condInStr
+      }
+      if (option.whereCondition.equals !== undefined) {
+        return String(condObj.equals) === String(option.whereCondition.equals)
       }
     }
+    return false
   }
-  return undefined
+  if (typeof condVal === 'object' && condVal !== null) {
+    const condObj = condVal as Record<string, unknown>
+    if (condObj.equals !== undefined) {
+      return String(condObj.equals) === option.value
+    }
+  }
+  return false
 }
 
-function buildWhereClause(
-  currentWhere: Where | undefined,
+function extractFieldValue(
+  where: Where | undefined,
   field: string,
-  selectedValue: string | undefined | null,
-): Where | undefined {
-  // 1. Removing filter
-  if (!selectedValue) {
-    if (!currentWhere || typeof currentWhere !== 'object') {
-      return undefined
-    }
+  options: TableFilterOption[],
+): string | undefined {
+  if (!where || typeof where !== 'object') return undefined
 
-    if (Array.isArray(currentWhere.and)) {
-      const remainingAnd = currentWhere.and.filter(
-        (cond) => !cond || (cond[field] as any)?.equals === undefined,
-      )
-      if (remainingAnd.length === 0) {
-        return undefined
-      }
-      return {
-        ...currentWhere,
-        and: remainingAnd,
+  const checkCondition = (fieldCond: any): string | undefined => {
+    if (!fieldCond) return undefined
+    for (const opt of options) {
+      if (matchesOptionCondition(fieldCond, opt)) {
+        return opt.value
       }
     }
-
-    // Top-level single field or multi-field condition
-    const { [field]: _removed, ...rest } = currentWhere
-    return Object.keys(rest).length > 0 ? (rest as Where) : undefined
-  }
-
-  // 2. Adding or updating filter
-  const condition: Where = { [field]: { equals: selectedValue } }
-
-  if (!currentWhere || typeof currentWhere !== 'object') {
-    return condition
-  }
-
-  if (Array.isArray(currentWhere.and)) {
-    const updatedAnd = currentWhere.and.filter(
-      (cond) => !cond || (cond[field] as any)?.equals === undefined,
-    )
-    return {
-      ...currentWhere,
-      and: [...updatedAnd, condition],
+    if (fieldCond.equals !== undefined) {
+      return String(fieldCond.equals)
     }
+    return undefined
   }
 
-  const { [field]: _old, ...existingOther } = currentWhere
-  if (Object.keys(existingOther).length === 0) {
-    return condition
+  const findInNode = (node: any): string | undefined => {
+    if (!node || typeof node !== 'object') return undefined
+    if (node[field] !== undefined) {
+      const match = checkCondition(node[field])
+      if (match) return match
+    }
+    if (Array.isArray(node.and)) {
+      for (const item of node.and) {
+        const match = findInNode(item)
+        if (match) return match
+      }
+    }
+    if (Array.isArray(node.or)) {
+      for (const item of node.or) {
+        const match = findInNode(item)
+        if (match) return match
+      }
+    }
+    return undefined
   }
-  return {
-    and: [existingOther as Where, condition],
-  }
+
+  return findInNode(where)
 }
 
 export const QuickFilterDropdown: React.FC<QuickFilterDropdownProps> = ({
@@ -93,6 +92,9 @@ export const QuickFilterDropdown: React.FC<QuickFilterDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false)
   const [fetchedOptions, setFetchedOptions] = useState<TableFilterOption[]>([])
   const [isLoadingRelation, setIsLoadingRelation] = useState(false)
+  const [relationshipSearch, setRelationshipSearch] = useState('')
+  const [relationPage, setRelationPage] = useState(1)
+  const [hasNextPage, setHasNextPage] = useState(false)
   const hasFetchedRelationRef = useRef(false)
   const dropdownRef = useRef<HTMLDivElement | null>(null)
 
@@ -117,7 +119,52 @@ export const QuickFilterDropdown: React.FC<QuickFilterDropdownProps> = ({
     return null
   }, [collectionConfig, filter.field])
 
-  // 2. Lazy-load relationship options on demand (event-driven when the user opens the dropdown)
+  // 2. Bounded, demand-driven relationship retrieval
+  const fetchRelationOptions = useCallback(
+    async (pageToFetch: number, search: string, append: boolean = false) => {
+      if (!isRelationship) return
+      const relationTo = (filter.source as any).relationTo
+      const labelField = (filter.source as any).labelField || 'name'
+      const valueField = (filter.source as any).valueField || 'id'
+
+      setIsLoadingRelation(true)
+      try {
+        let url = `/api/${relationTo}?limit=25&page=${pageToFetch}&depth=0`
+        if (labelField) {
+          url += `&sort=${labelField}`
+        }
+        if (search.trim()) {
+          url += `&where[${labelField}][like]=${encodeURIComponent(search.trim())}`
+        }
+
+        const res = await fetch(url)
+        if (!res.ok) return
+        const data = await res.json()
+
+        if (data && Array.isArray(data.docs)) {
+          const mapped: TableFilterOption[] = data.docs.map((doc: any) => ({
+            label: String(doc[labelField] || doc.title || doc.name || doc.id),
+            value: String(doc[valueField] || doc.id),
+          }))
+
+          setFetchedOptions((prev) => {
+            if (!append) return mapped
+            const existingValues = new Set(prev.map((o) => o.value))
+            const newOptions = mapped.filter((o) => !existingValues.has(o.value))
+            return [...prev, ...newOptions]
+          })
+          setHasNextPage(Boolean(data.hasNextPage))
+          setRelationPage(pageToFetch)
+        }
+      } catch (err) {
+        console.error('[QuickFilterDropdown] Error fetching relationship options:', err)
+      } finally {
+        setIsLoadingRelation(false)
+      }
+    },
+    [filter.source, isRelationship],
+  )
+
   const handleToggleOpen = () => {
     const nextOpen = !isOpen
     setIsOpen(nextOpen)
@@ -129,48 +176,66 @@ export const QuickFilterDropdown: React.FC<QuickFilterDropdownProps> = ({
       (!resolvedOptions || resolvedOptions.length === 0)
     ) {
       hasFetchedRelationRef.current = true
-      setIsLoadingRelation(true)
-
-      const relationTo = (filter.source as any).relationTo
-      const labelField = (filter.source as any).labelField || 'name'
-      const valueField = (filter.source as any).valueField || 'id'
-
-      fetch(`/api/${relationTo}?limit=100&depth=0`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && Array.isArray(data.docs)) {
-            const mapped: TableFilterOption[] = data.docs.map((doc: any) => ({
-              label: String(doc[labelField] || doc.title || doc.name || doc.id),
-              value: String(doc[valueField] || doc.id),
-            }))
-            setFetchedOptions(mapped)
-          }
-        })
-        .catch(() => {})
-        .finally(() => {
-          setIsLoadingRelation(false)
-        })
+      void fetchRelationOptions(1, '', false)
     }
   }
 
-  // 3. Prioritized options: Schema > Resolved > Static > Lazy Fetched
+  // Debounced search when user types inside relationship filter
+  useEffect(() => {
+    if (!isOpen || !isRelationship) return
+    const timer = setTimeout(() => {
+      void fetchRelationOptions(1, relationshipSearch, false)
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [relationshipSearch, isOpen, isRelationship, fetchRelationOptions])
+
+  // 3. Prioritized options: Static Config > Schema > Resolved > Lazy Fetched
   const options: TableFilterOption[] = useMemo(() => {
+    if (filter.source.type === 'static' && filter.source.options) {
+      return filter.source.options
+    }
     if (schemaOptions && schemaOptions.length > 0) {
       return schemaOptions
     }
     if (resolvedOptions && resolvedOptions.length > 0) {
       return resolvedOptions
     }
-    if (filter.source.type === 'static' && filter.source.options) {
-      return filter.source.options
-    }
     return fetchedOptions
-  }, [schemaOptions, resolvedOptions, filter.source, fetchedOptions])
+  }, [filter.source, schemaOptions, resolvedOptions, fetchedOptions])
 
   // 4. Extract active value from Payload where state
   const activeValue = useMemo(() => {
-    return extractFieldValue(query?.where, filter.field) || ''
-  }, [query?.where, filter.field])
+    return extractFieldValue(query?.where, filter.field, options) || ''
+  }, [query?.where, filter.field, options])
+
+  // Resolve active relationship document label if not yet present in options
+  useEffect(() => {
+    if (!isRelationship || !activeValue) return
+    const match = options.find((opt) => opt.value === activeValue)
+    if (!match) {
+      const relationTo = (filter.source as any).relationTo
+      const labelField = (filter.source as any).labelField || 'name'
+      const valueField = (filter.source as any).valueField || 'id'
+
+      fetch(`/api/${relationTo}/${activeValue}?depth=0`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((doc) => {
+          if (doc) {
+            const singleOpt: TableFilterOption = {
+              label: String(doc[labelField] || doc.title || doc.name || doc.id),
+              value: String(doc[valueField] || doc.id),
+            }
+            setFetchedOptions((prev) => {
+              if (prev.some((o) => o.value === singleOpt.value)) return prev
+              return [singleOpt, ...prev]
+            })
+          }
+        })
+        .catch((err) => {
+          console.error(`[QuickFilterDropdown] Failed to resolve relationship label for ${activeValue}:`, err)
+        })
+    }
+  }, [activeValue, isRelationship, filter.source, options])
 
   // Active label display
   const activeLabel = useMemo(() => {
@@ -207,7 +272,12 @@ export const QuickFilterDropdown: React.FC<QuickFilterDropdownProps> = ({
       return
     }
 
-    const nextWhere = buildWhereClause(query?.where, filter.field, value)
+    const selectedOption = value ? options.find((o) => o.value === value) : undefined
+    const condition = selectedOption
+      ? (selectedOption.whereCondition ?? { equals: selectedOption.value })
+      : null
+
+    const nextWhere = composeWhere(query?.where, filter.field, condition)
     void refineListData({
       where: nextWhere,
       page: 1,
@@ -243,6 +313,19 @@ export const QuickFilterDropdown: React.FC<QuickFilterDropdownProps> = ({
 
       {isOpen && (
         <div role="listbox" className="ut-filter-menu">
+          {isRelationship && (
+            <div className="p-2 border-b border-white/10">
+              <input
+                type="text"
+                placeholder={`Search ${filter.label}...`}
+                value={relationshipSearch}
+                onChange={(e) => setRelationshipSearch(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full px-2.5 py-1 text-xs rounded bg-white/10 text-white placeholder-slate-400 border border-white/10 focus:outline-none focus:border-amber-400"
+              />
+            </div>
+          )}
+
           {/* Default 'All' Option */}
           <button
             type="button"
@@ -285,6 +368,20 @@ export const QuickFilterDropdown: React.FC<QuickFilterDropdownProps> = ({
               </button>
             )
           })}
+
+          {isRelationship && hasNextPage && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                void fetchRelationOptions(relationPage + 1, relationshipSearch, true)
+              }}
+              disabled={isLoadingRelation}
+              className="w-full text-center py-2 text-xs text-amber-400 hover:text-amber-300 font-medium border-t border-white/10 disabled:opacity-50"
+            >
+              {isLoadingRelation ? 'Loading more...' : 'Load more...'}
+            </button>
+          )}
         </div>
       )}
     </div>

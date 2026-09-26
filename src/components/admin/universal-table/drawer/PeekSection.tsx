@@ -1,6 +1,9 @@
 'use client'
 
 import React from 'react'
+import type { PeekSectionDefinition } from '../types'
+import { getPeekSlot } from '../registry'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 interface PeekSectionCardProps {
   title: string
@@ -13,6 +16,17 @@ export const PeekSectionCard: React.FC<PeekSectionCardProps> = ({ title, childre
     <div className="ut-peek-card-body">{children}</div>
   </div>
 )
+
+export const PeekSlotRenderer: React.FC<{
+  slotId: string
+  doc: any
+  onActionSuccess?: () => Promise<void> | void
+  onManageSlots?: (docId: string | number) => void
+}> = ({ slotId, doc, onActionSuccess, onManageSlots }) => {
+  const Slot = getPeekSlot(slotId)
+  if (!Slot) return null
+  return React.createElement(Slot, { doc, onActionSuccess, onManageSlots })
+}
 
 interface FieldRowProps {
   label: string
@@ -43,7 +57,7 @@ export const FieldRow: React.FC<FieldRowProps> = ({ label, value, isMono = false
   )
 }
 
-function formatDate(val: any): string | null {
+export function formatDate(val: any): string | null {
   if (!val) return null
   try {
     const d = new Date(val)
@@ -58,21 +72,115 @@ function formatDate(val: any): string | null {
   }
 }
 
-function formatPrice(amount: any, currency: any): string | null {
+export function formatPrice(amount: any, currency: any): string | null {
   if (amount === undefined || amount === null) return null
   const num = Number(amount)
   if (isNaN(num)) return null
   return `${num.toLocaleString()} ${currency || 'EGP'}`
 }
 
-function formatLabel(val: any): string | null {
+export function formatLabel(val: any): string | null {
   if (!val) return null
   const str = String(val).replace(/_/g, ' ').trim()
   return str.replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+export function formatRelation(val: any): string | null {
+  if (!val) return null
+  if (typeof val === 'string' || typeof val === 'number') return String(val)
+  if (typeof val === 'object') {
+    const fullName = [val.firstName, val.lastName].filter(Boolean).join(' ')
+    return fullName || val.name || val.title || val.email || (val.id ? `#${val.id}` : null)
+  }
+  return null
+}
+
+export function formatArrayCount(val: any, unit?: string): string | null {
+  if (Array.isArray(val)) {
+    return `${val.length} ${unit || 'Items'}`
+  }
+  if (typeof val === 'number') {
+    return `${val} ${unit || 'Items'}`
+  }
+  return null
+}
+
+export function formatDuration(val: any, doc: any): string | null {
+  // 1. Check for Daily Tour duration (durationMinutes stored deterministically in minutes)
+  const durationMinutes =
+    doc?.duration?.durationMinutes != null
+      ? Number(doc.duration.durationMinutes)
+      : doc?.durationMinutes != null
+        ? Number(doc.durationMinutes)
+        : null
+
+  if (durationMinutes != null && !isNaN(durationMinutes) && durationMinutes > 0) {
+    const hours = durationMinutes / 60
+    const formattedHours = Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, '')
+    return `${formattedHours} ${hours === 1 ? 'Hour' : 'Hours'}`
+  }
+
+  // 2. Check for Package duration (days & optional nights)
+  const days = doc?.duration?.days != null ? Number(doc.duration.days) : null
+  const nights = doc?.duration?.nights != null ? Number(doc.duration.nights) : null
+
+  if (days != null && !isNaN(days) && days > 0) {
+    return `${days} ${days === 1 ? 'Day' : 'Days'}${nights != null && !isNaN(nights) && nights > 0 ? ` / ${nights} ${nights === 1 ? 'Night' : 'Nights'}` : ''}`
+  }
+
+  // 3. Fallbacks for scalar or string values
+  if (typeof val === 'number' && val > 0) return `${val} Days`
+  if (typeof val === 'string' && val.trim() !== '') return val
+  return null
+}
+
 /**
- * Experience Peek Body - High Density Editorial Presentation
+ * Editorial Peek Drawer Skeleton:
+ * Strictly rendered only while authoritative document request is genuinely pending.
+ */
+export const PeekDrawerSkeleton: React.FC<{ hero?: boolean }> = ({ hero }) => {
+  return (
+    <div
+      className="ut-peek-skeleton-container"
+      style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+      aria-busy="true"
+      aria-label="Loading document details"
+    >
+      {hero && (
+        <Skeleton className="ut-peek-hero" />
+      )}
+      <div className="ut-peek-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <Skeleton className="h-4 w-32" />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Skeleton className="h-3.5 w-20" />
+          <Skeleton className="h-3.5 w-32" />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Skeleton className="h-3.5 w-24" />
+          <Skeleton className="h-3.5 w-28" />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Skeleton className="h-3.5 w-16" />
+          <Skeleton className="h-3.5 w-20" />
+        </div>
+      </div>
+      <div className="ut-peek-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <Skeleton className="h-4 w-32" />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Skeleton className="h-3.5 w-24" />
+          <Skeleton className="h-3.5 w-36" />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Skeleton className="h-3.5 w-20" />
+          <Skeleton className="h-3.5 w-28" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Experience Peek Body - High Density Editorial Presentation (Backwards-Compatible Wrapper)
  */
 export const ExperiencePeekContent: React.FC<{
   doc: any
@@ -131,29 +239,7 @@ export const ExperiencePeekContent: React.FC<{
       </PeekSectionCard>
 
       {onManageSlots && doc?.id != null && (
-        <PeekSectionCard title="Departure Slots">
-          <FieldRow label="Control Surface" value="Authoritative SSOT" />
-          <FieldRow
-            label="Operations"
-            value="Capacity, Seats & Bookings"
-          />
-          <div className="ut-peek-slots-action">
-            <button
-              type="button"
-              onClick={() => onManageSlots(doc.id)}
-              className="ut-peek-manage-slots-btn"
-              title="Open Departure Slots Control Surface"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <span>Manage Departure Slots</span>
-            </button>
-          </div>
-        </PeekSectionCard>
+        <PeekSlotRenderer slotId="departureSlots" doc={doc} onManageSlots={onManageSlots} />
       )}
 
       <PeekSectionCard title="System & Identifiers">
@@ -167,26 +253,22 @@ export const ExperiencePeekContent: React.FC<{
 }
 
 /**
- * Booking Command Center Peek Body - High Density Operational Presentation
+ * Booking Command Center Peek Body - High Density Operational Presentation (Backwards-Compatible Wrapper)
  */
-export const BookingPeekContent: React.FC<{ doc: any }> = ({ doc }) => {
+export const BookingPeekContent: React.FC<{
+  doc: any
+  onActionSuccess?: () => Promise<void> | void
+}> = ({ doc, onActionSuccess }) => {
   const customerName =
-    typeof doc.user === 'object' && doc.user !== null
-      ? doc.user?.email || [doc.user?.firstName, doc.user?.lastName].filter(Boolean).join(' ') || doc.user?.name || null
-      : typeof doc.user === 'string'
-        ? doc.user
-        : doc.userEmail || null
+    formatRelation(doc.user) ||
+    (typeof doc.user === 'string' ? doc.user : doc.userEmail || null)
 
   const experienceTitle =
-    typeof doc.experience === 'object' && doc.experience !== null
-      ? doc.experience?.title || doc.experience?.name || null
-      : typeof doc.experience === 'string'
-        ? doc.experience
-        : doc.experienceTitle || null
+    formatRelation(doc.experience) ||
+    (typeof doc.experience === 'string' ? doc.experience : doc.experienceTitle || null)
 
   const travelersCount = Array.isArray(doc.travelers) ? doc.travelers.length : doc.travelersCount || null
 
-  // Canonical commercial truth from authoritative Booking document (matching BookingStatusField)
   const basePrice = doc.pricingSnapshot?.basePriceEGP ?? doc.basePrice
   const totalAmount =
     doc.pricingSnapshot?.totalAmountEGP ??
@@ -198,7 +280,7 @@ export const BookingPeekContent: React.FC<{ doc: any }> = ({ doc }) => {
   const outstanding =
     doc.outstandingBalance ??
     doc['outstandingBalance'] ??
-    (totalAmount != null ? Math.max(0, Number(totalAmount) - Number(paid || 0)) : null)
+    (totalAmount != null ? Math.max(0, Number(totalAmount) - Number(paid || 0)) : 0)
 
   return (
     <div>
@@ -229,11 +311,125 @@ export const BookingPeekContent: React.FC<{ doc: any }> = ({ doc }) => {
         <FieldRow label="Outstanding" value={formatPrice(outstanding, 'EGP')} />
       </PeekSectionCard>
 
+      {doc.id && (
+        <PeekSlotRenderer slotId="bookingOperationalActions" doc={doc} onActionSuccess={onActionSuccess} />
+      )}
+
       <PeekSectionCard title="Timeline & System">
         <FieldRow label="Document ID" value={String(doc.id)} isMono={true} />
         <FieldRow label="Created Date" value={formatDate(doc.createdAt)} />
         <FieldRow label="Completion Date" value={formatDate(doc.completionAt)} />
       </PeekSectionCard>
     </div>
+  )
+}
+
+/**
+ * Configured Peek Body - Generic Configuration-Driven Operational Presentation
+ */
+export const ConfiguredPeekContent: React.FC<{
+  doc: any
+  sections: PeekSectionDefinition[]
+  onActionSuccess?: () => Promise<void> | void
+  onManageSlots?: (docId: string | number) => void
+}> = ({ doc, sections, onActionSuccess, onManageSlots }) => {
+  return (
+    <div>
+      {sections.map((section, idx) => {
+        // Section-level conditional rendering
+        if (section.condition && !section.condition(doc)) {
+          return null
+        }
+
+        if (section.customSlot) {
+          return (
+            <PeekSlotRenderer
+              key={section.id || idx}
+              slotId={section.customSlot}
+              doc={doc}
+              onActionSuccess={onActionSuccess}
+              onManageSlots={onManageSlots}
+            />
+          )
+        }
+
+        // Field-level conditional rendering
+        const visibleFields = section.fields.filter(
+          (fDef) => !fDef.condition || fDef.condition(doc),
+        )
+        if (visibleFields.length === 0) {
+          return null
+        }
+
+        return (
+          <PeekSectionCard key={section.id || idx} title={section.title}>
+            {visibleFields.map((fDef, fIdx) => {
+              let val: any
+              if (fDef.field.includes('.')) {
+                val = fDef.field.split('.').reduce((acc: any, part: string) => acc?.[part], doc)
+              } else {
+                val = doc[fDef.field]
+              }
+
+              let formattedVal: React.ReactNode = val
+              if (fDef.formatter === 'date') {
+                formattedVal = formatDate(val)
+              } else if (fDef.formatter === 'price') {
+                formattedVal = formatPrice(val, doc.currency || 'EGP')
+              } else if (fDef.formatter === 'status') {
+                formattedVal = formatLabel(val)
+              } else if (fDef.formatter === 'relation') {
+                formattedVal = formatRelation(val)
+              } else if (fDef.formatter === 'arrayCount') {
+                formattedVal = formatArrayCount(val, fDef.unit)
+              } else if (fDef.formatter === 'duration') {
+                formattedVal = formatDuration(val, doc)
+              } else if (typeof val === 'object' && val !== null) {
+                formattedVal = formatRelation(val)
+              }
+
+              return (
+                <FieldRow
+                  key={fIdx}
+                  label={fDef.label}
+                  value={formattedVal}
+                  isMono={fDef.isMono}
+                />
+              )
+            })}
+          </PeekSectionCard>
+        )
+      })}
+    </div>
+  )
+}
+
+/**
+ * Generic Peek Fallback - Schema-agnostic safe inspection card
+ */
+export const GenericPeekContent: React.FC<{ doc: any }> = ({ doc }) => {
+  const keys = Object.keys(doc).filter(
+    (k) => !k.startsWith('_') && k !== 'id' && typeof doc[k] !== 'function',
+  )
+
+  return (
+    <PeekSectionCard title="Document Overview">
+      <FieldRow label="ID" value={String(doc.id)} isMono={true} />
+      {keys.slice(0, 15).map((key) => {
+        const val = doc[key]
+        let displayVal: any = val
+        if (typeof val === 'object' && val !== null) {
+          displayVal = formatRelation(val)
+        }
+        if (displayVal == null) return null
+        return (
+          <FieldRow
+            key={key}
+            label={formatLabel(key) || key}
+            value={typeof displayVal === 'string' || typeof displayVal === 'number' ? String(displayVal) : null}
+          />
+        )
+      })}
+    </PeekSectionCard>
   )
 }

@@ -1,5 +1,7 @@
 'use server'
 
+import { getPayload } from 'payload'
+import config from '@payload-config'
 import { getDomainServices } from '@/domains/factory'
 import { getApplicationServices } from '@/application/factory'
 import { SessionResolver } from '@/application/auth/session-resolver'
@@ -1007,3 +1009,65 @@ export async function refundAdminBookingAction(params: { bookingId: number; reas
     }
   }
 }
+
+export interface BookingKpiMetrics {
+  totalBookings: number
+  pendingReviewCount: number
+  confirmedCount: number
+  outstandingCount: number
+}
+
+/**
+ * Server Action: Authoritative Booking Collection KPI Metrics.
+ * Executes server-side count queries directly against Payload/Postgres.
+ * Guarantees zero client-side document scanning and 100% contract alignment with list filters.
+ */
+export async function getBookingKpiMetricsAction(): Promise<{
+  success: boolean
+  data?: BookingKpiMetrics
+  error?: string
+}> {
+  try {
+    const session = await SessionResolver.resolve()
+    if (
+      !session.isAuthenticated ||
+      (session.role !== 'admin' && session.role !== 'super_admin')
+    ) {
+      return { success: false, error: 'Unauthorized. Admin access required.' }
+    }
+
+    const payload = await getPayload({ config })
+
+    const countDocs = async (where: Record<string, any>): Promise<number> => {
+      if (typeof payload.count === 'function') {
+        const res = await payload.count({ collection: 'bookings', where, overrideAccess: true })
+        return res.totalDocs
+      }
+      const res = await payload.find({ collection: 'bookings', where, limit: 1, overrideAccess: true })
+      return res.totalDocs
+    }
+
+    const [totalBookings, pendingReviewCount, confirmedCount, outstandingCount] = await Promise.all([
+      countDocs({}),
+      countDocs({ status: { equals: 'pending_admin_review' } }),
+      countDocs({ status: { equals: 'confirmed' } }),
+      countDocs({ paymentStatus: { in: ['unpaid', 'partially_paid'] } }),
+    ])
+
+    return {
+      success: true,
+      data: {
+        totalBookings,
+        pendingReviewCount,
+        confirmedCount,
+        outstandingCount,
+      },
+    }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to retrieve booking KPI metrics',
+    }
+  }
+}
+

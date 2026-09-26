@@ -1,7 +1,12 @@
 import React from 'react'
 import type { TableCellProps } from '../types'
 
-export const TitleSubtitleCell: React.FC<TableCellProps> = ({ row, field = 'title', value }) => {
+export const TitleSubtitleCell: React.FC<TableCellProps> = ({
+  row,
+  field = 'title',
+  value,
+  collectionSlug: propCollectionSlug,
+}) => {
   const rawVal = value !== undefined ? value : (field ? row?.[field] : null)
 
   // Explicit Contract Violation detection: Cell must receive a display scalar from projection boundary
@@ -24,8 +29,8 @@ export const TitleSubtitleCell: React.FC<TableCellProps> = ({ row, field = 'titl
           : 'Untitled'
 
   const subtitle = (row?.subtitle as string) || (row?.slug as string) || null
-  const collectionSlug = row?.bookingNumber ? 'bookings' : 'experiences'
-  const editHref = `/admin/collections/${collectionSlug}/${row?.id}`
+  const collectionSlug = propCollectionSlug || ''
+  const editHref = collectionSlug && row?.id ? `/admin/collections/${collectionSlug}/${row.id}` : '#'
 
   return (
     <div

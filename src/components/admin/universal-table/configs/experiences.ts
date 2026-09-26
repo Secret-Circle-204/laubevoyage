@@ -9,6 +9,8 @@ export const experiencesPresentation: CollectionPresentationConfig = {
   collectionSlug: 'experiences',
   title: 'Experiences',
   description: 'Curate bespoke travel itineraries, departures and tour packages',
+  heroField: 'hero',
+  previewUrlTemplate: '/experiences/{slug}',
   overrides: {
     hero: {
       header: 'Image',
@@ -131,6 +133,16 @@ export const experiencesPresentation: CollectionPresentationConfig = {
       resizable: true,
       sortable: false,
       cellType: 'accommodations',
+      valueFormatter: (value: unknown) => {
+        if (Array.isArray(value)) {
+          const totalNts = value.reduce(
+            (s: number, stay: Record<string, unknown>) => s + (Number(stay?.nights) || 0),
+            0,
+          )
+          return `${value.length} Stays (${totalNts} nts)`
+        }
+        return ''
+      },
     },
     itinerary: {
       header: 'Itinerary',
@@ -139,6 +151,7 @@ export const experiencesPresentation: CollectionPresentationConfig = {
       resizable: true,
       sortable: false,
       cellType: 'itinerary',
+      valueFormatter: (value: unknown) => (Array.isArray(value) ? `${value.length} Days` : ''),
     },
     gallery: {
       header: 'Gallery',
@@ -147,6 +160,7 @@ export const experiencesPresentation: CollectionPresentationConfig = {
       resizable: true,
       sortable: false,
       cellType: 'gallery',
+      valueFormatter: (value: unknown) => (Array.isArray(value) ? `${value.length} Photos` : ''),
     },
   },
   rowActions: [
@@ -163,6 +177,8 @@ export const experiencesPresentation: CollectionPresentationConfig = {
   ],
   capabilities: {
     selection: true,
+    bulkActions: true,
+    bulkEdit: true,
     metrics: true,
   },
   toolbar: {
@@ -217,4 +233,78 @@ export const experiencesPresentation: CollectionPresentationConfig = {
       reset: true,
     },
   },
+  metrics: [
+    {
+      id: 'total',
+      label: 'Total Experiences',
+      icon: 'bag',
+    },
+    {
+      id: 'available',
+      label: 'Available',
+      icon: 'check',
+      variant: 'success',
+      where: { availability: { equals: 'available' } },
+      calculatePercentageOfTotal: true,
+    },
+    {
+      id: 'packages',
+      label: 'Packages',
+      icon: 'layers',
+      variant: 'info',
+      where: { type: { equals: 'package' } },
+      calculatePercentageOfTotal: true,
+    },
+    {
+      id: 'daily_tours',
+      label: 'Daily Tours',
+      icon: 'pin',
+      where: { type: { equals: 'daily_tour' } },
+      calculatePercentageOfTotal: true,
+    },
+  ],
+  peekSections: [
+    {
+      id: 'geographyItinerary',
+      title: 'Geography & Itinerary',
+      fields: [
+        { field: 'city', label: 'Origin City', formatter: 'relation' },
+        { field: 'destinations', label: 'Transit Destinations', formatter: 'arrayCount', unit: 'Stops' },
+        { field: 'duration', label: 'Duration', formatter: 'duration' },
+        { field: 'type', label: 'Type', formatter: 'status' },
+        {
+          field: 'packageMode',
+          label: 'Package Mode',
+          formatter: 'status',
+          condition: (doc: Record<string, unknown>) => doc?.type === 'package',
+        },
+      ],
+    },
+    {
+      id: 'commercialAvailability',
+      title: 'Commercial & Availability',
+      fields: [
+        { field: 'price', label: 'Base Price', formatter: 'price' },
+        { field: 'availability', label: 'Availability Status', formatter: 'status' },
+      ],
+    },
+    {
+      id: 'departureSlots',
+      title: 'Departure Slots',
+      fields: [],
+      customSlot: 'departureSlots',
+      condition: (doc: Record<string, unknown>) =>
+        doc?.type === 'package' && (!doc?.packageMode || doc?.packageMode === 'fixed_date'),
+    },
+    {
+      id: 'systemIdentifiers',
+      title: 'System & Identifiers',
+      fields: [
+        { field: 'id', label: 'Document ID', isMono: true },
+        { field: 'slug', label: 'Slug', isMono: true },
+        { field: 'createdAt', label: 'Created Date', formatter: 'date' },
+        { field: 'updatedAt', label: 'Last Updated', formatter: 'date' },
+      ],
+    },
+  ],
 }

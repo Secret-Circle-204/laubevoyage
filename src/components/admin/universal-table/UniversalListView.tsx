@@ -2,174 +2,156 @@
 
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react'
 import type { ListViewClientProps } from 'payload'
-import { DefaultListView, useListQuery, usePreferences, useConfig } from '@payloadcms/ui'
-import { TableKpiStrip } from './TableKpiStrip'
+import { useRouter } from 'next/navigation'
+import { formatAdminURL, formatFilesize } from 'payload/shared'
+import {
+  DefaultListView,
+  useListQuery,
+  usePreferences,
+  useConfig,
+  useTranslation,
+  useStepNav,
+  useWindowInfo,
+  useModal,
+  useBulkUpload,
+  useListDrawerContext,
+  TableColumnsProvider,
+  SelectionProvider,
+  RelationshipProvider,
+  Gutter,
+  ListHeader,
+  ListControls,
+  PageControls,
+  Button,
+  SelectMany,
+  RenderCustomComponent,
+  ViewDescription,
+  StickyToolbar,
+} from '@payloadcms/ui'
 import { UniversalAgGrid, type UniversalAgGridRef } from './UniversalAgGrid'
 import { QuickFilterDropdown, ResetControl, DensitySwitcher } from './toolbar'
-import { experiencesPresentation } from './configs/experiences'
-import { bookingsPresentation } from './configs/bookings'
 import { PeekDrawer, DocumentDrawerBridge } from './drawer'
-import type { CollectionPresentationConfig, TableMetric, TableFilterOption, DensityMode } from './types'
+import { CommandPalette } from './command'
+import { BulkActionBar } from './bulk'
+import { extractClauseMap } from './utils/composeWhere'
+import { getPresentationConfig, registerPresentationConfig } from './registry'
+export { getPresentationConfig, registerPresentationConfig }
+import type { CollectionPresentationConfig, TableFilterOption, DensityMode } from './types'
 import './universal-table.css'
 
-const PRESENTATION_REGISTRY: Record<string, CollectionPresentationConfig> = {
-  experiences: experiencesPresentation,
-  bookings: bookingsPresentation,
+function getLabelString(label: any, i18n?: any): string {
+  if (!label) return ''
+  if (typeof label === 'string') return label
+  if (typeof label === 'object') {
+    return label[i18n?.language] || label['en'] || Object.values(label)[0] || ''
+  }
+  return String(label)
 }
 
 const DEFAULT_DENSITY: DensityMode = 'comfortable'
 
 /**
- * Connected KPI Strip Slot:
- * Computes truthful summary metrics directly from Payload's live ListQuery data.
- * Features 1-click interactive query shortcuts directly into useListQuery.
- */
-const TableKpiStripSlot: React.FC<{ presentation: CollectionPresentationConfig }> = ({
-  presentation,
-}) => {
-  const { data, refineListData } = useListQuery()
-  const docs = (data?.docs as any[]) || []
-  const totalDocs = Number(data?.totalDocs || 0)
-
-  if (presentation.capabilities?.metrics === false || totalDocs === 0) {
-    return null
-  }
-
-  const isBookings = presentation.collectionSlug === 'bookings'
-
-  if (isBookings) {
-    const pendingReviewCount = docs.filter((d) => d.status === 'pending_admin_review').length
-    const confirmedCount = docs.filter((d) => d.status === 'confirmed').length
-    const pendingPaymentCount = docs.filter((d) => d.status === 'pending_payment').length
-
-    const metrics: TableMetric[] = [
-      {
-        id: 'total',
-        label: 'Total Bookings',
-        value: totalDocs,
-        icon: 'bag',
-        onClick: () => refineListData({ where: undefined, page: 1 }),
-      },
-      {
-        id: 'pending_review',
-        label: 'Pending Review',
-        value: pendingReviewCount,
-        icon: 'alert',
-        variant: 'warning',
-        onClick: () =>
-          refineListData({
-            where: { status: { equals: 'pending_admin_review' } },
-            page: 1,
-          }),
-      },
-      {
-        id: 'confirmed',
-        label: 'Confirmed',
-        value: confirmedCount,
-        icon: 'check',
-        variant: 'success',
-        onClick: () =>
-          refineListData({
-            where: { status: { equals: 'confirmed' } },
-            page: 1,
-          }),
-      },
-      {
-        id: 'pending_payment',
-        label: 'Pending Payment',
-        value: pendingPaymentCount,
-        icon: 'pin',
-        variant: 'info',
-        onClick: () =>
-          refineListData({
-            where: { status: { equals: 'pending_payment' } },
-            page: 1,
-          }),
-      },
-    ]
-
-    return <TableKpiStrip metrics={metrics} />
-  }
-
-  // Experiences KPI Strip
-  const pageAvailable = docs.filter(
-    (d) => d.availability === 'available' || d.availability === true,
-  ).length
-
-  const pageUnavailable = docs.filter(
-    (d) => d.availability === 'unavailable' || d.availability === false,
-  ).length
-
-  const metrics: TableMetric[] = [
-    {
-      id: 'total',
-      label: `Total ${presentation.title || 'Records'}`,
-      value: totalDocs,
-      icon: 'bag',
-      onClick: () => refineListData({ where: undefined, page: 1 }),
-    },
-    {
-      id: 'available',
-      label: 'Page Available',
-      value: pageAvailable,
-      percentage:
-        docs.length > 0 ? Math.round((pageAvailable / docs.length) * 100) : 100,
-      icon: 'check',
-      variant: 'success',
-      onClick: () =>
-        refineListData({
-          where: { availability: { equals: 'available' } },
-          page: 1,
-        }),
-    },
-    {
-      id: 'unavailable',
-      label: 'Page Unavailable',
-      value: pageUnavailable,
-      percentage:
-        docs.length > 0 ? Math.round((pageUnavailable / docs.length) * 100) : 0,
-      icon: 'alert',
-      variant: 'warning',
-      onClick: () =>
-        refineListData({
-          where: { availability: { equals: 'unavailable' } },
-          page: 1,
-        }),
-    },
-  ]
-
-  return <TableKpiStrip metrics={metrics} />
-}
-
-/**
  * Universal Collection View Adapter:
- * Uses Payload's native DefaultListView and ListControls to preserve 100% of Payload's native behavior:
+ * Uses Payload's native UI building blocks to preserve 100% of Payload's native capabilities:
  * - Native SearchBar (debounced, URL synced, accessible, translated placeholder)
- * - Native Columns Pill & ColumnSelector (reorder, toggle, active state via useTableColumns)
- * - Native Filters Pill & WhereBuilder (filters, operators, conditions via useListQuery)
- * - Native Pagination, Breadcrumbs, and Permissions
- * - Native Query Presets (when enabled on collection config)
+ * - Native Pagination, Breadcrumbs/StepNav, Selection, Permissions, and Bulk Actions
+ * - Native Document Drawer with full edit context preservation
  *
- * Visual & Operational Enhancements:
- * - beforeActions: Injected QuickFilter dropdowns + DensitySwitcher + Reset button
- * - BeforeListTable: Interactive KPI summary cards with query shortcuts
- * - Table: Luxury UniversalAgGrid with single-click inspection & in-place update
- * - PeekDrawer: Read-only operational inspection side panel (Editorial Mixed-Surface)
- * - DocumentDrawerBridge: Official Payload DocumentDrawer with 100% context preservation
+ * Architectural Protection & Intent-Driven Filtration:
+ * - Native WhereBuilder Preservation: Field-identity key boundary isolates WhereBuilder from condition row reuse without disabling filters.
+ * - Native Column Preservation: Columns UI fully enabled, backed by Payload's native collectionPreferences in DB.
+ * - Operational Intent Toolbar: Stable-identity QuickFilter dropdowns + DensitySwitcher + Reset.
+ * - Authoritative Server KPIs: Scalable server-aggregated metrics with bounded SQL counts for 100k+ records.
+ * - Table: Luxury UniversalAgGrid with AG Grid native drag-reorder persisted to usePreferences.
  */
 export const UniversalListView: React.FC<ListViewClientProps> = (props) => {
   const { collectionSlug } = props
-  const presentation = PRESENTATION_REGISTRY[collectionSlug]
-
-  const { config } = useConfig()
+  const presentation = getPresentationConfig(collectionSlug)
+  const { config, getEntityConfig } = useConfig()
+  const router = useRouter()
   const apiRoute = config?.routes?.api || '/api'
+  const adminRoute = config?.routes?.admin || '/admin'
+  const serverURL = config?.serverURL || ''
   const { getPreference, setPreference } = usePreferences()
   const densityPrefKey = `universal-grid-density:${collectionSlug}`
+
+  const { data, isGroupingBy, query } = useListQuery()
+  const { i18n } = useTranslation()
+  const { setStepNav } = useStepNav()
+  const {
+    breakpoints: { s: smallBreak },
+  } = useWindowInfo()
+
+  const { allowCreate, createNewDrawerSlug, isInDrawer, onBulkSelect } = useListDrawerContext()
+  const hasCreatePermission =
+    allowCreate !== undefined
+      ? allowCreate && props.hasCreatePermission
+      : props.hasCreatePermission
+
+  const { openModal } = useModal()
+  const { drawerSlug: bulkUploadDrawerSlug, setCollectionSlug, setOnSuccess } = useBulkUpload()
+
+  const collectionConfig = getEntityConfig({ collectionSlug })
+  const labels = collectionConfig?.labels
+  const upload = (collectionConfig as any)?.upload
+  const isUploadCollection = Boolean(upload)
+  const isBulkUploadEnabled =
+    isUploadCollection && Boolean((collectionConfig as any)?.upload?.bulkUpload)
+  const isTrashEnabled = Boolean((collectionConfig as any)?.trash)
 
   const gridRef = useRef<UniversalAgGridRef>(null)
   const [peekState, setPeekState] = useState<{ id: string | number; initialRow: any } | null>(null)
   const [editDocId, setEditDocId] = useState<string | number | null>(null)
   const [density, setDensity] = useState<DensityMode>(DEFAULT_DENSITY)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+
+  // Global Keyboard Shortcut: ⌘K or Ctrl+K to toggle Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsCommandPaletteOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // StepNav / Breadcrumb synchronization (identical to Payload native)
+  useEffect(() => {
+    if (!isInDrawer && labels) {
+      const baseLabel = {
+        label: getLabelString(labels?.plural, i18n),
+        url:
+          isTrashEnabled && props.viewType === 'trash'
+            ? formatAdminURL({
+                adminRoute,
+                path: `/collections/${collectionSlug}`,
+              })
+            : undefined,
+      }
+
+      const trashLabel = {
+        label: i18n.t('general:trash'),
+      }
+
+      const navItems =
+        isTrashEnabled && props.viewType === 'trash' ? [baseLabel, trashLabel] : [baseLabel]
+
+      setStepNav(navItems)
+    }
+  }, [
+    adminRoute,
+    setStepNav,
+    serverURL,
+    labels,
+    isInDrawer,
+    isTrashEnabled,
+    props.viewType,
+    i18n,
+    collectionSlug,
+  ])
 
   // Load density preference on mount without writing default to DB
   useEffect(() => {
@@ -180,7 +162,9 @@ export const UniversalListView: React.FC<ListViewClientProps> = (props) => {
           setDensity(res as DensityMode)
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error(`[UniversalListView] Failed to load density preference for ${densityPrefKey}:`, err)
+      })
     return () => {
       isMounted = false
     }
@@ -189,7 +173,9 @@ export const UniversalListView: React.FC<ListViewClientProps> = (props) => {
   const handleDensityChange = useCallback(
     (newDensity: DensityMode) => {
       setDensity(newDensity)
-      setPreference(densityPrefKey, newDensity).catch(() => {})
+      setPreference(densityPrefKey, newDensity).catch((err) => {
+        console.error(`[UniversalListView] Failed to save density preference for ${densityPrefKey}:`, err)
+      })
     },
     [setPreference, densityPrefKey],
   )
@@ -208,10 +194,7 @@ export const UniversalListView: React.FC<ListViewClientProps> = (props) => {
 
   const handleDocumentSave = useCallback((savedDoc: any) => {
     if (!savedDoc) return
-    // 1. In-place grid row update with exact row schema conformance
     gridRef.current?.updateRow(savedDoc)
-
-    // 2. Sync active peek state if viewing the same document
     setPeekState((prev) => {
       if (prev && String(prev.id) === String(savedDoc.id)) {
         return {
@@ -223,10 +206,6 @@ export const UniversalListView: React.FC<ListViewClientProps> = (props) => {
     })
   }, [])
 
-  // Bounded Authoritative Re-read on Drawer Close:
-  // If a standalone server action (e.g. confirmAdminBookingAction or cancelAdminBookingAction)
-  // modified the record without triggering Payload form's onSave callback,
-  // fetch the fresh authoritative document directly from Payload's REST API.
   const handleCloseEditDrawer = useCallback(() => {
     const closingId = editDocId
     setEditDocId(null)
@@ -239,9 +218,28 @@ export const UniversalListView: React.FC<ListViewClientProps> = (props) => {
             handleDocumentSave(freshDoc)
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          console.error(`[UniversalListView] Failed to fetch updated document ${closingId} for ${collectionSlug}:`, err)
+        })
     }
   }, [apiRoute, collectionSlug, editDocId, handleDocumentSave])
+
+  const openBulkUpload = useCallback(() => {
+    setCollectionSlug(collectionSlug)
+    openModal(bulkUploadDrawerSlug)
+    setOnSuccess(() => router.refresh())
+  }, [router, collectionSlug, bulkUploadDrawerSlug, openModal, setCollectionSlug, setOnSuccess])
+
+  const rawDocs = data?.docs
+  const docs = useMemo(() => {
+    if (isUploadCollection && Array.isArray(rawDocs)) {
+      return rawDocs.map((doc: any) => ({
+        ...doc,
+        filesize: formatFilesize(doc.filesize),
+      }))
+    }
+    return (rawDocs as any[]) || []
+  }, [rawDocs, isUploadCollection])
 
   const mappedResolvedOptions = useMemo<Record<string, TableFilterOption[]>>(() => {
     const result: Record<string, TableFilterOption[]> = {}
@@ -261,12 +259,25 @@ export const UniversalListView: React.FC<ListViewClientProps> = (props) => {
     return result
   }, [props.resolvedFilterOptions])
 
+  // Architectural Boundary: Field-based identity boundary for ListControls / WhereBuilder.
+  // Isolates Native Payload WhereBuilder from operational quick-filter transitions
+  // (e.g. Outstanding [paymentStatus] -> Confirmed [status]).
+  // When active filter field structure transitions, React remounts ListControls, preventing
+  // internal Condition React state reuse bugs (e.g. status=unpaid) without patching Payload or hiding filters.
+  const activeFilterFieldsKey = useMemo(() => {
+    if (!query?.where || typeof query.where !== 'object') return 'empty'
+    const clauseMap = extractClauseMap(query.where)
+    const keys = Array.from(clauseMap.keys()).sort().join(':')
+    return keys || 'empty'
+  }, [query])
+
   if (!presentation) {
     return <DefaultListView {...props} />
   }
 
   const quickFilters = presentation.toolbar?.quickFilters || []
-  const hasQuickFilters = presentation.toolbar?.capabilities?.quickFilters !== false && quickFilters.length > 0
+  const hasQuickFilters =
+    presentation.toolbar?.capabilities?.quickFilters !== false && quickFilters.length > 0
   const hasReset = presentation.toolbar?.capabilities?.reset !== false
 
   const quickFilterActions: React.ReactNode[] = []
@@ -289,40 +300,173 @@ export const UniversalListView: React.FC<ListViewClientProps> = (props) => {
   }
 
   const combinedBeforeActions: React.ReactNode[] = [
+    <button
+      key="ut-cmd-palette-trigger"
+      type="button"
+      className="ut-command-palette-trigger"
+      onClick={() => setIsCommandPaletteOpen(true)}
+      title="Open Command Palette (⌘K / Ctrl+K)"
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      <span>Commands</span>
+      <kbd className="ut-command-palette-trigger-kbd">⌘K</kbd>
+    </button>,
     ...quickFilterActions,
     <DensitySwitcher key="ut-density-switcher" value={density} onChange={handleDensityChange} />,
     ...(Array.isArray(props.beforeActions) ? props.beforeActions : []),
   ]
 
+  const BeforeListTableContent = props.BeforeListTable || null
+
   return (
     <div className="universal-table-root w-full">
-      <DefaultListView
-        {...props}
-        beforeActions={combinedBeforeActions.length > 0 ? combinedBeforeActions : undefined}
-        BeforeListTable={
-          <>
-            {props.BeforeListTable}
-            <TableKpiStripSlot presentation={presentation} />
-          </>
-        }
-        Table={
-          <UniversalAgGrid
-            ref={gridRef}
-            presentation={presentation}
-            density={density}
-            onRowClick={handleRowClick}
-          />
-        }
-      />
+      <TableColumnsProvider collectionSlug={collectionSlug} columnState={props.columnState}>
+          <div className={`collection-list collection-list--${collectionSlug}`}>
+          <SelectionProvider docs={docs} totalDocs={Number(data?.totalDocs || 0)}>
+            {props.BeforeList}
+            <Gutter className="collection-list__wrap">
+              <ListHeader
+                collectionConfig={collectionConfig}
+                Description={
+                  props.Description || collectionConfig?.admin?.description ? (
+                    <div className="collection-list__sub-header">
+                      <RenderCustomComponent
+                        CustomComponent={props.Description}
+                        Fallback={
+                          <ViewDescription
+                            collectionSlug={collectionSlug}
+                            description={(collectionConfig?.admin?.description as any) || ''}
+                          />
+                        }
+                      />
+                    </div>
+                  ) : undefined
+                }
+                disableBulkDelete={props.disableBulkDelete}
+                disableBulkEdit={props.disableBulkEdit}
+                hasCreatePermission={hasCreatePermission}
+                hasDeletePermission={props.hasDeletePermission}
+                hasTrashPermission={props.hasTrashPermission}
+                i18n={i18n}
+                isBulkUploadEnabled={isBulkUploadEnabled && !upload?.hideFileInputOnCreate}
+                isTrashEnabled={isTrashEnabled}
+                newDocumentURL={props.newDocumentURL}
+                openBulkUpload={openBulkUpload}
+                smallBreak={smallBreak}
+                viewType={props.viewType}
+              />
+              <ListControls
+                key={`list-controls-${collectionSlug}-${activeFilterFieldsKey}`}
+                beforeActions={
+                  props.enableRowSelections && typeof onBulkSelect === 'function'
+                    ? combinedBeforeActions
+                      ? [...combinedBeforeActions, <SelectMany key="select-many" onClick={onBulkSelect} />]
+                      : [<SelectMany key="select-many" onClick={onBulkSelect} />]
+                    : combinedBeforeActions
+                }
+                collectionConfig={collectionConfig}
+                collectionSlug={collectionSlug}
+                enableFilters={presentation.toolbar?.capabilities?.advancedFilters !== false}
+                enableColumns={presentation.toolbar?.capabilities?.columns !== false}
+                listMenuItems={props.listMenuItems}
+              />
+              {BeforeListTableContent}
+              {docs?.length > 0 && (
+                <div className="collection-list__tables">
+                  <RelationshipProvider>
+                    <UniversalAgGrid
+                      ref={gridRef}
+                      presentation={presentation}
+                      density={density}
+                      onRowClick={handleRowClick}
+                    />
+                  </RelationshipProvider>
+                </div>
+              )}
+              {docs?.length === 0 && (
+                <div className="no-results">
+                  {props.viewType === 'trash' ? (
+                    <p>
+                      {i18n.t('general:noTrashResults', {
+                        label: getLabelString(labels?.plural, i18n),
+                      })}
+                    </p>
+                  ) : (
+                    <>
+                      <h3>{i18n.t('general:noResultsFound')}</h3>
+                      <p>{i18n.t('general:noResultsDescription')}</p>
+                    </>
+                  )}
+                  {hasCreatePermission && props.newDocumentURL && props.viewType !== 'trash' && (
+                    <div className="no-results__actions">
+                      {isInDrawer ? (
+                        <Button
+                          el="button"
+                          key="create"
+                          onClick={() => openModal(createNewDrawerSlug || '')}
+                        >
+                          {i18n.t('general:createNewLabel', {
+                            label: getLabelString(labels?.singular, i18n),
+                          })}
+                        </Button>
+                      ) : (
+                        <Button el="link" key="create" to={props.newDocumentURL}>
+                          {i18n.t('general:createNewLabel', {
+                            label: getLabelString(labels?.singular, i18n),
+                          })}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              {props.AfterListTable}
+              {docs?.length > 0 && !isGroupingBy && (
+                <PageControls collectionConfig={collectionConfig} />
+              )}
+            </Gutter>
+            {props.AfterList}
+            <BulkActionBar
+              collectionSlug={collectionSlug}
+              collectionConfig={collectionConfig}
+              presentation={presentation}
+              onOpenPeek={(id) => handleRowClick(id, null)}
+              onDocUpdated={handleDocumentSave}
+            />
+            <CommandPalette
+              isOpen={isCommandPaletteOpen}
+              onClose={() => setIsCommandPaletteOpen(false)}
+              collectionSlug={collectionSlug}
+              presentation={presentation}
+              density={density}
+              onDensityChange={handleDensityChange}
+              onOpenPeek={(id) => handleRowClick(id, null)}
+              onResetWidths={() => gridRef.current?.resetWidths?.()}
+            />
+          </SelectionProvider>
+        </div>
+      </TableColumnsProvider>
+      {docs?.length > 0 && isGroupingBy && (data as any)?.totalPages > 1 && (
+        <StickyToolbar>
+          <PageControls collectionConfig={collectionConfig} />
+        </StickyToolbar>
+      )}
 
-      {/* Editorial Mixed-Surface Peek Drawer */}
-      <PeekDrawer
-        collectionSlug={collectionSlug}
-        docId={peekState?.id ?? null}
-        initialRow={peekState?.initialRow}
-        onClose={handleClosePeek}
-        onOpenEditDrawer={handleOpenEditDrawer}
-      />
+      {/* Editorial Mixed-Surface Peek Drawer - Mounted ONLY when active */}
+      {peekState && (
+        <PeekDrawer
+          collectionSlug={collectionSlug}
+          docId={peekState.id}
+          initialRow={peekState.initialRow}
+          presentation={presentation}
+          onClose={handleClosePeek}
+          onOpenEditDrawer={handleOpenEditDrawer}
+          onDocUpdated={handleDocumentSave}
+        />
+      )}
 
       {/* Official Payload Document Drawer Bridge */}
       <DocumentDrawerBridge
@@ -334,4 +478,3 @@ export const UniversalListView: React.FC<ListViewClientProps> = (props) => {
     </div>
   )
 }
-

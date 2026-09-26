@@ -25,9 +25,11 @@ export default async function Page(props: {
   const params = await props.params
   const searchParams = await props.searchParams
 
-  // 1. Resolve Session and enforce authentication
+  // 1. Resolve Session and enforce customer authentication
   const session = await SessionResolver.resolve()
-  if (!session.isAuthenticated || !session.customerId) {
+  const isCustomer =
+    session.isAuthenticated && session.role === 'customer' && !!session.customerId
+  if (!isCustomer) {
     const query = new URLSearchParams()
     for (const [key, value] of Object.entries(searchParams)) {
       if (value !== undefined && value !== null && value !== '') {

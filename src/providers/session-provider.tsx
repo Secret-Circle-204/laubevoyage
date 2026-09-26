@@ -11,6 +11,7 @@ export interface CustomerSessionState {
   lastName?: string
   tier?: string
   points?: number
+  role?: 'admin' | 'super_admin' | 'customer'
 }
 
 interface SessionContextType {

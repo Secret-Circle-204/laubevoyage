@@ -18,7 +18,7 @@ import { getLocaleContext } from '@/lib/get-locale-context'
 
 export default async function Page() {
   const session = await SessionResolver.resolve()
-  if (!session.isAuthenticated || !session.customerId) {
+  if (!session.customerId) {
     redirect('/login')
   }
 

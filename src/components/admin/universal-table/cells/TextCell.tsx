@@ -6,7 +6,13 @@ export const TextCell: React.FC<TableCellProps> = ({ row, field, value }) => {
   let val = value !== undefined ? value : field ? row?.[field] : null
 
   if (val === undefined && field && field.includes('.')) {
-    val = field.split('.').reduce((acc, part) => acc?.[part], row)
+    const parts = field.split('.')
+    let curr: unknown = row
+    for (const part of parts) {
+      if (curr == null || typeof curr !== 'object') break
+      curr = (curr as Record<string, unknown>)[part]
+    }
+    val = curr
   }
 
   if (val === undefined || val === null || val === '') {
@@ -50,7 +56,13 @@ export const TextCell: React.FC<TableCellProps> = ({ row, field, value }) => {
     // Check if items are objects or strings
     if (typeof val[0] === 'object' && val[0] !== null) {
       const names = val
-        .map((item) => item?.title || item?.name || item?.id || 'Item')
+        .map((item) => {
+          if (typeof item === 'object' && item !== null) {
+            const obj = item as Record<string, unknown>
+            return String(obj.title || obj.name || obj.id || 'Item')
+          }
+          return String(item)
+        })
         .slice(0, 3)
         .join(', ')
       const extra = val.length > 3 ? ` +${val.length - 3}` : ''
@@ -71,12 +83,13 @@ export const TextCell: React.FC<TableCellProps> = ({ row, field, value }) => {
   }
 
   // Nested Object (e.g. relationship or rich group)
-  if (typeof val === 'object') {
-    const label = val.title || val.name || val.label || val.id
+  if (typeof val === 'object' && val !== null) {
+    const obj = val as Record<string, unknown>
+    const label = obj.title || obj.name || obj.label || obj.id
     if (label) {
       return <span className="text-slate-300 text-xs font-medium">{String(label)}</span>
     }
-    return <span className="text-slate-500 text-xs">{Object.keys(val).length} fields</span>
+    return <span className="text-slate-500 text-xs">{Object.keys(obj).length} fields</span>
   }
 
   return (

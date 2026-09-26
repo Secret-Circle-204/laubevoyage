@@ -4,14 +4,20 @@ import React from 'react'
 import type { TableCellProps } from '../types'
 
 export const ThumbnailCell: React.FC<TableCellProps> = ({ row, field = 'hero' }) => {
-  const mediaObj = row?.[field] || row?.thumbnail || row?.media || row?.gallery?.[0]
+  const gallery = Array.isArray(row?.gallery) ? row.gallery : null
+  const mediaObj = row?.[field] || row?.thumbnail || row?.media || (gallery ? gallery[0] : null)
   
   let imageUrl: string | null = null
   if (typeof mediaObj === 'object' && mediaObj !== null) {
-    imageUrl = mediaObj.sizes?.thumbnail?.url || mediaObj.url || null
+    const obj = mediaObj as Record<string, unknown>
+    const sizes = typeof obj.sizes === 'object' && obj.sizes !== null ? (obj.sizes as Record<string, unknown>) : null
+    const thumb = typeof sizes?.thumbnail === 'object' && sizes.thumbnail !== null ? (sizes.thumbnail as Record<string, unknown>) : null
+    imageUrl = (typeof thumb?.url === 'string' ? thumb.url : null) || (typeof obj.url === 'string' ? obj.url : null)
   } else if (typeof mediaObj === 'string' && mediaObj.startsWith('/')) {
     imageUrl = mediaObj
   }
+
+  const altText = typeof row?.title === 'string' ? row.title : 'Thumbnail'
 
   return (
     <div className="ut-thumb">
@@ -19,7 +25,7 @@ export const ThumbnailCell: React.FC<TableCellProps> = ({ row, field = 'hero' })
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={imageUrl}
-          alt={row?.title || 'Thumbnail'}
+          alt={altText}
           loading="lazy"
         />
       ) : (

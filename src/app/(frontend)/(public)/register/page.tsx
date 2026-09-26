@@ -16,9 +16,15 @@ export const metadata: Metadata = {
 
 export default async function RegisterPage() {
   const session = await SessionResolver.resolve()
-  if (session.isAuthenticated) {
+  const isCustomer =
+    session.isAuthenticated && session.role === 'customer' && !!session.customerId
+
+  if (isCustomer) {
     redirect('/dashboard')
   }
+
+  const isAdminSession =
+    session.isAuthenticated && (session.role === 'admin' || session.role === 'super_admin')
 
   const ctx = await getLocaleContext()
   const { localization } = await getDomainServices()
@@ -201,6 +207,20 @@ export default async function RegisterPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Staff Session Notice (Zero redirect, clear UX) */}
+              {isAdminSession && (
+                <div className="mb-5 p-3.5 rounded-xl bg-[#2E3191]/40 border border-[#00ADEE]/40 text-slate-200 text-xs flex items-start gap-2.5">
+                  <span className="text-[#00ADEE] text-base leading-none">ℹ</span>
+                  <div>
+                    <span className="font-semibold text-white block mb-0.5">Staff Account Active</span>
+                    <span>You are currently signed in with a Staff account. To register as a traveler, please use a customer account or return to the{' '}</span>
+                    <Link href="/admin" className="text-[#00ADEE] hover:underline font-bold">
+                      Admin Portal →
+                    </Link>
+                  </div>
+                </div>
+              )}
 
               {/* Registration Form Client Component */}
               <Suspense
