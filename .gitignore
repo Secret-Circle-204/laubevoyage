@@ -10,6 +10,7 @@
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/tests/
 
 # next.js build
 /.next/
@@ -54,3 +55,12 @@ next-env.d.ts
 # IDE
 .idea/
 .vscode/
+
+# internal architecture & governance docs
+PRODUCTION_FAST_TRACK_REMEDIATION_PLAN.md
+project constitution.txt
+system_dependency_graph.md
+SYSTEM_INTEGRATION_AUDIT.md
+translation_rules_and_domain.md
+AGENT.md
+
