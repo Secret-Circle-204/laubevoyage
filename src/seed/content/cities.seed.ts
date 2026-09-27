@@ -57,8 +57,8 @@ export const CANONICAL_CITIES: CitySeedDef[] = [
     seo: {
       title: "Luxury Cairo Private Tours & Pyramids Expeditions | L'Aube Voyage",
       description:
-        'Experience Cairo in supreme luxury with private Egyptologist guidance. VIP access to the Giza Pyramids, Grand Egyptian Museum, and luxury Nile-view suites.',
-      keywords: 'Cairo luxury travel, Giza Pyramids private tour, Grand Egyptian Museum VIP, Cairo 5-star hotel, private Egyptologist Cairo',
+        'Experience Cairo in supreme luxury with private guided tours. VIP access to the Giza Pyramids, Grand Egyptian Museum, and luxury suites.',
+      keywords: 'Cairo luxury travel, Giza Pyramids private tour, Grand Egyptian Museum VIP, Cairo luxury hotel, private Cairo tours',
     },
   },
   {

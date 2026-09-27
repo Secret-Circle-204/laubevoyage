@@ -6,6 +6,9 @@ import type {
   ManifestPresentationDiagnostics,
 } from '@/application/booking/manifest-diagnostics'
 import { ManifestDiagnosticsPresenter } from '@/application/booking/manifest-diagnostics'
+import { JsonTranslationDictionary } from '@/domains/translation/dictionary'
+
+const dict = new JsonTranslationDictionary()
 
 export interface TravelerFormState {
   firstName: string
@@ -23,7 +26,7 @@ export interface TravelerFormState {
 export interface TravelerManifestSectionHandle {
   navigateToTraveler: (
     index: number,
-    fieldToFocus?: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth',
+    fieldToFocus?: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth' | 'nationality' | 'passportNumber',
     touchAll?: boolean,
   ) => void
 }
@@ -71,6 +74,7 @@ export const TravelerManifestSection = forwardRef<
     childrenCount,
     onUpdateField,
     onSaveAndNext,
+    locale = 'en',
   },
   ref,
 ) {
@@ -84,6 +88,8 @@ export const TravelerManifestSection = forwardRef<
   const emailInputRef = useRef<HTMLInputElement>(null)
   const phoneInputRef = useRef<HTMLInputElement>(null)
   const dobInputRef = useRef<HTMLInputElement>(null)
+  const nationalityInputRef = useRef<HTMLInputElement>(null)
+  const passportInputRef = useRef<HTMLInputElement>(null)
 
   const diagnostics: ManifestPresentationDiagnostics = useMemo(() => {
     return ManifestDiagnosticsPresenter.evaluate(
@@ -96,7 +102,7 @@ export const TravelerManifestSection = forwardRef<
 
   const navigateToTraveler = (
     index: number,
-    fieldToFocus?: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth',
+    fieldToFocus?: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth' | 'nationality' | 'passportNumber',
     touchAll?: boolean,
   ) => {
     setActiveTravelerIndex(index)
@@ -127,6 +133,8 @@ export const TravelerManifestSection = forwardRef<
       else if (target === 'email') emailInputRef.current?.focus()
       else if (target === 'phone') phoneInputRef.current?.focus()
       else if (target === 'dateOfBirth') dobInputRef.current?.focus()
+      else if (target === 'nationality') nationalityInputRef.current?.focus()
+      else if (target === 'passportNumber') passportInputRef.current?.focus()
     }, 100)
   }
 
@@ -137,11 +145,13 @@ export const TravelerManifestSection = forwardRef<
   }))
 
   const handleFieldChange = (field: keyof TravelerFormState, value: string) => {
+    if (activeTravelerIndex < 0) return
     onUpdateField(activeTravelerIndex, field, value)
     setTouchedMap((prev) => (prev[activeTravelerIndex] ? prev : { ...prev, [activeTravelerIndex]: true }))
   }
 
   const handleSaveAndAdvance = () => {
+    if (activeTravelerIndex < 0) return
     const currentPres = diagnostics.travelers[activeTravelerIndex]
     if (currentPres && currentPres.hasIssues) {
       setTouchedMap((prev) => ({ ...prev, [activeTravelerIndex]: true }))
@@ -153,6 +163,8 @@ export const TravelerManifestSection = forwardRef<
         else if (missingField === 'email') emailInputRef.current?.focus()
         else if (missingField === 'phone') phoneInputRef.current?.focus()
         else if (missingField === 'dateOfBirth') dobInputRef.current?.focus()
+        else if (missingField === 'nationality') nationalityInputRef.current?.focus()
+        else if (missingField === 'passportNumber') passportInputRef.current?.focus()
       }, 50)
       return
     }
@@ -165,20 +177,32 @@ export const TravelerManifestSection = forwardRef<
       const targetTraveler = diagnostics.travelers[nextIndex]
       navigateToTraveler(nextIndex, targetTraveler?.primaryMissingField)
     } else {
-      if (diagnostics.incompleteTravelers.length === 0) {
-        setShowIncompleteCallout(false)
-      }
+      setShowIncompleteCallout(false)
+      setActiveTravelerIndex(-1)
       onSaveAndNext(activeTravelerIndex)
     }
   }
 
-  const activeTraveler = travelers[activeTravelerIndex]
-  const activePres = diagnostics.travelers[activeTravelerIndex]
+  const hasMoreIncomplete = useMemo(() => {
+    if (activeTravelerIndex < 0) return false
+    const nextIdx = ManifestDiagnosticsPresenter.findNextIncompleteIndex(
+      activeTravelerIndex,
+      diagnostics,
+    )
+    return nextIdx !== -1 && nextIdx !== activeTravelerIndex
+  }, [activeTravelerIndex, diagnostics])
+
+  const buttonLabel = hasMoreIncomplete
+    ? dict.get(locale, 'checkout.manifest.nextTraveler')
+    : dict.get(locale, 'checkout.manifest.saveTravelers')
+
+  const activeTraveler = activeTravelerIndex >= 0 ? travelers[activeTravelerIndex] : undefined
+  const activePres = activeTravelerIndex >= 0 ? diagnostics.travelers[activeTravelerIndex] : undefined
   const isLeadActive = activeTravelerIndex === 0
 
   const activeFieldErrors = useMemo(() => {
     const map: Record<string, string> = {}
-    if (activePres && touchedMap[activeTravelerIndex]) {
+    if (activePres && activeTravelerIndex >= 0 && touchedMap[activeTravelerIndex]) {
       activePres.issues.forEach((iss) => {
         map[iss.field] = iss.message
       })
@@ -253,8 +277,7 @@ export const TravelerManifestSection = forwardRef<
                 }
                 className="font-semibold text-secondary hover:underline flex items-center gap-1 cursor-pointer"
               >
-                <span>Jump to Next Incomplete Passenger</span>
-                <span>→</span>
+                <span>{dict.get(locale, 'checkout.manifest.jumpToNextIncomplete')}</span>
               </button>
             )}
           </div>
@@ -533,7 +556,7 @@ export const TravelerManifestSection = forwardRef<
                   placeholder="e.g. Vance"
                 />
 
-                {isLeadActive && (
+                {isLeadActive ? (
                   <>
                     <Input
                       ref={emailInputRef}
@@ -564,22 +587,51 @@ export const TravelerManifestSection = forwardRef<
                       placeholder="e.g. +20 100 123 4567"
                     />
                   </>
+                ) : (
+                  <>
+                    <Input
+                      ref={emailInputRef}
+                      label="Email Address"
+                      type="email"
+                      value={activeTraveler.email || ''}
+                      error={activeFieldErrors.email}
+                      helperText={
+                        !activeFieldErrors.email
+                          ? 'Optional - for personalized tickets and itinerary notifications'
+                          : undefined
+                      }
+                      onChange={(e) => handleFieldChange('email', e.target.value)}
+                      placeholder="e.g. companion@example.com"
+                    />
+                    <Input
+                      ref={phoneInputRef}
+                      label="Phone Number"
+                      type="tel"
+                      value={activeTraveler.phone || ''}
+                      error={activeFieldErrors.phone}
+                      helperText={
+                        !activeFieldErrors.phone
+                          ? 'Optional - for journey day updates and logistical notifications'
+                          : undefined
+                      }
+                      onChange={(e) => handleFieldChange('phone', e.target.value)}
+                      placeholder="e.g. +20 100 987 6543"
+                    />
+                  </>
                 )}
 
                 <div>
                   <Input
                     ref={dobInputRef}
-                    label={
-                      activeTraveler.type === 'child' || activeTraveler.type === 'infant'
-                        ? 'Date of Birth (Child Age Verification) *'
-                        : 'Date of Birth (Optional)'
-                    }
+                    label="Date of Birth *"
                     type="date"
                     value={activeTraveler.dateOfBirth || ''}
                     error={activeFieldErrors.dateOfBirth}
                     helperText={
-                      activeTraveler.type === 'child' || activeTraveler.type === 'infant'
-                        ? 'Required to verify child accommodation policy compliance'
+                      !activeFieldErrors.dateOfBirth
+                        ? (activeTraveler.type === 'child' || activeTraveler.type === 'infant'
+                            ? 'Required to verify child accommodation policy compliance'
+                            : 'Legal date of birth matching travel identification')
                         : undefined
                     }
                     onChange={(e) => handleFieldChange('dateOfBirth', e.target.value)}
@@ -587,36 +639,48 @@ export const TravelerManifestSection = forwardRef<
                 </div>
 
                 <Input
-                  label="Nationality (Optional)"
+                  ref={nationalityInputRef}
+                  label="Nationality *"
                   value={activeTraveler.nationality || ''}
+                  error={activeFieldErrors.nationality}
+                  helperText={
+                    !activeFieldErrors.nationality
+                      ? 'Country of citizenship matching passport'
+                      : undefined
+                  }
                   onChange={(e) => handleFieldChange('nationality', e.target.value)}
                   placeholder="e.g. Egyptian / British"
                 />
 
                 <div className="sm:col-span-2">
                   <Input
-                    label="Passport / National ID (Optional at booking)"
+                    ref={passportInputRef}
+                    label="Passport / National ID *"
                     value={activeTraveler.passportNumber || ''}
+                    error={activeFieldErrors.passportNumber}
+                    helperText={
+                      !activeFieldErrors.passportNumber
+                        ? 'Official passport number or National ID required for passenger manifest'
+                        : undefined
+                    }
                     onChange={(e) => handleFieldChange('passportNumber', e.target.value)}
-                    placeholder="Optional (may be submitted prior to departure)"
+                    placeholder="Enter passport number or National ID"
                   />
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-3 border-t border-border/60">
                 <span className="text-[11px] text-muted-foreground">
-                  * Required for passenger manifest verification
+                  * {dict.get(locale, 'checkout.manifest.requiredVerification')}
                 </span>
                 <Button
                   type="button"
                   variant="primary"
                   size="sm"
                   onClick={handleSaveAndAdvance}
-                  className="font-semibold text-xs py-2 px-4 shadow-xs"
+                  className="font-semibold text-xs py-2.5 px-5 shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {diagnostics.incompleteTravelers.length > 1
-                    ? 'Save & Next Incomplete Passenger →'
-                    : 'Save Passenger'}
+                  {buttonLabel}
                 </Button>
               </div>
             </div>

@@ -105,8 +105,16 @@ export class NotificationWorker {
 
       // 4.1 JIT Verification Credential Preparation (Delegating to CustomerPolicy)
       let dispatchJob: NotificationJobEntity = freshJob
-      const targetCustomerId = freshJob.customerId || (freshJob.referenceId ? Number(freshJob.referenceId) : undefined)
-      if (freshJob.templateId === 'verification_email' && targetCustomerId && !isNaN(targetCustomerId)) {
+      const rawCustomerId =
+        freshJob.customerId ??
+        (freshJob.templateData?.['customerId'] as number | string | undefined) ??
+        freshJob.referenceId
+      const targetCustomerId =
+        rawCustomerId !== undefined && rawCustomerId !== null && !isNaN(Number(rawCustomerId))
+          ? Number(rawCustomerId)
+          : undefined
+
+      if (freshJob.templateId === 'verification_email' && targetCustomerId && Number.isFinite(targetCustomerId)) {
         const { CustomerRepository } = await import('../customer/repositories/customer-repository')
         const { CustomerPolicy } = await import('../customer/policy')
         const customerRepo = new CustomerRepository(payload)
@@ -127,7 +135,7 @@ export class NotificationWorker {
             return true
           }
 
-          console.log(`[NotificationWorker] Verification dispatch rejected for customer #${freshJob.customerId}: ${verificationPolicy.reason}`);
+          console.log(`[NotificationWorker] Verification dispatch rejected for customer #${targetCustomerId}: ${verificationPolicy.reason}`);
           freshJob.status = 'failed'
           freshJob.lastError = verificationPolicy.reason
           await this.repository.saveJob(freshJob)

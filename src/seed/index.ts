@@ -4,6 +4,7 @@ import config from '@payload-config'
 
 import { seedCurrencies } from './foundation/system/currencies.seed'
 import { seedLanguages } from './foundation/system/languages.seed'
+import { seedSystemSettings, type SystemSettingsSeedResult } from './foundation/system/system-settings.seed'
 import { seedLoyaltyProgram } from './foundation/system/loyalty.seed'
 import { cleanupDuplicateTranslations } from './foundation/system/cleanup-translations.seed'
 
@@ -21,10 +22,10 @@ import { seedUsers } from './accounts/users.seed'
  * Supports targeted execution via CLI flags:
  * - pnpm seed                     (Seeds Foundation + Content + Accommodations + Catalog + Slots)
  * - pnpm seed --only=content      (Seeds Media + Countries + Cities + FAQs)
- * - pnpm seed --only=accommodations (Seeds 16 Verified Luxury Accommodations)
+ * - pnpm seed --only=accommodations (Seeds 21 Verified Luxury Accommodations)
  * - pnpm seed --only=catalog      (Seeds Accommodations + Experiences Catalog + Departure Slots)
  * - pnpm seed --only=slots        (Seeds 86 Verified Operational Departure Slots)
- * - pnpm seed --only=foundation   (Seeds System Currencies, Languages, Loyalty)
+ * - pnpm seed --only=foundation   (Seeds System Currencies, Languages, SystemSettings, Loyalty)
  * - pnpm seed --only=accounts     (Seeds Isolated Dev Accounts)
  */
 async function main() {
@@ -45,6 +46,11 @@ async function main() {
 
   if (target === 'all' || target === 'foundation' || target === 'languages' || target === 'locales') {
     await seedLanguages(payload)
+  }
+
+  let systemSettingsResult: SystemSettingsSeedResult | null = null
+  if (target === 'all' || target === 'foundation' || target === 'system-settings' || target === 'settings') {
+    systemSettingsResult = await seedSystemSettings(payload)
   }
 
   if (target === 'all' || target === 'foundation' || target === 'loyalty') {
@@ -131,6 +137,14 @@ async function main() {
   console.log('📋 CONTENT SEED AUDIT & INTEGRITY REPORT')
   console.log('====================================================')
 
+  if (systemSettingsResult) {
+    console.log(`Foundation SystemSettings:`)
+    console.log(`  - Status       : ${systemSettingsResult.status === 'preserved' ? '🛡️ PRESERVED (Admin Configuration Active)' : '✅ CREATED (Canonical Baseline)'}`)
+    console.log(`  - Base Currency: ${systemSettingsResult.baseCurrency}`)
+    console.log(`  - Reservation  : ${systemSettingsResult.reservationSenderEmail}`)
+    console.log(`  - Loyalty      : ${systemSettingsResult.loyaltySenderEmail}`)
+  }
+
   if (mediaResult) {
     console.log(`Media Assets (Destination Hero):`)
     console.log(`  - Required  : 52`)
@@ -141,12 +155,12 @@ async function main() {
   }
 
   if (experienceMediaResult) {
-    console.log(`Media Assets (Experience Hero):`)
-    console.log(`  - Required  : 11`)
+    console.log(`Media Assets (Experience Hero & Gallery):`)
+    console.log(`  - Required  : 33 (11 Hero + 22 Gallery)`)
     console.log(`  - Ingested  : ${experienceMediaResult.totalIngested}`)
     console.log(`  - Reused    : ${experienceMediaResult.totalReused}`)
     console.log(`  - Downloaded: ${experienceMediaResult.totalDownloaded}`)
-    console.log(`  - Status    : ${experienceMediaResult.totalProcessed === 11 ? '✅ 100% COMPLETE' : '⚠️ INCOMPLETE'}`)
+    console.log(`  - Status    : ${experienceMediaResult.totalProcessed === 33 ? '✅ 100% COMPLETE' : '⚠️ INCOMPLETE'}`)
   }
 
   if (countriesResult) {
@@ -170,11 +184,11 @@ async function main() {
 
   if (accommodationsResult) {
     console.log(`Accommodations (Luxury Properties):`)
-    console.log(`  - Required     : 16`)
+    console.log(`  - Required     : 21`)
     console.log(`  - Processed    : ${accommodationsResult.totalProcessed}`)
     console.log(`  - Created      : ${accommodationsResult.totalCreated}`)
     console.log(`  - Updated      : ${accommodationsResult.totalUpdated}`)
-    console.log(`  - City Rel     : ${accommodationsResult.cityLinkedCount}/16 (${accommodationsResult.cityLinkedCount === 16 ? 'PASS' : 'FAIL'})`)
+    console.log(`  - City Rel     : ${accommodationsResult.cityLinkedCount}/21 (${accommodationsResult.cityLinkedCount === 21 ? 'PASS' : 'FAIL'})`)
   }
 
   if (faqsResult) {
@@ -188,11 +202,12 @@ async function main() {
     console.log(`  - Processed    : ${catalogResult.totalProcessed}`)
     console.log(`  - Created      : ${catalogResult.totalCreated}`)
     console.log(`  - Updated      : ${catalogResult.totalUpdated}`)
-    console.log(`  - Hero Linked  : ${catalogResult.heroLinkedCount}/11 (${catalogResult.heroLinkedCount === 11 ? 'PASS' : 'FAIL'})`)
-    console.log(`  - Daily Tours  : ${catalogResult.dailyToursCount}`)
-    console.log(`  - Packages     : ${catalogResult.packagesCount}`)
-    console.log(`  - Stays Linked : ${catalogResult.accommodationsLinkedCount}`)
-    console.log(`  - Dest Linked  : ${catalogResult.destinationsLinkedCount}`)
+    console.log(`  - Hero Linked   : ${catalogResult.heroLinkedCount}/11 (${catalogResult.heroLinkedCount === 11 ? 'PASS' : 'FAIL'})`)
+    console.log(`  - Gallery Linked: ${catalogResult.galleryImagesLinkedCount}/22 (${catalogResult.galleryImagesLinkedCount >= 22 ? 'PASS' : 'FAIL'})`)
+    console.log(`  - Daily Tours   : ${catalogResult.dailyToursCount}`)
+    console.log(`  - Packages      : ${catalogResult.packagesCount}`)
+    console.log(`  - Stays Linked  : ${catalogResult.accommodationsLinkedCount}`)
+    console.log(`  - Dest Linked   : ${catalogResult.destinationsLinkedCount}`)
   }
 
   if (departureSlotsResult) {

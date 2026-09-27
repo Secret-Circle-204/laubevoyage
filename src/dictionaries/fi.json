@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "L'Aube Voyage ylelliset matkaelämykset",
-    "subtitle": "Räätälöityjä matkoja vuodesta 1996: Passisi ainutlaatuisiin löytöretkiin",
+    "subtitle": "Räätälöityjä luksusmatkoja: Passisi ainutlaatuisiin elämyksiin",
     "cta": {
       "primary": "Tutustu elämyksiin →",
       "secondary": "Löydä kohteet"
@@ -33,8 +33,8 @@
     },
     "footer": {
       "rights": "Kaikki oikeudet pidätetään © 2026 L'Aube Voyage",
-      "tagline": "Ainutlaatuisia matkaelämyksiä vuodesta 1996.",
-      "brandDescription": "Löydä poikkeukselliset luksusmatkat, 5 tähden Niilin-risteilyt ja yksityiset egyptologien opastamat kierrokset vaativille matkailijoille.",
+      "tagline": "Ainutlaatuisia matkaelämyksiä.",
+      "brandDescription": "Löydä poikkeukselliset luksusmatkat ja räätälöidyt elämykset vaativille matkailijoille.",
       "explore": "Tutustu",
       "allExperiences": "Kaikki Elämykset",
       "destinations": "Kohteet",
@@ -54,7 +54,7 @@
   "catalog": {
     "meta": {
       "title": "Luksuselämysten ja Matkapakettien Valikoima | L'Aube Voyage",
-      "description": "Tutustu luksusmatkapaketteihin, Niilin-risteilyihin ja yksityisiin päiväretkiin Egyptissä."
+      "description": "Tutustu luksusmatkapaketteihin, räätälöityihin matkoihin ja yksityisiin päiväretkiin."
     },
     "badge": "Räätälöity Valikoima",
     "title": "Elämysvalikoima",
@@ -76,6 +76,14 @@
     "lastName": "Sukunimi",
     "email": "Sähköpostiosoite",
     "phone": "Puhelinnumero",
+    "manifest": {
+      "nextTraveler": "Seuraava matkustaja →",
+      "saveTravelers": "Tallenna ja jatka →",
+      "verifiedTitle": "Matkustajaluettelo vahvistettu",
+      "verifiedDesc": "Kaikki matkustajatiedot ovat valmiina varauksen vahvistamista varten.",
+      "requiredVerification": "Vaaditaan matkustajaluettelon vahvistamiseen",
+      "jumpToNextIncomplete": "Siirry seuraavaan keskeneräiseen matkustajaan →"
+    },
     "success": {
       "pendingBadge": "Maksutarkistus",
       "verifyingTitle": "Vahvistetaan Varausta",
@@ -111,7 +119,7 @@
   "contact": {
     "vipConciergeBadge": "24/7 VIP-Concierge",
     "title": "Ota Yhteyttä Matka-asiantuntijoihimme",
-    "description": "Kysyttävää räätälöidyistä matkoista tai yksityisristeilyistä? Lähetä meille viesti, vastaamme 2 tunnin kuluessa.",
+    "description": "Kysyttävää räätälöidyistä matkoista tai yksityisistä matkajärjestelyistä? Lähetä meille viesti, vastaamme 2 tunnin kuluessa.",
     "directContact": "Suora Yhteys",
     "cairoHeadOffice": "Kairon Pääkonttori",
     "vipHotline": "VIP-Palvelunumero",
@@ -322,7 +330,7 @@
     "configureBooking": "Määritä varaus",
     "journeyOverview": "Matkan yleiskatsaus",
     "staysTitle": "Majoituksesi ja hotellisi",
-    "staysSubtitle": "Matkaasi sisältyvät huolella valitut hotellit ja Niilin risteilyt",
+    "staysSubtitle": "Matkaasi sisältyvät huolella valitut hotellit ja tasokkaat majoitukset",
     "stayHeader": "Majoitus #{order} • {nights} {nightUnit}",
     "nightSingular": "Yö",
     "nightPlural": "Yötä",
@@ -512,7 +520,7 @@
     "title": "Hakutulokset",
     "resultsForQuery": "Löydettiin {count} tulosta haulle \"{query}\"",
     "resultsAll": "Löydettiin {count} tulosta matkoista ja kohteista.",
-    "placeholder": "Etsi elämyksiä, kohteita, Niilin risteilyjä...",
+    "placeholder": "Etsi elämyksiä, kohteita, luksusmatkoja...",
     "searchButton": "Hae",
     "filterAll": "Kaikki Elämykset",
     "filterPackages": "Matkapaketit",
@@ -525,5 +533,42 @@
     "nextPage": "Seuraava →",
     "pageOf": "Sivu {page} / {totalPages}",
     "showingCount": "Näytetään sivu {page} / {totalPages} (yhteensä {total})"
+  },
+  "emails": {
+    "common": {
+      "defaultName": "Arvoisa Vieras",
+      "pointsLabel": "Kanta-asiakaspisteet"
+    },
+    "verification": {
+      "subject": "Vahvista sähköpostiosoitteesi — L'Aube Voyage",
+      "preheader": "Vahvista sähköpostisi aktivoidaksesi ylellisen L'Aube Voyage -matkaelämyksen.",
+      "badge": "TILIN AKTIVOINTI",
+      "title": "Vahvista sähköpostiosoitteesi",
+      "greeting": "Hyvä {name},",
+      "intro": "Kiitos rekisteröitymisestäsi L'Aube Voyageen. Varmistaaksesi tilisi turvallisuuden ja aktivoidaksesi pääsysi räätälöityihin matkoihimme, vahvista sähköpostiosoitteesi alla olevasta painikkeesta.",
+      "cta": "Vahvista sähköpostiosoite",
+      "expiryNotice": "Tämä vahvistuslinkki on voimassa 3 tuntia. Älä jaa tätä linkkiä kenellekään turvallisuussyistä.",
+      "troubleLink": "Jos yllä oleva painike ei toimi, kopioi ja liitä seuraava linkki selaimeesi:",
+      "ignoreNotice": "Jos et ole luonut tiliä L'Aube Voyageen, voit jättää tämän viestin huomiotta."
+    },
+    "welcome": {
+      "subject": "Tervetuloa L'Aube Voyageen — Matkasi Alkaa",
+      "preheader": "Tilisi on vahvistettu. Tervetuloa L'Aube Voyage Circleen.",
+      "badge": "TERVETULOA CIRCLEEN",
+      "title": "Tervetuloa L'Aube Voyageen",
+      "greeting": "Hyvä {name},",
+      "intro": "Tilisi on onnistuneesti vahvistettu ja aktivoitu. L'Aube Voyage Circlen arvostettuna jäsenenä sinulla on nyt yksinoikeus valikoituun luksusmatkojen ja räätälöityjen elämysten kokoelmaamme.",
+      "loyaltyBadge": "TERVETULIAISETU",
+      "pointsTitle": "Tervetuliaispisteet Myönnetty",
+      "pointsDescription": "Meillä on ilo toivottaa sinut tervetulleeksi erityisellä bonuksella, joka on hyvitetty suoraan tilillesi:",
+      "currentBalance": "Nykyinen pistesaldo: {balance} pistettä",
+      "cta": "Tutustu Elämyksiin",
+      "outro": "Mikäli tarvitset räätälöityjä järjestelyjä, yksityislentoja tai henkilökohtaista matkasuunnittelua, luksus-concierge-tiimimme on aina käytettävissäsi.",
+      "signature": "Lämpimin terveisin,\nL'Aube Voyage Concierge -tiimi"
+    },
+    "footer": {
+      "support": "Tarvitsetko apua? Voit vastata suoraan tähän sähköpostiin.",
+      "confidentiality": "Tämä sähköposti on lähetetty sinulle, koska olet rekisteröitynyt L'Aube Voyageen. Tämä viesti on luottamuksellinen."
+    }
   }
 }

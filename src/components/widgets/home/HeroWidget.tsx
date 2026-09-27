@@ -30,7 +30,7 @@ export function HeroWidget({ data }: { data: HomeHeroDTO }) {
         <div className="flex items-center justify-center gap-4 soft-reveal [animation-delay:0ms]">
           <span className="h-px w-10 sm:w-16 bg-gradient-to-r from-transparent to-white/60" />
           <span className="text-white/90 text-[11px] sm:text-xs uppercase font-medium">
-            Bespoke Luxury Voyages • Est. 1996
+            Bespoke Luxury Voyages
           </span>
           <span className="h-px w-10 sm:w-16 bg-gradient-to-l from-transparent to-white/60" />
         </div>

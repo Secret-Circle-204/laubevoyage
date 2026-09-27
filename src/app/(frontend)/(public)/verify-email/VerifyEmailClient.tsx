@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, Badge, Button } from '@/components/ui'
 import { useToast } from '@/providers'
-import { verifyEmailAction } from '@/application/actions/customer-actions'
+import { verifyEmailAction, resendVerificationAction } from '@/application/actions/customer-actions'
 
 interface VerifyEmailClientProps {
   token?: string
@@ -59,7 +59,45 @@ export default function VerifyEmailClient({ token, email, welcomeBonus }: Verify
   const { addToast } = useToast()
   const [status, setStatus] = useState<StatusState>(token ? 'loading' : 'success')
   const [errorMessage, setErrorMessage] = useState('')
+  const [isResending, setIsResending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
   const hasBonus = typeof welcomeBonus === 'number' && welcomeBonus > 0
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setTimeout(() => setResendCooldown((prev) => prev - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [resendCooldown])
+
+  const handleResend = async () => {
+    if (!email || isResending || resendCooldown > 0) return
+    setIsResending(true)
+    try {
+      const res = await resendVerificationAction(email)
+      if (res.success) {
+        addToast({
+          type: 'success',
+          title: 'Verification Link Sent',
+          description: res.message || 'A fresh verification link has been sent to your email.',
+        })
+        setResendCooldown(60)
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Resend Failed',
+          description: res.error || 'Failed to resend verification link.',
+        })
+      }
+    } catch {
+      addToast({
+        type: 'error',
+        title: 'Error',
+        description: 'An unexpected error occurred while requesting verification email.',
+      })
+    } finally {
+      setIsResending(false)
+    }
+  }
 
   useEffect(() => {
     if (!token) return
@@ -133,7 +171,26 @@ export default function VerifyEmailClient({ token, email, welcomeBonus }: Verify
             We sent a verification link to {email ? <strong>{email}</strong> : 'your email address'}. Please check your inbox and click the link to activate your traveler profile{hasBonus ? <> and claim your <strong>{welcomeBonus} Welcome Points</strong></> : '.'}
           </p>
 
-          <div className="mt-8 pt-6 border-t border-border">
+          <div className="mt-6 space-y-3">
+            {email && (
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                className="w-full"
+                disabled={isResending || resendCooldown > 0}
+                onClick={handleResend}
+              >
+                {isResending
+                  ? 'Sending...'
+                  : resendCooldown > 0
+                    ? `Resend in ${resendCooldown}s`
+                    : 'Resend Verification Email'}
+              </Button>
+            )}
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-border">
             <Link href="/login" className="text-sm font-bold text-primary hover:underline">
               ← Return to Sign In
             </Link>
@@ -228,9 +285,25 @@ export default function VerifyEmailClient({ token, email, welcomeBonus }: Verify
               {errorMessage}
             </p>
             <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
-              Please check that you copied the complete URL, or try requesting a new verification email from the login page.
+              Please check that you copied the complete URL, or try requesting a new verification email below.
             </p>
             <div className="mt-8 space-y-3">
+              {email && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  className="w-full"
+                  disabled={isResending || resendCooldown > 0}
+                  onClick={handleResend}
+                >
+                  {isResending
+                    ? 'Sending...'
+                    : resendCooldown > 0
+                      ? `Resend in ${resendCooldown}s`
+                      : 'Request New Verification Link'}
+                </Button>
+              )}
               <Link href="/login" className="block">
                 <Button variant="secondary" size="md" className="w-full">
                   Return to Login

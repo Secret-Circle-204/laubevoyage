@@ -69,6 +69,15 @@ export function RegisterForm({ welcomeBonus }: RegisterFormProps) {
           router.refresh()
         }
       } else {
+        if ('code' in res && res.code === 'ACCOUNT_PENDING_VERIFICATION') {
+          addToast({
+            type: 'info',
+            title: 'Account Awaiting Verification',
+            description: res.error || 'Your account has been created but your email is not verified yet.',
+          })
+          router.push(`/verify-email?email=${encodeURIComponent(trimmedEmail)}`)
+          return
+        }
         addToast({
           type: 'error',
           title: 'Registration Failed',

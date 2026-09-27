@@ -40,6 +40,9 @@ export interface CheckoutPageDTO {
     lastName: string
     email: string
     phone: string
+    dateOfBirth?: string
+    passportNumber?: string
+    nationality?: string
   }
   initialTravelers?: TravelerInput[]
   initialPickupLocation?: BookingPickupLocation | null

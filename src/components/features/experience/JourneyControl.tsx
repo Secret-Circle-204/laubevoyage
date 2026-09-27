@@ -534,7 +534,7 @@ export function JourneyControl({
           <div
             ref={composerCardRef}
             id="journey-composer"
-            className="relative overflow-hidden rounded-3xl border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-[#070b14] text-slate-900 dark:text-white shadow-xl shadow-slate-300/60 dark:shadow-2xl dark:shadow-black/50 transition-colors duration-300 scroll-mt-24"
+            className="relative overflow-hidden rounded-3xl border-2 border-border dark:border-slate-800 bg-card dark:bg-[#070b14] text-foreground dark:text-white shadow-xl shadow-slate-300/40 dark:shadow-2xl dark:shadow-black/50 transition-colors duration-300 scroll-mt-24"
           >
             {/* Ambient Corner Accent Glow */}
             <div
@@ -622,102 +622,80 @@ export function JourneyControl({
                     role="button"
                     tabIndex={0}
                     aria-label={dict.get(locale, 'experience.departureModal.title')}
-                    className="group/dep-card p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-[#0c1222] border border-slate-300 dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-white dark:hover:bg-[#0e1628] shadow-sm hover:shadow-md transition-all duration-300 flex flex-col gap-3.5 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary"
+                    className="group/dep-card p-4 sm:p-5 rounded-2xl bg-background/70 dark:bg-[#0c1222] border border-border dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-card dark:hover:bg-[#0e1628] shadow-sm hover:shadow-md transition-all duration-300 flex flex-col gap-3.5 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 flex items-center justify-center text-primary dark:text-secondary shrink-0 mt-0.5 group-hover/dep-card:scale-110 group-hover/dep-card:rotate-[-4deg] group-hover/dep-card:border-primary/40 dark:group-hover/dep-card:border-secondary/40 transition-all duration-300 shadow-2xs">
-                          <CalendarIcon className="w-5 h-5" />
+                    {/* Header Row: Icon + Label + Change Action */}
+                    <div className="flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 flex items-center justify-center text-primary dark:text-secondary shrink-0 group-hover/dep-card:scale-105 transition-transform duration-300 shadow-2xs">
+                          <CalendarIcon className="w-4 h-4" />
                         </div>
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                              {dict.get(locale, 'experience.departureModal.title')}
-                            </span>
-                            {isFixedPackage && totalSlots > 1 && (
-                              <motion.span
-                                key={validIndex}
-                                initial={{ scale: 0.8, y: -2, opacity: 0 }}
-                                animate={{ scale: 1, y: 0, opacity: 1 }}
-                                transition={{ type: 'spring', stiffness: 240, damping: 24 }}
-                                className="px-1.5 py-0.5 rounded-md bg-primary/10 dark:bg-secondary/15 text-primary dark:text-secondary text-[10px] font-bold"
-                              >
-                                {validIndex + 1} / {totalSlots}
-                              </motion.span>
-                            )}
-                          </div>
-
-                          {/* Animated Date & Time Section with Calm Stagger */}
-                          <div className="relative overflow-hidden min-h-[52px]">
-                            <AnimatePresence mode="popLayout" custom={slideDirection} initial={false}>
-                              <motion.div
-                                key={isFixedPackage ? (selectedSlot?.id ?? validIndex) : selectedDate}
-                                custom={slideDirection}
-                                variants={slideVariants}
-                                initial="enter"
-                                animate="center"
-                                exit="exit"
-                                className="flex flex-col min-w-0"
-                              >
-                                <motion.span
-                                  initial={{ opacity: 0, y: 3 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.3, ease: 'easeOut' }}
-                                  className="font-hornbill text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate mt-0.5 group-hover/dep-card:text-primary dark:group-hover/dep-card:text-secondary transition-colors"
-                                >
-                                  {departureDetailedDate?.formatted || departureSummaryText}
-                                </motion.span>
-                                <motion.div
-                                  initial={{ opacity: 0, y: 3 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.3, ease: 'easeOut', delay: 0.06 }}
-                                  className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-1"
-                                >
-                                  {departureTimeFormatted && <span>{departureTimeFormatted}</span>}
-                                  {departureTimeFormatted && (departureLocationText || data.destinationTimezone) && (
-                                    <span>·</span>
-                                  )}
-                                  {departureLocationText && <span>{departureLocationText}</span>}
-                                  {data.destinationTimezone && !departureLocationText && (
-                                    <span>{data.destinationTimezone}</span>
-                                  )}
-                                </motion.div>
-                              </motion.div>
-                            </AnimatePresence>
-                          </div>
-                        </div>
+                        <span className="text-[11px] font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase truncate">
+                          {dict.get(locale, 'experience.departureModal.title')}
+                        </span>
+                        {isFixedPackage && totalSlots > 1 && (
+                          <motion.span
+                            key={validIndex}
+                            initial={{ scale: 0.8, y: -2, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 240, damping: 24 }}
+                            className="px-1.5 py-0.5 rounded-md bg-primary/10 dark:bg-secondary/15 text-primary dark:text-secondary text-[10px] font-bold whitespace-nowrap shrink-0"
+                          >
+                            {validIndex + 1} / {totalSlots}
+                          </motion.span>
+                        )}
                       </div>
 
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setIsDepartureModalOpen(true)
-                          }}
-                          className="group/change inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary group-hover/dep-card:text-primary-dark dark:group-hover/dep-card:text-secondary-light transition-colors cursor-pointer"
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setIsDepartureModalOpen(true)
+                        }}
+                        className="group/change inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary group-hover/dep-card:text-primary-dark dark:group-hover/dep-card:text-secondary-light transition-colors cursor-pointer shrink-0"
+                      >
+                        <span>{dict.get(locale, 'experience.changeArrangement')}</span>
+                        <ChevronRightIcon className="w-3.5 h-3.5 rtl:rotate-180 group-hover/change:translate-x-0.5 rtl:group-hover/change:-translate-x-0.5 transition-transform duration-200" />
+                      </button>
+                    </div>
+
+                    {/* Date & Time / Destination Section (Full Width, Free from Constraint) */}
+                    <div className="relative overflow-hidden min-h-[46px] pl-0.5 rtl:pl-0 rtl:pr-0.5">
+                      <AnimatePresence mode="popLayout" custom={slideDirection} initial={false}>
+                        <motion.div
+                          key={isFixedPackage ? (selectedSlot?.id ?? validIndex) : selectedDate}
+                          custom={slideDirection}
+                          variants={slideVariants}
+                          initial="enter"
+                          animate="center"
+                          exit="exit"
+                          className="flex flex-col min-w-0"
                         >
-                          <span>{dict.get(locale, 'experience.changeArrangement')}</span>
-                          <ChevronRightIcon className="w-3.5 h-3.5 rtl:rotate-180 group-hover/change:translate-x-0.5 rtl:group-hover/change:-translate-x-0.5 transition-transform duration-200" />
-                        </button>
-
-                        <div className="relative overflow-hidden min-h-[24px]">
-                          <AnimatePresence mode="popLayout" custom={slideDirection} initial={false}>
-                            {isFixedPackage && selectedSlot && typeof selectedSlot.availableSeats === 'number' && (
-                              <motion.span
-                                key={selectedSlot.id}
-                                initial={{ scale: 0.85, y: 3, opacity: 0 }}
-                                animate={{ scale: 1, y: 0, opacity: 1 }}
-                                exit={{ scale: 0.85, y: -3, opacity: 0 }}
-                                transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-                                className="px-2.5 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-semibold whitespace-nowrap block shadow-2xs transition-colors"
-                              >
-                                {dict.get(locale, 'experience.seatsAvailable', { count: String(selectedSlot.availableSeats) })}
-                              </motion.span>
+                          <motion.span
+                            initial={{ opacity: 0, y: 3 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="font-hornbill text-lg sm:text-xl font-bold text-slate-900 dark:text-white leading-tight break-words group-hover/dep-card:text-primary dark:group-hover/dep-card:text-secondary transition-colors"
+                          >
+                            {departureDetailedDate?.formatted || departureSummaryText}
+                          </motion.span>
+                          <motion.div
+                            initial={{ opacity: 0, y: 3 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeOut', delay: 0.06 }}
+                            className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-1"
+                          >
+                            {departureTimeFormatted && <span>{departureTimeFormatted}</span>}
+                            {departureTimeFormatted && (departureLocationText || data.destinationTimezone) && (
+                              <span>·</span>
                             )}
-                          </AnimatePresence>
-                        </div>
-                      </div>
+                            {departureLocationText && <span>{departureLocationText}</span>}
+                            {data.destinationTimezone && !departureLocationText && (
+                              <span>{data.destinationTimezone}</span>
+                            )}
+                          </motion.div>
+                        </motion.div>
+                      </AnimatePresence>
                     </div>
 
                     {/* Departure Slider Control Strip */}
@@ -966,7 +944,7 @@ export function JourneyControl({
                     role="button"
                     tabIndex={0}
                     aria-label={dict.get(locale, 'experience.whoIsTravelling')}
-                    className="group/trav-card p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-[#0c1222] border border-slate-300 dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-white dark:hover:bg-[#0e1628] shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-3.5 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary"
+                    className="group/trav-card p-4 sm:p-5 rounded-2xl bg-background/70 dark:bg-[#0c1222] border border-border dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-card dark:hover:bg-[#0e1628] shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-3.5 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary"
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
                       <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 flex items-center justify-center text-primary dark:text-secondary shrink-0 group-hover/trav-card:scale-105 group-hover/trav-card:border-primary/40 dark:group-hover/trav-card:border-secondary/40 transition-transform shadow-2xs">
@@ -1037,7 +1015,7 @@ export function JourneyControl({
                             }}
                             role={isMultiOption ? 'button' : undefined}
                             tabIndex={isMultiOption ? 0 : undefined}
-                            className={`p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-[#0c1222] border border-slate-300 dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-white dark:hover:bg-[#0e1628] shadow-sm hover:shadow-md transition-all flex flex-col gap-3 ${
+                            className={`p-4 sm:p-5 rounded-2xl bg-background/70 dark:bg-[#0c1222] border border-border dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-card dark:hover:bg-[#0e1628] shadow-sm hover:shadow-md transition-all flex flex-col gap-3 ${
                               isMultiOption ? 'cursor-pointer select-none group/stay-card focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary' : ''
                             }`}
                           >

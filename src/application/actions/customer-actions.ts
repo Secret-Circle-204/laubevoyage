@@ -60,9 +60,13 @@ export async function registerCustomerAction(formData: RegisterFormData) {
       fullName: customerProfile.fullName,
     }
   } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Customer registration failed'
+    const code = error instanceof DomainException ? error.code : undefined
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Customer registration failed',
+      error: message,
+      code,
     }
   }
 }
@@ -143,6 +147,54 @@ export async function verifyEmailAction(token: string, email?: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Email verification failed',
+    }
+  }
+}
+
+export async function resendVerificationAction(email: string) {
+  try {
+    const trimmedEmail = email ? email.toLowerCase().trim() : ''
+    if (!trimmedEmail) {
+      return { success: false, error: 'Email address is required' }
+    }
+
+    const { customer } = await getDomainServices()
+    const result = await customer.resendVerification(trimmedEmail)
+
+    if (result.status === 'SENT') {
+      return {
+        success: true,
+        message: 'A verification link has been sent to your email.',
+      }
+    } else if (result.status === 'ALREADY_VERIFIED') {
+      return {
+        success: false,
+        alreadyVerified: true,
+        error: 'Your email address is already verified. You can sign in directly.',
+      }
+    } else if (result.status === 'RATE_LIMITED') {
+      return {
+        success: false,
+        rateLimited: true,
+        error: 'Too many verification requests. Please wait a moment before trying again.',
+      }
+    } else if (result.status === 'EXPIRED') {
+      return {
+        success: false,
+        expired: true,
+        error: 'The verification period has expired. Please register again to activate your account.',
+      }
+    } else {
+      // Privacy-safe response for non-existent accounts
+      return {
+        success: true,
+        message: 'If an account exists with this email, a verification link has been sent.',
+      }
+    }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to resend verification email',
     }
   }
 }
@@ -274,6 +326,72 @@ export async function updateCustomerPreferencesAction(params: {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update preferences',
+    }
+  }
+}
+
+export async function getTravelerRegistryAction(options?: {
+  page?: number
+  limit?: number
+  search?: string
+}) {
+  try {
+    const session = await SessionResolver.resolve()
+    // Accessible by staff / admins
+    if (!session.isAuthenticated || (session.role !== 'admin' && session.role !== 'super_admin')) {
+      return { success: false, error: 'Unauthorized: Staff access required for Traveler Registry' }
+    }
+
+    const { customer } = await getDomainServices()
+    const result = await customer.getTravelersReport(options)
+    return { success: true, ...result }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to query traveler registry',
+    }
+  }
+}
+
+export async function saveCustomerCompanionAction(params: {
+  firstName: string
+  lastName: string
+  email?: string
+  phone?: string
+  dateOfBirth?: string
+  passportNumber?: string
+  nationality?: string
+  relationship: 'spouse' | 'child' | 'parent' | 'friend' | 'self' | 'other'
+}) {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || !session.customerId) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const { customer } = await getDomainServices()
+    const travelerRepo = new (await import('@/domains/customer/repositories/traveler-repository')).TravelerRepository(
+      (customer as any).repository.getPayload(),
+    )
+
+    const canonical = await travelerRepo.resolveOrCreateCanonicalTraveler({
+      firstName: params.firstName,
+      lastName: params.lastName,
+      email: params.email,
+      phone: params.phone,
+      dateOfBirth: params.dateOfBirth,
+      passportNumber: params.passportNumber,
+      nationality: params.nationality,
+    })
+
+    await customer.saveCompanion(session.customerId, canonical.id, params.relationship)
+    revalidatePath('/dashboard/profile')
+
+    return { success: true, travelerId: canonical.id }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to save companion',
     }
   }
 }

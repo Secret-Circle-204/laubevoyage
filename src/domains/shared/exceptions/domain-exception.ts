@@ -73,5 +73,16 @@ export class FinancialInvariantException extends DomainException {
   }
 }
 
+export class AccountPendingVerificationException extends DomainException {
+  constructor(
+    message: string = 'An account with this email is awaiting verification. Please check your inbox or request a new verification link.',
+  ) {
+    super(message, 'ACCOUNT_PENDING_VERIFICATION', 409)
+  }
+}
 
-
+export class CustomerAlreadyExistsException extends DomainException {
+  constructor(email: string) {
+    super(`An active account with email ${email} already exists. Please sign in instead.`, 'CUSTOMER_ALREADY_EXISTS', 409)
+  }
+}

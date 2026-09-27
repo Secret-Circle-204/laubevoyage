@@ -15,7 +15,7 @@ export const PRODUCTION_FAQS: FaqSeedDef[] = [
     order: 1,
     question: "What luxury services and amenities are included in L'Aube Voyage packages?",
     answer:
-      "All L'Aube Voyage bespoke travel packages include private VIP airport meet-and-greet services, dedicated Mercedes-Benz luxury transfers, certified private Egyptologist and local master tour guides, all monument and exhibition entrance fees, hand-selected 5-star palace hotel or luxury cruise accommodations, and 24/7 dedicated concierge support.",
+      "All L'Aube Voyage bespoke travel packages include private VIP airport meet-and-greet services, dedicated luxury executive transfers, certified private expert guides, all scheduled entrance fees, hand-selected luxury hotel and resort accommodations, and 24/7 dedicated concierge support.",
   },
   {
     faqId: 'faq-bespoke-customization',

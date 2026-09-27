@@ -6,6 +6,9 @@ import type { CheckoutPageDTO } from '@/application/booking/dto-checkout'
 import { confirmCheckoutAction } from '@/application/actions/booking-actions'
 import { resolvePricingAction } from '@/application/actions/pricing-actions'
 import { ManifestDiagnosticsPresenter } from '@/application/booking/manifest-diagnostics'
+import { JsonTranslationDictionary } from '@/domains/translation/dictionary'
+
+const dict = new JsonTranslationDictionary()
 import type { TravelerInput } from '@/domains/booking/types'
 import { CheckoutHeader } from './CheckoutHeader'
 import {
@@ -92,9 +95,9 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
       lastName: data.leadTraveler?.lastName || '',
       email: data.leadTraveler?.email || '',
       phone: data.leadTraveler?.phone || '',
-      dateOfBirth: '',
-      passportNumber: '',
-      nationality: '',
+      dateOfBirth: data.leadTraveler?.dateOfBirth || '',
+      passportNumber: data.leadTraveler?.passportNumber || '',
+      nationality: data.leadTraveler?.nationality || '',
       type: 'adult',
     })
 
@@ -102,6 +105,8 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
       list.push({
         firstName: '',
         lastName: '',
+        email: '',
+        phone: '',
         dateOfBirth: '',
         passportNumber: '',
         nationality: '',
@@ -115,6 +120,8 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
       list.push({
         firstName: '',
         lastName: '',
+        email: '',
+        phone: '',
         dateOfBirth: '',
         passportNumber: '',
         nationality: '',
@@ -140,7 +147,7 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
   }
 
   const handleSaveAndNext = (currentIndex: number) => {
-    // When saved, if all travelers are valid, notify
+    // When saved, if all travelers are valid, notify and advance to next checkout step
     const diagnostics = ManifestDiagnosticsPresenter.evaluate(
       travelers,
       data.adultsCount,
@@ -150,9 +157,21 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
     if (diagnostics.incompleteTravelers.length === 0) {
       addToast({
         type: 'success',
-        title: 'Passenger Manifest Verified',
-        description: 'All passenger records are complete and ready for reservation confirmation.',
+        title: dict.get(locale, 'checkout.manifest.verifiedTitle'),
+        description: dict.get(locale, 'checkout.manifest.verifiedDesc'),
       })
+
+      // Automatically advance to the next step
+      setTimeout(() => {
+        const nextStepEl =
+          document.getElementById('checkout-step-pickup') ||
+          document.getElementById('checkout-step-loyalty') ||
+          document.getElementById('checkout-step-payment')
+
+        if (nextStepEl) {
+          nextStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 200)
     }
   }
 
@@ -398,48 +417,56 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
           {/* Left Column: Traveler Manifest, Pickup, Loyalty, Gateway */}
           <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
             {/* Step 1: Traveler Manifest */}
-            <TravelerManifestSection
-              ref={manifestRef}
-              travelers={travelers}
-              adultsCount={data.adultsCount}
-              childrenCount={data.childrenCount}
-              onUpdateField={updateTravelerField}
-              onSaveAndNext={handleSaveAndNext}
-              locale={locale}
-            />
+            <div id="checkout-step-manifest" className="scroll-mt-24">
+              <TravelerManifestSection
+                ref={manifestRef}
+                travelers={travelers}
+                adultsCount={data.adultsCount}
+                childrenCount={data.childrenCount}
+                onUpdateField={updateTravelerField}
+                onSaveAndNext={handleSaveAndNext}
+                locale={locale}
+              />
+            </div>
 
             {/* Step 2: Pickup & Meeting Location (SSOT directly reused) */}
-            <CheckoutPickupLocationPicker
-              value={pickupLocation}
-              onChange={setPickupLocation}
-              destinationCityName={data.destinationCityName}
-              destinationCountryName={data.destinationCountryName}
-              experienceTitle={data.experienceTitle}
-              experienceType={data.experienceType}
-            />
+            <div id="checkout-step-pickup" className="scroll-mt-24">
+              <CheckoutPickupLocationPicker
+                value={pickupLocation}
+                onChange={setPickupLocation}
+                destinationCityName={data.destinationCityName}
+                destinationCountryName={data.destinationCountryName}
+                experienceTitle={data.experienceTitle}
+                experienceType={data.experienceType}
+              />
+            </div>
 
             {/* Step 3: Loyalty Redemption */}
-            <LoyaltyRedemptionSection
-              availableLoyaltyPoints={data.availableLoyaltyPoints}
-              minRedemptionPoints={data.minRedemptionPoints}
-              redemptionStepUnit={data.redemptionStepUnit}
-              applyPoints={applyPoints}
-              pointsToRedeem={pointsToRedeem}
-              previewPricing={previewPricing}
-              isRepricing={isRepricing}
-              effectivePricingError={effectivePricingError}
-              onToggleApplyPoints={setApplyPoints}
-              onChangePointsToRedeem={setPointsToRedeem}
-              locale={locale}
-            />
+            <div id="checkout-step-loyalty" className="scroll-mt-24">
+              <LoyaltyRedemptionSection
+                availableLoyaltyPoints={data.availableLoyaltyPoints}
+                minRedemptionPoints={data.minRedemptionPoints}
+                redemptionStepUnit={data.redemptionStepUnit}
+                applyPoints={applyPoints}
+                pointsToRedeem={pointsToRedeem}
+                previewPricing={previewPricing}
+                isRepricing={isRepricing}
+                effectivePricingError={effectivePricingError}
+                onToggleApplyPoints={setApplyPoints}
+                onChangePointsToRedeem={setPointsToRedeem}
+                locale={locale}
+              />
+            </div>
 
             {/* Step 4: Payment Gateway Selection */}
-            <PaymentGatewaySection
-              gateways={data.gateways}
-              selectedGateway={selectedGateway}
-              onSelectGateway={setSelectedGateway}
-              locale={locale}
-            />
+            <div id="checkout-step-payment" className="scroll-mt-24">
+              <PaymentGatewaySection
+                gateways={data.gateways}
+                selectedGateway={selectedGateway}
+                onSelectGateway={setSelectedGateway}
+                locale={locale}
+              />
+            </div>
           </div>
 
           {/* Right Column: Adaptive Order Summary (Desktop Sticky Ledger) */}

@@ -23,6 +23,7 @@ export interface Actor {
 }
 
 export interface TravelerInput {
+  travelerId?: number
   firstName: string
   lastName: string
   email?: string
@@ -37,7 +38,7 @@ export interface TravelerManifestFieldIssue {
   travelerIndex: number
   travelerNumber: number
   travelerType: 'adult' | 'child' | 'infant'
-  field: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth'
+  field: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth' | 'nationality' | 'passportNumber'
   code: string
   message: string
 }

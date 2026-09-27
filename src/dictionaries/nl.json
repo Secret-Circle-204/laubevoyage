@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "L'Aube Voyage Luxe Reiservaringen",
-    "subtitle": "Reizen op Maat Sinds 1996: Uw Paspoort voor Wereldwijde en Lokale Ontdekkingen",
+    "subtitle": "Buitengewone Reizen op Maat: Uw Paspoort voor Exclusieve Ontdekkingen",
     "cta": {
       "primary": "Ervaringen Ontdekken →",
       "secondary": "Bestemmingen Bekijken"
@@ -33,8 +33,8 @@
     },
     "footer": {
       "rights": "Alle rechten voorbehouden © 2026 L'Aube Voyage",
-      "tagline": "Buitengewone Reizen Creëren Sinds 1996.",
-      "brandDescription": "Ontdek buitengewone luxereizen, 5-sterren Nijlcruises en privérondleidingen met egyptologen voor veeleisende reizigers.",
+      "tagline": "Buitengewone Reizen Creëren.",
+      "brandDescription": "Ontdek buitengewone luxereizen en op maat gemaakte ervaringen voor veeleisende reizigers.",
       "explore": "Ontdekken",
       "allExperiences": "Alle Ervaringen",
       "destinations": "Bestemmingen",
@@ -54,7 +54,7 @@
   "catalog": {
     "meta": {
       "title": "Catalogus van Luxe Ervaringen & Rondreispakketten | L'Aube Voyage",
-      "description": "Bekijk luxe rondreispakketten, Nijlcruises en privédagtours door heel Egypte."
+      "description": "Bekijk luxe rondreispakketten, reizen op maat en exclusieve privédagtours."
     },
     "badge": "Exclusieve Collectie",
     "title": "Ervaringencatalogus",
@@ -76,6 +76,14 @@
     "lastName": "Achternaam",
     "email": "E-mailadres",
     "phone": "Telefoonnummer",
+    "manifest": {
+      "nextTraveler": "Volgende reiziger →",
+      "saveTravelers": "Opslaan en doorgaan →",
+      "verifiedTitle": "Passagiersmanifest geverifieerd",
+      "verifiedDesc": "Alle passagiersgegevens zijn compleet en klaar voor reserveringsbevestiging.",
+      "requiredVerification": "Vereist voor verificatie van het passagiersmanifest",
+      "jumpToNextIncomplete": "Ga naar de volgende onvolledige reiziger →"
+    },
     "success": {
       "pendingBadge": "Afhandelingscontrole",
       "verifyingTitle": "Reservering Verifiëren",
@@ -111,7 +119,7 @@
   "contact": {
     "vipConciergeBadge": "24/7 VIP Conciërge",
     "title": "Neem Contact op met Onze Reisspecialisten",
-    "description": "Vragen over maatwerkreizen of privécruises? Stuur ons een bericht en wij reageren binnen 2 uur.",
+    "description": "Vragen over maatwerkreizen of exclusieve reisarrangementen? Stuur ons een bericht en wij reageren binnen 2 uur.",
     "directContact": "Direct Contact",
     "cairoHeadOffice": "Hoofdkantoor Caïro",
     "vipHotline": "VIP Hotline",
@@ -322,7 +330,7 @@
     "configureBooking": "Boeking configureren",
     "journeyOverview": "Reisoverzicht",
     "staysTitle": "Uw verblijven en accommodaties",
-    "staysSubtitle": "Geselecteerde hotels en Nijlcruises tijdens uw reis",
+    "staysSubtitle": "Geselecteerde hotels en luxe accommodaties tijdens uw reis",
     "stayHeader": "Verblijf #{order} • {nights} {nightUnit}",
     "nightSingular": "Nacht",
     "nightPlural": "Nachten",
@@ -512,7 +520,7 @@
     "title": "Zoekresultaten",
     "resultsForQuery": "{count} resultaten gevonden voor \"{query}\"",
     "resultsAll": "{count} resultaten gevonden voor reizen en bestemmingen.",
-    "placeholder": "Zoek ervaringen, bestemmingen, Nijlcruises...",
+    "placeholder": "Zoek ervaringen, bestemmingen, luxereizen...",
     "searchButton": "Zoeken",
     "filterAll": "Alle Ervaringen",
     "filterPackages": "Reispakketten",
@@ -525,5 +533,42 @@
     "nextPage": "Volgende →",
     "pageOf": "Pagina {page} van {totalPages}",
     "showingCount": "Pagina {page} van {totalPages} weergegeven ({total} totaal)"
+  },
+  "emails": {
+    "common": {
+      "defaultName": "Gewaardeerde Gast",
+      "pointsLabel": "Loyaliteitspunten"
+    },
+    "verification": {
+      "subject": "Verifieer uw e-mailadres — L'Aube Voyage",
+      "preheader": "Verifieer uw e-mailadres om uw exclusieve toegang tot L'Aube Voyage te activeren.",
+      "badge": "ACCOUNT ACTIVATIE",
+      "title": "Verifieer uw E-mailadres",
+      "greeting": "Geachte {name},",
+      "intro": "Hartelijk dank voor uw registratie bij L'Aube Voyage. Om de veiligheid van uw account te waarborgen en uw exclusieve toegang tot onze op maat gemaakte reizen te activeren, verzoeken wij u vriendelijk uw e-mailadres hieronder te bevestigen.",
+      "cta": "E-mailadres Verifiëren",
+      "expiryNotice": "Deze verificatielink is 3 uur geldig. Deel deze link om veiligheidsredenen met niemand.",
+      "troubleLink": "Als de bovenstaande knop niet werkt, kopieer en plak dan de volgende link in uw browser:",
+      "ignoreNotice": "Als u geen account bij L'Aube Voyage hebt aangemaakt, kunt u dit bericht negeren."
+    },
+    "welcome": {
+      "subject": "Welkom bij L'Aube Voyage — Uw Reis Begint",
+      "preheader": "Uw account is bevestigd. Welkom bij de L'Aube Voyage Circle.",
+      "badge": "WELKOM BIJ DE CIRCLE",
+      "title": "Welkom bij L'Aube Voyage",
+      "greeting": "Geachte {name},",
+      "intro": "Uw account is succesvol geverifieerd en geactiveerd. Als gewaardeerd lid van de L'Aube Voyage Circle hebt u nu exclusieve toegang tot onze samengestelde collectie van luxueuze reizen en unieke ervaringen.",
+      "loyaltyBadge": "WELKOMSTBELONING",
+      "pointsTitle": "Welkomstpunten Toegekend",
+      "pointsDescription": "Wij heten u graag van harte welkom met een speciale bonus die direct op uw account is bijgeschreven:",
+      "currentBalance": "Huidig puntensaldo: {balance} Punten",
+      "cta": "Ervaringen Ontdekken",
+      "outro": "Indien u behoefte heeft aan arrangements op maat, privévluchten of persoonlijke reisplanning, staat ons conciërgeteam te allen tijde tot uw beschikking.",
+      "signature": "Met vriendelijke groet,\nHet Conciërgeteam, L'Aube Voyage"
+    },
+    "footer": {
+      "support": "Hulp nodig? U kunt direct op deze e-mail antwoorden.",
+      "confidentiality": "Deze e-mail is naar u verzonden omdat u zich hebt geregistreerd bij L'Aube Voyage. Dit is een vertrouwelijk bericht."
+    }
   }
 }

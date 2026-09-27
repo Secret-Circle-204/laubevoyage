@@ -508,25 +508,50 @@ export function ExperienceDetailsPage({ data }: { data: ExperienceDetailsDTO }) 
   }
 
   const displayPrice = pricingState?.totalPrice ?? null
+  const rawBackLabel = dict.get(locale, 'experience.backToCatalog') || 'Back to Experiences'
+  const backLabel = rawBackLabel.replace(/^[←\s]+/, '').trim()
 
   return (
-    <div className={`pt-24 sm:pt-28 lg:pt-32 pb-12 sm:pb-16 ${isDark ? 'bg-[#231F20]' : 'bg-[#FAF8F5]'} transition-colors duration-500 min-h-screen text-foreground`}>
+    <div className={`pt-24 sm:pt-28 lg:pt-32 pb-12 sm:pb-16 ${isDark ? 'bg-[#231F20]' : 'bg-background'} transition-colors duration-500 min-h-screen text-foreground`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Navigation Trail */}
-        <div className="mb-6 flex items-center gap-2 text-xs font-medium text-muted-foreground animate-editorial-reveal">
+        {/* Responsive Luxury Navigation Trail */}
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-5 sm:mb-6 flex items-center gap-2 sm:gap-2.5 text-xs text-muted-foreground animate-editorial-reveal min-w-0 max-w-full overflow-hidden"
+        >
           <Link
             href="/experiences"
-            className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-foreground/90 hover:text-foreground bg-black/[0.04] hover:bg-black/[0.08] dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border border-black/10 dark:border-white/10 hover:border-secondary/50 dark:hover:border-secondary/50 transition-all duration-200 shrink-0 group active:scale-95 shadow-2xs"
+            title={backLabel}
           >
-            <ChevronLeftIcon className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5 text-secondary" />
-            <span>{dict.get(locale, 'experience.backToCatalog')}</span>
+            <ChevronLeftIcon className="w-3.5 h-3.5 text-secondary transition-transform duration-200 group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 rtl:rotate-180 shrink-0" />
+            <span className="whitespace-nowrap font-medium sm:hidden">
+              {backLabel.replace(/\s*(Catalog|دليل)\s*/gi, '').trim() || backLabel}
+            </span>
+            <span className="whitespace-nowrap font-medium hidden sm:inline">
+              {backLabel}
+            </span>
           </Link>
-          <span className="text-border">/</span>
-          <span className="text-muted-foreground line-clamp-1">{data.location}</span>
-          <span className="text-border">/</span>
-          <span className="text-foreground font-semibold line-clamp-1">{data.title}</span>
-        </div>
+
+          <span className="text-border/70 dark:text-white/20 select-none shrink-0" aria-hidden="true">/</span>
+
+          <span
+            className="text-xs text-muted-foreground font-normal truncate max-w-[130px] xs:max-w-[190px] sm:max-w-none shrink min-w-0"
+            title={data.location}
+          >
+            {data.location}
+          </span>
+
+          <span className="hidden sm:inline-block text-border/70 dark:text-white/20 select-none shrink-0" aria-hidden="true">/</span>
+
+          <span
+            className="hidden sm:inline-block text-xs text-foreground font-semibold truncate max-w-[200px] md:max-w-[320px] lg:max-w-[480px] shrink min-w-0"
+            title={data.title}
+          >
+            {data.title}
+          </span>
+        </nav>
 
         {/* 1. IMMERSIVE HERO & GALLERY SURFACE */}
         <ExperienceHero

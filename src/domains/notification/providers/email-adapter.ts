@@ -59,7 +59,7 @@ export class EmailNotificationAdapter implements INotificationProvider {
     )
 
     const subject = (job.templateData?.['subject'] as string) || rendered.subject
-    const htmlBody = (job.templateData?.['html'] as string) || `<p>${rendered.body}</p>`
+    const htmlBody = (job.templateData?.['html'] as string) || rendered.html || `<p>${rendered.body}</p>`
     const textBody = (job.templateData?.['text'] as string) || rendered.body
 
     if (!subject) {

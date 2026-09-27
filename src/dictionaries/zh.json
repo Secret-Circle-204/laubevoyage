@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "L'Aube Voyage 奢华旅行体验",
-    "subtitle": "始于1996年的专属旅程定制：开启全球与本土探索之旅的通行证",
+    "subtitle": "专属旅程定制：开启非凡探索之旅的尊贵通行证",
     "cta": {
       "primary": "探索体验项目 →",
       "secondary": "发现旅行目的地"
@@ -33,8 +33,8 @@
     },
     "footer": {
       "rights": "版权所有 © 2026 L'Aube Voyage",
-      "tagline": "始于1996年的非凡旅行定制。",
-      "brandDescription": "探索非凡的奢华旅程、五星级尼罗河游轮以及专为尊贵旅行者打造的埃及学者私人导览。",
+      "tagline": "非凡旅行定制，尊享卓越体验。",
+      "brandDescription": "探索非凡的奢华旅程与量身定制的专属体验，为品味卓越的旅行者缔造永恒回忆。",
       "explore": "探索",
       "allExperiences": "全部体验",
       "destinations": "旅行目的地",
@@ -54,7 +54,7 @@
   "catalog": {
     "meta": {
       "title": "奢华旅行体验与度假套餐目录 | L'Aube Voyage",
-      "description": "浏览埃及各地的奢华度假套餐、尼罗河游轮及私人日游。"
+      "description": "浏览各地的奢华度假套餐、定制旅程及专属日游。"
     },
     "badge": "定制臻选",
     "title": "体验项目目录",
@@ -76,6 +76,14 @@
     "lastName": "姓",
     "email": "电子邮箱",
     "phone": "联系电话",
+    "manifest": {
+      "nextTraveler": "下一位旅客 →",
+      "saveTravelers": "保存并继续 →",
+      "verifiedTitle": "旅客名单已验证",
+      "verifiedDesc": "所有旅客信息均已完整，可进行预订确认。",
+      "requiredVerification": "旅客名单验证必填",
+      "jumpToNextIncomplete": "跳转至下一位未完成的旅客 →"
+    },
     "success": {
       "pendingBadge": "结算核验点",
       "verifyingTitle": "正在核验预订",
@@ -111,7 +119,7 @@
   "contact": {
     "vipConciergeBadge": "24/7 VIP专属礼宾",
     "title": "联系我们的旅行顾问",
-    "description": "关于私人定制行程或游轮包船有任何疑问？发送消息，我们的团队将在2小时内给您回复。",
+    "description": "关于私人定制行程或专属旅行安排有任何疑问？发送消息，我们的团队将在2小时内给您回复。",
     "directContact": "直接联系",
     "cairoHeadOffice": "开罗总公司",
     "vipHotline": "VIP热线",
@@ -325,7 +333,7 @@
     "configureBooking": "配置预订",
     "journeyOverview": "行程概览",
     "staysTitle": "您的下榻与住宿",
-    "staysSubtitle": "行程中严选的豪华酒店与尼罗河游轮住宿",
+    "staysSubtitle": "行程中严选的豪华酒店与顶级下榻之所",
     "stayHeader": "住宿 #{order} • {nights} {nightUnit}",
     "nightSingular": "晚",
     "nightPlural": "晚",
@@ -512,7 +520,7 @@
     "title": "搜索结果",
     "resultsForQuery": "找到 {count} 条关于 \"{query}\" 的结果",
     "resultsAll": "在行程和目的地中找到 {count} 条结果。",
-    "placeholder": "搜索体验、目的地、尼罗河游轮...",
+    "placeholder": "搜索体验、目的地、奢华旅程...",
     "searchButton": "搜索",
     "filterAll": "全部体验",
     "filterPackages": "旅游套餐",
@@ -525,5 +533,42 @@
     "nextPage": "下一页 →",
     "pageOf": "第 {page} 页 / 共 {totalPages} 页",
     "showingCount": "显示第 {page} 页 / 共 {totalPages} 页 (共 {total} 项)"
+  },
+  "emails": {
+    "common": {
+      "defaultName": "尊贵的宾客",
+      "pointsLabel": "会员积分"
+    },
+    "verification": {
+      "subject": "验证您的电子邮箱 — L'Aube Voyage",
+      "preheader": "验证您的邮箱以激活 L'Aube Voyage 专属奢华旅行体验。",
+      "badge": "账户激活",
+      "title": "验证您的电子邮箱地址",
+      "greeting": "尊敬的 {name}：",
+      "intro": "感谢您注册 L'Aube Voyage。为确保您的账户安全并激活您对专属定制行程的私享访问权限，请点击下方按钮验证您的电子邮箱。",
+      "cta": "验证电子邮箱",
+      "expiryNotice": "此验证链接有效期为 3 小时。出于安全考虑，请勿将此链接透露给任何人。",
+      "troubleLink": "如果上方按钮无法点击，请复制以下链接并粘贴至浏览器地址栏：",
+      "ignoreNotice": "如果您未在 L'Aube Voyage 创建账户，请忽略此邮件。"
+    },
+    "welcome": {
+      "subject": "欢迎加入 L'Aube Voyage — 您的非凡旅程就此启程",
+      "preheader": "您的账户已激活。欢迎加入 L'Aube Voyage 专属贵宾圈层。",
+      "badge": "欢迎加入贵宾圈层",
+      "title": "欢迎来到 L'Aube Voyage",
+      "greeting": "尊敬的 {name}：",
+      "intro": "您的账户已成功验证并激活。作为 L'Aube Voyage 专属圈层的尊贵成员，您现在可以专享我们精心策划的奢华定制行程与非凡旅行体验。",
+      "loyaltyBadge": "迎新礼遇",
+      "pointsTitle": "迎新积分已到账",
+      "pointsDescription": "我们非常荣幸为您奉上迎新专属奖励，积分已直接计入您的账户：",
+      "currentBalance": "当前积分余额：{balance} 分",
+      "cta": "探索非凡体验",
+      "outro": "如需量身定制的专属安排、私人包机或专属行程策划，我们的奢华旅行礼宾团队随时竭诚为您服务。",
+      "signature": "顺祝商祺，\nL'Aube Voyage 专属礼宾团队"
+    },
+    "footer": {
+      "support": "需要帮助？您可以直接回复此邮件。",
+      "confidentiality": "此邮件因您注册 L'Aube Voyage 而发送给您。这是一封私密且受保护的信函。"
+    }
   }
 }

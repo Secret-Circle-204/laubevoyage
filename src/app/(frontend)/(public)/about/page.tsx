@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const [title, description] = await localization.translateBatch([
     "Who We Are | L'Aube Voyage",
-    "Learn about L'Aube Voyage, Egypt's premier luxury travel provider delivering bespoke Nile cruises, private Egyptologist tours, and unforgettable desert safaris since 1996."
+    "Learn about L'Aube Voyage, dedicated to delivering bespoke luxury travel, curated private journeys, and exceptional concierge services tailored for discerning travelers."
   ], ctx)
 
   return {
@@ -55,23 +55,23 @@ export default async function AboutPage() {
   const ctx = await localization.buildContext({ cookieLocale: locale })
 
   const rawTexts = [
-    "EST. 1996", // 0
+    "BESPOKE LUXURY", // 0
     "WHO WE ARE", // 1
-    "Quarter Century of Elite Travel Expertise", // 2
-    "Historic Excellence", // 3
-    "A Quarter Century of", // 4
-    "Elite Expertise", // 5
-    "Founded with a passion for historic perfection, L'Aube Voyage crafts bespoke journeys across Egypt and beyond. We combine 5-star luxury accommodations with private VIP Egyptologist guides to deliver unforgettable travel experiences.", // 6
+    "The Art of Curated Luxury Travel", // 2
+    "Exceptional Journeys", // 3
+    "The Art of", // 4
+    "Curated Luxury", // 5
+    "Founded with a passion for excellence, L'Aube Voyage crafts bespoke journeys and curated travel experiences. We combine supreme luxury accommodations with dedicated concierge service to deliver unforgettable travels tailored to your highest expectations.", // 6
     "Our Core Philosophy", // 7
-    "The Three Pillars of L'Aube Luxury", // 8
+    "The Three Pillars of L'Aube Voyage", // 8
     "VIP Personalization", // 9
-    "Every itinerary is tailored to your exact preferences, from private Egyptologist guides to VIP entrance access to iconic ancient monuments.", // 10
-    "Luxury Nile Fleet", // 11
-    "Experience the timeless beauty of the Nile River aboard our partner 5-star luxury cruise ships and private traditional dahabiyas.", // 12
+    "Every itinerary is tailored to your exact preferences, from private curated excursions to exclusive access and seamless VIP services.", // 10
+    "Exquisite Hospitality", // 11
+    "Experience hand-selected world-class accommodations, prestigious boutique properties, and unparalleled comfort throughout your journey.", // 12
     "Financial Trust & Safety", // 13
-    "Fully transparent pricing snapshots in base EGP and your home currency, backed by 24/7 VIP concierge support.", // 14
-    "Ready to Explore the Secrets of Egypt?", // 15
-    "Browse our curated selection of 5-day Nile cruise packages and private Giza Pyramids day tours.", // 16
+    "Fully transparent pricing snapshots in base EGP and your preferred currency, backed by 24/7 dedicated concierge support.", // 14
+    "Ready to Begin Your Next Journey?", // 15
+    "Browse our curated selection of bespoke packages and exclusive private travel experiences.", // 16
     "Explore All Experiences →" // 17
   ]
 
@@ -84,7 +84,7 @@ export default async function AboutPage() {
         <div className="absolute inset-0 z-0">
           <Image
             src="https://images.unsplash.com/photo-1539650116574-8efeb43e2750?auto=format&fit=crop&q=80&w=2000"
-            alt="L'Aube Voyage Historic Nile & Giza Pyramids"
+            alt="L'Aube Voyage Luxury Travel"
             fill
             className="object-cover opacity-30 saturate-150 scale-105 transition-transform duration-1000"
             priority
@@ -126,7 +126,7 @@ export default async function AboutPage() {
           <div className="relative h-[450px] rounded-3xl overflow-hidden shadow-2xl border border-white/10">
             <Image
               src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=1200"
-              alt="Luxury Dahabiya Nile River Cruise"
+              alt="L'Aube Voyage Bespoke Luxury Travel"
               fill
               className="object-cover"
             />

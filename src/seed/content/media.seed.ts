@@ -142,6 +142,6 @@ export async function seedDestinationMedia(payload: Payload): Promise<SeededMedi
  */
 export async function seedExperienceMedia(payload: Payload): Promise<SeededMediaResult> {
   const stagingDir = path.resolve(process.cwd(), 'public/media-assets/experiences')
-  return ingestMediaManifest(payload, EXPERIENCE_MEDIA_MANIFEST, stagingDir, 'Experience Hero Media')
+  return ingestMediaManifest(payload, EXPERIENCE_MEDIA_MANIFEST, stagingDir, 'Experience Media Assets (Hero & Gallery)')
 }
 

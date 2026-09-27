@@ -109,6 +109,7 @@ import { TranslationCache } from './collections/TranslationCache'
 import { AdminAuditLogs } from './collections/AdminAuditLogs'
 import { CustomerNotificationPreferences } from './collections/CustomerNotificationPreferences'
 import { CustomerTravelers } from './collections/CustomerTravelers'
+import { Travelers } from './collections/Travelers'
 import { DashboardProjections } from './collections/DashboardProjections'
 import { Faqs } from './collections/Faqs'
 import { MaintenanceLogs } from './collections/MaintenanceLogs'
@@ -208,6 +209,7 @@ export default buildConfig({
     AdminAuditLogs,
     CustomerNotificationPreferences,
     CustomerTravelers,
+    Travelers,
     DashboardProjections,
     Faqs,
     MaintenanceLogs,

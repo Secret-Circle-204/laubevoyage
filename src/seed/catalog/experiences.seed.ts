@@ -58,6 +58,7 @@ export interface ExperienceSeedDef {
   title: string
   slug: string
   heroAssetKey?: string
+  galleryAssetKeys?: string[]
   type: 'daily_tour' | 'package'
   packageMode?: 'fixed_date' | 'flexible_date'
   citySlug: string // Origin Gateway
@@ -89,39 +90,40 @@ export interface ExperienceSeedDef {
 
 /**
  * The 11 Canonical Curated Experiences for L'Aube Voyage.
- * Normalized and verified against the 16 canonical accommodation properties in catalog.
+ * Normalized and verified against the 21 canonical accommodation properties in catalog.
  */
 export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
   // =========================================================================
   // GROUP 1: EGYPT CORE (6 Experiences)
   // =========================================================================
 
-  // 1. EXP-EG-01: Giza Pyramids & Grand Egyptian Museum Private Tour
+  // 1. EXP-EG-01: Giza Pyramids & Grand Egyptian Museum Private Experience
   {
-    title: 'Giza Pyramids and Grand Egyptian Museum Private Tour',
+    title: 'Giza Pyramids & Grand Egyptian Museum Private Experience',
     slug: 'giza-pyramids-gem-private-tour',
     heroAssetKey: 'exp-hero-giza-pyramids-gem',
+    galleryAssetKeys: ['exp-gallery-gem-grand-atrium', 'exp-gallery-giza-sphinx-sunset'],
     type: 'daily_tour',
     citySlug: 'cairo',
     destinationSlugs: [],
-    price: 4800,
+    price: 9500,
     availability: 'available',
     duration: {
-      durationMinutes: 480, // 8 Hours
+      durationMinutes: 480, // 8 Hours (1 Day)
     },
     description:
-      'Embark on an unforgettable private journey through ancient Egyptian history with our certified Egyptologist tour to the Giza Pyramids and Grand Egyptian Museum with luxury private chauffeur transport.',
+      'An uncompromising private luxury exploration of ancient Egypt’s crown jewels. Led by a senior certified Egyptologist, ascend the Giza Plateau for private access to the Great Pyramids and Sphinx, followed by a curated VIP journey through the Grand Egyptian Museum and fine dining overlooking the monuments.',
     policies:
-      'Full refund for cancellations requested at least 24 hours prior to scheduled tour departure. Instant booking confirmation upon checkout.',
+      'Full refund for cancellations requested at least 24 hours prior to scheduled tour departure. Instant booking confirmation upon checkout with 24/7 dedicated concierge assistance.',
     included: [
-      'Private Certified Egyptologist Tour Guide (Fluent in Preferred Language)',
-      'Luxury Executive Chauffeur Transport throughout the Day',
-      'All Giza Plateau Monument and Grand Egyptian Museum VIP Admissions',
-      'Gourmet 3-Course Lunch overlooking the Pyramids',
+      'Senior Certified Egyptologist Private Guide (Fluent in Preferred Language)',
+      'Luxury Executive Mercedes-Benz V-Class Chauffeur Transport throughout the Day',
+      'All Giza Plateau Monument and Grand Egyptian Museum VIP Fast-Track Admissions',
+      'Gourmet 3-Course Lunch at Khufu’s or 9 Pyramids Lounge overlooking the Pyramids',
       'Chilled Mineral Water, Fresh Juices and Artisan Refreshments Onboard',
     ],
     excluded: [
-      'Interior Burial Chamber Admission for the Great Pyramid of Khufu',
+      'Interior Burial Chamber Admission for the Great Pyramid of Khufu (Available on Concierge Request)',
       'Discretionary Gratuities for Private Guide and Chauffeur',
       'Personal Retail Purchases and Souvenirs',
     ],
@@ -135,23 +137,24 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
       },
     ],
     seo: {
-      title: "Giza Pyramids & Grand Egyptian Museum Private Tour | L'Aube Voyage",
+      title: "Giza Pyramids & Grand Egyptian Museum Private Experience | L'Aube Voyage",
       description:
-        'Book an exclusive private luxury tour to the Giza Pyramids and GEM with certified Egyptologist guide and private executive transport.',
-      keywords: 'Giza Pyramids private tour, Grand Egyptian Museum VIP, Cairo day tour, luxury Egypt guide',
+        'Book an exclusive private luxury tour to the Giza Pyramids and GEM with senior Egyptologist guide and private executive Mercedes transport.',
+      keywords: 'Giza Pyramids private tour, Grand Egyptian Museum VIP, Cairo day tour, luxury Egypt guide, GEM private experience',
     },
   },
 
-  // 2. EXP-EG-02: Cairo Pyramids and Royal Antiquities Immersion (4D/3N)
+  // 2. EXP-EG-02: Cairo Royal Antiquities Immersion (4D/3N)
   {
-    title: 'Cairo Pyramids and Royal Antiquities Immersion',
+    title: 'Cairo Royal Antiquities Immersion',
     slug: 'cairo-pyramids-royal-antiquities-immersion',
     heroAssetKey: 'exp-hero-mena-house-pyramids',
+    galleryAssetKeys: ['exp-gallery-mena-house-interior', 'exp-gallery-saqqara-step-pyramid'],
     type: 'package',
     packageMode: 'flexible_date',
     citySlug: 'cairo',
     destinationSlugs: [],
-    price: 38500,
+    price: 50000,
     availability: 'available',
     duration: {
       days: 4,
@@ -171,23 +174,23 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 18000, enabled: true },
-          { occupancy: 'single', rateEGP: 14500, enabled: true },
-          { occupancy: 'triple', rateEGP: 24800, enabled: true },
+          { occupancy: 'double', rateEGP: 60000, enabled: true },
+          { occupancy: 'single', rateEGP: 50000, enabled: true },
+          { occupancy: 'triple', rateEGP: 80000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
     ],
     description:
-      'Immerse yourself in four days of royal pharaonic splendor at the historic Marriott Mena House at the foot of the Great Pyramids, featuring private Egyptologist tours of Giza, Saqqara, and the National Museum of Egyptian Civilization.',
+      'Immerse yourself in four days of royal pharaonic splendor residing at the historic Marriott Mena House at the very foot of the Great Pyramids. Enjoy private balcony views of Khufu, private Egyptologist explorations of Giza, Saqqara, and the National Museum of Egyptian Civilization, and fast-track VIP airport services.',
     policies:
-      'Free cancellation up to 7 days prior to arrival. Standard hotel check-in at 15:00 and check-out at 12:00 PM local Cairo time.',
+      'Complimentary cancellation up to 7 days prior to arrival. Standard hotel check-in at 15:00 and check-out at 12:00 PM local Cairo time. Dedicated 24/7 concierge support.',
     included: [
-      '3 Nights 5-Star Luxury Accommodation at Marriott Mena House Cairo',
+      '3 Nights 5-Star Luxury Accommodation at Marriott Mena House Cairo in Pyramid View Room',
       'Daily Gourmet Buffet Breakfast at 139 Pavilion overlooking the Pyramids',
-      'Private Certified Egyptologist Guidance for all Monument Excursions',
-      'VIP Airport Meet & Greet with Round-Trip Private Executive Transfers',
-      'All Giza Plateau, Saqqara Necropolis, and NMEC Royal Mummies Admissions',
+      'Private Certified Senior Egyptologist Guidance for all Monument Excursions',
+      'VIP Airport Meet & Greet with Round-Trip Private Executive Transfers in Mercedes Vehicles',
+      'All Giza Plateau, Saqqara Djoser Necropolis, and NMEC Royal Mummies Admissions',
     ],
     excluded: [
       'International Airline Flights',
@@ -204,10 +207,10 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
       },
       {
         dayNumber: 2,
-        title: 'Giza Plateau, Great Sphinx & Grand Egyptian Museum',
+        title: 'Giza Plateau, Great Sphinx & Grand Egyptian Museum VIP',
         citySlug: 'cairo',
         description:
-          'Morning private guided tour of the Great Pyramids and Sphinx with your Egyptologist, midday lunch at 139 Pavilion, and afternoon VIP exploration of the Grand Egyptian Museum.',
+          'Morning private guided tour of the Great Pyramids and Sphinx with your senior Egyptologist, midday lunch at 139 Pavilion, and afternoon VIP exploration of the Grand Egyptian Museum.',
       },
       {
         dayNumber: 3,
@@ -221,31 +224,32 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         title: 'Historic Islamic Cairo, Khan El Khalili & VIP Departure',
         citySlug: 'cairo',
         description:
-          'Guided morning stroll along historic Al-Muizz Street and Khan El Khalili artisan bazaar, hotel check-out at 12:00 PM, and private transfer to Cairo International Airport.',
+          'Guided morning stroll along historic Al-Muizz Street and Khan El Khalili artisan bazaar, hotel check-out at 12:00 PM, and private executive transfer to Cairo International Airport.',
       },
     ],
     seo: {
-      title: "Cairo Pyramids & Royal Antiquities Immersion 4 Days | L'Aube Voyage",
+      title: "Cairo Royal Antiquities Immersion 4 Days | L'Aube Voyage",
       description:
         'Experience Cairo in 4 days with luxury stay at Marriott Mena House, private Egyptologist, and VIP access to Giza Pyramids and GEM.',
       keywords: 'Cairo 4 days luxury, Mena House Pyramids stay, Grand Egyptian Museum private, Egypt luxury vacation',
     },
   },
 
-  // 3. EXP-EG-03: Classical Nile and Pharaonic Odyssey (7D/6N)
+  // 3. EXP-EG-03: Classical Egypt & Nile Sovereign Journey (8D/7N)
   {
-    title: 'Classical Nile and Pharaonic Odyssey',
-    slug: 'classical-nile-pharaonic-odyssey-7d',
+    title: 'Classical Egypt & Nile Sovereign Journey',
+    slug: 'classical-egypt-and-nile-8d',
     heroAssetKey: 'exp-hero-classical-nile-odyssey',
+    galleryAssetKeys: ['exp-gallery-karnak-colonnade-luxor', 'exp-gallery-aswan-nile-islands'],
     type: 'package',
     packageMode: 'fixed_date',
     citySlug: 'cairo',
     destinationSlugs: ['luxor', 'aswan'],
-    price: 88000,
+    price: 100000,
     availability: 'available',
     duration: {
-      days: 7,
-      nights: 6,
+      days: 8,
+      nights: 7,
     },
     childPolicy: {
       childrenAllowed: true,
@@ -256,14 +260,14 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
       {
         order: 1,
         propertySlug: 'four-seasons-hotel-cairo-at-nile-plaza',
-        nights: 2,
+        nights: 3,
         roomCategory: 'Deluxe Nile-View Room',
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 20000, enabled: true },
-          { occupancy: 'single', rateEGP: 16000, enabled: true },
-          { occupancy: 'triple', rateEGP: 27500, enabled: true },
+          { occupancy: 'double', rateEGP: 54000, enabled: true },
+          { occupancy: 'single', rateEGP: 45000, enabled: true },
+          { occupancy: 'triple', rateEGP: 72000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
@@ -275,9 +279,9 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 15000, enabled: true },
-          { occupancy: 'single', rateEGP: 12000, enabled: true },
-          { occupancy: 'triple', rateEGP: 21000, enabled: true },
+          { occupancy: 'double', rateEGP: 26000, enabled: true },
+          { occupancy: 'single', rateEGP: 21000, enabled: true },
+          { occupancy: 'triple', rateEGP: 35000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
@@ -289,29 +293,29 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 22000, enabled: true },
-          { occupancy: 'single', rateEGP: 18000, enabled: true },
-          { occupancy: 'triple', rateEGP: 30500, enabled: true },
+          { occupancy: 'double', rateEGP: 40000, enabled: true },
+          { occupancy: 'single', rateEGP: 32000, enabled: true },
+          { occupancy: 'triple', rateEGP: 54000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
     ],
     description:
-      'The definitive 7-day journey connecting Cairo, Luxor, and Aswan with stays in Egypt’s most legendary heritage palace hotels: Four Seasons Nile Plaza, Sofitel Winter Palace Luxor, and Sofitel Legend Old Cataract Aswan.',
+      'The definitive 8-day private sovereign journey traversing Cairo, Luxor, and Aswan with residence in Egypt’s three most legendary palace landmarks: Four Seasons Hotel Cairo at Nile Plaza, Sofitel Winter Palace Luxor, and Sofitel Legend Old Cataract Aswan.',
     policies:
-      'Free cancellation up to 14 days prior to departure. Domestic flight baggage allowance included according to EgyptAir premium standards.',
+      'Complimentary cancellation up to 14 days prior to departure. Domestic flight baggage allowance included according to EgyptAir premium business/first tier standards.',
     included: [
-      '6 Nights in 5-Star Heritage Luxury Hotels across Cairo, Luxor, and Aswan',
-      'Daily Gourmet Buffet Breakfast at all Hotel Properties',
+      '7 Nights in 5-Star Heritage Palace Hotels (Four Seasons Cairo, Winter Palace Luxor, Old Cataract Aswan)',
+      'Daily Gourmet Buffet Breakfast at all Palace Properties',
       'Domestic Airline Flights (Cairo to Luxor and Aswan to Cairo)',
-      'Private Certified Egyptologist Guidance throughout the Entire Journey',
-      'Private Executive Ground Transfers and Nile Boat Charters',
-      'All Sightseeing and Monument Admission Fees',
+      'Private Certified Senior Egyptologist Guidance throughout the entire Journey',
+      'Private Executive Ground Transfers and Private Nile Felucca Charters',
+      'All Sightseeing and Monument VIP Admission Fees (Valley of the Kings Tutankhamun Tomb, Karnak, Philae)',
     ],
     excluded: [
       'International Flights to/from Egypt',
       'Optional Hot Air Balloon Excursion in Luxor',
-      'Optional Abu Simbel Excursion',
+      'Optional Private Excursion to Abu Simbel',
       'Discretionary Gratuities and Personal Shopping',
     ],
     itinerary: [
@@ -320,69 +324,77 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         title: 'Arrival in Cairo & Garden City Nile Elegance',
         citySlug: 'cairo',
         description:
-          'VIP arrival at Cairo Airport, private transfer to Four Seasons Hotel Cairo at Nile Plaza, evening relaxation along the riverfront.',
+          'VIP arrival at Cairo International Airport, fast-track meet and greet, private transfer to Four Seasons Hotel Cairo at Nile Plaza, evening relaxation with sweeping riverfront views.',
       },
       {
         dayNumber: 2,
         title: 'Giza Plateau, Great Sphinx & Grand Egyptian Museum',
         citySlug: 'cairo',
         description:
-          'Full-day private Egyptologist exploration of the Giza Pyramids, Sphinx, and the treasures of the Grand Egyptian Museum.',
+          'Full-day private Egyptologist exploration of the Giza Pyramids, Sphinx, and the monumental treasures of the Grand Egyptian Museum with lunch overlooking the monuments.',
       },
       {
         dayNumber: 3,
-        title: 'Flight to Luxor & Historic Winter Palace Stays',
-        citySlug: 'luxor',
+        title: 'Saqqara Djoser Complex, NMEC Royal Mummies & Historic Cairo',
+        citySlug: 'cairo',
         description:
-          'Morning domestic flight to Luxor, check-in to Sofitel Winter Palace Luxor, afternoon private tour of Karnak and Luxor Temples.',
+          'Morning private expedition to Saqqara Step Pyramid and Noble Mastabas, afternoon visit to the Royal Mummies at NMEC, and sunset felucca sail along the Nile.',
       },
       {
         dayNumber: 4,
-        title: 'Valley of the Kings & Hatshepsut Temple',
+        title: 'Flight to Luxor & Historic Winter Palace Residence',
         citySlug: 'luxor',
         description:
-          'Expedition to the West Bank royal necropolis including King Tutankhamun tomb access, Queen Hatshepsut Temple, and Colossi of Memnon.',
+          'Morning domestic flight to Luxor, check-in to Sofitel Winter Palace Luxor, afternoon private tour of Karnak Temple complex and illuminated Luxor Temple.',
       },
       {
         dayNumber: 5,
-        title: 'Scenic Nile Valley to Aswan & Old Cataract Legend',
-        citySlug: 'aswan',
+        title: 'Valley of the Kings & Hatshepsut Terraced Temple',
+        citySlug: 'luxor',
         description:
-          'Private scenic transfer to Aswan with private visit to Temple of Horus in Edfu, check-in to Sofitel Legend Old Cataract Aswan.',
+          'Private expedition to the West Bank royal necropolis including King Tutankhamun tomb access, Queen Hatshepsut Temple, and Colossi of Memnon.',
       },
       {
         dayNumber: 6,
-        title: 'Philae Island Temple & Nubian Culture',
+        title: 'Scenic Nile Valley to Aswan via Edfu & Old Cataract Legend',
         citySlug: 'aswan',
         description:
-          'Private boat to the Island Temple of Isis at Philae, visit to Aswan High Dam, and afternoon felucca sail around Elephantine Island.',
+          'Private scenic transfer to Aswan with private visit to Temple of Horus in Edfu, check-in to Sofitel Legend Old Cataract Aswan, sunset drinks on the Churchill Terrace.',
       },
       {
         dayNumber: 7,
-        title: 'Old Cataract Terrace & VIP Flight to Cairo Departure',
+        title: 'Island Temple of Philae & Elephantine Felucca Cruise',
         citySlug: 'aswan',
         description:
-          'Morning breakfast on the historic Churchill terrace, private transfer to Aswan Airport for flight to Cairo connecting to international departures.',
+          'Private boat to the sacred Island Temple of Isis at Philae, visit to Aswan High Dam, and afternoon felucca sail around Elephantine Island and Kitchener’s Botanical Island.',
+      },
+      {
+        dayNumber: 8,
+        title: 'Old Cataract Terrace Breakfast & VIP Flight to Cairo Departure',
+        citySlug: 'aswan',
+        description:
+          'Morning champagne breakfast on the historic Churchill terrace, private transfer to Aswan Airport for flight to Cairo connecting to international departures.',
       },
     ],
     seo: {
-      title: "Classical Nile & Pharaonic Odyssey 7 Days | L'Aube Voyage",
+      title: "Classical Egypt & Nile 8 Days Private Palace Tour | L'Aube Voyage",
       description:
-        'Discover Egypt in 7 days with luxury palace hotel stays at Four Seasons Cairo, Winter Palace Luxor, and Old Cataract Aswan.',
-      keywords: 'Egypt 7 days luxury, Cairo Luxor Aswan tour, Winter Palace Luxor, Old Cataract Aswan, luxury Nile trip',
+        'Discover Egypt in 8 days with luxury palace hotel stays at Four Seasons Cairo, Winter Palace Luxor, and Old Cataract Aswan.',
+      keywords: 'Egypt 8 days luxury, Cairo Luxor Aswan tour, Winter Palace Luxor, Old Cataract Aswan, luxury Nile trip',
     },
   },
 
-  // 4. EXP-EG-04: Grand Egypt Imperial Heritage Loop (10D/9N)
+  // 4. EXP-EG-04: Grand Egypt Imperial Journey: Cairo, Luxor & Aswan Loop (10D/9N)
   {
-    title: 'Grand Egypt Imperial Heritage Loop',
+    title: 'Grand Egypt Imperial Journey: Cairo, Luxor & Aswan Loop',
     slug: 'grand-egypt-imperial-loop-10d',
     heroAssetKey: 'exp-hero-old-cataract-aswan',
+    galleryAssetKeys: ['exp-gallery-abu-simbel-temple', 'exp-gallery-luxor-temple-night'],
     type: 'package',
     packageMode: 'fixed_date',
     citySlug: 'cairo',
     destinationSlugs: ['luxor', 'aswan'],
-    price: 135000,
+    price: 120000,
     availability: 'available',
     duration: {
       days: 10,
@@ -402,9 +414,9 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 24000, enabled: true },
-          { occupancy: 'single', rateEGP: 19500, enabled: true },
-          { occupancy: 'triple', rateEGP: 33000, enabled: true },
+          { occupancy: 'double', rateEGP: 51000, enabled: true },
+          { occupancy: 'single', rateEGP: 42000, enabled: true },
+          { occupancy: 'triple', rateEGP: 68000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
@@ -416,9 +428,9 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'half_board',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 18000, enabled: true },
-          { occupancy: 'single', rateEGP: 14000, enabled: true },
-          { occupancy: 'triple', rateEGP: 25000, enabled: true },
+          { occupancy: 'double', rateEGP: 32000, enabled: true },
+          { occupancy: 'single', rateEGP: 26000, enabled: true },
+          { occupancy: 'triple', rateEGP: 44000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
@@ -430,9 +442,9 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'half_board',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 28000, enabled: true },
-          { occupancy: 'single', rateEGP: 22000, enabled: true },
-          { occupancy: 'triple', rateEGP: 38000, enabled: true },
+          { occupancy: 'double', rateEGP: 48000, enabled: true },
+          { occupancy: 'single', rateEGP: 38000, enabled: true },
+          { occupancy: 'triple', rateEGP: 65000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
@@ -444,24 +456,24 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 19000, enabled: true },
-          { occupancy: 'single', rateEGP: 15500, enabled: true },
-          { occupancy: 'triple', rateEGP: 26500, enabled: true },
+          { occupancy: 'double', rateEGP: 34000, enabled: true },
+          { occupancy: 'single', rateEGP: 28000, enabled: true },
+          { occupancy: 'triple', rateEGP: 46000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
     ],
     description:
-      'A majestic 10-day grand tour traversing Cairo, Luxor, and Aswan before returning to the foot of the Giza Pyramids for a glorious finale at Marriott Mena House.',
+      'A monumental 10-day imperial circuit spanning Cairo, Luxor, and Aswan before culminating at the very foot of the Great Pyramids of Giza with residence at Marriott Mena House.',
     policies:
-      'Free cancellation up to 14 days prior to departure. Full domestic flight arrangements and baggage handling included.',
+      'Complimentary cancellation up to 14 days prior to departure. Full domestic flight arrangements, luggage logistics, and VIP airport lounge access included.',
     included: [
       '9 Nights in Egypt’s Most Renowned 5-Star Luxury Palaces and Resorts',
       'Daily Gourmet Breakfast and Selected Gourmet Dinners in Upper Egypt',
       'All Domestic Flights (Cairo to Luxor, Aswan to Cairo)',
-      'Dedicated Certified Egyptologist Guide throughout the entire Tour',
-      'Private Air-Conditioned Luxury Ground Transfers',
-      'All Temple and Archaeological Site VIP Admissions',
+      'Dedicated Senior Certified Egyptologist Guide throughout the entire Tour',
+      'Private Mercedes-Benz Executive Ground Transfers throughout',
+      'All Temple and Archaeological Site VIP Admissions including Tutankhamun',
     ],
     excluded: [
       'International Airfare to/from Cairo',
@@ -473,11 +485,11 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         dayNumber: 1,
         title: 'VIP Arrival in Cairo & The Nile Ritz-Carlton',
         citySlug: 'cairo',
-        description: 'VIP meet at Cairo Airport, private transfer to The Nile Ritz-Carlton overlooking Tahrir Square.',
+        description: 'VIP meet at Cairo Airport, private transfer to The Nile Ritz-Carlton overlooking Tahrir Square and the Nile.',
       },
       {
         dayNumber: 2,
-        title: 'Egyptian Museum & Historic Citadels',
+        title: 'Egyptian Museum & Historic Islamic Citadels',
         citySlug: 'cairo',
         description: 'Private tour of the Egyptian Antiquities Museum, Citadel of Saladin, and Mosque of Muhammad Ali.',
       },
@@ -531,27 +543,28 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
       },
     ],
     seo: {
-      title: "Grand Egypt Imperial Loop 10 Days | L'Aube Voyage",
+      title: "Grand Egypt Imperial Journey 10 Days | L'Aube Voyage",
       description:
         'The ultimate 10-day Egypt grand tour covering Cairo, Luxor, Aswan, and Giza Pyramids with 5-star palace hotel stays.',
       keywords: 'Grand Egypt tour 10 days, luxury Egypt loop, Ritz Carlton Cairo, Old Cataract Aswan, Mena House Giza',
     },
   },
 
-  // 5. EXP-EG-05: Cairo and Red Sea Coastal Haven (6D/5N)
+  // 5. EXP-EG-05: Cairo & Red Sea Escape: Pyramids to Sahl Hasheesh (7D/6N)
   {
-    title: 'Cairo and Red Sea Coastal Haven',
-    slug: 'cairo-red-sea-marine-sanctuary-6d',
+    title: 'Cairo & Red Sea Escape: Pyramids to Sahl Hasheesh',
+    slug: 'cairo-red-sea-escape-7d',
     heroAssetKey: 'exp-hero-red-sea-sahl-hasheesh',
+    galleryAssetKeys: ['exp-gallery-hurghada-marina-resort', 'exp-gallery-red-sea-coral-waters'],
     type: 'package',
     packageMode: 'flexible_date',
     citySlug: 'cairo',
     destinationSlugs: ['hurghada'],
-    price: 74000,
+    price: 80000,
     availability: 'available',
     duration: {
-      days: 6,
-      nights: 5,
+      days: 7,
+      nights: 6,
     },
     childPolicy: {
       childrenAllowed: true,
@@ -562,14 +575,14 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
       {
         order: 1,
         propertySlug: 'four-seasons-hotel-cairo-at-nile-plaza',
-        nights: 2,
+        nights: 3,
         roomCategory: 'Deluxe Nile-View Room',
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 19000, enabled: true },
-          { occupancy: 'single', rateEGP: 15000, enabled: true },
-          { occupancy: 'triple', rateEGP: 26000, enabled: true },
+          { occupancy: 'double', rateEGP: 51000, enabled: true },
+          { occupancy: 'single', rateEGP: 42000, enabled: true },
+          { occupancy: 'triple', rateEGP: 68000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
@@ -581,24 +594,24 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'half_board',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 24000, enabled: true },
-          { occupancy: 'single', rateEGP: 19000, enabled: true },
-          { occupancy: 'triple', rateEGP: 33000, enabled: true },
+          { occupancy: 'double', rateEGP: 54000, enabled: true },
+          { occupancy: 'single', rateEGP: 44000, enabled: true },
+          { occupancy: 'triple', rateEGP: 72000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
     ],
     description:
-      'Pair Cairo’s timeless pharaonic monuments with restorative coastal luxury at The Oberoi Beach Resort Sahl Hasheesh along the Red Sea.',
+      'Seamlessly fuse the cultural magnitude of Cairo’s pharaonic monuments with unhurried coastal seclusion at The Oberoi Beach Resort Sahl Hasheesh along the Red Sea coast.',
     policies:
-      'Free cancellation up to 7 days prior to arrival. Includes domestic flight from Cairo to Hurghada with full luggage allowance.',
+      'Complimentary cancellation up to 7 days prior to arrival. Includes domestic flight from Cairo to Hurghada with full luggage allowance.',
     included: [
-      '2 Nights at Four Seasons Hotel Cairo at Nile Plaza (Bed & Breakfast)',
-      '3 Nights at The Oberoi Beach Resort Sahl Hasheesh (Half Board)',
-      'Domestic Flight from Cairo to Hurghada',
-      'Private Giza Pyramids and Grand Egyptian Museum Guided Tour',
-      'Private Yacht Cruise to Giftun Island Marine Reserve with Snorkeling',
-      'All Private Airport and Inter-Property Transfers',
+      '3 Nights at Four Seasons Hotel Cairo at Nile Plaza (Bed & Breakfast)',
+      '3 Nights at The Oberoi Beach Resort Sahl Hasheesh in Deluxe Suite (Half Board)',
+      'Domestic Flight Tickets from Cairo to Hurghada',
+      'Private Giza Pyramids and Grand Egyptian Museum Guided Tour with Egyptologist',
+      'Private Yacht Charter to Giftun Island Marine Reserve with Guided Snorkeling',
+      'All Private Airport and Inter-Property Luxury Vehicle Transfers',
     ],
     excluded: [
       'International Flight Tickets',
@@ -614,70 +627,77 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
       },
       {
         dayNumber: 2,
-        title: 'Giza Pyramids & Grand Egyptian Museum',
+        title: 'Giza Pyramids & Grand Egyptian Museum VIP',
         citySlug: 'cairo',
         description: 'Private tour of the Giza Plateau, Sphinx, and GEM galleries with certified Egyptologist.',
       },
       {
         dayNumber: 3,
-        title: 'Flight to Hurghada & The Oberoi Sahl Hasheesh',
+        title: 'Saqqara Step Pyramid & Historic Old Cairo',
+        citySlug: 'cairo',
+        description: 'Morning exploration of Saqqara Necropolis and afternoon walk through historic Islamic Cairo.',
+      },
+      {
+        dayNumber: 4,
+        title: 'Flight to Hurghada & The Oberoi Sahl Hasheesh Suite Check-in',
         citySlug: 'hurghada',
         description: 'Flight to Hurghada, private transfer to The Oberoi Sahl Hasheesh, afternoon beach leisure.',
       },
       {
-        dayNumber: 4,
+        dayNumber: 5,
         title: 'Private Yacht Charter to Giftun Marine Reserve',
         citySlug: 'hurghada',
         description: 'Private day cruise to Orange Bay and protected coral reefs with guided snorkeling and seafood lunch.',
       },
       {
-        dayNumber: 5,
+        dayNumber: 6,
         title: 'Red Sea Coastal Leisure & Sunset Desert Safari',
         citySlug: 'hurghada',
         description: 'Morning spa and private beach relaxation, afternoon luxury quad safari into the Eastern Desert.',
       },
       {
-        dayNumber: 6,
-        title: 'Morning Swim & VIP Airport Departure',
+        dayNumber: 7,
+        title: 'Morning Beach Leisure & VIP Airport Departure',
         citySlug: 'hurghada',
         description: 'Breakfast by the sea, hotel check-out at 12:00 PM, and private transfer to Hurghada Airport (HRG).',
       },
     ],
     seo: {
-      title: "Cairo & Red Sea Coastal Haven 6 Days | L'Aube Voyage",
+      title: "Cairo & Red Sea Escape 7 Days | L'Aube Voyage",
       description:
-        'Combine Cairo Pyramids with 5-star beachfront luxury at The Oberoi Sahl Hasheesh on the Red Sea.',
-      keywords: 'Cairo Hurghada package, Oberoi Sahl Hasheesh, Red Sea luxury vacation, Egypt pyramids and beach',
+        'Combine Cairo Pyramids with 5-star beachfront luxury at The Oberoi Sahl Hasheesh on the Red Sea across 7 days.',
+      keywords: 'Cairo Hurghada package, Oberoi Sahl Hasheesh, Red Sea luxury vacation, Egypt pyramids and beach 7 days',
     },
   },
 
-  // 6. EXP-EG-06: Alexandria Mediterranean Pearl Private Tour (Daily Tour)
+  // 6. EXP-EG-06: Alexandria Mediterranean Escape Private Experience (Daily Tour)
   {
-    title: 'Alexandria Mediterranean Pearl and Greco-Roman Heritage Private Tour',
+    title: 'Alexandria Mediterranean Escape Private Experience',
     slug: 'alexandria-mediterranean-pearl-day-tour',
     heroAssetKey: 'exp-hero-alexandria-qaitbay',
+    galleryAssetKeys: ['exp-gallery-bibliotheca-alexandrina', 'exp-gallery-montaza-palace-gardens'],
     type: 'daily_tour',
     citySlug: 'cairo',
-    destinationSlugs: ['alexandria'], // Fully normalized Post-Origin Destination!
-    price: 5600,
+    destinationSlugs: ['alexandria'],
+    price: 9500,
     availability: 'available',
     duration: {
-      durationMinutes: 600, // 10 Hours
+      durationMinutes: 600, // 10 Hours (1 Day)
     },
     description:
-      'A private full-day chauffeur-driven expedition from Cairo to Alexandria, the legendary Pearl of the Mediterranean founded by Alexander the Great.',
+      'An exclusive full-day chauffeur-driven private expedition from Cairo to Alexandria, the legendary Mediterranean metropolis founded by Alexander the Great.',
     policies:
       'Full refund for cancellations made at least 24 hours prior to tour departure time. Instant booking confirmation.',
     included: [
-      'Private Luxury Chauffeur Transport from Cairo to Alexandria Round-Trip',
-      'Private Professional Guide in Alexandria',
-      'All Admissions: Bibliotheca Alexandrina, Citadel of Qaitbay, Kom El Shoqafa',
-      'Fresh Mediterranean Seafood Lunch at Waterfront Restaurant',
-      'Chilled Refreshments and Wi-Fi Onboard',
+      'Private Luxury Chauffeur Transport from Cairo to Alexandria Round-Trip in Mercedes V-Class',
+      'Private Professional Egyptologist & Historian Guide in Alexandria',
+      'All Monument Admissions: Bibliotheca Alexandrina, Citadel of Qaitbay, Kom El Shoqafa Catacombs',
+      'Gourmet Mediterranean Seafood Lunch at Premier Waterfront Restaurant',
+      'Chilled Artisan Refreshments and High-Speed Wi-Fi Onboard',
     ],
     excluded: [
       'Discretionary Tipping and Gratuities',
-      'Personal Retail Purchases',
+      'Personal Souvenir Purchases',
     ],
     itinerary: [
       {
@@ -689,7 +709,7 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
       },
     ],
     seo: {
-      title: "Alexandria Day Tour from Cairo | L'Aube Voyage",
+      title: "Alexandria Private Day Tour from Cairo | L'Aube Voyage",
       description:
         'Book a private luxury day tour from Cairo to Alexandria with private chauffeur, Bibliotheca Alexandrina tour, and seafood lunch.',
       keywords: 'Alexandria day tour, Cairo to Alexandria private guide, Bibliotheca Alexandrina VIP, Citadel of Qaitbay',
@@ -700,16 +720,17 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
   // GROUP 2: LUXURY NILE CRUISERS (2 Experiences)
   // =========================================================================
 
-  // 7. EXP-NL-01: The Oberoi Zahra Upper Egypt Sovereign Cruise (5D/4N)
+  // 7. EXP-NL-01: The Oberoi Zahra Sovereign Nile Journey (5D/4N)
   {
-    title: 'The Oberoi Zahra Upper Egypt Sovereign Nile Cruise',
+    title: 'The Oberoi Zahra Sovereign Nile Journey',
     slug: 'the-oberoi-zahra-luxury-nile-cruise-5d',
     heroAssetKey: 'exp-hero-oberoi-zahra-nile',
+    galleryAssetKeys: ['exp-gallery-luxury-cruise-sundeck', 'exp-gallery-kom-ombo-temple'],
     type: 'package',
     packageMode: 'fixed_date',
     citySlug: 'luxor',
     destinationSlugs: ['aswan'],
-    price: 115000,
+    price: 100000,
     availability: 'available',
     duration: {
       days: 5,
@@ -727,27 +748,27 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'full_board',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 46000, enabled: true },
-          { occupancy: 'single', rateEGP: 38000, enabled: true },
-          { occupancy: 'triple', rateEGP: 64000, enabled: true },
+          { occupancy: 'double', rateEGP: 110000, enabled: true },
+          { occupancy: 'single', rateEGP: 95000, enabled: true },
+          { occupancy: 'triple', rateEGP: 145000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
     ],
     description:
-      'Sail the eternal Nile in unmatched boutique luxury onboard The Oberoi Zahra with only 27 cabins, full-service spa, gourmet à la carte dining, and private Egyptologist excursions from Luxor to Aswan.',
+      'Sail the eternal Nile in peerless boutique luxury onboard The Oberoi Zahra. With only 27 full-sized cabins, a dedicated wellness spa, gourmet à la carte dining, and private Egyptologist shore expeditions from Luxor to Aswan.',
     policies:
-      'Hotel Policy: Guests under 7 years of age are prohibited onboard by vessel maritime safety regulations. L\'Aube Commercial Policy: L\'Aube Voyage reserves this boutique luxury cruise exclusively for adult guests and young adults aged 12 and above. Free cancellation up to 30 days prior to embarkation date.',
+      'Hotel Policy: Guests under 7 years of age are prohibited onboard by vessel maritime safety regulations. L\'Aube Commercial Policy: L\'Aube Voyage reserves this boutique luxury cruise exclusively for adult guests and young adults aged 12 and above. Complimentary cancellation up to 30 days prior to embarkation date.',
     included: [
       '4 Nights Onboard The Oberoi Zahra in a Panoramic Luxury Cabin',
-      'All Gourmet À La Carte Meals (Breakfast, Lunch, Afternoon Tea, Dinner)',
-      'Dedicated Private Egyptologist for all Shore Excursions',
+      'All Gourmet À La Carte Meals (Breakfast, Lunch, Afternoon High Tea, Multi-Course Dinner)',
+      'Dedicated Private Certified Egyptologist for all Shore Excursions',
       'All Temple Entrance Fees: Karnak, Luxor, Valley of the Kings, Edfu, Kom Ombo, Philae',
-      'Private Airport Transfers in Luxor and Aswan',
+      'Private Airport and Port Transfers in Luxor and Aswan in Luxury Vehicles',
     ],
     excluded: [
-      'Domestic or International Flights',
-      'Premium Wine, Champagne, and Spirits',
+      'Domestic or International Airline Flights',
+      'Premium Wine, Champagne, and Selected Spirits',
       'Onboard Spa Treatments and Massages',
       'Optional Hot Air Balloon Excursion in Luxor',
     ],
@@ -789,7 +810,7 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
       },
     ],
     seo: {
-      title: "The Oberoi Zahra Nile Cruise 5 Days | L'Aube Voyage",
+      title: "The Oberoi Zahra Luxury Nile Cruise 5 Days | L'Aube Voyage",
       description:
         'Book the ultra-luxury Oberoi Zahra 5-day Nile cruise from Luxor to Aswan with full board and private Egyptologist.',
       keywords: 'Oberoi Zahra Nile cruise, luxury Nile cruise 5 days, Luxor to Aswan cruise, best Nile cruiser Egypt',
@@ -798,14 +819,15 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
 
   // 8. EXP-NL-02: Royal Upper Egypt Heritage: Winter Palace & Sonesta St. George (6D/5N)
   {
-    title: 'Royal Upper Egypt Heritage: Winter Palace and Sonesta St. George',
+    title: 'Royal Upper Egypt Heritage: Winter Palace & Sonesta St. George',
     slug: 'royal-upper-egypt-heritage-winter-palace-sonesta-6d',
     heroAssetKey: 'exp-hero-winter-palace-luxor',
+    galleryAssetKeys: ['exp-gallery-winter-palace-gardens', 'exp-gallery-valley-of-kings-monuments'],
     type: 'package',
     packageMode: 'fixed_date',
     citySlug: 'luxor',
     destinationSlugs: ['aswan'],
-    price: 92000,
+    price: 85000,
     availability: 'available',
     duration: {
       days: 6,
@@ -839,9 +861,9 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'full_board',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 30000, enabled: true },
-          { occupancy: 'single', rateEGP: 24000, enabled: true },
-          { occupancy: 'triple', rateEGP: 42000, enabled: true },
+          { occupancy: 'double', rateEGP: 60000, enabled: true },
+          { occupancy: 'single', rateEGP: 50000, enabled: true },
+          { occupancy: 'triple', rateEGP: 82000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
@@ -853,24 +875,24 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 22000, enabled: true },
-          { occupancy: 'single', rateEGP: 18000, enabled: true },
-          { occupancy: 'triple', rateEGP: 30500, enabled: true },
+          { occupancy: 'double', rateEGP: 25000, enabled: true },
+          { occupancy: 'single', rateEGP: 20000, enabled: true },
+          { occupancy: 'triple', rateEGP: 34000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
     ],
     description:
-      'A majestic 6-day heritage journey combining pre-stay at Sofitel Winter Palace Luxor, 3 nights sailing on Sonesta St. George I, and a grand finale stay at Sofitel Legend Old Cataract Aswan.',
+      'A majestic 6-day heritage voyage uniting pre-cruise grandeur at Sofitel Winter Palace Luxor, 3 nights sailing the Nile on Sonesta St. George I, and a grand finale stay at Sofitel Legend Old Cataract Aswan.',
     policies:
-      'Free cancellation up to 21 days prior to embarkation date. Includes all scheduled temple shore excursions.',
+      'Complimentary cancellation up to 21 days prior to embarkation date. Includes all scheduled shore excursions with dedicated Egyptologist.',
     included: [
       '1 Night at Sofitel Winter Palace Luxor (Bed & Breakfast)',
       '3 Nights Onboard Sonesta St. George I Nile Cruiser (Full Board)',
       '1 Night at Sofitel Legend Old Cataract Aswan (Bed & Breakfast)',
-      'Private Egyptologist Guidance for all Monument Excursions',
+      'Private Certified Egyptologist Guidance for all Monument Excursions',
       'All Temple Entrance Fees in Luxor, Edfu, Kom Ombo, and Aswan',
-      'All Airport and Port Transfers in Luxor and Aswan',
+      'All Private Airport and Port Transfers in Luxor and Aswan',
     ],
     excluded: [
       'Domestic and International Airfare',
@@ -925,19 +947,20 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
   },
 
   // =========================================================================
-  // GROUP 3: TRANSCONTINENTAL GRAND TOURS (3 Experiences)
+  // GROUP 3: INTRA-COUNTRY FLAGSHIP CIRCUITS (3 Experiences)
   // =========================================================================
 
-  // 9. EXP-INT-01: Pharaonic Heritage and Arabian Desert Elegance: Cairo to Dubai (7D/6N)
+  // 9. EXP-UAE-01: Emirates of Elegance: Dubai & Abu Dhabi Sovereign Odyssey (7D/6N)
   {
-    title: 'Pharaonic Heritage and Arabian Desert Elegance: Cairo to Dubai',
-    slug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
-    heroAssetKey: 'exp-hero-cairo-dubai-horizon',
+    title: 'Emirates of Elegance: Dubai & Abu Dhabi Sovereign Odyssey',
+    slug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
+    heroAssetKey: 'exp-hero-emirates-of-elegance',
+    galleryAssetKeys: ['exp-gallery-sheikh-zayed-mosque', 'exp-gallery-dubai-desert-twilight'],
     type: 'package',
     packageMode: 'fixed_date',
-    citySlug: 'cairo',
-    destinationSlugs: ['dubai'],
-    price: 148000,
+    citySlug: 'dubai',
+    destinationSlugs: ['abu-dhabi'],
+    price: 120000,
     availability: 'available',
     duration: {
       days: 7,
@@ -951,127 +974,122 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
     accommodations: [
       {
         order: 1,
-        propertySlug: 'four-seasons-hotel-cairo-at-nile-plaza',
-        nights: 3,
-        roomCategory: 'Executive Suite Nile-View',
+        propertySlug: 'armani-hotel-dubai',
+        nights: 4,
+        roomCategory: 'Armani Deluxe Room',
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 28000, enabled: true },
-          { occupancy: 'single', rateEGP: 22000, enabled: true },
-          { occupancy: 'triple', rateEGP: 37500, enabled: true },
+          { occupancy: 'double', rateEGP: 90000, enabled: true },
+          { occupancy: 'single', rateEGP: 75000, enabled: true },
+          { occupancy: 'triple', rateEGP: 120000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
       {
         order: 2,
-        propertySlug: 'armani-hotel-dubai',
+        propertySlug: 'emirates-palace-mandarin-oriental-abu-dhabi',
         nights: 2,
-        roomCategory: 'Armani Fountain Suite',
+        roomCategory: 'Deluxe City View Room',
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 35000, enabled: true },
-          { occupancy: 'single', rateEGP: 28000, enabled: true },
-          { occupancy: 'triple', rateEGP: 47000, enabled: true },
-          { occupancy: 'quad', rateEGP: 0, enabled: false },
-        ],
-      },
-      {
-        order: 3,
-        propertySlug: 'al-maha-desert-resort-and-spa-dubai',
-        nights: 1,
-        roomCategory: 'Bedouin Suite',
-        boardBasis: 'full_board',
-        pricingUnit: 'per_stay',
-        roomRates: [
-          { occupancy: 'double', rateEGP: 42000, enabled: true },
-          { occupancy: 'single', rateEGP: 24000, enabled: true },
-          { occupancy: 'triple', rateEGP: 56500, enabled: true },
+          { occupancy: 'double', rateEGP: 65000, enabled: true },
+          { occupancy: 'single', rateEGP: 55000, enabled: true },
+          { occupancy: 'triple', rateEGP: 88000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
     ],
     description:
-      'Connect 5,000 years of pharaonic wonders in Cairo with the futuristic skyline of Downtown Dubai and the serene dunes of Al Maha Desert Resort.',
+      'An extraordinary 7-day sovereign exploration of the United Arab Emirates. Begin with 4 nights in Downtown Dubai inside the Burj Khalifa at the Armani Hotel Dubai, experiencing private yacht cruising and desert safaris, followed by 2 nights of palatial grandeur at Emirates Palace Mandarin Oriental in Abu Dhabi exploring the Louvre Abu Dhabi and Sheikh Zayed Grand Mosque.',
     policies:
-      'Free cancellation up to 14 days prior to departure. Visa assistance provided for Egypt and UAE upon booking.',
+      'Complimentary cancellation up to 14 days prior to departure. VIP concierge coordinating all inter-emirate chauffeur logistics, dining, and museum reservations.',
     included: [
-      '3 Nights at Four Seasons Hotel Cairo at Nile Plaza in Executive Nile Suite',
-      '2 Nights at Armani Hotel Dubai in Burj Khalifa with Fountain Views',
-      '1 Night at Al Maha Desert Resort in Private Bedouin Pool Villa (Full Board)',
-      'Private Egyptologist Guided Tour of Giza Pyramids and Grand Egyptian Museum',
-      'Private Luxury Yacht Cruise in Dubai Marina and Palm Jumeirah',
-      'Sunset Wildlife Safari and Starlit Dune Dinner in Dubai Desert Reserve',
-      'All Private Airport and Inter-Property Luxury Vehicle Transfers',
+      '4 Nights at Armani Hotel Dubai inside Burj Khalifa (Bed & Breakfast)',
+      '2 Nights at Emirates Palace Mandarin Oriental, Abu Dhabi (Bed & Breakfast)',
+      'Private Chauffeur Inter-Emirate Transfers in Mercedes-Benz S-Class or V-Class',
+      'Private 3-Hour Luxury Yacht Charter in Dubai Marina & Palm Jumeirah',
+      'VIP Fast-Track Access to Museum of the Future & At The Top Burj Khalifa SKY',
+      'Private Sunset Wildlife Safari in Dubai Desert Conservation Reserve with Gourmet Starlit Dinner',
+      'VIP Private Curator Tour of Louvre Abu Dhabi and Sheikh Zayed Grand Mosque',
+      'All Airport and Inter-Property Luxury Vehicle Transfers',
     ],
     excluded: [
-      'Commercial Airfare between Cairo and Dubai (Concierge booking available)',
-      'UAE and Egypt Tourist Visa Fees',
-      'Personal Discretionary Spending and Spa Services',
+      'International Airfare to/from UAE',
+      'UAE Tourist Visa Fees',
+      'Personal Spa Services and Discretionary Purchases',
     ],
     itinerary: [
       {
         dayNumber: 1,
-        title: 'VIP Arrival in Cairo & Nile Suite Check-in',
-        citySlug: 'cairo',
-        description: 'VIP meet at Cairo Airport, transfer to Four Seasons Nile Plaza, evening relaxation by the Nile.',
+        title: 'VIP Arrival in Dubai & Armani Hotel in Burj Khalifa',
+        citySlug: 'dubai',
+        description:
+          'VIP fast-track meet and assist at Dubai International Airport (DXB), luxury chauffeur transfer to Armani Hotel Dubai inside the Burj Khalifa, and evening fountain views.',
       },
       {
         dayNumber: 2,
-        title: 'Giza Pyramids, The Sphinx & Grand Egyptian Museum',
-        citySlug: 'cairo',
-        description: 'Full-day private guided exploration of the Giza Plateau and GEM galleries with certified Egyptologist.',
+        title: 'Museum of the Future VIP & Historic Al Fahidi Heritage',
+        citySlug: 'dubai',
+        description:
+          'Morning VIP exploration of the architectural icon Museum of the Future, followed by a private heritage tour through Al Fahidi historic district and private abra crossing.',
       },
       {
         dayNumber: 3,
-        title: 'Historic Cairo, Royal Mummies & Khan El Khalili',
-        citySlug: 'cairo',
-        description: 'Visit to National Museum of Egyptian Civilization Royal Mummies and the historic Al-Muizz street.',
+        title: 'Private Palm Jumeirah Luxury Yacht & Dubai Marina',
+        citySlug: 'dubai',
+        description:
+          'Afternoon private 3-hour yacht cruise departing Dubai Marina, sailing past Ain Dubai, Atlantis The Royal, and the iconic coastline of Palm Jumeirah with gourmet refreshments.',
       },
       {
         dayNumber: 4,
-        title: 'Flight to Dubai & Armani Hotel in Burj Khalifa',
+        title: 'High Fashion at Dubai Mall & Starlit Royal Desert Safari',
         citySlug: 'dubai',
-        description: 'Flight to Dubai, private transfer to Armani Hotel Dubai inside Burj Khalifa, evening fountain viewing.',
+        description:
+          'Morning at leisure for designer fashion shopping in Fashion Avenue, followed by a private 4x4 wildlife safari in the Dubai Desert Conservation Reserve and a private starlit dune dinner.',
       },
       {
         dayNumber: 5,
-        title: 'Museum of the Future & Private Dubai Marina Yacht',
-        citySlug: 'dubai',
-        description: 'Morning visit to Museum of the Future and private afternoon yacht charter along Palm Jumeirah.',
+        title: 'Executive Transfer to Abu Dhabi & Emirates Palace Check-in',
+        citySlug: 'abu-dhabi',
+        description:
+          'Scenic executive chauffeur drive to Abu Dhabi, arrival and check-in to Emirates Palace Mandarin Oriental, afternoon leisure along the 1.3km private pristine beach.',
       },
       {
         dayNumber: 6,
-        title: 'Al Maha Desert Conservation Sanctuary',
-        citySlug: 'dubai',
-        description: 'Chauffeur transfer to Al Maha Desert Resort, private pool suite, falconry, and starlit Bedouin dinner.',
+        title: 'Sheikh Zayed Grand Mosque VIP Sunset Tour & Louvre Abu Dhabi',
+        citySlug: 'abu-dhabi',
+        description:
+          'Curated private tour of Louvre Abu Dhabi under its floating dome, followed by a private sunset visit to the illuminated white marble Sheikh Zayed Grand Mosque and Qasr Al Watan.',
       },
       {
         dayNumber: 7,
-        title: 'Desert Sunrise & VIP Airport Departure',
-        citySlug: 'dubai',
-        description: 'Sunrise breakfast overlooking the dunes, private luxury transfer to Dubai International Airport (DXB).',
+        title: 'Palace Breakfast & VIP Airport Chauffeur Departure',
+        citySlug: 'abu-dhabi',
+        description:
+          'Gourmet breakfast at Emirates Palace, hotel check-out at 12:00 PM, and private luxury chauffeur transfer to Abu Dhabi International Airport (AUH) or Dubai Airport (DXB).',
       },
     ],
     seo: {
-      title: "Cairo to Dubai Luxury Tour 7 Days | L'Aube Voyage",
+      title: "Dubai & Abu Dhabi Luxury Tour 7 Days | L'Aube Voyage",
       description:
-        'Experience 7 days of luxury connecting Cairo Pyramids with Armani Hotel Dubai and Al Maha Desert Resort.',
-      keywords: 'Cairo Dubai luxury package, Four Seasons Cairo, Armani Hotel Dubai, Al Maha Desert Resort',
+        'Experience 7 days of Arabian luxury combining Armani Hotel Dubai in Burj Khalifa with Emirates Palace Mandarin Oriental in Abu Dhabi.',
+      keywords: 'Dubai Abu Dhabi luxury tour, Armani Hotel Dubai, Emirates Palace Abu Dhabi, Louvre Abu Dhabi VIP, UAE 7 day itinerary',
     },
   },
 
-  // 10. EXP-INT-02: Empires of Elegance: Cairo and Paris Palace Odyssey (8D/7N)
+  // 10. EXP-FR-01: Paris & French Riviera: Haute Couture to Azure Coast (8D/7N)
   {
-    title: 'Empires of Elegance: Cairo and Paris Palace Odyssey',
-    slug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
-    heroAssetKey: 'exp-hero-paris-place-vendome',
+    title: 'Paris & French Riviera: Haute Couture to Azure Coast',
+    slug: 'paris-french-riviera-luxury-odyssey-8d',
+    heroAssetKey: 'exp-hero-paris-french-riviera',
+    galleryAssetKeys: ['exp-gallery-paris-eiffel-seine', 'exp-gallery-french-riviera-coastline'],
     type: 'package',
     packageMode: 'fixed_date',
-    citySlug: 'cairo',
-    destinationSlugs: ['paris'],
-    price: 210000,
+    citySlug: 'paris',
+    destinationSlugs: ['nice'],
+    price: 180000,
     availability: 'available',
     duration: {
       days: 8,
@@ -1085,123 +1103,133 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
     accommodations: [
       {
         order: 1,
-        propertySlug: 'marriott-mena-house-cairo',
-        nights: 3,
-        roomCategory: 'Executive Suite, Pyramid View',
+        propertySlug: 'the-ritz-paris',
+        nights: 4,
+        roomCategory: 'Superior Room, Place Vendôme',
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 32000, enabled: true },
-          { occupancy: 'single', rateEGP: 21000, enabled: true },
-          { occupancy: 'triple', rateEGP: 42000, enabled: true },
+          { occupancy: 'double', rateEGP: 150000, enabled: true },
+          { occupancy: 'single', rateEGP: 125000, enabled: true },
+          { occupancy: 'triple', rateEGP: 200000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
       {
         order: 2,
-        propertySlug: 'the-ritz-paris',
-        nights: 4,
-        roomCategory: 'Deluxe Suite (Vendôme View)',
+        propertySlug: 'hotel-palais-de-la-mediterranee-nice',
+        nights: 3,
+        roomCategory: 'Sea View King Room with Balcony',
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 74000, enabled: true },
-          { occupancy: 'single', rateEGP: 58000, enabled: true },
-          { occupancy: 'triple', rateEGP: 98000, enabled: true },
+          { occupancy: 'double', rateEGP: 90000, enabled: true },
+          { occupancy: 'single', rateEGP: 75000, enabled: true },
+          { occupancy: 'triple', rateEGP: 120000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
     ],
     description:
-      'A dialogue between two imperial civilizations: 3 nights in an Executive Pyramid View Suite at Marriott Mena House Cairo and 4 nights in a Deluxe Suite at The Ritz Paris on Place Vendôme.',
+      'An authentic French luxury dialogue connecting the haute couture prestige of Paris with the azure serenity of the Côte d’Azur. Reside for 4 nights at The Ritz Paris on Place Vendôme enjoying private art historian tours of the Louvre and Versailles, followed by 3 nights at Hôtel Palais de la Méditerranée along Nice’s iconic Promenade des Anglais with private yacht excursions along the French Riviera.',
     policies:
-      'Free cancellation up to 21 days prior to departure. VIP concierge assistance for dining reservations in Paris.',
+      'Complimentary cancellation up to 21 days prior to departure. VIP concierge coordinating high-speed rail/domestic air transfers, Michelin-starred restaurant bookings, and private yacht charters.',
     included: [
-      '3 Nights at Marriott Mena House Cairo in Executive Pyramid View Suite',
-      '4 Nights at The Ritz Paris on Place Vendôme in Deluxe Suite',
-      'Daily Gourmet Breakfast at both Palace Properties',
-      'Private Egyptologist Giza Pyramids and Grand Egyptian Museum Tour',
-      'Private Art Historian Guided Tour of the Louvre Museum in Paris',
-      'Private Seine River Sunset Cruise on Luxury Salon Boat',
-      'Fast-Track Airport Meet & Chauffeur Executive Transfers in Cairo and Paris',
+      '4 Nights at The Ritz Paris on Place Vendôme in Superior Room',
+      '3 Nights at Hôtel Palais de la Méditerranée Nice in Sea View Balcony Room',
+      'Daily Gourmet French Breakfast at both Palace Hotels',
+      'First-Class TGV Inoui High-Speed Rail or Domestic Air Transfer from Paris to Nice',
+      'Private Art Historian VIP Guided Tour of the Louvre Museum and Château de Versailles',
+      'Private Sunset Salon Boat Cruise along the River Seine with Champagne',
+      'Private Half-Day Luxury Yacht Charter along the French Riviera (Cap-Ferrat, Villefranche & Monaco)',
+      'Private Chauffeur Executive Transfers in Mercedes-Benz Vehicles throughout',
     ],
     excluded: [
-      'Commercial Airfare between Cairo and Paris',
-      'Schengen and Egypt Visa Fees',
+      'International Airfare to/from France',
+      'Schengen Visa Processing Fees',
       'Discretionary Dining and Michelin-Starred Restaurant Dinners',
     ],
     itinerary: [
       {
         dayNumber: 1,
-        title: 'VIP Arrival in Cairo & Marriott Mena House',
-        citySlug: 'cairo',
-        description: 'Fast-track airport meet at CAI, transfer to Marriott Mena House, welcome reception facing the pyramids.',
+        title: 'VIP Arrival in Paris & The Ritz Paris on Place Vendôme',
+        citySlug: 'paris',
+        description:
+          'VIP fast-track welcome at Paris Charles de Gaulle Airport (CDG), private chauffeur transfer to The Ritz Paris on Place Vendôme, welcome champagne reception.',
       },
       {
         dayNumber: 2,
-        title: 'Giza Pyramids & Grand Egyptian Museum',
-        citySlug: 'cairo',
-        description: 'Private guided tour of the Great Pyramids and treasures of the Grand Egyptian Museum with certified Egyptologist.',
+        title: 'Louvre Museum Private Art Historian Tour & Palais-Royal',
+        citySlug: 'paris',
+        description:
+          'Exclusive private art historian guided tour through the masterpieces of the Louvre Museum, followed by a curated stroll through the gardens of Palais-Royal.',
       },
       {
         dayNumber: 3,
-        title: 'Saqqara Step Pyramid & NMEC Royal Mummies',
-        citySlug: 'cairo',
-        description: 'Private tour of Djoser Step Pyramid at Saqqara and the Royal Mummies at NMEC.',
+        title: 'Château de Versailles Royal Apartments & Private Seine Sunset Cruise',
+        citySlug: 'paris',
+        description:
+          'Private morning excursion to the Hall of Mirrors and Royal State Apartments at Versailles, followed by an evening private salon boat cruise along the Seine.',
       },
       {
         dayNumber: 4,
-        title: 'Flight from Cairo to Paris & The Ritz Paris',
+        title: 'Haute Couture Promenade on Rue Saint-Honoré & Musée d’Orsay',
         citySlug: 'paris',
-        description: 'Flight to Paris CDG, private chauffeur transfer to The Ritz Paris on Place Vendôme, welcome champagne.',
+        description:
+          'Personal shopping concierge promenade along Rue du Faubourg Saint-Honoré, afternoon private tour of Impressionist treasures at Musée d’Orsay.',
       },
       {
         dayNumber: 5,
-        title: 'Louvre Museum VIP Tour & Palais Royal',
-        citySlug: 'paris',
-        description: 'Private art historian-guided tour of Louvre Museum highlights and stroll through historic Palais Royal gardens.',
+        title: 'First-Class Scenic Rail to Nice & Promenade des Anglais Check-in',
+        citySlug: 'nice',
+        description:
+          'First-class high-speed TGV journey through Provence to Nice, private transfer to Hôtel Palais de la Méditerranée on the Promenade des Anglais, Mediterranean sunset.',
       },
       {
         dayNumber: 6,
-        title: 'Haute Couture & Private Seine River Sunset Cruise',
-        citySlug: 'paris',
-        description: 'Private shopping promenade along Rue du Faubourg Saint-Honoré and private sunset cruise along the Seine.',
+        title: 'Private French Riviera Yacht Charter (Cap-Ferrat & Bay of Monaco)',
+        citySlug: 'nice',
+        description:
+          'Private half-day yacht charter departing Nice harbor, cruising past the billionaire peninsula of Saint-Jean-Cap-Ferrat, Villefranche Bay, and the coastline of Monaco.',
       },
       {
         dayNumber: 7,
-        title: 'Château de Versailles & Historic Parisian Gastronomy',
-        citySlug: 'paris',
-        description: 'Private guided excursion to Château de Versailles royal state apartments and evening gourmet dinner.',
+        title: 'Vieux Nice Belle Époque Walk & Medieval Hilltop Village of Èze',
+        citySlug: 'nice',
+        description:
+          'Morning stroll through Cours Saleya flower market and Old Town Nice, afternoon private excursion to the dramatic medieval eagle’s nest village of Èze.',
       },
       {
         dayNumber: 8,
-        title: 'Breakfast at The Ritz & VIP Departure',
-        citySlug: 'paris',
-        description: 'Gourmet French breakfast at The Ritz, check-out at 12:00 PM, and private chauffeur transfer to Paris CDG Airport.',
+        title: 'Mediterranean Balcony Breakfast & VIP Airport Departure',
+        citySlug: 'nice',
+        description:
+          'Gourmet breakfast overlooking the Baie des Anges, hotel check-out at 12:00 PM, and private chauffeur transfer to Nice Côte d’Azur International Airport (NCE).',
       },
     ],
     seo: {
-      title: "Cairo & Paris Luxury Palace Odyssey 8 Days | L'Aube Voyage",
+      title: "Paris & French Riviera Luxury Tour 8 Days | L'Aube Voyage",
       description:
-        'Experience 8 days connecting Cairo Pyramids at Mena House with palace luxury at The Ritz Paris on Place Vendôme.',
-      keywords: 'Cairo Paris luxury tour, Mena House Pyramids, The Ritz Paris Place Vendome, luxury dual city tour',
+        'Experience 8 days connecting Parisian haute hôtellerie at The Ritz Paris with Riviera glamour at Palais de la Méditerranée in Nice.',
+      keywords: 'Paris French Riviera luxury tour, The Ritz Paris Place Vendome, Palais de la Mediterranee Nice, luxury France vacation 8 days',
     },
   },
 
-  // 11. EXP-INT-03: The Transcontinental Grand Horizon: Cairo, Dubai and Paris (11D/10N)
+  // 11. EXP-IT-01: Italian Grand Cities: Rome, Florence & Venice Classic Odyssey (8D/7N)
   {
-    title: 'The Transcontinental Grand Horizon: Cairo, Dubai and Paris',
-    slug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
-    heroAssetKey: 'exp-hero-paris-george-v',
+    title: 'Italian Grand Cities: Rome, Florence & Venice Classic Odyssey',
+    slug: 'italian-grand-cities-rome-florence-venice-8d',
+    heroAssetKey: 'exp-hero-italian-grand-cities',
+    galleryAssetKeys: ['exp-gallery-florence-duomo-view', 'exp-gallery-venice-grand-canal'],
     type: 'package',
     packageMode: 'fixed_date',
-    citySlug: 'cairo',
-    destinationSlugs: ['dubai', 'paris'],
-    price: 325000,
+    citySlug: 'rome',
+    destinationSlugs: ['florence', 'venice'],
+    price: 170000,
     availability: 'available',
     duration: {
-      days: 11,
-      nights: 10,
+      days: 8,
+      nights: 7,
     },
     childPolicy: {
       childrenAllowed: true,
@@ -1211,139 +1239,131 @@ export const CANONICAL_EXPERIENCES: ExperienceSeedDef[] = [
     accommodations: [
       {
         order: 1,
-        propertySlug: 'the-nile-ritz-carlton-cairo',
+        propertySlug: 'hotel-de-russie-rome',
         nights: 3,
-        roomCategory: 'Executive Suite, Nile View',
+        roomCategory: 'Classic Deluxe Room, Secret Garden View',
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 30000, enabled: true },
-          { occupancy: 'single', rateEGP: 24000, enabled: true },
-          { occupancy: 'triple', rateEGP: 41000, enabled: true },
+          { occupancy: 'double', rateEGP: 90000, enabled: true },
+          { occupancy: 'single', rateEGP: 75000, enabled: true },
+          { occupancy: 'triple', rateEGP: 120000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
       {
         order: 2,
-        propertySlug: 'armani-hotel-dubai',
-        nights: 3,
-        roomCategory: 'Armani Signature Suite',
+        propertySlug: 'the-st-regis-florence',
+        nights: 2,
+        roomCategory: 'Deluxe Arno River View Room',
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 45000, enabled: true },
-          { occupancy: 'single', rateEGP: 36000, enabled: true },
-          { occupancy: 'triple', rateEGP: 61000, enabled: true },
+          { occupancy: 'double', rateEGP: 65000, enabled: true },
+          { occupancy: 'single', rateEGP: 54000, enabled: true },
+          { occupancy: 'triple', rateEGP: 86000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
       {
         order: 3,
-        propertySlug: 'four-seasons-hotel-george-v-paris',
-        nights: 4,
-        roomCategory: 'Four Seasons Suite with Balcony',
+        propertySlug: 'hotel-danieli-venice',
+        nights: 2,
+        roomCategory: 'Premium Venetian Room with Lagoon View',
         boardBasis: 'bed_and_breakfast',
         pricingUnit: 'per_stay',
         roomRates: [
-          { occupancy: 'double', rateEGP: 80000, enabled: true },
-          { occupancy: 'single', rateEGP: 65000, enabled: true },
-          { occupancy: 'triple', rateEGP: 108000, enabled: true },
+          { occupancy: 'double', rateEGP: 70000, enabled: true },
+          { occupancy: 'single', rateEGP: 58000, enabled: true },
+          { occupancy: 'triple', rateEGP: 92000, enabled: true },
           { occupancy: 'quad', rateEGP: 0, enabled: false },
         ],
       },
     ],
     description:
-      'The ultimate transcontinental trilogy uniting ancient antiquity in Cairo, futuristic grandeur in Dubai, and palace refinement in Paris at Four Seasons Hotel George V.',
+      'The quintessential Italian grand tour traversing Rome, Florence, and Venice in supreme luxury. Reside at Hotel de Russie in Rome with private after-hours Vatican access, The St. Regis Florence with private Uffizi Gallery viewings, and Hotel Danieli in Venice with private mahogany water taxis and sunset lagoon voyages.',
     policies:
-      'Free cancellation up to 30 days prior to departure. VIP concierge coordinating all inter-city flight and transfer logistics.',
+      'Complimentary cancellation up to 21 days prior to departure. VIP concierge coordinating all executive high-speed rail tickets, museum clearances, and private water transfers.',
     included: [
-      '3 Nights at The Nile Ritz-Carlton Cairo in Executive Nile Suite',
-      '3 Nights at Armani Hotel Dubai in Armani Signature Suite',
-      '4 Nights at Four Seasons Hotel George V Paris in Four Seasons Suite with Balcony',
-      'Daily Gourmet Breakfast at all 5-Star Palace Properties',
-      'Private Egyptologist Giza Pyramids and Grand Egyptian Museum Tour',
-      'Private Yacht Cruise in Dubai Marina and Museum of the Future Access',
-      'Private Art Historian Louvre Museum Tour and Seine River Private Dinner Cruise',
-      'All Private Chauffeur Transfers in Mercedes Executive Vehicles throughout',
+      '3 Nights at Hotel de Russie, Rome in Secret Garden View Deluxe Room',
+      '2 Nights at The St. Regis Florence in Deluxe Arno River View Room',
+      '2 Nights at Hotel Danieli, Venice in Premium Lagoon View Room',
+      'Daily Gourmet Italian Breakfast at all three 5-Star Palace Properties',
+      'Executive Club Class High-Speed Train Tickets (Rome to Florence, Florence to Venice)',
+      'Private Before-Hours VIP Access to the Vatican Museums, Sistine Chapel, and St. Peter’s Basilica',
+      'Private Colosseum Gladiators’ Arena Floor and Roman Forum Archaeological Tour',
+      'Private Art Historian VIP Guided Tour of the Uffizi Gallery & Michelangelo’s David at the Accademia',
+      'Private Mahogany Water Taxi Transfers in Venice and Sunset Grand Canal Gondola Voyage',
+      'All Private Chauffeur Transfers in Mercedes-Benz Executive Vehicles throughout',
     ],
     excluded: [
-      'Commercial Flight Tickets (Cairo to Dubai and Dubai to Paris)',
-      'Visa Processing Fees for Egypt, UAE, and France',
-      'Discretionary Dining, Michelin-Star Dinners, and Spa Treatments',
+      'International Airfare to Rome / from Venice',
+      'Schengen Visa Processing Fees',
+      'Discretionary Gastronomic Dinners and Wine Purchases',
     ],
     itinerary: [
       {
         dayNumber: 1,
-        title: 'VIP Arrival in Cairo & Nile Ritz-Carlton',
-        citySlug: 'cairo',
-        description: 'VIP meet at Cairo Airport, transfer to The Nile Ritz-Carlton, evening Nile riverfront views.',
+        title: 'VIP Arrival in Rome & Hotel de Russie Secret Garden',
+        citySlug: 'rome',
+        description:
+          'VIP meet and assist at Rome Fiumicino Airport (FCO), private Mercedes chauffeur transfer to Hotel de Russie near Piazza del Popolo, welcome aperitivo in the terraced Secret Garden.',
       },
       {
         dayNumber: 2,
-        title: 'Giza Pyramids & Grand Egyptian Museum',
-        citySlug: 'cairo',
-        description: 'Private tour of Great Pyramids of Giza, Sphinx, and Grand Egyptian Museum with certified Egyptologist.',
+        title: 'Vatican Museums & Sistine Chapel Before-Hours VIP Tour',
+        citySlug: 'rome',
+        description:
+          'Exclusive early morning before-hours access to the Vatican Museums and Sistine Chapel with private art historian, followed by a private tour of St. Peter’s Basilica.',
       },
       {
         dayNumber: 3,
-        title: 'Royal Mummies at NMEC & Old Cairo',
-        citySlug: 'cairo',
-        description: 'Private guided visit to the National Museum of Egyptian Civilization and historic Islamic Cairo.',
+        title: 'Colosseum Arena Floor, Roman Forum & Trevi Fountain Twilight',
+        citySlug: 'rome',
+        description:
+          'Private archaeological tour of the Colosseum Gladiators’ arena floor and Roman Forum, afternoon leisure, evening walking tour past the illuminated Pantheon and Trevi Fountain.',
       },
       {
         dayNumber: 4,
-        title: 'Flight to Dubai & Armani Hotel in Burj Khalifa',
-        citySlug: 'dubai',
-        description: 'Flight to Dubai, private transfer to Armani Hotel Dubai, sunset views of Dubai Fountain.',
+        title: 'Executive Train to Florence, The St. Regis & Uffizi Renaissance Masterpieces',
+        citySlug: 'florence',
+        description:
+          'First-class high-speed Frecciarossa train to Florence, check-in to The St. Regis Florence along the Arno River, afternoon private VIP tour of Botticelli and Da Vinci treasures at the Uffizi Gallery.',
       },
       {
         dayNumber: 5,
-        title: 'Museum of the Future & Private Dubai Yacht Cruise',
-        citySlug: 'dubai',
-        description: 'Morning exploration of Museum of the Future, afternoon private yacht cruise around Palm Jumeirah.',
+        title: 'Accademia David VIP Tour, Ponte Vecchio & Chianti Wine Excursion',
+        citySlug: 'florence',
+        description:
+          'Morning private viewing of Michelangelo’s David at the Accademia, stroll across the historic Ponte Vecchio, afternoon private wine estate excursion in the rolling Chianti hills.',
       },
       {
         dayNumber: 6,
-        title: 'Dubai Desert Conservation Reserve Safari',
-        citySlug: 'dubai',
-        description: 'Private 4x4 desert wildlife expedition, falconry presentation, and sunset dinner in royal desert camp.',
+        title: 'High-Speed Train to Venice, Private Water Taxi to Hotel Danieli & Gondola Serenade',
+        citySlug: 'venice',
+        description:
+          'Executive train to Venice Santa Lucia, private mahogany Riva water taxi transfer along the Grand Canal to Hotel Danieli, sunset private gondola voyage through secret canals.',
       },
       {
         dayNumber: 7,
-        title: 'Flight to Paris & Four Seasons Hotel George V',
-        citySlug: 'paris',
-        description: 'Flight to Paris CDG, private chauffeur transfer to Four Seasons Hotel George V in the Golden Triangle.',
+        title: 'Private St. Mark’s & Doge’s Palace After-Hours & Murano Artisan Studio',
+        citySlug: 'venice',
+        description:
+          'Private morning boat to Murano for master glassblowing demonstration, evening after-hours private tour of St. Mark’s Basilica and Doge’s Palace, farewell gourmet dinner overlooking the lagoon.',
       },
       {
         dayNumber: 8,
-        title: 'Louvre Museum VIP Tour & Private Seine Dinner Yacht',
-        citySlug: 'paris',
-        description: 'Private art historian-guided Louvre Museum tour, evening private dinner cruise on the River Seine.',
-      },
-      {
-        dayNumber: 9,
-        title: 'Château de Versailles Royal Apartments',
-        citySlug: 'paris',
-        description: 'Private tour of the Hall of Mirrors and royal gardens at Château de Versailles.',
-      },
-      {
-        dayNumber: 10,
-        title: 'Musée d’Orsay & Parisian Haute Gastronomy',
-        citySlug: 'paris',
-        description: 'Private morning tour of Musée d’Orsay Impressionist masterpieces, evening fine dining on Avenue Montaigne.',
-      },
-      {
-        dayNumber: 11,
-        title: 'Parisian Balcony Breakfast & VIP Departure',
-        citySlug: 'paris',
-        description: 'Gourmet breakfast on private suite balcony, hotel check-out at 12:00 PM, and private chauffeur transfer to Paris CDG Airport.',
+        title: 'Venetian Lagoon Breakfast & VIP Private Water Taxi Airport Departure',
+        citySlug: 'venice',
+        description:
+          'Gourmet breakfast on the rooftop terrace overlooking the lagoon, hotel check-out at 12:00 PM, and private luxury water taxi transfer directly to Venice Marco Polo Airport (VCE).',
       },
     ],
     seo: {
-      title: "Cairo Dubai Paris Grand Tour 11 Days | L'Aube Voyage",
+      title: "Rome, Florence & Venice Luxury Tour 8 Days | L'Aube Voyage",
       description:
-        'The definitive 11-day transcontinental luxury tour uniting Ritz-Carlton Cairo, Armani Hotel Dubai, and Four Seasons George V Paris.',
-      keywords: 'Cairo Dubai Paris tour, 3 city luxury tour, Ritz Carlton Cairo, Armani Dubai, Four Seasons George V Paris',
+        'Experience 8 days of classical Italian luxury combining Hotel de Russie Rome, The St. Regis Florence, and Hotel Danieli Venice.',
+      keywords: 'Rome Florence Venice luxury tour, Hotel de Russie Rome, St Regis Florence, Hotel Danieli Venice, Italy luxury vacation 8 days',
     },
   },
 ]
@@ -1357,6 +1377,7 @@ export interface SeededExperiencesResult {
   accommodationsLinkedCount: number
   destinationsLinkedCount: number
   heroLinkedCount: number
+  galleryImagesLinkedCount: number
   departureSlotsCreated: number
   experienceDocsMap: Record<string, any>
 }
@@ -1364,7 +1385,7 @@ export interface SeededExperiencesResult {
 /**
  * Enterprise Experience Seeder for L'Aube Voyage.
  * Ingests 11 normalized canonical experiences with deterministic idempotency.
- * Resolves and attaches verified Media documents to Experience.hero.
+ * Resolves and attaches verified Media documents to Experience.hero and Experience.gallery.
  * STRICT ZERO departure slots, bookings, or capacity inventory created.
  */
 export async function seedCatalogExperiences(
@@ -1402,6 +1423,7 @@ export async function seedCatalogExperiences(
   let accommodationsLinkedCount = 0
   let destinationsLinkedCount = 0
   let heroLinkedCount = 0
+  let galleryImagesLinkedCount = 0
   const experienceDocsMap: Record<string, any> = {}
 
   for (const expDef of CANONICAL_EXPERIENCES) {
@@ -1499,6 +1521,36 @@ export async function seedCatalogExperiences(
       heroLinkedCount++
     }
 
+    // 5b. Resolve Gallery Media Documents (at least 2 contemporary curated high-res images per experience)
+    const resolvedGallery: { image: number }[] = []
+    if (expDef.galleryAssetKeys && expDef.galleryAssetKeys.length > 0) {
+      for (const gKey of expDef.galleryAssetKeys) {
+        let gMediaId: number | undefined = undefined
+        if (experienceMediaAssetMap && experienceMediaAssetMap[gKey]) {
+          gMediaId = experienceMediaAssetMap[gKey]
+        } else {
+          const manifestEntry = EXPERIENCE_MEDIA_MANIFEST.find((m) => m.assetKey === gKey)
+          if (manifestEntry) {
+            const mediaRes = await payload.find({
+              collection: 'media',
+              where: { filename: { equals: manifestEntry.filename } },
+              limit: 1,
+            })
+            if (mediaRes.docs.length > 0) {
+              gMediaId = Number(mediaRes.docs[0].id)
+            }
+          }
+        }
+        if (gMediaId) {
+          resolvedGallery.push({ image: gMediaId })
+        }
+      }
+    }
+
+    if (resolvedGallery.length > 0) {
+      galleryImagesLinkedCount += resolvedGallery.length
+    }
+
     // 6. Build Payload Data
     const experiencePayloadData: any = {
       title: expDef.title,
@@ -1507,6 +1559,7 @@ export async function seedCatalogExperiences(
       city: originCityId,
       destinations: destinationIds.length > 0 ? destinationIds : undefined,
       hero: heroMediaId || undefined,
+      gallery: resolvedGallery.length > 0 ? resolvedGallery : undefined,
       price: expDef.price,
       availability: expDef.availability,
       isActive: true,
@@ -1576,7 +1629,7 @@ export async function seedCatalogExperiences(
   }
 
   console.log(
-    `   ✅ Experiences Catalog Processed: ${Object.keys(experienceDocsMap).length}/11 journeys (${totalCreated} created, ${totalUpdated} updated, ${heroLinkedCount}/11 Hero Media linked, ${dailyToursCount} Daily Tours, ${packagesCount} Packages, ${accommodationsLinkedCount} Stays linked, STRICT ZERO departure slots).`,
+    `   ✅ Experiences Catalog Processed: ${Object.keys(experienceDocsMap).length}/11 journeys (${totalCreated} created, ${totalUpdated} updated, ${heroLinkedCount}/11 Hero Media linked, ${galleryImagesLinkedCount} Gallery Images linked, ${dailyToursCount} Daily Tours, ${packagesCount} Packages, ${accommodationsLinkedCount} Stays linked, STRICT ZERO departure slots).`,
   )
 
   return {
@@ -1588,6 +1641,7 @@ export async function seedCatalogExperiences(
     accommodationsLinkedCount,
     destinationsLinkedCount,
     heroLinkedCount,
+    galleryImagesLinkedCount,
     departureSlotsCreated: 0,
     experienceDocsMap,
   }

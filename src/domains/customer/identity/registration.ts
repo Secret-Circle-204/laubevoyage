@@ -2,6 +2,10 @@ import type { RequestContext } from '@/types'
 import { CustomerRepository } from '../repositories/customer-repository'
 import type { CustomerAggregate } from '../aggregate'
 import type { CustomerPreferencesInput } from '../types'
+import {
+  AccountPendingVerificationException,
+  CustomerAlreadyExistsException,
+} from '@/domains/shared/exceptions/domain-exception'
 
 /**
  * Registration Service
@@ -35,7 +39,28 @@ export class RegistrationService {
 
     const existing = await this.repository.findByEmail(trimmedEmail, context)
     if (existing) {
-      throw new Error(`[RegistrationService] Customer with email ${trimmedEmail} already exists.`)
+      if (existing.isEmailVerified || existing.status === 'active') {
+        throw new CustomerAlreadyExistsException(trimmedEmail)
+      }
+
+      if (existing.status === 'pending_verification') {
+        const { expiresAt } = await this.repository.getVerificationDispatchData(existing.customerId)
+        const isExpired = expiresAt ? new Date(expiresAt).getTime() <= Date.now() : false
+
+        if (!isExpired) {
+          throw new AccountPendingVerificationException(
+            `An account with email ${trimmedEmail} is awaiting verification. Please check your inbox or request a new verification link.`,
+          )
+        }
+
+        // Stale unverified identity has expired (verificationExpiresAt <= now).
+        // Under the domain retention contract, purge this dead record within the transaction
+        // so the customer can register cleanly without waiting for the background retention cron.
+        console.log(`[RegistrationService] Purging expired unverified customer #${existing.customerId} (${trimmedEmail}) to allow clean re-registration.`)
+        await this.repository.deleteCustomerById(existing.customerId, context)
+      } else {
+        throw new CustomerAlreadyExistsException(trimmedEmail)
+      }
     }
 
     const data: Record<string, unknown> = {

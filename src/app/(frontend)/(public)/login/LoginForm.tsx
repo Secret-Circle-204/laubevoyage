@@ -44,6 +44,15 @@ export function LoginForm({ welcomeBonus: _welcomeBonus }: LoginFormProps) {
         router.push(redirectPath)
         router.refresh()
       } else {
+        if ('code' in res && res.code === 'EMAIL_NOT_VERIFIED') {
+          addToast({
+            type: 'info',
+            title: 'Email Verification Required',
+            description: res.error || 'Please verify your email address before signing in.',
+          })
+          router.push(`/verify-email?email=${encodeURIComponent(email.trim())}`)
+          return
+        }
         addToast({
           type: 'error',
           title: 'Sign In Failed',

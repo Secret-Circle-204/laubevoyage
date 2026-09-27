@@ -500,9 +500,9 @@ export class BookingPolicy {
    *
    * Invariants:
    * 1. Total manifest count strictly equals expected adults + expected children.
-   * 2. travelers[0] (Lead Traveler): Non-empty firstName, lastName, valid email, non-empty phone.
-   * 3. Companion travelers (1..N): Non-empty firstName, lastName.
-   * 4. Children and infants: Non-empty firstName, lastName, and valid dateOfBirth.
+   * 2. travelers[0] (Lead Traveler): Non-empty firstName, lastName, valid email, valid phone, dateOfBirth, nationality, passportNumber.
+   * 3. Companion travelers (1..N): Non-empty firstName, lastName, dateOfBirth, nationality, passportNumber.
+   * 4. Children and infants: Non-empty firstName, lastName, dateOfBirth, nationality, passportNumber.
    */
   static diagnoseTravelersManifest(
     travelers: TravelerInput[],
@@ -517,7 +517,7 @@ export class BookingPolicy {
     const addIssue = (
       travelerIndex: number,
       travelerType: 'adult' | 'child' | 'infant',
-      field: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth',
+      field: TravelerManifestFieldIssue['field'],
       code: string,
       message: string,
     ) => {
@@ -604,7 +604,7 @@ export class BookingPolicy {
         )
       }
 
-      // 3. Lead Traveler Contact (Email & Phone)
+      // 3. Traveler Contact (Email & Phone)
       if (isLead) {
         if (!t.email || !t.email.trim()) {
           addIssue(
@@ -646,19 +646,69 @@ export class BookingPolicy {
             )
           }
         }
-      }
-
-      // 4. Children & Infants (Date of Birth for age verification)
-      if (travelerType === 'child' || travelerType === 'infant') {
-        if (!t.dateOfBirth || !t.dateOfBirth.trim()) {
+      } else {
+        // Companion Contact: Optional, but if provided, must be syntactically valid
+        if (t.email && t.email.trim() && !emailRegex.test(t.email.trim())) {
           addIssue(
             i,
             travelerType,
-            'dateOfBirth',
-            'MISSING_CHILD_DOB',
-            'Date of birth is required for child/infant age verification and accommodation eligibility.',
+            'email',
+            'INVALID_COMPANION_EMAIL',
+            'Please provide a valid email address (e.g. name@example.com).',
           )
         }
+        if (t.phone && t.phone.trim()) {
+          const digitsOnly = t.phone.replace(/\D/g, '')
+          const validPhoneChars = /^\+?[0-9\s\-().]{7,25}$/
+          if (!validPhoneChars.test(t.phone.trim()) || digitsOnly.length < 7 || digitsOnly.length > 15) {
+            addIssue(
+              i,
+              travelerType,
+              'phone',
+              'INVALID_COMPANION_PHONE',
+              'Please provide a valid phone number with 7 to 15 digits (e.g. +20 100 123 4567).',
+            )
+          }
+        }
+      }
+
+      // 4. Date of Birth (Required for all travelers)
+      if (!t.dateOfBirth || !t.dateOfBirth.trim()) {
+        addIssue(
+          i,
+          travelerType,
+          'dateOfBirth',
+          isLead ? 'MISSING_LEAD_DOB' : 'MISSING_COMPANION_DOB',
+          isLead
+            ? "Date of birth is required. Please select the lead traveler's birth date."
+            : `Date of birth is required for passenger ${i + 1}.`,
+        )
+      }
+
+      // 5. Nationality (Required for all travelers)
+      if (!t.nationality || !t.nationality.trim()) {
+        addIssue(
+          i,
+          travelerType,
+          'nationality',
+          isLead ? 'MISSING_LEAD_NATIONALITY' : 'MISSING_COMPANION_NATIONALITY',
+          isLead
+            ? "Nationality is required. Please enter the lead traveler's nationality."
+            : `Nationality is required for passenger ${i + 1}.`,
+        )
+      }
+
+      // 6. Passport / National ID (Required for all travelers)
+      if (!t.passportNumber || !t.passportNumber.trim()) {
+        addIssue(
+          i,
+          travelerType,
+          'passportNumber',
+          isLead ? 'MISSING_LEAD_PASSPORT' : 'MISSING_COMPANION_PASSPORT',
+          isLead
+            ? "Passport or National ID is required for official manifest issuance."
+            : `Passport or National ID is required for passenger ${i + 1}.`,
+        )
       }
     }
 

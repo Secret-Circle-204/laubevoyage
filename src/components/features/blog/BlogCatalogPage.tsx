@@ -18,7 +18,7 @@ export function BlogCatalogPage({ data }: { data: BlogCatalogDTO }) {
             L&apos;Aube Travel Journal
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-3 text-base sm:text-lg">
-            Expert insights, Egyptologist perspectives, and luxury journey stories tailored for discerning travelers.
+            Expert insights, cultural perspectives, and luxury journey stories tailored for discerning travelers.
           </p>
         </div>
 

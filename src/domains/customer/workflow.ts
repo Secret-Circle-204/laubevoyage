@@ -11,11 +11,22 @@ import { EventOutboxService } from '../events/outbox'
 import type { CustomerAggregate } from './aggregate'
 import type { CustomerPreferencesInput } from './types'
 import { NotificationService } from '../notification/service'
+import { CustomerPolicy } from './policy'
+import { NotificationRateLimiter } from '../notification/rate-limiter'
+import { DomainException } from '../shared/exceptions/domain-exception'
+import crypto from 'crypto'
 
 export type VerificationResult =
   | { status: 'VERIFIED'; customer: CustomerAggregate }
   | { status: 'ALREADY_VERIFIED'; customer: CustomerAggregate }
   | { status: 'INVALID_TOKEN'; error: string }
+
+export type ResendVerificationResult =
+  | { status: 'SENT'; email: string }
+  | { status: 'ALREADY_VERIFIED'; email: string }
+  | { status: 'NOT_FOUND'; email: string }
+  | { status: 'EXPIRED'; email: string }
+  | { status: 'RATE_LIMITED'; email: string }
 
 /**
  * Customer Workflow Engine
@@ -94,7 +105,11 @@ export class CustomerWorkflowEngine {
           priority: 'critical',
           templateId: 'verification_email',
           translationKey: 'customer.verify_email',
-          templateData: { name: customer.fullName, customerId: customer.customerId },
+          templateData: {
+            name: customer.fullName,
+            customerId: customer.customerId,
+            locale: customer.preferredLanguage,
+          },
         },
         activeContext,
       )
@@ -117,9 +132,12 @@ export class CustomerWorkflowEngine {
       console.log(`[CustomerWorkflowEngine.executeRegisterWorkflow] Customer registered successfully. ID: ${customer.customerId}, Email: ${customer.email}`)
       return customer
     } catch (err) {
-      console.error('[CustomerWorkflowEngine.executeRegisterWorkflow] Registration failed. Rolling back transaction. Error:', err)
+      if (err instanceof DomainException) {
+        console.warn(`[CustomerWorkflowEngine.executeRegisterWorkflow] Registration rejected by business rule [${err.code}]: ${err.message}`)
+      } else {
+        console.error('[CustomerWorkflowEngine.executeRegisterWorkflow] Registration failed with unexpected error:', err)
+      }
       if (!context && transactionID) {
-        console.log(`[CustomerWorkflowEngine.executeRegisterWorkflow] Triggered ROLLBACK for transaction: ${transactionID}`)
         await this.repository.getPayload().db.rollbackTransaction(transactionID)
       }
       throw err
@@ -171,6 +189,8 @@ export class CustomerWorkflowEngine {
           eventVersion: 1,
           customerId: customer.customerId,
           email: customer.email,
+          fullName: customer.fullName,
+          preferredLanguage: customer.preferredLanguage,
           verifiedAt: customer.emailVerifiedAt || new Date().toISOString(),
           timestamp: new Date().toISOString(),
         })
@@ -186,5 +206,84 @@ export class CustomerWorkflowEngine {
         error: message,
       }
     }
+  }
+
+  /**
+   * Resend verification email workflow (Verification Recovery).
+   * Reuses the existing valid verification credential during the 3-hour window.
+   * Enforces authoritative CustomerPolicy and NotificationRateLimiter.
+   */
+  async executeResendVerificationWorkflow(
+    email: string,
+    context?: RequestContext,
+  ): Promise<ResendVerificationResult> {
+    const trimmedEmail = email.toLowerCase().trim()
+    if (!trimmedEmail) {
+      return { status: 'NOT_FOUND', email: trimmedEmail }
+    }
+
+    // 1. Rate Limit Guard (Reuse existing NotificationRateLimiter: 3 requests / minute)
+    if (NotificationRateLimiter.isRateLimited(trimmedEmail)) {
+      return { status: 'RATE_LIMITED', email: trimmedEmail }
+    }
+
+    // 2. Locate customer and verification dispatch metadata
+    const customerId = await this.repository.findCustomerIdByEmail(trimmedEmail)
+    if (!customerId) {
+      return { status: 'NOT_FOUND', email: trimmedEmail }
+    }
+
+    const { customer, rawToken, expiresAt } = await this.repository.getVerificationDispatchData(customerId)
+    if (!customer) {
+      return { status: 'NOT_FOUND', email: trimmedEmail }
+    }
+
+    // 3. Evaluate verification eligibility via authoritative CustomerPolicy
+    const isExpired = expiresAt ? new Date(expiresAt).getTime() <= Date.now() : false
+    const policyResult = CustomerPolicy.canDispatchVerification(customer, {
+      hasToken: !!rawToken,
+      isExpired,
+    })
+
+    if (!policyResult.allowed) {
+      if (policyResult.code === 'ALREADY_VERIFIED') {
+        return { status: 'ALREADY_VERIFIED', email: customer.email }
+      }
+      if (policyResult.code === 'TOKEN_EXPIRED') {
+        return { status: 'EXPIRED', email: customer.email }
+      }
+      return { status: 'NOT_FOUND', email: customer.email }
+    }
+
+    console.log(`[CustomerWorkflowEngine.executeResendVerificationWorkflow] Initiating verification recovery for ${trimmedEmail}. CustomerId: ${customer.customerId}`)
+
+    // 4. Enqueue notification through existing NotificationService
+    // Each explicit resend attempt carries a clean, independent attempt identity (UUID),
+    // separating Customer Identity (customerId) from Notification Attempt Identity (referenceId),
+    // while customerId explicitly designates the target customer for the Worker's JIT dispatch.
+    const attemptId = crypto.randomUUID()
+    const enqueueResult = await this.notificationService.enqueueNotification(
+      {
+        referenceType: 'VERIFICATION_RESEND',
+        referenceId: attemptId,
+        customerId: customer.customerId,
+        recipient: customer.email,
+        channel: 'email',
+        category: 'security',
+        priority: 'critical',
+        templateId: 'verification_email',
+        translationKey: 'customer.verify_email',
+        templateData: {
+          name: customer.fullName,
+          customerId: customer.customerId,
+          locale: customer.preferredLanguage,
+        },
+      },
+      context,
+    )
+
+    console.log(`[CustomerWorkflowEngine.executeResendVerificationWorkflow] Verification notification enqueued. JobId: ${enqueueResult.jobId}, AttemptId: ${attemptId}, Queued: ${enqueueResult.queued}`)
+
+    return { status: 'SENT', email: customer.email }
   }
 }

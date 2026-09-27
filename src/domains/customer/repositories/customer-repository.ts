@@ -134,6 +134,15 @@ export class CustomerRepository {
     return result.docs[0] ? Number(result.docs[0].id) : null
   }
 
+  async deleteCustomerById(customerId: number, context?: RequestContext): Promise<void> {
+    const req = this.mapContextToReq(context)
+    await this.payload.delete({
+      collection: 'customers',
+      id: customerId,
+      req,
+    })
+  }
+
   async findCustomerIdByVerificationToken(token: string): Promise<number | null> {
     const result = await this.payload.find({
       collection: 'customers',

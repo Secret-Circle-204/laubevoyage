@@ -97,6 +97,7 @@ export const AccommodationPropertyPicker: React.FC<AccommodationPropertyPickerPr
   // Server-side demand-driven fetch for current page
   useEffect(() => {
     let isMounted = true
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
 
     getAccommodationsForAdminAction({

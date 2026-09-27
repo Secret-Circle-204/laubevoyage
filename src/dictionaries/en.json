@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "L'Aube Voyage Luxury Experiences",
-    "subtitle": "Crafting Journeys Since 1996: Your Passport to Global and Local Discoveries",
+    "subtitle": "Crafting Bespoke Journeys: Your Passport to Global and Local Discoveries",
     "cta": {
       "primary": "Explore Experiences →",
       "secondary": "Discover Destinations"
@@ -33,8 +33,8 @@
     },
     "footer": {
       "rights": "All Rights Reserved © 2026 L'Aube Voyage",
-      "tagline": "Crafting Extraordinary Travels Since 1996.",
-      "brandDescription": "Discover extraordinary luxury journeys, 5-star Nile cruises, and bespoke Egyptologist tours tailored for discerning travelers seeking historic perfection.",
+      "tagline": "Crafting Extraordinary Travels.",
+      "brandDescription": "Discover extraordinary luxury journeys and bespoke curated travel experiences tailored for discerning travelers seeking perfection.",
       "explore": "Explore",
       "allExperiences": "All Experiences",
       "destinations": "Destinations",
@@ -60,7 +60,7 @@
   "catalog": {
     "meta": {
       "title": "Luxury Experiences and Tour Packages Catalog | L'Aube Voyage",
-      "description": "Browse luxury tour packages, Nile cruises, and private daily tours across Egypt."
+      "description": "Browse luxury tour packages, curated journeys, and private daily tours."
     },
     "badge": "Bespoke Portfolio",
     "title": "Experiences Catalog",
@@ -82,6 +82,14 @@
     "lastName": "Last Name",
     "email": "Email Address",
     "phone": "Phone Number",
+    "manifest": {
+      "nextTraveler": "Next Traveler →",
+      "saveTravelers": "Save Travelers & Continue →",
+      "verifiedTitle": "Passenger Manifest Verified",
+      "verifiedDesc": "All passenger records are complete and ready for reservation confirmation.",
+      "requiredVerification": "Required for passenger manifest verification",
+      "jumpToNextIncomplete": "Jump to Next Incomplete Passenger →"
+    },
     "success": {
       "pendingBadge": "Settlement Checkpoint",
       "verifyingTitle": "Verifying Reservation",
@@ -117,7 +125,7 @@
   "contact": {
     "vipConciergeBadge": "24/7 VIP Concierge",
     "title": "Contact Our Travel Specialists",
-    "description": "Have questions about custom itineraries, group bookings, or private Nile cruise charters? Send us a message and our team will get back to you within 2 hours.",
+    "description": "Have questions about custom itineraries, group bookings, or bespoke travel arrangements? Send us a message and our team will get back to you within 2 hours.",
     "directContact": "Direct Contact",
     "cairoHeadOffice": "Cairo Head Office",
     "vipHotline": "VIP Hotline",
@@ -403,7 +411,7 @@
     "configureBooking": "Configure Booking",
     "journeyOverview": "Journey Overview",
     "staysTitle": "Your Stays and Accommodations",
-    "staysSubtitle": "Curated hotels and Nile cruise accommodations in your journey",
+    "staysSubtitle": "Curated hotels and luxury accommodations in your journey",
     "stayHeader": "Stay #{order} • {nights} {nightUnit}",
     "nightSingular": "Night",
     "nightPlural": "Nights",
@@ -517,7 +525,7 @@
     "title": "Search Results",
     "resultsForQuery": "Found {count} results for \"{query}\"",
     "resultsAll": "Found {count} results across journeys and destinations.",
-    "placeholder": "Search experiences, destinations, Nile cruises...",
+    "placeholder": "Search experiences, destinations, luxury journeys...",
     "searchButton": "Search",
     "filterAll": "All Experiences",
     "filterPackages": "Tour Packages",
@@ -530,5 +538,74 @@
     "nextPage": "Next →",
     "pageOf": "Page {page} of {totalPages}",
     "showingCount": "Showing page {page} of {totalPages} ({total} total)"
+  },
+  "emails": {
+    "common": {
+      "defaultName": "Valued Guest",
+      "pointsLabel": "Loyalty Points"
+    },
+    "verification": {
+      "subject": "Verify Your Email — L'Aube Voyage",
+      "preheader": "Verify your email to activate your exclusive L'Aube Voyage travel access.",
+      "badge": "ACCOUNT ACTIVATION",
+      "title": "Verify Your Email Address",
+      "greeting": "Dear {name},",
+      "intro": "Thank you for registering with L'Aube Voyage. To ensure the security of your account and activate your private access to our bespoke journeys, please verify your email address below.",
+      "cta": "Verify Email Address",
+      "expiryNotice": "This verification link is valid for 3 hours. For security reasons, please do not share this link with anyone.",
+      "troubleLink": "If the button above does not work, copy and paste the following link into your browser:",
+      "ignoreNotice": "If you did not create an account with L'Aube Voyage, please disregard this email."
+    },
+    "welcome": {
+      "subject": "Welcome to L'Aube Voyage — Your Journey Begins",
+      "preheader": "Your account is verified. Welcome to the L'Aube Voyage Circle.",
+      "badge": "WELCOME TO THE CIRCLE",
+      "title": "Welcome to L'Aube Voyage",
+      "greeting": "Dear {name},",
+      "intro": "Your account has been successfully verified and activated. As a valued member of the L'Aube Voyage Circle, you now have access to our curated collection of bespoke luxury journeys and exclusive travel experiences.",
+      "loyaltyBadge": "MEMBERSHIP REWARD",
+      "pointsTitle": "Welcome Points Awarded",
+      "pointsDescription": "We are delighted to welcome you with a special bonus credited to your account:",
+      "currentBalance": "Current Loyalty Balance: {balance} Points",
+      "cta": "Explore Experiences",
+      "outro": "Should you require tailored arrangements, private charters, or dedicated itinerary curation, our luxury concierge team is at your complete disposal.",
+      "signature": "With our warmest regards,\nThe Concierge Team, L'Aube Voyage"
+    },
+    "templates": {
+      "bookingConfirmation": {
+        "subject": "Booking Confirmation {bookingNumber}",
+        "body": "Hello {customerName}, your booking {bookingNumber} has been confirmed successfully.",
+        "badge": "BOOKING CONFIRMED"
+      },
+      "paymentReceipt": {
+        "subject": "Payment Receipt",
+        "body": "Payment of {amount} {currency} received successfully.",
+        "badge": "PAYMENT RECEIPT"
+      },
+      "tierUpgraded": {
+        "subject": "Loyalty Tier Upgraded to {newTier}",
+        "body": "Congratulations! Your membership tier has been upgraded to {newTier}.{bonus}",
+        "badge": "TIER UPGRADED"
+      },
+      "loyaltyEarned": {
+        "subject": "You earned {points} loyalty points!",
+        "body": "Congratulations! You have earned {points} new loyalty points.{balanceText}",
+        "badge": "LOYALTY REWARD"
+      },
+      "bookingPendingAdminReview": {
+        "subject": "Booking Request Received: {bookingNumber}",
+        "body": "Hello {customerName}, your booking request #{bookingNumber}{experienceTitle}{departureDate}{passengersCount}{totalCost} has been received. Our luxury travel concierge team is reviewing your request and will contact you shortly to confirm and finalize your reservation.",
+        "badge": "BOOKING REQUEST"
+      },
+      "adminBnplReviewAlert": {
+        "subject": "[ACTION REQUIRED] New BNPL Booking Request: #{bookingNumber}",
+        "body": "A new BNPL reservation request #{bookingNumber} was submitted by {customerName}{customerEmail}{experienceTitle}{departureDate}{passengersCount}.{totalAmount} Amount Paid: 0 (UNPAID). Current Status: Pending Admin Review.{adminBookingUrl}",
+        "badge": "ADMIN ALERT"
+      }
+    },
+    "footer": {
+      "support": "Need assistance? You can reply directly to this email.",
+      "confidentiality": "This email was sent to you because you registered with L'Aube Voyage. This is a private and confidential communication."
+    }
   }
 }

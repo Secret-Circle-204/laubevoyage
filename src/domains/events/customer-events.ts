@@ -12,6 +12,8 @@ export interface CustomerEmailVerifiedEvent extends BaseDomainEvent {
   type: 'CUSTOMER_EMAIL_VERIFIED'
   customerId: number
   email: string
+  fullName?: string
+  preferredLanguage?: string
   verifiedAt: string
 }
 

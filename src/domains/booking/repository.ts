@@ -60,7 +60,10 @@ export class BookingRepository {
     }
   }
 
-  private mapContextToReq(context?: RequestContext): PayloadRequest | undefined {
+  /**
+   * Map domain RequestContext to PayloadRequest with transaction context if available.
+   */
+  mapContextToReq(context?: RequestContext): PayloadRequest | undefined {
     if (!context || context.transactionId === null || context.transactionId === undefined) {
       return undefined
     }
@@ -838,4 +841,37 @@ export class BookingRepository {
       updatedAt,
     }
   }
+
+  /**
+   * Attach a canonical traveler ID to a specific manifest row of a booking.
+   * Strictly booking-owned persistence boundary.
+   * Transaction-mandatory operation: must execute on the active PostgreSQL transaction connection.
+   * Strictly prevents any fallback to pool or standalone drizzle to eliminate distributed deadlocks.
+   */
+  async updateManifestTravelerId(
+    bookingId: number,
+    order: number,
+    travelerId: number,
+    context?: RequestContext,
+  ): Promise<void> {
+    const dbAdapter = this.payload.db as any
+    const req = this.mapContextToReq(context)
+    const transactionID = req?.transactionID
+    const txKey = transactionID instanceof Promise ? await transactionID : transactionID
+
+    if (!txKey || !dbAdapter?.sessions?.[txKey]?.db?.session?.client) {
+      throw new Error(
+        `[BookingRepository.updateManifestTravelerId] Transaction-mandatory operation failed: No active transaction client found for txKey "${txKey}". Fallback to pool is strictly forbidden to prevent distributed deadlocks.`
+      )
+    }
+
+    const client = dbAdapter.sessions[txKey].db.session.client
+    const sqlText = `
+      UPDATE "bookings_travelers"
+      SET "traveler_id" = $1
+      WHERE "_parent_id" = $2 AND "_order" = $3;
+    `
+    await client.query(sqlText, [travelerId, bookingId, order])
+  }
 }
+

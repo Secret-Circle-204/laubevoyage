@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "ローブ・ボヤージュ 贅沢な旅の体験",
-    "subtitle": "1996年創業のオーダーメイド旅程：世界と地域を発見する極上のパスポート",
+    "subtitle": "至高のオーダーメイド旅程：世界と地域を発見する極上のパスポート",
     "cta": {
       "primary": "体験プランを見る →",
       "secondary": "目的地を探す"
@@ -33,8 +33,8 @@
     },
     "footer": {
       "rights": "無断転載を禁じます © 2026 L'Aube Voyage",
-      "tagline": "1996年創業、特別な旅をお届けします。",
-      "brandDescription": "厳選されたラグジュアリーな旅、5つ星ナイル川クルーズ、専任エジプト考古学者によるプライベートツアーをお楽しみください。",
+      "tagline": "心に残る特別な旅をお届けします。",
+      "brandDescription": "厳選されたラグジュアリーな旅と、お客様だけの特別なオーダーメイド体験をお楽しみください。",
       "explore": "探索",
       "allExperiences": "すべてのプラン",
       "destinations": "目的地",
@@ -54,7 +54,7 @@
   "catalog": {
     "meta": {
       "title": "ラグジュアリー体験＆ツアーパッケージカタログ | L'Aube Voyage",
-      "description": "エジプト全土の厳選されたツアーパッケージ、ナイル川クルーズ、プライベートツアーをご案内。"
+      "description": "厳選されたツアーパッケージ、オーダーメイドの旅程、プライベートツアーをご案内。"
     },
     "badge": "オーダーメイドコレクション",
     "title": "体験プラン一覧",
@@ -76,6 +76,14 @@
     "lastName": "姓",
     "email": "メールアドレス",
     "phone": "電話番号",
+    "manifest": {
+      "nextTraveler": "次の旅行者 →",
+      "saveTravelers": "保存して次へ進む →",
+      "verifiedTitle": "乗客名簿の確認完了",
+      "verifiedDesc": "すべての乗客情報が入力され、予約確認の準備が整いました。",
+      "requiredVerification": "乗客名簿の確認に必要です",
+      "jumpToNextIncomplete": "次の未入力の旅行者へ移動 →"
+    },
     "success": {
       "pendingBadge": "決済確認ポイント",
       "verifyingTitle": "ご予約を確認中",
@@ -111,7 +119,7 @@
   "contact": {
     "vipConciergeBadge": "24時間年中無休 VIPコンシェルジュ",
     "title": "トラベルスペシャリストにお問い合わせ",
-    "description": "オーダーメイドの旅程やプライベートクルーズについてご不明な点がございましたら、お気軽にお問い合わせください。2時間以内にご返答いたします。",
+    "description": "オーダーメイドの旅程や特別なご旅行についてご不明な点がございましたら、お気軽にお問い合わせください。2時間以内にご返答いたします。",
     "directContact": "直接連絡",
     "cairoHeadOffice": "カイロ本社",
     "vipHotline": "VIP専用ダイヤル",
@@ -322,7 +330,7 @@
     "configureBooking": "予約内容を設定",
     "journeyOverview": "旅程の概要",
     "staysTitle": "ご滞在先・宿泊施設",
-    "staysSubtitle": "旅程に含まれる厳選されたホテルおよびナイル川クルーズ",
+    "staysSubtitle": "旅程に含まれる厳選された最高級ホテルおよびご宿泊先",
     "stayHeader": "滞在 #{order} • {nights} {nightUnit}",
     "nightSingular": "泊",
     "nightPlural": "泊",
@@ -512,7 +520,7 @@
     "title": "検索結果",
     "resultsForQuery": "「{query}」の検索結果: {count}件",
     "resultsAll": "ツアーおよび目的地から {count}件の結果が見つかりました。",
-    "placeholder": "体験、目的地、ナイル川クルーズを検索...",
+    "placeholder": "体験、目的地、ラグジュアリーな旅を検索...",
     "searchButton": "検索",
     "filterAll": "すべての体験",
     "filterPackages": "ツアーパッケージ",
@@ -525,5 +533,42 @@
     "nextPage": "次へ →",
     "pageOf": "{page} / {totalPages} ページ",
     "showingCount": "{page} / {totalPages} ページを表示中 (全 {total} 件)"
+  },
+  "emails": {
+    "common": {
+      "defaultName": "大切なお客様",
+      "pointsLabel": "ロイヤルティポイント"
+    },
+    "verification": {
+      "subject": "メールアドレスの確認 — L'Aube Voyage",
+      "preheader": "メールアドレスを確認して、L'Aube Voyageのエクスクルーシブな旅へのアクセスを有効化してください。",
+      "badge": "アカウントの有効化",
+      "title": "メールアドレスをご確認ください",
+      "greeting": "{name} 様",
+      "intro": "L'Aube Voyageにご登録いただき、誠にありがとうございます。アカウントのセキュリティを確保し、オーダーメイドの旅への専用アクセスを有効化するため、下記よりメールアドレスをご確認ください。",
+      "cta": "メールアドレスを確認する",
+      "expiryNotice": "この確認リンクの有効期限は3時間です。セキュリティ保護のため、このリンクを他の方と共有しないでください。",
+      "troubleLink": "上記のボタンが機能しない場合は、次のURLをブラウザにコピー＆ペーストしてください：",
+      "ignoreNotice": "L'Aube Voyageでアカウントを作成した覚えがない場合は、このメールを破棄してください。"
+    },
+    "welcome": {
+      "subject": "L'Aube Voyage へようこそ — 極上の旅が始まります",
+      "preheader": "アカウントが有効化されました。L'Aube Voyage Circleへようこそ。",
+      "badge": "サークルへようこそ",
+      "title": "L'Aube Voyage へようこそ",
+      "greeting": "{name} 様",
+      "intro": "アカウントの確認と有効化が完了いたしました。L'Aube Voyage Circleの大切なメンバーとして、厳選されたラグジュアリーな旅程と特別な旅の体験をご利用いただけます。",
+      "loyaltyBadge": "ウェルカム特典",
+      "pointsTitle": "ウェルカムポイントが付与されました",
+      "pointsDescription": "ご登録を祝し、アカウントに直接加算されるウェルカムボーナスをお贈りいたします：",
+      "currentBalance": "現在のポイント残高: {balance} ポイント",
+      "cta": "特別な体験を探す",
+      "outro": "オーダーメイドの手配、プライベートチャーター、専用の旅程作成など、弊社のラグジュアリーコンシェルジュチームがいつでもお手伝いいたします。",
+      "signature": "心よりお待ち申し上げております。\nL'Aube Voyage コンシェルジュチーム"
+    },
+    "footer": {
+      "support": "サポートが必要ですか？このメールに直接ご返信いただけます。",
+      "confidentiality": "このメールは、L'Aube Voyageにご登録いただいたお客様にお送りしております。機密情報が含まれています。"
+    }
   }
 }

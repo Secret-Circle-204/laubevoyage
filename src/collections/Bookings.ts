@@ -166,6 +166,15 @@ export const Bookings: CollectionConfig = {
             { label: 'Infant', value: 'infant' },
           ],
         },
+        {
+          name: 'traveler',
+          type: 'relationship',
+          relationTo: 'travelers',
+          required: false,
+          admin: {
+            description: 'Link to the canonical persistent traveler registry record.',
+          },
+        },
       ],
     },
     {

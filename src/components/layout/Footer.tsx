@@ -62,7 +62,7 @@ export function Footer({ data }: FooterProps) {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/80 dark:text-muted">
-          <p>© {currentYear} L&apos;Aube Voyage. Est. 1996. All rights reserved.</p>
+          <p>© {currentYear} L&apos;Aube Voyage. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="hover:text-white dark:hover:text-secondary transition-colors underline-offset-4 hover:underline">
               Privacy Policy

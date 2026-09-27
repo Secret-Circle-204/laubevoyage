@@ -16,7 +16,7 @@ export interface TravelerPresentationState {
   hasIssues: boolean
   issues: TravelerManifestFieldIssue[]
   missingFieldsSummary: string
-  primaryMissingField?: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth'
+  primaryMissingField?: 'firstName' | 'lastName' | 'email' | 'phone' | 'dateOfBirth' | 'nationality' | 'passportNumber'
 }
 
 export interface ManifestPresentationDiagnostics {
@@ -45,6 +45,8 @@ const FIELD_LABELS: Record<string, string> = {
   email: 'Contact email',
   phone: 'Contact phone',
   dateOfBirth: 'Date of birth',
+  nationality: 'Nationality',
+  passportNumber: 'Passport / National ID',
 }
 
 /**

@@ -62,7 +62,7 @@ const hornbill = localFont({
 
 export const metadata = {
   title: "L'AUBE VOYAGE | Luxury Travel & Experiences",
-  description: 'Crafting Journeys Since 1996: Your Passport to Global and Local Discoveries.',
+  description: 'Crafting Extraordinary Journeys: Your Passport to Global and Local Discoveries.',
 }
 
 import { getLocaleContext } from '@/lib/get-locale-context'

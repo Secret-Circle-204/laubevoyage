@@ -1,10 +1,12 @@
-import type { RequestContext, LoyaltyTier } from '@/types'
-import { CustomerWorkflowEngine, type VerificationResult } from './workflow'
+import type { RequestContext, LoyaltyTier, PaginatedResponse } from '@/types'
+import { CustomerWorkflowEngine, type VerificationResult, type ResendVerificationResult } from './workflow'
 import { CustomerRepository } from './repositories/customer-repository'
+import { TravelerRepository } from './repositories/traveler-repository'
 import type { CustomerAggregate } from './aggregate'
 import type { Customer } from '@/payload-types'
 import {
   type CompanionTravelerEntity,
+  type TravelerReportRecord,
   type CustomerPreferencesInput,
   type CustomerDeletionDependencyChecker,
   CustomerDeletionNotAllowedException,
@@ -83,6 +85,10 @@ export class CustomerService {
 
   async verifyEmail(rawToken: string, email?: string): Promise<VerificationResult> {
     return this.workflowEngine.executeVerifyEmailWorkflow(rawToken, email)
+  }
+
+  async resendVerification(email: string, context?: RequestContext): Promise<ResendVerificationResult> {
+    return this.workflowEngine.executeResendVerificationWorkflow(email, context)
   }
 
   async login(email: string): Promise<CustomerAggregate> {
@@ -177,14 +183,24 @@ export class CustomerService {
     return updated
   }
 
-  async getTravelers(customerId: number): Promise<CompanionTravelerEntity[]> {
-    return this.workflowEngine.profileManager.getTravelers(customerId)
+  async getSavedCompanions(customerId: number): Promise<CompanionTravelerEntity[]> {
+    return this.workflowEngine.profileManager.getSavedCompanions(customerId)
   }
 
-  async addTraveler(
-    traveler: Omit<CompanionTravelerEntity, 'travelerId'>,
-  ): Promise<CompanionTravelerEntity> {
-    return this.workflowEngine.profileManager.addTraveler(traveler)
+  async saveCompanion(
+    customerId: number,
+    travelerId: number,
+    relationship: 'spouse' | 'child' | 'parent' | 'friend' | 'self' | 'other' = 'other',
+  ): Promise<void> {
+    return this.workflowEngine.profileManager.saveCompanion(customerId, travelerId, relationship)
+  }
+
+  async getTravelersReport(options?: {
+    page?: number
+    limit?: number
+    search?: string
+  }): Promise<PaginatedResponse<TravelerReportRecord>> {
+    return this.workflowEngine.profileManager.getTravelersReport(options)
   }
 
   async handleFailedLogin(email: string): Promise<void> {
@@ -212,5 +228,12 @@ export class CustomerService {
     }
 
     await this.repository.cleanupProfileAssociatedData(customerId, req)
+  }
+
+  /**
+   * Get the authoritative TravelerRepository for canonical identity resolution.
+   */
+  getTravelerRepository(): TravelerRepository {
+    return this.workflowEngine.travelerRepository
   }
 }

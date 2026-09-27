@@ -189,7 +189,7 @@ export function ExperienceHero({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="relative min-h-[28rem] sm:min-h-[34rem] lg:min-h-[38rem] w-full rounded-3xl overflow-hidden mb-12 shadow-2xl bg-neutral-950 flex flex-col justify-between p-6 sm:p-12 animate-editorial-reveal stagger-1 group cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-secondary/50"
+        className="relative min-h-[34rem] sm:min-h-[36rem] lg:min-h-[40rem] w-full rounded-2xl sm:rounded-3xl overflow-hidden mb-10 sm:mb-12 shadow-2xl bg-neutral-950 flex flex-col justify-between p-5 sm:p-12 animate-editorial-reveal stagger-1 group cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-secondary/50"
       >
         {heroImage ? (
           <Image

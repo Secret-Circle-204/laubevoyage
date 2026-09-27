@@ -83,6 +83,7 @@ export interface Config {
     'admin-audit-logs': AdminAuditLog;
     'customer-notification-preferences': CustomerNotificationPreference;
     'customer-travelers': CustomerTraveler;
+    travelers: Traveler;
     'dashboard-projections': DashboardProjection;
     faqs: Faq;
     'maintenance-logs': MaintenanceLog;
@@ -122,6 +123,7 @@ export interface Config {
     'admin-audit-logs': AdminAuditLogsSelect<false> | AdminAuditLogsSelect<true>;
     'customer-notification-preferences': CustomerNotificationPreferencesSelect<false> | CustomerNotificationPreferencesSelect<true>;
     'customer-travelers': CustomerTravelersSelect<false> | CustomerTravelersSelect<true>;
+    travelers: TravelersSelect<false> | TravelersSelect<true>;
     'dashboard-projections': DashboardProjectionsSelect<false> | DashboardProjectionsSelect<true>;
     faqs: FaqsSelect<false> | FaqsSelect<true>;
     'maintenance-logs': MaintenanceLogsSelect<false> | MaintenanceLogsSelect<true>;
@@ -835,6 +837,10 @@ export interface Booking {
     passportNumber?: string | null;
     nationality?: string | null;
     type?: ('adult' | 'child' | 'infant') | null;
+    /**
+     * Link to the canonical persistent traveler registry record.
+     */
+    traveler?: (number | null) | Traveler;
     id?: string | null;
   }[];
   /**
@@ -1023,6 +1029,28 @@ export interface DepartureSlot {
   createdAt: string;
 }
 /**
+ * Authoritative company-wide persistent registry of all individuals who have traveled with L'Aube Voyage.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "travelers".
+ */
+export interface Traveler {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+  passportNumber?: string | null;
+  nationality?: string | null;
+  /**
+   * Internal operational notes or preferences for this traveler.
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Immutable ledger of all loyalty point transactions
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1191,17 +1219,20 @@ export interface CustomerNotificationPreference {
   createdAt: string;
 }
 /**
+ * Saved companion relationships linking a Customer account to canonical Travelers.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "customer-travelers".
  */
 export interface CustomerTraveler {
   id: number;
   customer: number | Customer;
-  firstName: string;
-  lastName: string;
-  dateOfBirth?: string | null;
-  passportNumber?: string | null;
-  relationship: 'spouse' | 'child' | 'parent' | 'friend' | 'other';
+  traveler: number | Traveler;
+  relationship: 'spouse' | 'child' | 'parent' | 'friend' | 'self' | 'other';
+  /**
+   * Designate as default travel companion for quick allocation.
+   */
+  isDefault?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1621,6 +1652,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'customer-travelers';
         value: number | CustomerTraveler;
+      } | null)
+    | ({
+        relationTo: 'travelers';
+        value: number | Traveler;
       } | null)
     | ({
         relationTo: 'dashboard-projections';
@@ -2068,6 +2103,7 @@ export interface BookingsSelect<T extends boolean = true> {
         passportNumber?: T;
         nationality?: T;
         type?: T;
+        traveler?: T;
         id?: T;
       };
   startDate?: T;
@@ -2231,11 +2267,25 @@ export interface CustomerNotificationPreferencesSelect<T extends boolean = true>
  */
 export interface CustomerTravelersSelect<T extends boolean = true> {
   customer?: T;
+  traveler?: T;
+  relationship?: T;
+  isDefault?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "travelers_select".
+ */
+export interface TravelersSelect<T extends boolean = true> {
   firstName?: T;
   lastName?: T;
+  email?: T;
+  phone?: T;
   dateOfBirth?: T;
   passportNumber?: T;
-  relationship?: T;
+  nationality?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

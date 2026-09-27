@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "L'Aube Voyage Luxuserlebnisse",
-    "subtitle": "Reisekreationen seit 1996: Ihr Reisepass zu globalen und lokalen Entdeckungen",
+    "subtitle": "Maßgeschneiderte Reisekreationen: Ihr Reisepass zu globalen und lokalen Entdeckungen",
     "cta": {
       "primary": "Erlebnisse Entdecken →",
       "secondary": "Reiseziele Erkunden"
@@ -33,8 +33,8 @@
     },
     "footer": {
       "rights": "Alle Rechte vorbehalten © 2026 L'Aube Voyage",
-      "tagline": "Außergewöhnliche Reisen seit 1996.",
-      "brandDescription": "Entdecken Sie außergewöhnliche Luxusreisen, 5-Sterne-Nilkreuzfahrten und maßgeschneiderte Touren mit Ägyptologen für anspruchsvolle Reisende.",
+      "tagline": "Außergewöhnliche Reisen.",
+      "brandDescription": "Entdecken Sie außergewöhnliche Luxusreisen und maßgeschneiderte Reiseerlebnisse für anspruchsvolle Reisende.",
       "explore": "Entdecken",
       "allExperiences": "Alle Erlebnisse",
       "destinations": "Reiseziele",
@@ -54,7 +54,7 @@
   "catalog": {
     "meta": {
       "title": "Luxusreisen & Erlebniskatalog | L'Aube Voyage",
-      "description": "Luxuriöse Reisepakete, Nilkreuzfahrten und private Tagestouren in Ägypten."
+      "description": "Luxuriöse Reisepakete, maßgeschneiderte Reiserouten und private Touren."
     },
     "badge": "Exklusives Portfolio",
     "title": "Erlebniskatalog",
@@ -76,6 +76,14 @@
     "lastName": "Nachname",
     "email": "E-Mail-Adresse",
     "phone": "Telefonnummer",
+    "manifest": {
+      "nextTraveler": "Nächster Reisender →",
+      "saveTravelers": "Speichern und fortfahren →",
+      "verifiedTitle": "Passagiermanifest verifiziert",
+      "verifiedDesc": "Alle Passagierdaten sind vollständig und bereit zur Bestätigung.",
+      "requiredVerification": "Erforderlich für die Manifestüberprüfung",
+      "jumpToNextIncomplete": "Zum nächsten unvollständigen Reisenden springen →"
+    },
     "success": {
       "pendingBadge": "Sicherheits-Prüfpunkt",
       "verifyingTitle": "Buchung Wird Überprüft",
@@ -111,7 +119,7 @@
   "contact": {
     "vipConciergeBadge": "24/7 VIP-Concierge",
     "title": "Kontaktieren Sie Unsere Reisespezialisten",
-    "description": "Fragen zu individuellen Reiserouten oder privaten Nilkreuzfahrten? Schreiben Sie uns, wir antworten innerhalb von 2 Stunden.",
+    "description": "Fragen zu individuellen Reiserouten oder exklusiven Reisebuchungen? Schreiben Sie uns, wir antworten innerhalb von 2 Stunden.",
     "directContact": "Direktkontakt",
     "cairoHeadOffice": "Hauptsitz Kairo",
     "vipHotline": "VIP-Hotline",
@@ -326,7 +334,7 @@
     "configureBooking": "Buchung konfigurieren",
     "journeyOverview": "Reiseübersicht",
     "staysTitle": "Ihre Aufenthalte und Unterkünfte",
-    "staysSubtitle": "Kuratierte Hotels und Nilkreuzfahrt-Unterkünfte auf Ihrer Reise",
+    "staysSubtitle": "Kuratierte Hotels und Luxusunterkünfte auf Ihrer Reise",
     "stayHeader": "Aufenthalt #{order} • {nights} {nightUnit}",
     "nightSingular": "Nacht",
     "nightPlural": "Nächte",
@@ -512,7 +520,7 @@
     "title": "Suchergebnisse",
     "resultsForQuery": "{count} Ergebnisse für \"{query}\" gefunden",
     "resultsAll": "{count} Ergebnisse für Reisen und Reiseziele gefunden.",
-    "placeholder": "Erlebnisse, Reiseziele, Nilkreuzfahrten suchen...",
+    "placeholder": "Erlebnisse, Reiseziele, Luxusreisen suchen...",
     "searchButton": "Suchen",
     "filterAll": "Alle Erlebnisse",
     "filterPackages": "Reisepakete",
@@ -525,5 +533,42 @@
     "nextPage": "Weiter →",
     "pageOf": "Seite {page} von {totalPages}",
     "showingCount": "Seite {page} von {totalPages} ({total} insgesamt)"
+  },
+  "emails": {
+    "common": {
+      "defaultName": "Geschätzter Gast",
+      "pointsLabel": "Treuepunkte"
+    },
+    "verification": {
+      "subject": "Bestätigen Sie Ihre E-Mail — L'Aube Voyage",
+      "preheader": "Bestätigen Sie Ihre E-Mail, um Ihren exklusiven Zugang zu L'Aube Voyage zu aktivieren.",
+      "badge": "KONTOAKTIVIERUNG",
+      "title": "E-Mail-Adresse Bestätigen",
+      "greeting": "Sehr geehrte(r) {name},",
+      "intro": "Vielen Dank für Ihre Registrierung bei L'Aube Voyage. Um die Sicherheit Ihres Kontos zu gewährleisten und Ihren privaten Zugang zu unseren maßgeschneiderten Reisen zu aktivieren, bestätigen Sie bitte unten Ihre E-Mail-Adresse.",
+      "cta": "E-Mail-Adresse Bestätigen",
+      "expiryNotice": "Dieser Bestätigungslink ist 3 Stunden gültig. Bitte teilen Sie diesen Link aus Sicherheitsgründen mit niemandem.",
+      "troubleLink": "Falls der obige Button nicht funktioniert, kopieren Sie bitte den folgenden Link in Ihren Browser:",
+      "ignoreNotice": "Falls Sie kein Konto bei L'Aube Voyage erstellt haben, können Sie diese E-Mail ignorieren."
+    },
+    "welcome": {
+      "subject": "Willkommen bei L'Aube Voyage — Ihre Reise Beginnt",
+      "preheader": "Ihr Konto ist bestätigt. Willkommen im L'Aube Voyage Circle.",
+      "badge": "WILLKOMMEN IM CIRCLE",
+      "title": "Willkommen bei L'Aube Voyage",
+      "greeting": "Sehr geehrte(r) {name},",
+      "intro": "Ihr Konto wurde erfolgreich bestätigt und aktiviert. Als geschätztes Mitglied des L'Aube Voyage Circle haben Sie nun exklusiven Zugang zu unserer handverlesenen Kollektion maßgeschneiderter Luxusreisen und exklusiver Reiseerlebnisse.",
+      "loyaltyBadge": "WILLKOMMENSBELOHNUNG",
+      "pointsTitle": "Willkommenspunkte Gutgeschrieben",
+      "pointsDescription": "Wir freuen uns, Ihnen einen besonderen Willkommensbonus auf Ihrem Konto gutzuschreiben:",
+      "currentBalance": "Aktueller Punktestand: {balance} Punkte",
+      "cta": "Erlebnisse Entdecken",
+      "outro": "Sollten Sie maßgeschneiderte Reisearrangements, Privatcharter oder eine dedizierte Reiseroutenplanung wünschen, steht Ihnen unser Luxus-Concierge-Team jederzeit gerne zur Verfügung.",
+      "signature": "Mit herzlichen Grüßen,\nIhr Concierge-Team, L'Aube Voyage"
+    },
+    "footer": {
+      "support": "Benötigen Sie Hilfe? Sie können direkt auf diese E-Mail antworten.",
+      "confidentiality": "Diese E-Mail wurde an Sie gesendet, weil Sie sich bei L'Aube Voyage registriert haben. Dies ist eine vertrauliche Mitteilung."
+    }
   }
 }

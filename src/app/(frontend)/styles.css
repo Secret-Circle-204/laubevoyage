@@ -10,7 +10,9 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: var(--font-outfit), var(--font-montserrat), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    var(--font-outfit), var(--font-montserrat), var(--font-inter), ui-sans-serif, system-ui,
+    sans-serif;
   --font-serif: var(--font-playfair), ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
   --font-hornbill: var(--font-hornbill), var(--font-serif);
   --font-mono: var(--font-outfit), var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
@@ -282,7 +284,8 @@
   }
 
   @keyframes ambientPulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0.35;
       transform: scale(1);
     }
@@ -308,7 +311,8 @@
   }
 
   @keyframes subtleFloatParticle {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0px) translateX(0px);
       opacity: 0.3;
     }
@@ -375,6 +379,23 @@
     }
   }
 
+  @keyframes beamFlowDown {
+    0% {
+      transform: translateY(-120%);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(220%);
+      opacity: 0;
+    }
+  }
+
   .animate-beam-flow-ltr {
     animation: beamFlowLtr 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
@@ -382,15 +403,32 @@
   .animate-beam-flow-rtl {
     animation: beamFlowRtl 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
+
+  .animate-beam-flow-down {
+    animation: beamFlowDown 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes routeDashFlow {
+    from {
+      stroke-dashoffset: 48;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .animate-route-dash {
+    animation: routeDashFlow 2s linear infinite;
+  }
 }
 
 :root {
-  /* Light Mode: Quiet Luxury Palette (warm canvas, clean surface) */
-  --background: #f8f7f5;
+  /* Light Mode: Quiet Luxury Palette (soothing warm stone canvas, anti-glare card surfaces) */
+  --background: #eaeaea;
   --foreground: #231f20;
-  --card: #ffffff;
-  --card-elevated: #ffffff;
-  --border: #e8e5df;
+  --card: #ececec;
+  --card-elevated: #fdfcfb;
+  --border: #dcd6cc;
   --muted: #6b6661;
 }
 
@@ -407,7 +445,11 @@
 
 body {
   background-color: var(--background);
-  background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 174, 239, 0.035), transparent);
+  background-image: radial-gradient(
+    ellipse 80% 50% at 50% -20%,
+    rgba(0, 174, 239, 0.035),
+    transparent
+  );
   color: var(--foreground);
   font-family: var(--font-sans);
   transition:
@@ -416,7 +458,11 @@ body {
 }
 
 .dark body {
-  background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 174, 239, 0.05), transparent);
+  background-image: radial-gradient(
+    ellipse 80% 50% at 50% -20%,
+    rgba(0, 174, 239, 0.05),
+    transparent
+  );
 }
 
 h1,
@@ -447,8 +493,8 @@ html {
 
 /* Dark Luxury Autofill Override */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, 
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 40px #181516 inset !important;
   -webkit-text-fill-color: #ffffff !important;
@@ -496,16 +542,31 @@ input:-webkit-autofill:active {
 }
 
 /* Stagger delays capped to max 6 elements to prevent timer accumulation */
-.stagger-1 { animation-delay: 50ms; }
-.stagger-2 { animation-delay: 100ms; }
-.stagger-3 { animation-delay: 150ms; }
-.stagger-4 { animation-delay: 200ms; }
-.stagger-5 { animation-delay: 250ms; }
-.stagger-6 { animation-delay: 300ms; }
+.stagger-1 {
+  animation-delay: 50ms;
+}
+.stagger-2 {
+  animation-delay: 100ms;
+}
+.stagger-3 {
+  animation-delay: 150ms;
+}
+.stagger-4 {
+  animation-delay: 200ms;
+}
+.stagger-5 {
+  animation-delay: 250ms;
+}
+.stagger-6 {
+  animation-delay: 300ms;
+}
 
 /* Interactive Card & Object Motion */
 .card-interactive-luxury {
-  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), border-color 220ms ease, box-shadow 260ms ease;
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 220ms ease,
+    box-shadow 260ms ease;
   will-change: transform;
 }
 
@@ -574,5 +635,3 @@ input:-webkit-autofill:active {
     scroll-behavior: auto !important;
   }
 }
-
-

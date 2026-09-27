@@ -1,13 +1,46 @@
 export type CustomerStatus = 'pending_verification' | 'active' | 'suspended' | 'pending_deletion' | 'deleted'
 
+export interface CanonicalTravelerEntity {
+  id: number
+  firstName: string
+  lastName: string
+  email?: string
+  phone?: string
+  dateOfBirth?: string
+  passportNumber?: string
+  nationality?: string
+  notes?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 export interface CompanionTravelerEntity {
-  travelerId: string
+  id: string
+  travelerId: number
   customerId: number
   firstName: string
   lastName: string
+  email?: string
+  phone?: string
   dateOfBirth?: string
   passportNumber?: string
-  relationship: 'spouse' | 'child' | 'parent' | 'friend' | 'other'
+  nationality?: string
+  relationship: 'spouse' | 'child' | 'parent' | 'friend' | 'self' | 'other'
+  isDefault?: boolean
+}
+
+export interface TravelerReportRecord {
+  travelerId: number
+  firstName: string
+  lastName: string
+  email?: string
+  phone?: string
+  nationality?: string
+  passportNumber?: string
+  dateOfBirth?: string
+  totalTripsCount: number
+  firstVoyageDate?: string
+  latestVoyageDate?: string
 }
 
 export interface GranularGDPRConsent {

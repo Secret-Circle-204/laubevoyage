@@ -64,7 +64,7 @@ export const CANONICAL_COUNTRIES: CountrySeedDef[] = [
     seo: {
       title: "Luxury Egypt Journeys & Private Nile Expeditions | L'Aube Voyage",
       description:
-        'Discover bespoke luxury journeys across Egypt. Private Egyptologist tours to the Giza Pyramids, Grand Egyptian Museum, five-star Nile cruises, and Red Sea coastal escapes.',
+        'Discover bespoke luxury journeys across Egypt. Curated private tours to the Giza Pyramids, Grand Egyptian Museum, and scenic escapes.',
       keywords: 'Egypt luxury travel, Giza Pyramids private tour, luxury Nile cruise, Grand Egyptian Museum VIP, Red Sea private resort',
     },
   },

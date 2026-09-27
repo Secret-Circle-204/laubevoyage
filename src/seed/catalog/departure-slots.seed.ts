@@ -344,12 +344,12 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
 
   // =========================================================================
-  // 3. Classical Nile and Pharaonic Odyssey (7D/6N) — EXP-EG-03 (12 Slots)
+  // 3. Classical Egypt & Nile (8D/7N) — EXP-EG-03 (12 Slots)
   // Friday Departures from Cairo (15:00) | L'Aube Allocation: 16 Guests (8 Palace Rooms)
   // =========================================================================
   {
     departureId: 'DEP-EXP-EG-03-20261009',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2026-10-09',
     startTime: '15:00',
     capacityTotal: 16,
@@ -361,7 +361,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20261023',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2026-10-23',
     startTime: '15:00',
     capacityTotal: 16,
@@ -373,7 +373,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20261106',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2026-11-06',
     startTime: '15:00',
     capacityTotal: 16,
@@ -385,7 +385,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20261120',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2026-11-20',
     startTime: '15:00',
     capacityTotal: 16,
@@ -397,7 +397,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20261204',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2026-12-04',
     startTime: '15:00',
     capacityTotal: 16,
@@ -409,7 +409,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20261218',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2026-12-18',
     startTime: '15:00',
     capacityTotal: 16,
@@ -421,7 +421,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20270108',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2027-01-08',
     startTime: '15:00',
     capacityTotal: 16,
@@ -433,7 +433,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20270122',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2027-01-22',
     startTime: '15:00',
     capacityTotal: 16,
@@ -445,7 +445,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20270205',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2027-02-05',
     startTime: '15:00',
     capacityTotal: 16,
@@ -457,7 +457,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20270219',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2027-02-19',
     startTime: '15:00',
     capacityTotal: 16,
@@ -469,7 +469,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20270305',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2027-03-05',
     startTime: '15:00',
     capacityTotal: 16,
@@ -481,7 +481,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-EG-03-20270319',
-    experienceSlug: 'classical-nile-pharaonic-odyssey-7d',
+    experienceSlug: 'classical-egypt-and-nile-8d',
     date: '2027-03-19',
     startTime: '15:00',
     capacityTotal: 16,
@@ -642,12 +642,12 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
 
   // =========================================================================
-  // 5. Pharaonic Heritage & Arabian Desert Elegance: Cairo to Dubai (7D/6N) — EXP-INT-01 (12 Slots)
-  // Saturday Departures from Cairo (15:00) | L'Aube Allocation: 10 Guests (5 Suites)
+  // 5. Emirates of Elegance: Dubai & Abu Dhabi (7D/6N) — EXP-INT-01 (12 Slots)
+  // Saturday Departures from Dubai (15:00) | L'Aube Allocation: 10 Guests (5 Suites)
   // =========================================================================
   {
     departureId: 'DEP-EXP-INT-01-20261010',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2026-10-10',
     startTime: '15:00',
     capacityTotal: 10,
@@ -659,7 +659,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20261024',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2026-10-24',
     startTime: '15:00',
     capacityTotal: 10,
@@ -671,7 +671,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20261114',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2026-11-14',
     startTime: '15:00',
     capacityTotal: 10,
@@ -683,7 +683,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20261128',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2026-11-28',
     startTime: '15:00',
     capacityTotal: 10,
@@ -695,7 +695,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20261212',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2026-12-12',
     startTime: '15:00',
     capacityTotal: 10,
@@ -707,7 +707,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20261226',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2026-12-26',
     startTime: '15:00',
     capacityTotal: 10,
@@ -719,7 +719,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20270109',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2027-01-09',
     startTime: '15:00',
     capacityTotal: 10,
@@ -731,7 +731,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20270123',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2027-01-23',
     startTime: '15:00',
     capacityTotal: 10,
@@ -743,7 +743,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20270213',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2027-02-13',
     startTime: '15:00',
     capacityTotal: 10,
@@ -755,7 +755,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20270227',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2027-02-27',
     startTime: '15:00',
     capacityTotal: 10,
@@ -767,7 +767,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20270313',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2027-03-13',
     startTime: '15:00',
     capacityTotal: 10,
@@ -779,7 +779,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-01-20270327',
-    experienceSlug: 'pharaonic-heritage-arabian-desert-elegance-cairo-dubai',
+    experienceSlug: 'emirates-of-elegance-dubai-abu-dhabi-7d',
     date: '2027-03-27',
     startTime: '15:00',
     capacityTotal: 10,
@@ -791,12 +791,12 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
 
   // =========================================================================
-  // 6. Empires of Elegance: Cairo and Paris Palace Odyssey (8D/7N) — EXP-INT-02 (12 Slots)
-  // Sunday Departures from Cairo (15:00) | L'Aube Allocation: 10 Guests (5 Palace Suites)
+  // 6. Paris & French Riviera: Haute Couture to Azure Coast (8D/7N) — EXP-INT-02 (12 Slots)
+  // Sunday Departures from Paris (15:00) | L'Aube Allocation: 10 Guests (5 Palace Suites)
   // =========================================================================
   {
     departureId: 'DEP-EXP-INT-02-20261004',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2026-10-04',
     startTime: '15:00',
     capacityTotal: 10,
@@ -808,7 +808,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20261018',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2026-10-18',
     startTime: '15:00',
     capacityTotal: 10,
@@ -820,7 +820,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20261101',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2026-11-01',
     startTime: '15:00',
     capacityTotal: 10,
@@ -832,7 +832,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20261115',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2026-11-15',
     startTime: '15:00',
     capacityTotal: 10,
@@ -844,7 +844,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20261206',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2026-12-06',
     startTime: '15:00',
     capacityTotal: 10,
@@ -856,7 +856,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20261220',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2026-12-20',
     startTime: '15:00',
     capacityTotal: 10,
@@ -868,7 +868,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20270110',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2027-01-10',
     startTime: '15:00',
     capacityTotal: 10,
@@ -880,7 +880,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20270124',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2027-01-24',
     startTime: '15:00',
     capacityTotal: 10,
@@ -892,7 +892,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20270207',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2027-02-07',
     startTime: '15:00',
     capacityTotal: 10,
@@ -904,7 +904,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20270221',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2027-02-21',
     startTime: '15:00',
     capacityTotal: 10,
@@ -916,7 +916,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20270307',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2027-03-07',
     startTime: '15:00',
     capacityTotal: 10,
@@ -928,7 +928,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-02-20270321',
-    experienceSlug: 'empires-of-elegance-cairo-paris-palace-odyssey-8d',
+    experienceSlug: 'paris-french-riviera-luxury-odyssey-8d',
     date: '2027-03-21',
     startTime: '15:00',
     capacityTotal: 10,
@@ -940,12 +940,12 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
 
   // =========================================================================
-  // 7. The Transcontinental Grand Horizon: Cairo, Dubai & Paris (11D/10N) — EXP-INT-03 (12 Slots)
-  // Thursday Departures from Cairo (15:00) | L'Aube Allocation: 8 Guests (4 Suites)
+  // 7. Italian Grand Cities: Rome, Florence & Venice (8D/7N) — EXP-INT-03 (12 Slots)
+  // Thursday Departures from Rome (15:00) | L'Aube Allocation: 8 Guests (4 Suites)
   // =========================================================================
   {
     departureId: 'DEP-EXP-INT-03-20261008',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2026-10-08',
     startTime: '15:00',
     capacityTotal: 8,
@@ -957,7 +957,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20261022',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2026-10-22',
     startTime: '15:00',
     capacityTotal: 8,
@@ -969,7 +969,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20261105',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2026-11-05',
     startTime: '15:00',
     capacityTotal: 8,
@@ -981,7 +981,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20261119',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2026-11-19',
     startTime: '15:00',
     capacityTotal: 8,
@@ -993,7 +993,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20261203',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2026-12-03',
     startTime: '15:00',
     capacityTotal: 8,
@@ -1005,7 +1005,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20261217',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2026-12-17',
     startTime: '15:00',
     capacityTotal: 8,
@@ -1017,7 +1017,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20270114',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2027-01-14',
     startTime: '15:00',
     capacityTotal: 8,
@@ -1029,7 +1029,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20270128',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2027-01-28',
     startTime: '15:00',
     capacityTotal: 8,
@@ -1041,7 +1041,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20270211',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2027-02-11',
     startTime: '15:00',
     capacityTotal: 8,
@@ -1053,7 +1053,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20270225',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2027-02-25',
     startTime: '15:00',
     capacityTotal: 8,
@@ -1065,7 +1065,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20270311',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2027-03-11',
     startTime: '15:00',
     capacityTotal: 8,
@@ -1077,7 +1077,7 @@ export const CANONICAL_DEPARTURE_SLOTS: DepartureSlotSeedDef[] = [
   },
   {
     departureId: 'DEP-EXP-INT-03-20270325',
-    experienceSlug: 'transcontinental-grand-horizon-cairo-dubai-paris-11d',
+    experienceSlug: 'italian-grand-cities-rome-florence-venice-8d',
     date: '2027-03-25',
     startTime: '15:00',
     capacityTotal: 8,

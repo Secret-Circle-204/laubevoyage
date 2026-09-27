@@ -217,6 +217,71 @@ export const CANONICAL_ACCOMMODATIONS: AccommodationSeedDef[] = [
     description:
       'An Art Deco palace landmark in the Golden Triangle off the Champs-Élysées, celebrated globally for its monumental floral art installations by Jeff Leatham, five Michelin stars across three renowned restaurants, and quintessentially Parisian palace distinction.',
   },
+
+  // ==========================================
+  // Abu Dhabi (1)
+  // ==========================================
+  {
+    name: 'Emirates Palace Mandarin Oriental, Abu Dhabi',
+    slug: 'emirates-palace-mandarin-oriental-abu-dhabi',
+    type: 'hotel',
+    citySlug: 'abu-dhabi',
+    rating: 5,
+    description:
+      'A globally revered palace landmark of Arabian hospitality located on the Corniche in Abu Dhabi. Featuring lavish gold-leaf ceilings, 1.3 kilometers of private pristine beach, marble terraces overlooking the Arabian Gulf, private butler service, and Michelin-starred dining celebrating regal Emirati and international gastronomy.',
+  },
+
+  // ==========================================
+  // Nice (1)
+  // ==========================================
+  {
+    name: 'Hôtel Palais de la Méditerranée, Nice',
+    slug: 'hotel-palais-de-la-mediterranee-nice',
+    type: 'hotel',
+    citySlug: 'nice',
+    rating: 5,
+    description:
+      'A legendary Art Deco palace on the Promenade des Anglais in Nice. Featuring an iconic 1930s listed façade, expansive swimming terrace overlooking the azure Baie des Anges, refined Mediterranean gastronomy, and immediate access to the glamour of the French Riviera.',
+  },
+
+  // ==========================================
+  // Rome (1)
+  // ==========================================
+  {
+    name: 'Hotel de Russie, Rome',
+    slug: 'hotel-de-russie-rome',
+    type: 'hotel',
+    citySlug: 'rome',
+    rating: 5,
+    description:
+      'A Rocco Forte hotel sanctuary situated between the Spanish Steps and Piazza del Popolo in Rome. Celebrated for its terraced secret garden, classical architecture infused with contemporary Italian design, tranquil wellness spa, and prestigious Le Jardin de Russie restaurant.',
+  },
+
+  // ==========================================
+  // Florence (1)
+  // ==========================================
+  {
+    name: 'The St. Regis Florence',
+    slug: 'the-st-regis-florence',
+    type: 'hotel',
+    citySlug: 'florence',
+    rating: 5,
+    description:
+      'A historic Renaissance palace designed by Filippo Brunelleschi along the banks of the Arno River in Florence. Adorned with antique crystal chandeliers, 16th-century frescoes, bespoke St. Regis Butler service, and Michelin-starred Tuscan culinary experiences in the heart of the city.',
+  },
+
+  // ==========================================
+  // Venice (1)
+  // ==========================================
+  {
+    name: 'Hotel Danieli, Venice',
+    slug: 'hotel-danieli-venice',
+    type: 'hotel',
+    citySlug: 'venice',
+    rating: 5,
+    description:
+      'A masterwork of Venetian gothic architecture on the Riva degli Schiavoni overlooking the Venetian Lagoon. Dating back to the 14th century as Palazzo Dandolo, it features soaring gold staircases, Murano glass chandeliers, and panoramic views of the Grand Canal and San Giorgio Maggiore.',
+  },
 ]
 
 export interface SeededAccommodationsResult {
@@ -229,13 +294,13 @@ export interface SeededAccommodationsResult {
 
 /**
  * Enterprise Accommodation Seeder for L'Aube Voyage.
- * Ingests 16 verified luxury properties with deterministic idempotency.
+ * Ingests 21 verified luxury properties with deterministic idempotency.
  */
 export async function seedAccommodations(
   payload: Payload,
   cityDocsMap: Record<string, any>,
 ): Promise<SeededAccommodationsResult> {
-  console.log("🏨 [Seed] Ingesting & Resolving Luxury Accommodations (16 Verified Properties)...")
+  console.log("🏨 [Seed] Ingesting & Resolving Luxury Accommodations (21 Verified Properties)...")
 
   let totalCreated = 0
   let totalUpdated = 0
@@ -296,7 +361,7 @@ export async function seedAccommodations(
   }
 
   console.log(
-    `   ✅ Accommodations Catalog Processed: ${Object.keys(accommodationDocsMap).length}/16 properties (${totalCreated} created, ${totalUpdated} updated, ${cityLinkedCount}/16 City relationships verified).`,
+    `   ✅ Accommodations Catalog Processed: ${Object.keys(accommodationDocsMap).length}/21 properties (${totalCreated} created, ${totalUpdated} updated, ${cityLinkedCount}/21 City relationships verified).`,
   )
 
   return {

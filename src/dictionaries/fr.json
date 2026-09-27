@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "Expériences de Luxe L'Aube Voyage",
-    "subtitle": "Créateur de Voyages Depuis 1996 : Votre Passeport pour des Découvertes d'Exception",
+    "subtitle": "Créateur de Voyages d'Exception : Votre Passeport pour des Découvertes Uniques",
     "cta": {
       "primary": "Explorer les Expériences →",
       "secondary": "Découvrir les Destinations"
@@ -33,8 +33,8 @@
     },
     "footer": {
       "rights": "Tous Droits Réservés © 2026 L'Aube Voyage",
-      "tagline": "Créateur de Voyages Extraordinaires Depuis 1996.",
-      "brandDescription": "Découvrez des voyages de luxe extraordinaires, des croisières 5 étoiles sur le Nil et des circuits privés avec égyptologues pour voyageurs exigeants.",
+      "tagline": "Créateur de Voyages Extraordinaires.",
+      "brandDescription": "Découvrez des voyages de luxe extraordinaires et des expériences sur-mesure conçues pour les voyageurs les plus exigeants.",
       "explore": "Explorer",
       "allExperiences": "Toutes les Expériences",
       "destinations": "Destinations",
@@ -54,7 +54,7 @@
   "catalog": {
     "meta": {
       "title": "Catalogue d'Expériences & Forfaits Circuits de Luxe | L'Aube Voyage",
-      "description": "Découvrez nos forfaits de luxe, croisières sur le Nil et circuits privés en Égypte."
+      "description": "Découvrez nos forfaits de luxe, circuits sur mesure et visites privées d'exception."
     },
     "badge": "Collection Sur Mesure",
     "title": "Catalogue des Expériences",
@@ -76,6 +76,14 @@
     "lastName": "Nom",
     "email": "Adresse E-mail",
     "phone": "Numéro de Téléphone",
+    "manifest": {
+      "nextTraveler": "Voyageur suivant →",
+      "saveTravelers": "Enregistrer et continuer →",
+      "verifiedTitle": "Manifeste des passagers vérifié",
+      "verifiedDesc": "Tous les dossiers des passagers sont complets et prêts pour la confirmation.",
+      "requiredVerification": "Requis pour la vérification du manifeste",
+      "jumpToNextIncomplete": "Passer au voyageur incomplet suivant →"
+    },
     "success": {
       "pendingBadge": "Point de Contrôle",
       "verifyingTitle": "Vérification de la Réservation",
@@ -111,7 +119,7 @@
   "contact": {
     "vipConciergeBadge": "Conciergerie VIP 24/7",
     "title": "Contactez Nos Spécialistes du Voyage",
-    "description": "Des questions sur nos itinéraires sur mesure ou croisières privées ? Envoyez-nous un message et nous vous répondrons sous 2 heures.",
+    "description": "Des questions sur nos itinéraires sur mesure ou arrangements privés ? Envoyez-nous un message et nous vous répondrons sous 2 heures.",
     "directContact": "Contact Direct",
     "cairoHeadOffice": "Siège Social au Caire",
     "vipHotline": "Ligne Directe VIP",
@@ -327,7 +335,7 @@
     "configureBooking": "Configurer la réservation",
     "journeyOverview": "Aperçu du voyage",
     "staysTitle": "Vos hébergements et séjours",
-    "staysSubtitle": "Hôtels sélectionnés et croisières sur le Nil durant votre voyage",
+    "staysSubtitle": "Hôtels sélectionnés et hébergements de prestige durant votre voyage",
     "stayHeader": "Séjour n°{order} • {nights} {nightUnit}",
     "nightSingular": "Nuit",
     "nightPlural": "Nuits",
@@ -512,7 +520,7 @@
     "title": "Résultats de Recherche",
     "resultsForQuery": "{count} résultats trouvés pour \"{query}\"",
     "resultsAll": "{count} résultats trouvés à travers les voyages et destinations.",
-    "placeholder": "Rechercher des expériences, destinations, croisières sur le Nil...",
+    "placeholder": "Rechercher des expériences, destinations, voyages d'exception...",
     "searchButton": "Rechercher",
     "filterAll": "Toutes les Expériences",
     "filterPackages": "Forfaits Voyage",
@@ -525,5 +533,42 @@
     "nextPage": "Suivant →",
     "pageOf": "Page {page} sur {totalPages}",
     "showingCount": "Affichage de la page {page} sur {totalPages} ({total} au total)"
+  },
+  "emails": {
+    "common": {
+      "defaultName": "Cher Invité",
+      "pointsLabel": "Points de fidélité"
+    },
+    "verification": {
+      "subject": "Confirmez votre adresse e-mail — L'Aube Voyage",
+      "preheader": "Confirmez votre adresse pour activer votre accès exclusif aux voyages L'Aube Voyage.",
+      "badge": "ACTIVATION DU COMPTE",
+      "title": "Confirmez votre adresse e-mail",
+      "greeting": "Cher(ère) {name},",
+      "intro": "Nous vous remercions pour votre inscription chez L'Aube Voyage. Afin de sécuriser votre compte et d'activer votre accès privé à nos voyages d'exception, veuillez confirmer votre adresse e-mail ci-dessous.",
+      "cta": "Confirmer mon adresse e-mail",
+      "expiryNotice": "Ce lien de confirmation est valable 3 heures. Pour des raisons de sécurité, ne partagez ce lien avec personne.",
+      "troubleLink": "Si le bouton ne fonctionne pas, veuillez copier et coller ce lien dans votre navigateur :",
+      "ignoreNotice": "Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité."
+    },
+    "welcome": {
+      "subject": "Bienvenue chez L'Aube Voyage — Votre voyage d'exception commence",
+      "preheader": "Votre compte est activé. Bienvenue dans le Cercle L'Aube Voyage.",
+      "badge": "BIENVENUE DANS LE CERCLE",
+      "title": "Bienvenue chez L'Aube Voyage",
+      "greeting": "Cher(ère) {name},",
+      "intro": "Votre compte a été vérifié et activé avec succès. En tant que membre privilégié du Cercle L'Aube Voyage, vous bénéficiez désormais d'un accès exclusif à notre collection d'itinéraires de luxe et d'expériences sur-mesure.",
+      "loyaltyBadge": "RÉCOMPENSE DE BIENVENUE",
+      "pointsTitle": "Points de bienvenue crédités",
+      "pointsDescription": "Nous avons le plaisir de vous offrir un bonus de bienvenue directement crédité sur votre compte :",
+      "currentBalance": "Votre solde de fidélité actuel : {balance} Points",
+      "cta": "Découvrir nos expériences",
+      "outro": "Pour toute demande d'itinéraire privé ou de conciergerie personnalisée, nos conseillers se tiennent à votre entière disposition.",
+      "signature": "Avec nos salutations les plus distinguées,\nL'Équipe Concierge, L'Aube Voyage"
+    },
+    "footer": {
+      "support": "Besoin d'aide ? Vous pouvez répondre directement à cet e-mail.",
+      "confidentiality": "Cet e-mail vous a été envoyé car vous avez un compte chez L'Aube Voyage. Communication strictement confidentielle."
+    }
   }
 }

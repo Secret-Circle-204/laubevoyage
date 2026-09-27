@@ -4,17 +4,17 @@ import type { CustomerProfileDataDTO, CustomerSettingsDataDTO } from './dto'
 export class CustomerProfileLoader {
   static async load(customerId: number): Promise<CustomerProfileDataDTO> {
     try {
-      const { customer, booking } = await getApplicationServices()
-      const [customerDoc, companionResult] = await Promise.all([
+      const { customer } = await getApplicationServices()
+      const [customerDoc, savedCompanions] = await Promise.all([
         customer.getById(customerId),
-        booking.getCustomerCompanionTravelers(customerId, { page: 1, limit: 20 }),
+        customer.getSavedCompanions(customerId),
       ])
 
-      const travelers = (companionResult.data || []).map((t) => ({
-        id: t.id,
+      const travelers = (savedCompanions || []).map((t) => ({
+        id: String(t.travelerId),
         firstName: t.firstName,
         lastName: t.lastName,
-        relationship: 'Companion',
+        relationship: t.relationship.charAt(0).toUpperCase() + t.relationship.slice(1),
         dateOfBirth: t.dateOfBirth,
         passportNumber: t.passportNumber,
       }))
@@ -27,7 +27,7 @@ export class CustomerProfileLoader {
         passportNumber: customerDoc.passportNumber || undefined,
         nationality: customerDoc.nationality || undefined,
         travelers,
-        totalCompanions: companionResult.total,
+        totalCompanions: travelers.length,
       }
     } catch (err) {
       console.error(`[CustomerProfileLoader] Failed loading profile for customer #${customerId}:`, err)

@@ -82,6 +82,7 @@ export function registerCustomerSubscribers(
                 name: event.fullName,
                 bonusPoints: ledgerRecord.points,
                 balance: ledgerRecord.resultingBalance,
+                locale: event.preferredLanguage,
               },
             },
             context,

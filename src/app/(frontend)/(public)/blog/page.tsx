@@ -8,7 +8,7 @@ import { BlogCatalogPage } from '@/components/features/blog/BlogCatalogPage'
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Travel Journal & Luxury Guides | L'Aube Voyage",
-    description: 'Expert insights, Egyptologist perspectives, and luxury journey stories across Egypt.',
+    description: 'Expert insights, cultural perspectives, and luxury journey stories tailored for discerning travelers.',
   }
 }
 

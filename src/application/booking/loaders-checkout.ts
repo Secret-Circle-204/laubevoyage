@@ -281,6 +281,8 @@ export class CheckoutPageLoader {
             lastName: customerDoc.lastName || '',
             email: customerDoc.email || '',
             phone: customerDoc.phone || '',
+            passportNumber: customerDoc.passportNumber || '',
+            nationality: customerDoc.nationality || '',
           }
         : undefined
 

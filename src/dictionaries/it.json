@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "Esperienze di Lusso L'Aube Voyage",
-    "subtitle": "Creiamo Viaggi dal 1996: Il Vostro Passaporto per Scoperte Esclusive",
+    "subtitle": "Creiamo Viaggi Esclusivi: Il Vostro Passaporto per Scoperte Straordinarie",
     "cta": {
       "primary": "Esplora le Esperienze →",
       "secondary": "Scopri le Destinazioni"
@@ -33,8 +33,8 @@
     },
     "footer": {
       "rights": "Tutti i diritti riservati © 2026 L'Aube Voyage",
-      "tagline": "Creiamo Viaggi Straordinari dal 1996.",
-      "brandDescription": "Scoprite viaggi di lusso straordinari, crociere 5 stelle sul Nilo e tour privati con egittologi per viaggiatori esigenti.",
+      "tagline": "Creiamo Viaggi Straordinari.",
+      "brandDescription": "Scoprite viaggi di lusso straordinari ed esperienze su misura create per viaggiatori esigenti.",
       "explore": "Esplora",
       "allExperiences": "Tutte le Esperienze",
       "destinations": "Destinazioni",
@@ -54,7 +54,7 @@
   "catalog": {
     "meta": {
       "title": "Catalogo Esperienze & Pacchetti di Lusso | L'Aube Voyage",
-      "description": "Pacchetti di lusso, crociere sul Nilo e tour privati in Egitto."
+      "description": "Pacchetti di lusso, itinerari su misura e tour privati esclusivi."
     },
     "badge": "Collezione Esclusiva",
     "title": "Catalogo Esperienze",
@@ -76,6 +76,14 @@
     "lastName": "Cognome",
     "email": "Indirizzo Email",
     "phone": "Numero di Telefono",
+    "manifest": {
+      "nextTraveler": "Passeggero successivo →",
+      "saveTravelers": "Salva e continua →",
+      "verifiedTitle": "Manifesto passeggeri verificato",
+      "verifiedDesc": "Tutti i dati dei passeggeri sono completi e pronti per la conferma.",
+      "requiredVerification": "Richiesto per la verifica del manifesto",
+      "jumpToNextIncomplete": "Passa al prossimo passeggero incompleto →"
+    },
     "success": {
       "pendingBadge": "Punto di Verifica",
       "verifyingTitle": "Verifica della Prenotazione",
@@ -111,7 +119,7 @@
   "contact": {
     "vipConciergeBadge": "Concierge VIP 24/7",
     "title": "Contatta i Nostri Specialisti di Viaggio",
-    "description": "Domande su itinerari su misura o crociere private? Inviaci un messaggio e risponderemo entro 2 ore.",
+    "description": "Domande su itinerari su misura o viaggi esclusivi? Inviaci un messaggio e risponderemo entro 2 ore.",
     "directContact": "Contatto Diretto",
     "cairoHeadOffice": "Sede Centrale del Cairo",
     "vipHotline": "Linea Diretta VIP",
@@ -326,7 +334,7 @@
     "configureBooking": "Configura prenotazione",
     "journeyOverview": "Panoramica del viaggio",
     "staysTitle": "I tuoi soggiorni e alloggi",
-    "staysSubtitle": "Hotel selezionati e crociere sul Nilo durante il tuo viaggio",
+    "staysSubtitle": "Hotel selezionati e sistemazioni di lusso durante il tuo viaggio",
     "stayHeader": "Soggiorno #{order} • {nights} {nightUnit}",
     "nightSingular": "Notte",
     "nightPlural": "Notti",
@@ -512,7 +520,7 @@
     "title": "Risultati della Ricerca",
     "resultsForQuery": "Trovati {count} risultati per \"{query}\"",
     "resultsAll": "Trovati {count} risultati tra viaggi e destinazioni.",
-    "placeholder": "Cerca esperienze, destinazioni, crociere sul Nilo...",
+    "placeholder": "Cerca esperienze, destinazioni, viaggi esclusivi...",
     "searchButton": "Cerca",
     "filterAll": "Tutte le Esperienze",
     "filterPackages": "Pacchetti Viaggio",
@@ -525,5 +533,42 @@
     "nextPage": "Successivo →",
     "pageOf": "Pagina {page} di {totalPages}",
     "showingCount": "Visualizzazione pagina {page} di {totalPages} ({total} totali)"
+  },
+  "emails": {
+    "common": {
+      "defaultName": "Gentile Ospite",
+      "pointsLabel": "Punti fedeltà"
+    },
+    "verification": {
+      "subject": "Conferma la tua email — L'Aube Voyage",
+      "preheader": "Conferma la tua email per attivare l'accesso esclusivo ai viaggi L'Aube Voyage.",
+      "badge": "ATTIVAZIONE ACCOUNT",
+      "title": "Conferma il tuo Indirizzo Email",
+      "greeting": "Gentile {name},",
+      "intro": "Grazie per esserti registrato con L'Aube Voyage. Per garantire la sicurezza del tuo account e attivare l'accesso privato ai nostri viaggi su misura, ti invitiamo a confermare la tua email qui sotto.",
+      "cta": "Conferma Indirizzo Email",
+      "expiryNotice": "Questo link di verifica è valido per 3 ore. Per motivi di sicurezza, non condividere questo link con nessuno.",
+      "troubleLink": "Se il pulsante non funziona, copia e incolla questo link nel tuo browser:",
+      "ignoreNotice": "Se non hai creato un account su L'Aube Voyage, puoi ignorare questo messaggio."
+    },
+    "welcome": {
+      "subject": "Benvenuto in L'Aube Voyage — Il Tuo Viaggio Ha Inizio",
+      "preheader": "Il tuo account è confermato. Benvenuto nel Cerchio L'Aube Voyage.",
+      "badge": "BENVENUTO NEL CERCHIO",
+      "title": "Benvenuto in L'Aube Voyage",
+      "greeting": "Gentile {name},",
+      "intro": "Il tuo account è stato verificato e attivato con successo. In qualità di membro del Cerchio L'Aube Voyage, hai ora accesso alla nostra esclusiva collezione di viaggi di lusso ed esperienze su misura.",
+      "loyaltyBadge": "RICOMPENSA DI BENVENUTO",
+      "pointsTitle": "Punti di Benvenuto Accreditati",
+      "pointsDescription": "Siamo lieti di darti il benvenuto con un bonus speciale accreditato direttamente sul tuo conto:",
+      "currentBalance": "Saldo punti attuale: {balance} Punti",
+      "cta": "Esplora le Esperienze",
+      "outro": "Se desideri accordi su misura, charter privati o la cura dedicata di un itinerario, il nostro team di concierge di lusso è a tua completa disposizione.",
+      "signature": "Con i nostri più cordiali saluti,\nIl Team Concierge, L'Aube Voyage"
+    },
+    "footer": {
+      "support": "Hai bisogno di assistenza? Puoi rispondere direttamente a questa email.",
+      "confidentiality": "Questa email ti è stata inviata perché sei registrato su L'Aube Voyage. Questa è una comunicazione privata e riservata."
+    }
   }
 }

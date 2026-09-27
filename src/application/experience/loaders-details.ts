@@ -209,9 +209,9 @@ export class ExperienceDetailsLoader {
     const includedServices = rawIncluded.map(() => translatedBatch[batchIdx++] || '')
     const excludedServices = rawExcluded.map(() => translatedBatch[batchIdx++] || '')
 
-    const images: string[] = Array.isArray(exp.gallery) && exp.gallery.length > 0
-      ? exp.gallery
-      : (exp.heroUrl ? [exp.heroUrl] : [])
+    const rawImages = [exp.heroUrl, ...(Array.isArray(exp.gallery) ? exp.gallery : [])]
+      .filter((url): url is string => Boolean(url && url.trim().length > 0))
+    const images: string[] = Array.from(new Set(rawImages))
 
     const baseDTO = {
       id: exp.id,

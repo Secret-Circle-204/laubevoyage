@@ -163,6 +163,68 @@ function ArrowDirectionIcon({
   )
 }
 
+function CartographicTopoOverlay() {
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none overflow-hidden select-none opacity-[0.05] dark:opacity-[0.08]"
+      aria-hidden="true"
+    >
+      <svg
+        className="w-full h-full object-cover"
+        viewBox="0 0 500 700"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M-50 80 C 120 40, 220 160, 550 90"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeDasharray="3 3"
+        />
+        <path
+          d="M-50 160 C 80 110, 280 230, 550 170"
+          stroke="currentColor"
+          strokeWidth="1"
+        />
+        <path
+          d="M-50 260 C 140 210, 200 320, 550 280"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeDasharray="4 4"
+        />
+        <path
+          d="M-50 370 C 100 310, 310 420, 550 380"
+          stroke="currentColor"
+          strokeWidth="1"
+        />
+        <path
+          d="M-50 490 C 160 430, 230 550, 550 490"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeDasharray="3 3"
+        />
+        <path
+          d="M-50 610 C 110 560, 320 670, 550 620"
+          stroke="currentColor"
+          strokeWidth="1"
+        />
+        <g transform="translate(430, 80) scale(0.65)" opacity="0.6">
+          <circle cx="0" cy="0" r="30" stroke="currentColor" strokeWidth="1" />
+          <circle cx="0" cy="0" r="24" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 2" />
+          <line x1="-34" y1="0" x2="34" y2="0" stroke="currentColor" strokeWidth="0.8" />
+          <line x1="0" y1="-34" x2="0" y2="34" stroke="currentColor" strokeWidth="0.8" />
+          <polygon points="0,-24 4,-8 0,-12 -4,-8" fill="currentColor" />
+          <polygon points="0,24 4,8 0,12 -4,8" fill="currentColor" />
+          <polygon points="-24,0 -8,4 -12,0 -8,-4" fill="currentColor" />
+          <polygon points="24,0 8,4 12,0 8,-4" fill="currentColor" />
+          <circle cx="0" cy="0" r="2" fill="currentColor" />
+        </g>
+      </svg>
+    </div>
+  )
+}
+
+
 export function JourneySummary({
   formattedDuration,
   location,
@@ -175,6 +237,7 @@ export function JourneySummary({
   const validDestinations = Array.isArray(destinations) ? destinations.filter(isValidStop) : []
   const hasRoute = validDestinations.length > 1
   const isTwoStops = validDestinations.length === 2
+  const hasManyStops = validDestinations.length > 2
   const hasSingleStop = validDestinations.length === 1
 
   return (
@@ -209,11 +272,13 @@ export function JourneySummary({
         />
 
         {/* ==============================================================
+            [COMMENTED OUT PER USER REQUEST: REDUNDANT WITH HERO BANNER]
             1. TOP HEADER ROW: TITLE & TYPE BADGE
+            2. KEY TRAVEL ESSENTIALS (3 LUXURY CARDS)
             ============================================================== */}
+        {/*
         <div className="relative z-10 flex items-center justify-between gap-3 pb-3 sm:pb-3.5 border-b border-slate-200/80 dark:border-accent/20 flex-wrap">
           <div className="flex items-center gap-2.5 min-w-0">
-            {/* Live Pulsing Beacon */}
             <div className="relative flex h-2.5 w-2.5 items-center justify-center shrink-0">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary dark:bg-accent opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary dark:bg-accent" />
@@ -226,7 +291,6 @@ export function JourneySummary({
             </span>
           </div>
 
-          {/* Luxury Crown Pill Badge */}
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/20 dark:border-accent/40 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent text-xs font-semibold backdrop-blur-xs shadow-2xs shrink-0">
             <CrownIcon className="w-3.5 h-3.5 text-primary dark:text-accent" />
             <span>
@@ -237,12 +301,7 @@ export function JourneySummary({
           </div>
         </div>
 
-        {/* ==============================================================
-            2. KEY TRAVEL ESSENTIALS (3 LUXURY CARDS - NEVER CLIPPED)
-            ============================================================== */}
         <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
-          
-          {/* Item 1: Trip Duration */}
           <div className="rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3 sm:p-4 flex items-center gap-3 shadow-2xs transition-all hover:border-primary/40 dark:hover:border-accent/40">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent border border-primary/15 dark:border-accent/20 flex items-center justify-center shrink-0">
               <CalendarIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary dark:text-accent" />
@@ -257,7 +316,6 @@ export function JourneySummary({
             </div>
           </div>
 
-          {/* Item 2: Experience Type */}
           <div className="rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3 sm:p-4 flex items-center gap-3 shadow-2xs transition-all hover:border-primary/40 dark:hover:border-accent/40">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent border border-primary/15 dark:border-accent/20 flex items-center justify-center shrink-0">
               <CompassIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary dark:text-accent" />
@@ -274,7 +332,6 @@ export function JourneySummary({
             </div>
           </div>
 
-          {/* Item 3: Destinations */}
           <div className="rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3 sm:p-4 flex items-center gap-3 shadow-2xs transition-all hover:border-primary/40 dark:hover:border-accent/40">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent border border-primary/15 dark:border-accent/20 flex items-center justify-center shrink-0">
               <LocationPinIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-primary dark:text-accent" />
@@ -288,102 +345,329 @@ export function JourneySummary({
               </span>
             </div>
           </div>
-
         </div>
+        */}
 
         {/* ==============================================================
-            3. ROUTE CORRIDOR (BALANCED, INTENTIONAL TRAJECTORY)
+            3. ROUTE CORRIDOR (ADAPTIVE LUXURY TRAJECTORY)
             ============================================================== */}
         {hasRoute && (
-          <div className="relative z-10 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3.5 sm:p-5 flex flex-col gap-3.5 shadow-2xs">
+          <div className="relative z-10 w-full flex flex-col gap-3.5 sm:gap-6">
+            {/* Ambient Cartographic Topo Overlay */}
+            <CartographicTopoOverlay />
             
             {/* Corridor Sub-Header */}
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/70 dark:border-accent/15 gap-2 flex-wrap">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/70 dark:border-accent/15 gap-2 flex-wrap relative z-10">
               <div className="flex items-center gap-2 min-w-0">
-                <RouteMapIcon className="w-4 h-4 text-primary dark:text-accent shrink-0" />
-                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                  {dict.get(locale, 'experience.route')}
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-serif italic hidden sm:inline">
-                  {dict.get(locale, 'experience.routeSubtitle', {
-                    start: validDestinations[0]?.name || '',
-                    end: validDestinations[validDestinations.length - 1]?.name || '',
-                  })}
-                </span>
+                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent flex items-center justify-center shrink-0">
+                  <RouteMapIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <span className="text-xs sm:text-base font-bold text-slate-900 dark:text-white tracking-wide shrink-0">
+                    {dict.get(locale, 'experience.route')}
+                  </span>
+                  <span className="text-[11px] sm:text-sm text-slate-500 dark:text-slate-400 font-serif italic truncate max-w-[170px] sm:max-w-none">
+                    • {dict.get(locale, 'experience.routeSubtitle', {
+                      start: validDestinations[0]?.name || '',
+                      end: validDestinations[validDestinations.length - 1]?.name || '',
+                    })}
+                  </span>
+                </div>
               </div>
 
-              <span className="px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-border/60 bg-slate-100 dark:bg-card-elevated/80 text-slate-700 dark:text-muted-foreground font-mono text-xs font-semibold shrink-0">
+              <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-slate-200 dark:border-border/60 bg-slate-100 dark:bg-card-elevated/80 text-slate-700 dark:text-muted-foreground font-mono text-[10px] sm:text-xs font-semibold shrink-0">
                 {dict.get(locale, 'experience.stopsCount', { count: String(validDestinations.length) })}
               </span>
             </div>
 
-            {/* Waypoints Trajectory Track */}
-            {/* If exactly 2 stops: gracefully centered with a balanced connection beam */}
-            {/* If 3+ stops: smoothly distributed across the container */}
-            <div className={`w-full overflow-x-auto no-scrollbar py-1 px-1 flex items-center ${isTwoStops ? 'justify-center' : 'justify-between'} gap-3 sm:gap-6`}>
-              <div className={`flex items-center ${isTwoStops ? 'w-full max-w-xl justify-between' : 'w-full justify-between'} gap-2 sm:gap-4 shrink-0`}>
-                {validDestinations.map((stop, idx) => {
-                  const stopNumber = String(idx + 1).padStart(2, '0')
-                  const stopImage =
-                    stop.imageUrl || `/media-assets/destinations/city-hero-${stop.slug}.jpg`
+            {/* ==============================================================
+                A. MOBILE VIEW (< md): SINUOUS CARTOGRAPHIC EXPEDITION TRAIL
+                (Universal for 2, 3, 4, 5, 6+ stops)
+                ============================================================== */}
+            <div className="flex md:hidden flex-col w-full py-2 px-0.5 relative z-10">
+                  {validDestinations.map((stop, idx) => {
+                    const stopNumber = String(idx + 1).padStart(2, '0')
+                    const stopImage =
+                      stop.imageUrl || `/media-assets/destinations/city-hero-${stop.slug}.jpg`
+                    const isLast = idx === validDestinations.length - 1
 
-                  return (
-                    <React.Fragment key={stop.id}>
-                      {/* Waypoint Node */}
-                      <div className="group flex items-center gap-2.5 shrink-0 transition-transform duration-200 hover:scale-105">
-                        {/* Circular City Photo with Ring and Stop Number */}
-                        <div className="relative shrink-0">
-                          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 border-primary/50 dark:border-accent/70 ring-2 sm:ring-3 ring-primary/15 dark:ring-accent/20 overflow-hidden shadow-sm bg-card">
-                            <img
-                              src={stopImage}
-                              alt={stop.name}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                              }}
-                            />
-                          </div>
-                          <div className="absolute -top-0.5 -right-0.5 rtl:-left-0.5 rtl:right-auto w-4.5 h-4.5 rounded-full bg-[#1a1e4e] text-white dark:bg-[#171514] border border-primary/60 dark:border-accent/70 dark:text-accent font-mono text-[9px] font-bold flex items-center justify-center shadow-xs z-10">
-                            {stopNumber}
-                          </div>
-                        </div>
+                    // Alternating Sinuous Trail:
+                    // In LTR: idx 0 is Left, idx 1 is Right, idx 2 is Left...
+                    // In RTL: idx 0 is Right, idx 1 is Left, idx 2 is Right...
+                    const sitsOnLeft = isRtl ? idx % 2 === 1 : idx % 2 === 0
+                    const isHeadingRight = sitsOnLeft
 
-                        {/* City & Country Text (Crystal Clear) */}
-                        <div className="flex flex-col text-start min-w-0">
-                          <span className="font-hornbill text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">
-                            {stop.name}
-                          </span>
-                          {stop.countryName && (
-                            <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-tight">
-                              {stop.countryName}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                    // Sinuous Bezier Curve:
+                    // If heading right: begins on Left (x ≈ 14%), lands on Right (x ≈ 86%)
+                    // If heading left: begins on Right (x ≈ 86%), lands on Left (x ≈ 14%)
+                    const pathD = isHeadingRight
+                      ? 'M 14 0 C 14 36, 86 12, 86 48'
+                      : 'M 86 0 C 86 36, 14 12, 14 48'
 
-                      {/* Connection Laser Beam with Transit Arrow */}
-                      {idx < validDestinations.length - 1 && (
-                        <div className="flex-1 min-w-[36px] sm:min-w-[60px] max-w-[200px] flex items-center justify-center relative px-1 sm:px-2">
-                          <div className="w-full h-[2px] bg-primary/25 dark:bg-accent/25 rounded-full relative overflow-hidden">
+                    return (
+                      <React.Fragment key={stop.id}>
+                        {/* Waypoint Station Card */}
+                        <div
+                          className={`w-[86%] sm:w-[80%] flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-2xl border transition-all duration-300 relative z-10 ${
+                            sitsOnLeft
+                              ? 'mr-auto self-start flex-row text-start'
+                              : 'ml-auto self-end flex-row-reverse text-end'
+                          } border-slate-200/90 dark:border-accent/30 bg-white/95 dark:bg-[#181412]/95 backdrop-blur-md shadow-sm dark:shadow-md hover:border-primary/50 dark:hover:border-accent/60`}
+                        >
+                          {/* Waypoint City Avatar Node */}
+                          <div className="relative shrink-0">
+                            <div className="w-13 h-13 rounded-full border-2 border-primary/60 dark:border-accent/80 ring-2 ring-primary/15 dark:ring-accent/25 overflow-hidden shadow-md bg-card relative">
+                              <img
+                                src={stopImage}
+                                alt={stop.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            </div>
+
+                            {/* Stop Number Badge */}
                             <div
-                              className={`absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-primary dark:via-accent to-transparent ${
-                                isRtl ? 'animate-beam-flow-rtl' : 'animate-beam-flow-ltr'
-                              } rounded-full`}
-                            />
+                              className={`absolute -top-1 ${
+                                sitsOnLeft ? '-right-1' : '-left-1'
+                              } w-5 h-5 rounded-full border border-white dark:border-[#171412] font-mono text-[9px] font-extrabold flex items-center justify-center shadow-sm z-10 bg-primary text-white dark:bg-accent dark:text-[#171412]`}
+                            >
+                              {stopNumber}
+                            </div>
                           </div>
-                          <div className="absolute w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white dark:bg-[#171514] border border-primary/50 dark:border-accent/60 text-primary dark:text-accent flex items-center justify-center shadow-xs ring-1 ring-primary/10 dark:ring-accent/15">
-                            <ArrowDirectionIcon
-                              className="w-3 h-3 text-primary dark:text-accent"
-                              isRtl={isRtl}
-                            />
+
+                          {/* Waypoint Details */}
+                          <div className="flex flex-col min-w-0 flex-1">
+                            {/* City Title */}
+                            <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight truncate">
+                              {stop.name}
+                            </span>
+
+                            {/* Country */}
+                            {stop.countryName && (
+                              <span
+                                className={`text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight mt-0.5 flex items-center gap-1 ${
+                                  sitsOnLeft ? 'justify-start' : 'justify-end'
+                                }`}
+                              >
+                                <LocationPinIcon className="w-3 h-3 text-primary dark:text-accent shrink-0" />
+                                <span className="truncate">{stop.countryName}</span>
+                              </span>
+                            )}
                           </div>
                         </div>
-                      )}
-                    </React.Fragment>
-                  )
-                })}
+
+                        {/* Sinuous Curved Connecting Arc */}
+                        {!isLast && (
+                          <div className="w-full h-14 sm:h-16 relative flex items-center justify-center my-0.5">
+                            {/* SVG Bezier Route Path */}
+                            <svg
+                              className="w-full h-full overflow-visible"
+                              viewBox="0 0 100 48"
+                              preserveAspectRatio="none"
+                              aria-hidden="true"
+                            >
+                              <defs>
+                                <linearGradient id={`trailGrad-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                  <stop offset="0%" stopColor="var(--primary, #00aeef)" stopOpacity="0.4" />
+                                  <stop offset="50%" stopColor="#c9a050" stopOpacity="1" />
+                                  <stop offset="100%" stopColor="var(--primary, #00aeef)" stopOpacity="0.4" />
+                                </linearGradient>
+                              </defs>
+
+                              {/* Underlying Dashed Cartographic Guideline */}
+                              <path
+                                d={pathD}
+                                fill="none"
+                                stroke="rgba(201, 160, 80, 0.25)"
+                                strokeWidth="2.5"
+                                strokeDasharray="4 4"
+                                vectorEffect="non-scaling-stroke"
+                              />
+
+                              {/* Glowing Dynamic Navigation Dash Line */}
+                              <path
+                                d={pathD}
+                                fill="none"
+                                stroke={`url(#trailGrad-${idx})`}
+                                strokeWidth="2.5"
+                                strokeDasharray="8 6"
+                                className="animate-route-dash"
+                                vectorEffect="non-scaling-stroke"
+                              />
+                            </svg>
+
+                            {/* Central Leg Transit Capsule */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 dark:bg-[#191513]/95 border border-primary/30 dark:border-accent/40 shadow-lg shadow-black/10 dark:shadow-black/50 backdrop-blur-md">
+                                <span className="font-mono text-[10px] font-extrabold text-slate-800 dark:text-accent">
+                                  {stopNumber}
+                                </span>
+                                <svg
+                                  className={`w-3.5 h-3.5 text-primary dark:text-accent transform transition-transform ${
+                                    isHeadingRight ? 'rotate-45' : 'rotate-[135deg]'
+                                  }`}
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <line x1="5" y1="12" x2="19" y2="12" />
+                                  <polyline points="12 5 19 12 12 19" />
+                                </svg>
+                                <span className="font-mono text-[10px] font-extrabold text-slate-800 dark:text-accent">
+                                  {String(idx + 2).padStart(2, '0')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </div>
+
+            {/* ==============================================================
+                B. DESKTOP VIEW (>= md): EXPANSIVE HORIZONTAL CORRIDOR
+                ============================================================== */}
+            {hasManyStops ? (
+              /* Desktop for 3+ stops */
+              <div className="hidden md:flex w-full py-2 px-1 items-center justify-center">
+                <div className="flex items-center justify-between w-full max-w-5xl gap-2.5 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
+                  {validDestinations.map((stop, idx) => {
+                    const stopNumber = String(idx + 1).padStart(2, '0')
+                    const stopImage =
+                      stop.imageUrl || `/media-assets/destinations/city-hero-${stop.slug}.jpg`
+
+                    return (
+                      <React.Fragment key={stop.id}>
+                        {/* Waypoint Node */}
+                        <div className="group flex items-center gap-2.5 shrink-0 transition-transform duration-200 hover:scale-105">
+                          <div className="relative shrink-0">
+                            <div className="w-13 h-13 rounded-full border-2 border-primary/60 dark:border-accent/80 ring-3 ring-primary/15 dark:ring-accent/25 overflow-hidden shadow-md bg-card">
+                              <img
+                                src={stopImage}
+                                alt={stop.name}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            </div>
+                            <div className="absolute -top-1 -right-1 rtl:-left-1 rtl:right-auto w-5 h-5 rounded-full bg-primary text-white dark:bg-accent dark:text-[#171412] border border-white dark:border-[#171412] font-mono text-[10px] font-extrabold flex items-center justify-center shadow-sm z-10">
+                              {stopNumber}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col text-start min-w-0">
+                            <span className="font-hornbill text-sm md:text-base font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                              {stop.name}
+                            </span>
+                            {stop.countryName && (
+                              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-tight">
+                                {stop.countryName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Horizontal Connection Beam */}
+                        {idx < validDestinations.length - 1 && (
+                          <div className="flex-1 min-w-[40px] max-w-[160px] flex items-center justify-center relative px-2">
+                            <div className="w-full h-[3.5px] bg-slate-200/90 dark:bg-white/10 rounded-full relative overflow-hidden shadow-inner">
+                              <div
+                                className={`absolute inset-y-0 w-2/3 bg-gradient-to-r from-transparent via-primary dark:via-accent to-transparent shadow-[0_0_8px_rgba(0,174,239,0.85)] dark:shadow-[0_0_14px_rgba(201,160,80,0.95)] ${
+                                  isRtl ? 'animate-beam-flow-rtl' : 'animate-beam-flow-ltr'
+                                } rounded-full`}
+                              />
+                            </div>
+                            <div className="absolute w-7 h-7 rounded-full bg-white dark:bg-[#1a1614] border-2 border-primary dark:border-accent text-primary dark:text-accent flex items-center justify-center shadow-md ring-2 ring-primary/10 dark:ring-accent/20 z-10">
+                              <ArrowDirectionIcon
+                                className="w-3.5 h-3.5 text-primary dark:text-accent stroke-[2.5]"
+                                isRtl={isRtl}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Desktop for 2 stops */
+              <div className="hidden md:flex w-full py-2 sm:py-3 items-center justify-center">
+                <div className="flex items-center w-full max-w-3xl justify-between px-6 gap-6">
+                  {validDestinations.map((stop, idx) => {
+                    const stopNumber = String(idx + 1).padStart(2, '0')
+                    const stopImage =
+                      stop.imageUrl || `/media-assets/destinations/city-hero-${stop.slug}.jpg`
+
+                    return (
+                      <React.Fragment key={stop.id}>
+                        {/* Waypoint Node */}
+                        <div className="group flex items-center text-start gap-3 shrink-0 transition-transform duration-200 hover:scale-105">
+                          {/* Circular City Photo with Ring and Stop Number */}
+                          <div className="relative shrink-0">
+                            <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-primary/60 dark:border-accent/80 ring-4 ring-primary/15 dark:ring-accent/25 overflow-hidden shadow-md bg-card">
+                              <img
+                                src={stopImage}
+                                alt={stop.name}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            </div>
+                            <div className="absolute -top-1 -right-1 rtl:-left-1 rtl:right-auto w-5.5 h-5.5 rounded-full bg-primary text-white dark:bg-accent dark:text-[#171412] border border-white dark:border-[#171412] font-mono text-[11px] font-extrabold flex items-center justify-center shadow-sm z-10">
+                              {stopNumber}
+                            </div>
+                          </div>
+
+                          {/* City & Country Text */}
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-hornbill text-base md:text-lg font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                              {stop.name}
+                            </span>
+                            {stop.countryName && (
+                              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight mt-0.5">
+                                {stop.countryName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Connection Laser Beam with Transit Arrow */}
+                        {idx < validDestinations.length - 1 && (
+                          <div className="flex-1 min-w-[120px] md:min-w-[200px] flex items-center justify-center relative px-4">
+                            {/* Base Trajectory Rail */}
+                            <div className="w-full h-[4px] bg-slate-200/90 dark:bg-white/10 rounded-full relative overflow-hidden shadow-inner">
+                              {/* Animated High-Luminosity Laser Pulse */}
+                              <div
+                                className={`absolute inset-y-0 w-2/3 bg-gradient-to-r from-transparent via-primary dark:via-accent to-transparent shadow-[0_0_8px_rgba(0,174,239,0.85)] dark:shadow-[0_0_14px_rgba(201,160,80,0.95)] ${
+                                  isRtl ? 'animate-beam-flow-rtl' : 'animate-beam-flow-ltr'
+                                } rounded-full`}
+                              />
+                            </div>
+
+                            {/* Center Transit Arrow Node */}
+                            <div className="absolute w-8 h-8 rounded-full bg-white dark:bg-[#1a1614] border-2 border-primary dark:border-accent text-primary dark:text-accent flex items-center justify-center shadow-md ring-4 ring-primary/10 dark:ring-accent/20 z-10 transition-transform duration-300 hover:scale-110">
+                              <ArrowDirectionIcon
+                                className="w-3.5 h-3.5 text-primary dark:text-accent stroke-[2.5]"
+                                isRtl={isRtl}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
           </div>
         )}
@@ -392,7 +676,7 @@ export function JourneySummary({
             4. SINGLE STOP HUB (If 1 destination)
             ============================================================== */}
         {hasSingleStop && (
-          <div className="relative z-10 rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-accent/20 bg-white/90 dark:bg-[#1a1614]/80 backdrop-blur-md p-3 sm:p-4 flex items-center gap-3 shadow-2xs">
+          <div className="relative z-10 w-full flex items-center gap-3">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent border border-primary/15 dark:border-accent/20 flex items-center justify-center shrink-0">
               <LocationPinIcon className="w-4.5 h-4.5 text-primary dark:text-accent" />
             </div>
