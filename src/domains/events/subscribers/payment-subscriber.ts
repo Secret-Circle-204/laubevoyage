@@ -53,7 +53,7 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
         }
 
         const bookingId = event.bookingId
-        const { booking } = await getDomainServices()
+        const { booking, customer } = await getDomainServices()
 
         // Fetch current booking state inside the active transaction
         const currentBooking = await booking.getById(Number(bookingId), context)
@@ -167,7 +167,25 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
         // 1. Mark booking as paid in Booking Domain (transitions DRAFT/PENDING_PAYMENT to PAID)
         await booking.markAsPaid(Number(bookingId), paymentAttempt, context)
 
-        // 2. Confirm booking in Booking Domain (updates status to CONFIRMED inside transaction T1)
+        // 2. Canonical Traveler Registry Resolution & Manifest Linking before confirmation commit
+        // - TravelerRepository resolves/creates canonical traveler (Customer/Traveler Domain)
+        // - BookingRepository updates manifest traveler_id within active transaction (Booking Domain)
+        // - TravelerRepository records customer-companion relationship if customer is registered (Customer Domain)
+        const travelerRepo = customer.getTravelerRepository()
+        const bookingRepo = booking.getRepository()
+        if (Array.isArray(currentBooking.travelers) && currentBooking.travelers.length > 0) {
+          for (let i = 0; i < currentBooking.travelers.length; i++) {
+            const order = i + 1
+            const travelerInput = currentBooking.travelers[i]
+            const canonical = await travelerRepo.resolveOrCreateCanonicalTraveler(travelerInput, req)
+            await bookingRepo.updateManifestTravelerId(Number(bookingId), order, canonical.id, context)
+            if (currentBooking.customerId && order > 1) {
+              await travelerRepo.saveCompanionRelationship(currentBooking.customerId, canonical.id, 'other', false, req)
+            }
+          }
+        }
+
+        // 3. Confirm booking in Booking Domain (updates status to CONFIRMED inside transaction T1)
         const confirmedBooking = await booking.confirm(Number(bookingId), undefined, context)
 
         // 3. COMMIT TRANSACTION FIRST: Persist status update to PostgreSQL disk officially!

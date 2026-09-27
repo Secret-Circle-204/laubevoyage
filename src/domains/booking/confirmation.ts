@@ -8,7 +8,6 @@ import { BookingHistoryService } from './history'
 import { PaymentAttemptsService } from './payment-attempts'
 import { EventBus } from '../events/event-bus'
 import { EventOutboxService } from '../events/outbox'
-import { TravelerRepository } from '../customer/repositories/traveler-repository'
 import { validateTransition } from './state-machine'
 import type { ExperienceService } from '../experience/service'
 import type { LoyaltyService } from '../loyalty/service'
@@ -287,32 +286,6 @@ export class BookingConfirmation {
     console.log(
       `[BookingConfirmation] 🎉 Booking #${bookingId} status updated to CONFIRMED and BOOKING_CONFIRMED recorded to Outbox atomically.`,
     )
-
-    // Canonical Traveler Registry Resolution & Manifest Linking (Strict Invariant: Zero silent failures)
-    // Clean Domain Separation:
-    // - TravelerRepository resolves/creates company-owned canonical traveler (Customer/Traveler Domain)
-    // - BookingRepository updates manifest traveler_id within active transaction (Booking Domain)
-    // - TravelerRepository records customer-companion relationship if customer is registered (Customer Domain)
-    const travelerRepo = new TravelerRepository(this.repository.getPayloadInstance())
-    const req = this.repository.mapContextToReq(context)
-
-    if (Array.isArray(booking.travelers) && booking.travelers.length > 0) {
-      for (let i = 0; i < booking.travelers.length; i++) {
-        const order = i + 1
-        const travelerInput = booking.travelers[i]
-
-        // 1. Resolve or create canonical traveler record
-        const canonical = await travelerRepo.resolveOrCreateCanonicalTraveler(travelerInput, req)
-
-        // 2. Attach canonical traveler_id to the booking manifest (Booking-owned persistence)
-        await this.repository.updateManifestTravelerId(booking.id, order, canonical.id, context)
-
-        // 3. Save customer companion relationship for companions (order > 1) if customer is authenticated
-        if (booking.customerId && order > 1) {
-          await travelerRepo.saveCompanionRelationship(booking.customerId, canonical.id, 'other', req)
-        }
-      }
-    }
 
     return confirmedBooking
   }

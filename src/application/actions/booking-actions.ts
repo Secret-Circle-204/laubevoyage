@@ -673,8 +673,9 @@ export async function confirmAdminBookingAction(params: {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
-    const { booking } = await getDomainServices()
+    const { booking, customer } = await getDomainServices()
     const repository = booking.getRepository()
+    const travelerRepo = customer.getTravelerRepository()
 
     // Start transaction
     const transactionId = await repository.beginTransaction()
@@ -682,10 +683,26 @@ export async function confirmAdminBookingAction(params: {
       throw new Error('Failed to initiate transaction.')
     }
     const context: RequestContext = { transactionId }
+    const req = repository.mapContextToReq(context)
 
     try {
+      // 0. Concurrency serialization: Acquire exclusive row lock on booking row
+      await repository.acquireBookingLock(params.bookingId, context)
+
       // 1. Fetch fresh booking inside transaction
       const bookingDoc = await repository.findById(params.bookingId, context)
+
+      // Concurrency & Idempotency Guard:
+      // If the booking is already confirmed (e.g. from an identical concurrent request or prior execution),
+      // safely return success without deadlocking, duplicating side-effects, or failing.
+      if (bookingDoc.status === 'confirmed') {
+        console.log(
+          `[confirmAdminBookingAction] Concurrency & Idempotency: Booking #${params.bookingId} is already confirmed. Exiting cleanly.`,
+        )
+        await repository.rollbackTransaction(transactionId)
+        return { success: true }
+      }
+
       if (bookingDoc.status !== 'pending_admin_review') {
         throw new Error(
           `Booking is not in pending_admin_review status. Current status: ${bookingDoc.status}`,
@@ -731,7 +748,30 @@ export async function confirmAdminBookingAction(params: {
         })
       }
 
-      // 4. Confirm booking inside transaction
+      // 4. Canonical Traveler Registry Resolution & Manifest Linking
+      // Orchestrated cleanly at the Application boundary inside the active transaction:
+      // - TravelerRepository resolves/creates canonical traveler (Customer/Traveler Domain)
+      // - BookingRepository updates manifest traveler_id within active transaction (Booking Domain)
+      // - TravelerRepository records customer-companion relationship if customer is registered (Customer Domain)
+      if (Array.isArray(bookingDoc.travelers) && bookingDoc.travelers.length > 0) {
+        for (let i = 0; i < bookingDoc.travelers.length; i++) {
+          const order = i + 1
+          const travelerInput = bookingDoc.travelers[i]
+
+          // 1. Resolve or create canonical traveler record
+          const canonical = await travelerRepo.resolveOrCreateCanonicalTraveler(travelerInput, req)
+
+          // 2. Attach canonical traveler_id to the booking manifest (Booking-owned persistence)
+          await repository.updateManifestTravelerId(bookingDoc.id, order, canonical.id, context)
+
+          // 3. Save customer companion relationship for companions (order > 1) if customer is authenticated
+          if (bookingDoc.customerId && order > 1) {
+            await travelerRepo.saveCompanionRelationship(bookingDoc.customerId, canonical.id, 'other', false, req)
+          }
+        }
+      }
+
+      // 5. Booking Confirmation (Booking Domain Invariants, Capacity, Loyalty, Status, Outbox)
       const confirmedBooking = await booking.confirm(
         params.bookingId,
         { id: session.userId.toString(), type: 'admin', name: 'Admin Panel' },
@@ -739,7 +779,7 @@ export async function confirmAdminBookingAction(params: {
         updatedAttempts,
       )
 
-      // 5. Commit transaction
+      // 6. Commit transaction
       await repository.commitTransaction(transactionId)
 
       return { success: true }

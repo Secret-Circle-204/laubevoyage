@@ -254,6 +254,7 @@ export const BookingOperationalActions: React.FC<BookingOperationalActionsProps>
 
   // 2. Approve & Confirm Booking Handler
   const handleConfirmBooking = async () => {
+    if (loading) return
     const depositToPay = depositAmount !== '' ? Number(depositAmount) : 0
     if (depositToPay < 0 || depositToPay > outstandingBalanceEGP) {
       setErrorMsg(`Deposit must be between 0 and ${outstandingBalanceEGP.toLocaleString()} EGP.`)
@@ -549,25 +550,27 @@ export const BookingOperationalActions: React.FC<BookingOperationalActionsProps>
                 <button
                   type="button"
                   onClick={handleConfirmBooking}
+                  disabled={loading}
                   style={{
                     width: '100%',
                     padding: '0.55rem 0.85rem',
-                    backgroundColor: '#137333',
+                    backgroundColor: loading ? '#94a3b8' : '#137333',
                     color: 'white',
                     border: 'none',
                     borderRadius: '5px',
                     fontWeight: 600,
                     fontSize: '0.8rem',
-                    cursor: 'pointer',
+                    cursor: loading ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '0.35rem',
                     boxShadow: '0 1px 2px rgba(19, 115, 51, 0.2)',
+                    opacity: loading ? 0.7 : 1,
                   }}
                 >
                   <CheckIcon />
-                  <span>Approve & Confirm Reservation</span>
+                  <span>{loading ? 'Processing confirmation...' : 'Approve & Confirm Reservation'}</span>
                 </button>
 
                 {!showCancelPrompt ? (

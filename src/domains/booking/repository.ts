@@ -268,6 +268,23 @@ export class BookingRepository {
   }
 
   /**
+   * Acquire exclusive row lock on the booking in PostgreSQL for write serialization.
+   * Eliminates concurrent confirmation race conditions by serializing on the booking primary key.
+   */
+  async acquireBookingLock(bookingId: number, context?: RequestContext): Promise<void> {
+    const txId = context?.transactionId
+    if (!txId) return
+
+    const db = this.payload.db as unknown as { sessions?: Record<string, { db?: { session?: { client?: { query: Function } } } }> }
+    const txKey = typeof txId === 'object' && txId !== null && 'then' in (txId as any) ? await txId : String(txId)
+    const session = txKey ? db.sessions?.[txKey] : undefined
+    const client = session?.db?.session?.client
+    if (client && typeof client.query === 'function') {
+      await client.query('SELECT id FROM bookings WHERE id = $1 FOR UPDATE', [bookingId])
+    }
+  }
+
+  /**
    * Authoritative summary of active loyalty points held in uncommitted bookings for a customer.
    * Scoped strictly to bookings with active reservation statuses ('draft', 'pending_payment', 'pending_admin_review')
    * where pointHold.status === 'held'.
