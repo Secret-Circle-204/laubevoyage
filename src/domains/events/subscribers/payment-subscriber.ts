@@ -5,6 +5,7 @@ import type { PaymentCompletedEvent, PaymentRefundedEvent } from '../payment-eve
 import { getDomainServices } from '../../factory'
 import { PayloadInboxRepository } from '../repositories/payload-inbox-repository'
 import { BookingPolicy } from '../../booking/policy'
+import { attachCanonicalTravelersToBooking } from '@/application/actions/booking-actions'
 
 /**
  * Booking Payment Subscriber
@@ -168,22 +169,16 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
         await booking.markAsPaid(Number(bookingId), paymentAttempt, context)
 
         // 2. Canonical Traveler Registry Resolution & Manifest Linking before confirmation commit
-        // - TravelerRepository resolves/creates canonical traveler (Customer/Traveler Domain)
-        // - BookingRepository updates manifest traveler_id within active transaction (Booking Domain)
-        // - TravelerRepository records customer-companion relationship if customer is registered (Customer Domain)
-        const travelerRepo = customer.getTravelerRepository()
-        const bookingRepo = booking.getRepository()
-        if (Array.isArray(currentBooking.travelers) && currentBooking.travelers.length > 0) {
-          for (let i = 0; i < currentBooking.travelers.length; i++) {
-            const order = i + 1
-            const travelerInput = currentBooking.travelers[i]
-            const canonical = await travelerRepo.resolveOrCreateCanonicalTraveler(travelerInput, req)
-            await bookingRepo.updateManifestTravelerId(Number(bookingId), order, canonical.id, context)
-            if (currentBooking.customerId && order > 1) {
-              await travelerRepo.saveCompanionRelationship(currentBooking.customerId, canonical.id, 'other', false, req)
-            }
-          }
-        }
+        // Reuses the exact same Application-layer SSOT orchestrator inside active transaction T1
+        await attachCanonicalTravelersToBooking({
+          bookingId: Number(bookingId),
+          travelers: currentBooking.travelers,
+          customerId: currentBooking.customerId,
+          travelerRepo: customer.getTravelerRepository(),
+          bookingRepo: booking.getRepository(),
+          context,
+          req,
+        })
 
         // 3. Confirm booking in Booking Domain (updates status to CONFIRMED inside transaction T1)
         const confirmedBooking = await booking.confirm(Number(bookingId), undefined, context)
