@@ -757,16 +757,29 @@ export class BookingRepository {
     const createdAt = typeof b.createdAt === 'string' ? b.createdAt : new Date().toISOString()
     const updatedAt = typeof b.updatedAt === 'string' ? b.updatedAt : new Date().toISOString()
 
-    const travelers = (b.travelers || []).map((t) => ({
-      firstName: t.firstName,
-      lastName: t.lastName,
-      email: t.email || undefined,
-      phone: t.phone || undefined,
-      dateOfBirth: t.dateOfBirth || undefined,
-      passportNumber: t.passportNumber || undefined,
-      nationality: (t as any).nationality || undefined,
-      type: ((t as any).type as 'adult' | 'child' | 'infant') || 'adult',
-    }))
+    const travelers = (b.travelers || []).map((t) => {
+      const docTraveler = (t as any).traveler
+      const resolvedTravelerId =
+        typeof docTraveler === 'object' && docTraveler !== null
+          ? Number(docTraveler.id)
+          : typeof docTraveler === 'number'
+          ? docTraveler
+          : (t as any).travelerId
+          ? Number((t as any).travelerId)
+          : undefined
+
+      return {
+        travelerId: resolvedTravelerId,
+        firstName: t.firstName,
+        lastName: t.lastName,
+        email: t.email || undefined,
+        phone: t.phone || undefined,
+        dateOfBirth: t.dateOfBirth || undefined,
+        passportNumber: t.passportNumber || undefined,
+        nationality: (t as any).nationality || undefined,
+        type: ((t as any).type as 'adult' | 'child' | 'infant') || 'adult',
+      }
+    })
 
     const capacityHold =
       b.capacityHold && typeof b.capacityHold === 'object'

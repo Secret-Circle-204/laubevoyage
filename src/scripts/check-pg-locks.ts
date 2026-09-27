@@ -35,7 +35,7 @@ async function checkLocks() {
 
   console.log('=== BOOKING #1 STATUS & DATA ===')
   const bk = await drizzle.execute(sql`
-    SELECT id, status, customer_id, experience_id, total_price_e_g_p, payment_status, updated_at
+    SELECT id, status, user_id, updated_at
     FROM "bookings"
     WHERE id = 1;
   `)
@@ -49,6 +49,12 @@ async function checkLocks() {
     ORDER BY _order ASC;
   `)
   console.log(JSON.stringify(bt.rows || bt, null, 2))
+
+  console.log('=== DEPARTURE SLOTS COLUMNS ===')
+  const cols = await drizzle.execute(sql`
+    SELECT column_name FROM information_schema.columns WHERE table_name = 'departure_slots';
+  `)
+  console.log(cols.rows?.map((c: any) => c.column_name) || cols)
 
   process.exit(0)
 }
