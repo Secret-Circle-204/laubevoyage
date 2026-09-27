@@ -36,6 +36,8 @@ pnpm-debug.log*
 .env.example
 test.env
 *.env
+env-prod
+env-*
 
 # binaries & large tools
 *.exe
