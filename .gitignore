@@ -64,3 +64,14 @@ SYSTEM_INTEGRATION_AUDIT.md
 translation_rules_and_domain.md
 AGENT.md
 
+# scripts: ignore all diagnostic & temporary scripts by default, whitelist only production scripts
+/src/scripts/*
+!/src/scripts/reconcile-dashboard-projections.ts
+!/src/scripts/execute-legacy-translation-cleanup.ts
+!/src/scripts/rebuild-canonical-catalog.ts
+!/src/scripts/migrate-legacy-stays-to-options.ts
+!/src/scripts/apply-accommodation-options-schema.ts
+!/src/scripts/apply-room-rates-schema.ts
+!/src/scripts/fix-experience-1953-default.ts
+
+
