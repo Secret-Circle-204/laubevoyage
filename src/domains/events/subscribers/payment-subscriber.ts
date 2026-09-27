@@ -5,7 +5,7 @@ import type { PaymentCompletedEvent, PaymentRefundedEvent } from '../payment-eve
 import { getDomainServices } from '../../factory'
 import { PayloadInboxRepository } from '../repositories/payload-inbox-repository'
 import { BookingPolicy } from '../../booking/policy'
-import { attachCanonicalTravelersToBooking } from '@/application/actions/booking-actions'
+import { attachCanonicalTravelersToBooking } from '@/application/booking'
 
 /**
  * Booking Payment Subscriber

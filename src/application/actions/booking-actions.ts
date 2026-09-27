@@ -12,6 +12,7 @@ import { BookingPolicy } from '@/domains/booking/policy'
 import { PaymentAttemptsService } from '@/domains/booking/payment-attempts'
 import { addDaysToDateString } from '@/lib/date'
 import type { TravelerInput, BookingPickupLocation } from '@/domains/booking/types'
+import { attachCanonicalTravelersToBooking } from '@/application/booking'
 
 /**
  * Orchestrator Server Action to process the checkout submit flow.
@@ -649,41 +650,6 @@ export async function checkBookingStatusAction(params: {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Status check failed',
-    }
-  }
-}
-
-/**
- * Cross-Domain Orchestration Helper:
- * Single Source of Truth for resolving/creating canonical travelers, linking them to
- * the booking manifest, and recording customer-companion relationships within an active transaction.
- * Pure Application Layer function reused symmetrically by both Admin and Online Payment paths.
- */
-export async function attachCanonicalTravelersToBooking(params: {
-  bookingId: number
-  travelers?: TravelerInput[]
-  customerId?: number
-  travelerRepo: import('@/domains/customer/repositories/traveler-repository').TravelerRepository
-  bookingRepo: import('@/domains/booking/repository').BookingRepository
-  context?: RequestContext
-  req?: import('payload').PayloadRequest
-}): Promise<void> {
-  const { bookingId, travelers, customerId, travelerRepo, bookingRepo, context, req } = params
-  if (!Array.isArray(travelers) || travelers.length === 0) return
-
-  for (let i = 0; i < travelers.length; i++) {
-    const order = i + 1
-    const travelerInput = travelers[i]
-
-    // 1. Resolve or create canonical traveler record (Customer Domain)
-    const canonical = await travelerRepo.resolveOrCreateCanonicalTraveler(travelerInput, req)
-
-    // 2. Attach canonical traveler_id to the booking manifest (Booking Domain persistence)
-    await bookingRepo.updateManifestTravelerId(bookingId, order, canonical.id, context)
-
-    // 3. Save customer companion relationship for companions (order > 1) if customer is authenticated
-    if (customerId && order > 1) {
-      await travelerRepo.saveCompanionRelationship(customerId, canonical.id, 'other', false, req)
     }
   }
 }
