@@ -65,6 +65,11 @@ system_dependency_graph.md
 SYSTEM_INTEGRATION_AUDIT.md
 translation_rules_and_domain.md
 AGENT.md
+eco.md
+
+# Local Development
+.claude/
+.agent/
 
 # scripts: ignore all diagnostic & temporary scripts by default, whitelist only production scripts
 /src/scripts/*
@@ -77,3 +82,4 @@ AGENT.md
 !/src/scripts/fix-experience-1953-default.ts
 
 
+ecosystem.config.cjs

@@ -12,7 +12,6 @@ import { BookingPolicy } from '@/domains/booking/policy'
 import { PaymentAttemptsService } from '@/domains/booking/payment-attempts'
 import { addDaysToDateString } from '@/lib/date'
 import type { TravelerInput, BookingPickupLocation } from '@/domains/booking/types'
-import { attachCanonicalTravelersToBooking } from '@/application/booking'
 
 /**
  * Orchestrator Server Action to process the checkout submit flow.
@@ -750,16 +749,27 @@ export async function confirmAdminBookingAction(params: {
       }
 
       // 4. Canonical Traveler Registry Resolution & Manifest Linking
-      // Orchestrated cleanly at the Application boundary inside the active transaction via SSOT helper
-      await attachCanonicalTravelersToBooking({
-        bookingId: bookingDoc.id,
-        travelers: bookingDoc.travelers,
-        customerId: bookingDoc.customerId,
-        travelerRepo,
-        bookingRepo: repository,
-        context,
-        req,
-      })
+      // Orchestrated cleanly inside active transaction T1:
+      // - TravelerRepository resolves/creates canonical traveler (Customer/Traveler Domain)
+      // - BookingRepository updates manifest traveler_id within active transaction (Booking Domain)
+      // - TravelerRepository records customer-companion relationship if customer is registered (Customer Domain)
+      if (Array.isArray(bookingDoc.travelers) && bookingDoc.travelers.length > 0) {
+        for (let i = 0; i < bookingDoc.travelers.length; i++) {
+          const order = i + 1
+          const travelerInput = bookingDoc.travelers[i]
+
+          // 1. Resolve or create canonical traveler record
+          const canonical = await travelerRepo.resolveOrCreateCanonicalTraveler(travelerInput, req)
+
+          // 2. Attach canonical traveler_id to the booking manifest (Booking-owned persistence)
+          await repository.updateManifestTravelerId(bookingDoc.id, order, canonical.id, context)
+
+          // 3. Save customer companion relationship for companions (order > 1) if customer is authenticated
+          if (bookingDoc.customerId && order > 1) {
+            await travelerRepo.saveCompanionRelationship(bookingDoc.customerId, canonical.id, 'other', false, req)
+          }
+        }
+      }
 
       // 5. Booking Confirmation (Booking Domain Invariants, Capacity, Loyalty, Status, Outbox)
       const confirmedBooking = await booking.confirm(
