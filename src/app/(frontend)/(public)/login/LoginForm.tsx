@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useToast } from '@/providers'
+import { useToast, useSession } from '@/providers'
 import { loginCustomerAction } from '@/application/actions/customer-actions'
 
 export interface LoginFormProps {
@@ -14,6 +14,7 @@ export function LoginForm({ welcomeBonus: _welcomeBonus }: LoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { addToast } = useToast()
+  const { setSession } = useSession()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,6 +36,9 @@ export function LoginForm({ welcomeBonus: _welcomeBonus }: LoginFormProps) {
     try {
       const res = await loginCustomerAction(email, password)
       if (res.success) {
+        if (res.session) {
+          setSession(res.session)
+        }
         addToast({
           type: 'success',
           title: 'Welcome back!',

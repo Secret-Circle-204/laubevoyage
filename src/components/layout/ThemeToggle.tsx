@@ -13,7 +13,12 @@ function useIsMounted() {
   )
 }
 
-export function ThemeToggle({ className = '' }: { className?: string }) {
+export interface ThemeToggleProps {
+  className?: string
+  variant?: 'header' | 'sheet'
+}
+
+export function ThemeToggle({ className = '', variant = 'header' }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme()
   const mounted = useIsMounted()
 
@@ -22,12 +27,17 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   }
 
   const isDark = theme === 'dark'
+  const isSheet = variant === 'sheet'
+
+  const buttonStyle = isSheet
+    ? 'border border-border/80 bg-card text-foreground hover:bg-border/30 dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-border/30'
+    : 'border border-white/30 bg-white/20 text-white hover:bg-white/30 dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-border/30'
 
   return (
     <button
       type="button"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className={`p-2 rounded-full border border-white/30 bg-white/20 text-white hover:bg-white/30 dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-border/30 hover:shadow-sm transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 dark:focus-visible:ring-secondary cursor-pointer ${className}`}
+      className={`p-2 rounded-full hover:shadow-xs transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 dark:focus-visible:ring-secondary cursor-pointer ${buttonStyle} ${className}`}
       title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       aria-label="Toggle Theme"
     >
@@ -49,7 +59,9 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       ) : (
         /* Moon Icon */
         <svg
-          className="w-5 h-5 text-white dark:text-secondary transition-all duration-300 -rotate-12 hover:rotate-0 hover:scale-105"
+          className={`w-5 h-5 transition-all duration-300 -rotate-12 hover:rotate-0 hover:scale-105 ${
+            isSheet ? 'text-foreground/80 hover:text-foreground' : 'text-white dark:text-secondary'
+          }`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

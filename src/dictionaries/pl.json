@@ -4,7 +4,9 @@
     "subtitle": "Kreujemy Niezwykłe Podróże: Twój Paszport do Ekskluzywnych Odkryć",
     "cta": {
       "primary": "Zobacz Doświadczenia →",
-      "secondary": "Odkryj Kierunki"
+      "secondary": "Odkryj Kierunki",
+      "joinVoyagers": "Dołącz do Laube Voyagers",
+      "voyagerPortal": "Portal Voyager"
     }
   },
   "layout": {
@@ -17,8 +19,23 @@
     "header": {
       "myAccount": "Moje Konto",
       "signOut": "Wyloguj",
-      "logIn": "Zaloguj",
-      "bookNow": "Zarezerwuj Teraz"
+      "logIn": "Zaloguj się",
+      "signIn": "Zaloguj się",
+      "register": "Zarejestruj się",
+      "bookNow": "Zaloguj się",
+      "adminPortal": "Panel Administratora",
+      "travelCommand": "Centrum Podróży",
+      "searchPlaceholder": "Szukaj kierunków lub podróży...",
+      "searchButton": "Szukaj",
+      "clearSearch": "Wyczyść wyszukiwanie",
+      "searchAriaLabel": "Szukaj kierunków lub doświadczeń",
+      "exploreCollection": "Odkryj Kolekcję",
+      "languagePreferences": "Język i Preferencje",
+      "currencyDisplay": "Wyświetlana Waluta",
+      "selectLanguage": "Wybierz Język",
+      "selectCurrency": "Wybierz Walutę",
+      "openMenu": "Otwórz menu nawigacji",
+      "closeMenu": "Zamknij menu nawigacji"
     },
     "sidebar": {
       "overview": "Przegląd",
@@ -64,7 +81,16 @@
     "filterDailyTours": "Wycieczki Prywatne",
     "viewItinerary": "Zobacz Plan Podróży",
     "packageLabel": "Pakiet Wycieczkowy",
-    "dailyTourLabel": "Wycieczka Jednodniowa"
+    "dailyTourLabel": "Wycieczka Jednodniowa",
+    "activeCriteria": "Aktywne Kryteria",
+    "criteriaKeyword": "Słowo kluczowe",
+    "criteriaCountry": "Kraj",
+    "criteriaCity": "Miasto",
+    "criteriaFormat": "Format",
+    "criteriaDate": "Data",
+    "criteriaBudget": "Budżet",
+    "criteriaDuration": "Czas trwania",
+    "clearAll": "Wyczyść wszystko"
   },
   "checkout": {
     "leadTravelerInfo": "Dane Głównego Podróżnego",
@@ -190,29 +216,30 @@
       "referenceCol": "Numer transakcji",
       "typeCol": "Typ",
       "reasonCol": "Powód",
-      "pointsCol": "Punkty"
+      "pointsCol": "Punkty",
+      "transactionHistorySubtitle": "Pełna historia punktów zdobytych podczas podróży i wykorzystanych na rezerwacje."
     }
   },
   "dashboard": {
     "overview": {
-      "personalTravelHome": "Osobisty Portal Podróży",
+      "personalTravelHome": "Panel Podróży",
       "welcomeBack": "Witamy ponownie",
       "welcomeSubtitle": "Twoje osobiste centrum podróży i ekskluzywny rejestr wypraw.",
-      "primaryVoyageDossier": "Główny Dossier Podróży",
+      "primaryVoyageDossier": "Następna Podróż",
       "statusConfirmed": "Potwierdzone",
       "statusPendingReview": "W trakcie weryfikacji",
       "viewDetails": "Pokaż szczegóły",
       "hideDetails": "Ukryj szczegóły",
       "details": "Szczegóły",
       "departure": "Wylot",
-      "settlement": "Rozliczenie",
-      "accessTravelDossier": "Otwórz Dossier Podróży",
+      "settlement": "Cena Całkowita",
+      "accessTravelDossier": "Szczegóły rezerwacji",
       "schedule": "Harmonogram",
-      "manifest": "Lista pasażerów",
+      "manifest": "Podróżni",
       "travelerSingle": "Podróżny",
       "travelerMultiple": "Podróżni",
-      "tourType": "Rodzaj wycieczki",
-      "type": "Typ",
+      "tourType": "Typ podróży",
+      "type": "Typ podróży",
       "paymentStatus": "Status płatności",
       "standardSchedule": "Standardowy",
       "signatureTour": "Wycieczka Autorska",
@@ -235,11 +262,14 @@
       "noBookingsFound": "Nie znaleziono rezerwacji",
       "noBookingsFoundDesc": "Nie masz żadnych ostatnich rezerwacji. Zacznij planować swoją luksusową podróż z nami już dziś.",
       "exploreExperiencesBtn": "Odkryj Doświadczenia",
-      "settlementStatus": "Status rozliczenia",
+      "settlementStatus": "Status płatności",
       "fullySettled": "Całkowicie opłacone",
       "partiallyPaid": "Częściowo opłacone",
       "pending": "Oczekujące",
-      "balanceDue": "Pozostała kwota"
+      "balanceDue": "Pozostała kwota",
+      "travelPackage": "Pakiet Podróżny",
+      "dailyTour": "Wycieczka Jednodniowa",
+      "duration": "Czas trwania"
     }
   },
   "experience": {
@@ -532,7 +562,46 @@
     "previousPage": "← Poprzednia",
     "nextPage": "Następna →",
     "pageOf": "Strona {page} z {totalPages}",
-    "showingCount": "Wyświetlanie strony {page} z {totalPages} (łącznie {total})"
+    "showingCount": "Wyświetlanie strony {page} z {totalPages} (łącznie {total})",
+    "country": "Kraj",
+    "allCountries": "Wszystkie Kraje",
+    "filterCountries": "Filtruj kraje...",
+    "city": "Miasto",
+    "allCities": "Wszystkie Miasta",
+    "allInCountry": "Wszystkie miasta w kraju",
+    "filterCities": "Filtruj miasta...",
+    "departure": "Wyjazd",
+    "flexibleDates": "Elastyczne Daty",
+    "specificDepartureDate": "Dokładna data wyjazdu",
+    "quickSeasons": "Szybkie Sezony",
+    "anytime": "Kiedykolwiek",
+    "in2Weeks": "Za 2 tygodnie",
+    "nextMonth": "W przyszłym miesiącu",
+    "in3Months": "Za 3 miesiące",
+    "experienceType": "Doświadczenie",
+    "allExperiencesDesc": "Odkryj naszą globalną ofertę luksusu",
+    "tourPackagesDesc": "Wielodniowe podróże z luksusowymi pobytami",
+    "dailyExcursionsDesc": "Ekskluzywne wycieczki jednodniowe z prywatnym przewodnikiem",
+    "moreFilters": "Filtry",
+    "refineJourney": "Dostosuj Podróż",
+    "refineJourneySubtitle": "Dopasuj parametry do swoich luksusowych preferencji",
+    "resetFilters": "Wyczyść filtry",
+    "minBudget": "Minimalny Budżet",
+    "maxBudget": "Maksymalny Budżet",
+    "duration": "Czas Podróży",
+    "anyDuration": "Dowolny",
+    "oneDay": "1 Dzień",
+    "threePlusDays": "3+ Dni",
+    "fivePlusDays": "5+ Dni",
+    "sevenPlusDays": "7+ Dni",
+    "tenPlusDays": "10+ Dni",
+    "selectCountry": "Wybierz Kraj",
+    "selectCity": "Wybierz Miasto",
+    "selectCountryDesc": "Niezrównane destynacje na całym świecie",
+    "selectCityDesc": "Wyselekcjonowane centra miejskie i kulturowe",
+    "departureDateDesc": "Elastyczny harmonogram i wyjazdy sezonowe",
+    "experienceTypeDesc": "Pakiety podróżne lub prywatne wycieczki",
+    "exploreAction": "Odkrywaj"
   },
   "emails": {
     "common": {

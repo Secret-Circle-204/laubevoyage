@@ -1,5 +1,13 @@
 import type { ITranslationProvider } from './provider.interface'
-import type { TranslationProviderId } from '../types'
+import type { TranslationProviderId, TranslationResultWithProvenance, BatchTranslationResultWithProvenance } from '../types'
+import {
+  ProviderAuthError,
+  ProviderRateLimitError,
+  ProviderTimeoutError,
+  ProviderNetworkError,
+  ProviderUnavailableError,
+  ProviderInvalidResponseError,
+} from '../errors/provider-errors'
 
 export class AzureTranslatorProvider implements ITranslationProvider {
   readonly providerId: TranslationProviderId = 'azure'
@@ -39,9 +47,7 @@ export class AzureTranslatorProvider implements ITranslationProvider {
     if (targetLocale === sourceLocale) return texts
 
     if (!this.isConfigured()) {
-      const err = new Error('[AzureTranslatorProvider] Provider is unconfigured: missing AZURE_TRANSLATOR_KEY.')
-      ;(err as any).status = 401
-      throw err
+      throw new ProviderAuthError(this.providerId, 'Provider is unconfigured: missing AZURE_TRANSLATOR_KEY.')
     }
 
     const url = new URL(this.endpoint)
@@ -54,8 +60,9 @@ export class AzureTranslatorProvider implements ITranslationProvider {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs)
 
+    let response: Response
     try {
-      const response = await fetch(url.toString(), {
+      response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           'Ocp-Apim-Subscription-Key': this.apiKey,
@@ -65,45 +72,83 @@ export class AzureTranslatorProvider implements ITranslationProvider {
         body: JSON.stringify(requestBody),
         signal: controller.signal,
       })
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '')
-        const err = new Error(
-          `[AzureTranslatorProvider] HTTP ${response.status} ${response.statusText}: ${errorText.substring(0, 300)}`
-        )
-        ;(err as any).status = response.status
-        const retryAfter = response.headers.get('retry-after')
-        if (retryAfter) {
-          ;(err as any).retryAfter = retryAfter
-        }
-        throw err
+    } catch (fetchErr: unknown) {
+      clearTimeout(timeoutId)
+      if ((fetchErr as any)?.name === 'AbortError') {
+        throw new ProviderTimeoutError(this.providerId, `Request timed out after ${this.timeoutMs}ms`)
       }
-
-      const json = await response.json()
-      if (!Array.isArray(json) || json.length !== texts.length) {
-        throw new Error(
-          `[AzureTranslatorProvider] Cardinality mismatch: expected ${texts.length} items, received ${
-            Array.isArray(json) ? json.length : 0
-          }`
-        )
-      }
-
-      return json.map((item, index) => {
-        const translation = item?.translations?.[0]?.text
-        if (typeof translation !== 'string' || !translation.trim()) {
-          return texts[index]!
-        }
-        return translation
-      })
-    } catch (err: unknown) {
-      if ((err as any)?.name === 'AbortError') {
-        const timeoutErr = new Error(`[AzureTranslatorProvider] Request timed out after ${this.timeoutMs}ms`)
-        ;(timeoutErr as any).status = 504
-        throw timeoutErr
-      }
-      throw err
+      throw new ProviderNetworkError(
+        this.providerId,
+        fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+      )
     } finally {
       clearTimeout(timeoutId)
     }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      if (response.status === 401 || response.status === 403) {
+        throw new ProviderAuthError(
+          this.providerId,
+          `HTTP ${response.status}: ${errorText.substring(0, 300)}`,
+          response.status as 401 | 403
+        )
+      }
+      if (response.status === 429) {
+        const retryHeader = response.headers.get('retry-after')
+        let parsedSec: number | undefined
+        if (retryHeader) {
+          const s = parseInt(retryHeader, 10)
+          if (!isNaN(s) && s > 0) parsedSec = Math.min(s, 300)
+        }
+        throw new ProviderRateLimitError(
+          this.providerId,
+          `HTTP 429: ${errorText.substring(0, 300)}`,
+          parsedSec
+        )
+      }
+      throw new ProviderUnavailableError(this.providerId, response.status, errorText.substring(0, 300))
+    }
+
+    let json: any
+    try {
+      json = await response.json()
+    } catch (parseErr: unknown) {
+      throw new ProviderInvalidResponseError(this.providerId, 'Failed to parse JSON response from Azure')
+    }
+
+    if (!Array.isArray(json) || json.length !== texts.length) {
+      throw new ProviderInvalidResponseError(
+        this.providerId,
+        `Cardinality mismatch: expected ${texts.length} items, received ${Array.isArray(json) ? json.length : typeof json}`
+      )
+    }
+
+    return json.map((item, index) => {
+      const translation = item?.translations?.[0]?.text
+      if (typeof translation !== 'string' || !translation.trim()) {
+        return texts[index]!
+      }
+      return translation
+    })
+  }
+
+  async translateTextWithProvenance(
+    text: string,
+    targetLocale: string,
+    sourceLocale: string = 'en'
+  ): Promise<TranslationResultWithProvenance> {
+    const textRes = await this.translateText(text, targetLocale, sourceLocale)
+    return { text: textRes, providerId: this.providerId }
+  }
+
+  async translateBatchWithProvenance(
+    texts: string[],
+    targetLocale: string,
+    sourceLocale: string = 'en'
+  ): Promise<BatchTranslationResultWithProvenance> {
+    const textsRes = await this.translateBatch(texts, targetLocale, sourceLocale)
+    return { texts: textsRes, providerId: this.providerId }
   }
 }
+

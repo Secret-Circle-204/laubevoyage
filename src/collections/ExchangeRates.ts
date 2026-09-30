@@ -17,9 +17,134 @@ export const ExchangeRates: CollectionConfig = {
     },
   },
   access: {
-    read: () => true, // Publicly readable for conversion
+    read: () => true,
   },
   hooks: {
+    beforeValidate: [
+      async ({ data }) => {
+        if (!data) return data
+        if (typeof data.rate === 'number' && data.rate <= 0) {
+          const { ValidationError } = await import('payload')
+          throw new ValidationError({
+            errors: [
+              {
+                message: 'Exchange rate must be a strictly positive number (> 0).',
+                path: 'rate',
+              },
+            ],
+          })
+        }
+        return data
+      },
+    ],
+    beforeChange: [
+      async ({ data, req, operation, originalDoc }) => {
+        if (!data) return data
+
+        // Mutation protection: Do not allow changing currency pair or invalidating rate for an active currency
+        if (operation === 'update' && originalDoc && originalDoc.fromCurrency === 'EGP') {
+          const activeCurrencyCheck = await req.payload.find({
+            collection: 'currencies',
+            where: {
+              and: [
+                { isoCode: { equals: originalDoc.toCurrency } },
+                { isActive: { equals: true } },
+              ],
+            },
+            limit: 1,
+          })
+
+          if (activeCurrencyCheck.docs.length > 0) {
+            const isPairAltered =
+              (data.fromCurrency && data.fromCurrency !== 'EGP') ||
+              (data.toCurrency && data.toCurrency !== originalDoc.toCurrency)
+            const isRateInvalid = typeof data.rate === 'number' && data.rate <= 0
+
+            if (isPairAltered || isRateInvalid) {
+              // Check if another valid rate exists for this active currency
+              const otherRate = await req.payload.find({
+                collection: 'exchange-rates',
+                where: {
+                  and: [
+                    { id: { not_equals: originalDoc.id } },
+                    { fromCurrency: { equals: 'EGP' } },
+                    { toCurrency: { equals: originalDoc.toCurrency } },
+                    { rate: { greater_than: 0 } },
+                  ],
+                },
+                limit: 1,
+              })
+
+              if (otherRate.docs.length === 0) {
+                const { ValidationError } = await import('payload')
+                throw new ValidationError({
+                  errors: [
+                    {
+                      message: `Cannot modify currency pair or set non-positive rate for active currency "${originalDoc.toCurrency}". An active currency must always have a valid positive EGP exchange rate. Deactivate the currency first.`,
+                      path: 'toCurrency',
+                    },
+                  ],
+                })
+              }
+            }
+          }
+        }
+
+        return data
+      },
+    ],
+    beforeDelete: [
+      async ({ id, req }) => {
+        if (!id) return
+        const doc = await req.payload.findByID({
+          collection: 'exchange-rates',
+          id,
+        })
+        if (!doc) return
+
+        if (doc.fromCurrency === 'EGP') {
+          const activeCurrencyCheck = await req.payload.find({
+            collection: 'currencies',
+            where: {
+              and: [
+                { isoCode: { equals: doc.toCurrency } },
+                { isActive: { equals: true } },
+              ],
+            },
+            limit: 1,
+          })
+
+          if (activeCurrencyCheck.docs.length > 0) {
+            // Check if another valid rate exists for this active currency
+            const otherRate = await req.payload.find({
+              collection: 'exchange-rates',
+              where: {
+                and: [
+                  { id: { not_equals: doc.id } },
+                  { fromCurrency: { equals: 'EGP' } },
+                  { toCurrency: { equals: doc.toCurrency } },
+                  { rate: { greater_than: 0 } },
+                ],
+              },
+              limit: 1,
+            })
+
+            if (otherRate.docs.length === 0) {
+              const { ValidationError } = await import('payload')
+              throw new ValidationError({
+                errors: [
+                  {
+                    message: `Cannot delete exchange rate for active currency "${doc.toCurrency}". An active currency must always have a valid positive EGP exchange rate. Deactivate the currency first before deleting its rate.`,
+                    path: 'toCurrency',
+                  },
+                ],
+              })
+            }
+          }
+        }
+      },
+    ],
+
     afterChange: [
       async ({ doc, req }) => {
         rateRegistry.invalidate()

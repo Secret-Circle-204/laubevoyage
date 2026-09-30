@@ -6,16 +6,21 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useLoadingNavigation } from '@/application/loading/use-loading-navigation'
 import { useTheme } from '@/providers/theme-provider'
+import { useLocale } from '@/providers'
+import { JsonTranslationDictionary } from '@/domains/translation/dictionary'
 import { Button } from '@/components/ui'
 import { DiscoverySearchBar } from '@/components/features/search/DiscoverySearchBar'
 import { ExperienceCard } from '@/components/features/experience/ExperienceCard'
 import { ExperienceSectionAtmosphere } from '@/components/features/experience/ExperienceSectionAtmosphere'
 import type { ExperienceCatalogDTO } from '@/application/experience/dto'
 
+const dict = new JsonTranslationDictionary()
+
 export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO }) {
   const router = useRouter()
   const loadingNav = useLoadingNavigation()
   const { theme } = useTheme()
+  const { locale } = useLocale()
   const isDark = theme === 'dark'
 
   const handleClearFilter = (filterKey: string) => {
@@ -113,15 +118,15 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
           <div className="flex flex-wrap items-center gap-2.5 mb-10 p-3.5 rounded-2xl bg-card/60 dark:bg-card/40 border border-border/70 backdrop-blur-sm relative z-10 animate-editorial-reveal stagger-2">
             <span className="text-xs font-semibold text-muted-foreground mr-1.5 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-              Active Criteria
+              {dict.get(locale, 'catalog.activeCriteria')}
             </span>
             {data.filters.query && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
-                <span className="text-muted-foreground font-normal">Keyword:</span>
+                <span className="text-muted-foreground font-normal">{dict.get(locale, 'catalog.criteriaKeyword')}:</span>
                 <span className="font-semibold">&quot;{data.filters.query}&quot;</span>
                 <button
                   onClick={() => handleClearFilter('q')}
-                  aria-label="Remove keyword filter"
+                  aria-label={dict.get(locale, 'catalog.removeFilter')}
                   className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                 >
                   <svg
@@ -138,11 +143,11 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
             )}
             {activeCountry && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
-                <span className="text-muted-foreground font-normal">Country:</span>
+                <span className="text-muted-foreground font-normal">{dict.get(locale, 'catalog.criteriaCountry')}:</span>
                 <span className="font-semibold">{activeCountry.name}</span>
                 <button
                   onClick={() => handleClearFilter('countryId')}
-                  aria-label="Remove country filter"
+                  aria-label={dict.get(locale, 'catalog.removeFilter')}
                   className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                 >
                   <svg
@@ -159,11 +164,11 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
             )}
             {activeCity && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
-                <span className="text-muted-foreground font-normal">City:</span>
+                <span className="text-muted-foreground font-normal">{dict.get(locale, 'catalog.criteriaCity')}:</span>
                 <span className="font-semibold">{activeCity.name}</span>
                 <button
                   onClick={() => handleClearFilter('cityId')}
-                  aria-label="Remove city filter"
+                  aria-label={dict.get(locale, 'catalog.removeFilter')}
                   className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                 >
                   <svg
@@ -180,13 +185,13 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
             )}
             {data.filters.type && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
-                <span className="text-muted-foreground font-normal">Format:</span>
+                <span className="text-muted-foreground font-normal">{dict.get(locale, 'catalog.criteriaFormat')}:</span>
                 <span className="font-semibold">
-                  {data.filters.type === 'package' ? 'Packages' : 'Daily Tours'}
+                  {data.filters.type === 'package' ? dict.get(locale, 'catalog.filterPackages') : dict.get(locale, 'catalog.filterDailyTours')}
                 </span>
                 <button
                   onClick={() => handleClearFilter('type')}
-                  aria-label="Remove journey format filter"
+                  aria-label={dict.get(locale, 'catalog.removeFilter')}
                   className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                 >
                   <svg
@@ -203,11 +208,11 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
             )}
             {data.filters.date && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
-                <span className="text-muted-foreground font-normal">Date:</span>
+                <span className="text-muted-foreground font-normal">{dict.get(locale, 'catalog.criteriaDate')}:</span>
                 <span className="font-semibold">{data.filters.date}</span>
                 <button
                   onClick={() => handleClearFilter('date')}
-                  aria-label="Remove date filter"
+                  aria-label={dict.get(locale, 'catalog.removeFilter')}
                   className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                 >
                   <svg
@@ -241,11 +246,11 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
 
                 return (
                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
-                    <span className="text-muted-foreground font-normal">Budget:</span>
+                    <span className="text-muted-foreground font-normal">{dict.get(locale, 'catalog.criteriaBudget')}:</span>
                     <span className="font-semibold">{label}</span>
                     <button
                       onClick={() => handleClearFilter('price')}
-                      aria-label="Remove budget filter"
+                      aria-label={dict.get(locale, 'catalog.removeFilter')}
                       className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                     >
                       <svg
@@ -267,11 +272,11 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
               })()}
             {data.filters.duration !== undefined && (
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-card border border-border text-foreground shadow-sm transition-all duration-150 active:scale-[0.98]">
-                <span className="text-muted-foreground font-normal">Duration:</span>
-                <span className="font-semibold">{data.filters.duration}+ Days</span>
+                <span className="text-muted-foreground font-normal">{dict.get(locale, 'catalog.criteriaDuration')}:</span>
+                <span className="font-semibold">{data.filters.duration}+ {dict.get(locale, 'experience.dayPlural') || 'Days'}</span>
                 <button
                   onClick={() => handleClearFilter('duration')}
-                  aria-label="Remove duration filter"
+                  aria-label={dict.get(locale, 'catalog.removeFilter')}
                   className="p-0.5 rounded-full text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                 >
                   <svg
@@ -290,7 +295,7 @@ export function ExperiencesCatalogPage({ data }: { data: ExperienceCatalogDTO })
               onClick={handleResetAll}
               className="text-xs font-semibold text-muted-foreground hover:text-accent underline underline-offset-4 decoration-border hover:decoration-accent transition-colors ml-auto cursor-pointer"
             >
-              Reset All
+              {dict.get(locale, 'catalog.clearAll')}
             </button>
           </div>
         )}

@@ -18,6 +18,7 @@ import { BookingLoyaltySummaryAssembler } from '@/application/loyalty/booking-su
 import { LoyaltyTier, BookingStatus } from '@/types'
 import { TierPolicy } from '@/domains/loyalty/tier-policy'
 import { LoyaltyProgressDTOFactory } from '@/application/loyalty/progress-factory'
+import { CANONICAL_CUSTOMER_NAV_ITEMS } from './navigation'
 
 /**
  * Request-scoped memoized reader for CustomerPortalProjection.
@@ -42,15 +43,11 @@ export class CustomerPortalLoader {
         'silver'
       ).toLowerCase() as LoyaltyTier
 
-      const navLinks = [
-        { label: localization.translateUiKey('layout.sidebar.overview', ctx), href: '/dashboard', icon: 'overview' },
-        { label: localization.translateUiKey('layout.sidebar.myBookings', ctx), href: '/dashboard/bookings', icon: 'bookings' },
-        { label: localization.translateUiKey('layout.sidebar.loyaltyRewards', ctx), href: '/dashboard/loyalty', icon: 'loyalty' },
-        { label: localization.translateUiKey('layout.sidebar.profileCompanions', ctx), href: '/dashboard/profile', icon: 'profile' },
-        { label: localization.translateUiKey('layout.sidebar.invoicesReceipts', ctx), href: '/dashboard/invoices', icon: 'invoices' },
-        { label: localization.translateUiKey('layout.sidebar.notifications', ctx), href: '/dashboard/notifications', icon: 'notifications' },
-        { label: localization.translateUiKey('layout.sidebar.settings', ctx), href: '/dashboard/settings', icon: 'settings' },
-      ]
+      const navLinks = CANONICAL_CUSTOMER_NAV_ITEMS.map((item) => ({
+        label: localization.translateUiKey(item.translationKey, ctx),
+        href: item.href,
+        icon: item.icon,
+      }))
 
       const tierSuffix = localization.translateUiKey('layout.sidebar.tierSuffix', ctx)
       const rawSidebarTierFormat = localization.translateUiKey('layout.sidebar.tierFormat', ctx) || '{tier} Tier'
@@ -84,6 +81,7 @@ export class CustomerPortalLoader {
         customer: customerService,
         booking,
         experience,
+        destination,
         loyalty: loyaltyService,
         currency: currencyService,
         pricingFacade,
@@ -115,7 +113,31 @@ export class CustomerPortalLoader {
         uniqueExperienceIds.length > 0 ? await experience.getManyByIds(uniqueExperienceIds) : []
       const experiencesMap = new Map(experiences.map((e) => [e.id, e]))
 
-      // Batch translate recent bookings experience titles
+      // Batch-Resolve matching departure slots
+      const uniqueSlotIds = Array.from(
+        new Set(
+          userBookings
+            .map((b) => b.departureSlot)
+            .filter((id): id is number => typeof id === 'number'),
+        ),
+      )
+      const slotsList =
+        uniqueSlotIds.length > 0 ? await experience.getDepartureSlotsByIds(uniqueSlotIds) : []
+      const slotsMap = new Map(slotsList.map((s) => [Number(s.id), s]))
+
+      // Batch-Resolve matching cities from Destination Domain
+      const uniqueCityIds = Array.from(
+        new Set(
+          Array.from(experiencesMap.values())
+            .map((e) => e.cityId)
+            .filter((id): id is number => typeof id === 'number' && id > 0),
+        ),
+      )
+      const citiesList =
+        uniqueCityIds.length > 0 ? await destination.getCitiesByIds(uniqueCityIds) : []
+      const citiesMap = new Map(citiesList.map((c: any) => [Number(c.id), c]))
+
+      // Dynamic text batch translation (experience titles + destination city names)
       const rawExpTitles: string[] = Array.from(
         new Set(
           userBookings
@@ -123,10 +145,23 @@ export class CustomerPortalLoader {
             .filter((t): t is string => Boolean(t)),
         ),
       )
-      const translatedExpTitles = await localization.translateBatch(rawExpTitles, ctx)
-      const expTitleMap = new Map<string, string>()
-      rawExpTitles.forEach((raw, idx) => {
-        expTitleMap.set(raw, translatedExpTitles[idx] || raw)
+      const rawGeoNames: string[] = []
+      for (const cityDoc of Array.from(citiesMap.values())) {
+        if (cityDoc.name) rawGeoNames.push(String(cityDoc.name))
+        const countryObj = cityDoc.country
+        if (countryObj && typeof countryObj === 'object' && 'name' in countryObj && countryObj.name) {
+          rawGeoNames.push(String(countryObj.name))
+        }
+      }
+      const uniqueGeoNames = Array.from(new Set(rawGeoNames.filter(Boolean)))
+      const allDynamicTexts = [...rawExpTitles, ...uniqueGeoNames]
+      const translatedDynamicTexts =
+        typeof localization.translateBatch === 'function'
+          ? await localization.translateBatch(allDynamicTexts, ctx)
+          : allDynamicTexts
+      const dynamicTextMap = new Map<string, string>()
+      allDynamicTexts.forEach((text, idx) => {
+        dynamicTextMap.set(text, translatedDynamicTexts[idx] || text)
       })
 
       const recentBookings = await Promise.all(
@@ -174,17 +209,92 @@ export class CustomerPortalLoader {
           }
 
           const exp = experiencesMap.get(b.experienceId)
+          if (!exp) {
+            console.error(
+              `[CustomerPortalLoader] Broken relation detected: Booking #${b.bookingNumber} references non-existent experience ID #${b.experienceId}.`,
+            )
+          } else if ((exp as any).type !== 'package' && (exp as any).type !== 'daily_tour') {
+            console.error(
+              `[CustomerPortalLoader] Corrupt entity detected: Experience #${(exp as any).id} ('${(exp as any).title}') has invalid type '${(exp as any)?.type}'.`,
+            )
+          }
+
           const rawTitle = exp?.title
-          const experienceTitle = rawTitle ? (expTitleMap.get(rawTitle) || rawTitle) : `Trip #${b.bookingNumber}`
+          const experienceTitle = rawTitle ? (dynamicTextMap.get(rawTitle) || rawTitle) : `Trip #${b.bookingNumber}`
           const experienceImage =
             (exp as any)?.heroUrl || (exp as any)?.featuredImage?.url || '/images/hero-bg.jpg'
+
+          // Product / Experience Type Label (SSOT: package -> Travel Package, daily_tour -> Daily Tour)
+          let productTypeLabel: string | undefined = undefined
+          if (exp?.type === 'package') {
+            productTypeLabel =
+              localization.translateUiKey('dashboard.overview.travelPackage', ctx) || 'Travel Package'
+          } else if (exp?.type === 'daily_tour') {
+            productTypeLabel =
+              localization.translateUiKey('dashboard.overview.dailyTour', ctx) || 'Daily Tour'
+          }
+
+          // Authoritative Destination City Resolution via Destination Domain
+          let destinationCity: string | undefined = undefined
+          const cityId = exp?.cityId
+          if (cityId && citiesMap.has(cityId)) {
+            const cityDoc = citiesMap.get(cityId)
+            if (cityDoc) {
+              const rawCityName = String(cityDoc.name || '')
+              const cityName = dynamicTextMap.get(rawCityName) || rawCityName
+              const countryObj = cityDoc.country
+              const rawCountryName =
+                countryObj && typeof countryObj === 'object' && 'name' in countryObj && countryObj.name
+                  ? String(countryObj.name)
+                  : ''
+              const countryName = dynamicTextMap.get(rawCountryName) || rawCountryName
+              destinationCity =
+                cityName && countryName ? `${cityName}, ${countryName}` : (cityName || countryName || undefined)
+            }
+          }
+
+          // Authoritative Duration Text
+          let durationText: string | undefined = undefined
+          if (exp?.type === 'package' && exp.duration?.days) {
+            const days = exp.duration.days
+            const nights = exp.duration.nights
+            const dayLabel = days === 1 ? '1 Day' : `${days} Days`
+            if (nights !== undefined) {
+              const nightLabel = nights === 1 ? '1 Night' : `${nights} Nights`
+              durationText = `${dayLabel} / ${nightLabel}`
+            } else {
+              durationText = dayLabel
+            }
+          } else if (exp?.type === 'daily_tour' && (exp as any).duration?.durationMinutes) {
+            const mins = (exp as any).duration.durationMinutes
+            const hours = mins / 60
+            if (Number.isInteger(hours)) {
+              durationText = hours === 1 ? '1 Hour' : `${hours} Hours`
+            } else {
+              durationText = mins === 1 ? '1 Min' : `${mins} Mins`
+            }
+          }
+
+          // Authoritative Departure Time
+          let departureTime: string | undefined = undefined
+          if (b.departureSlot && slotsMap.has(b.departureSlot)) {
+            departureTime = slotsMap.get(b.departureSlot)?.startTime || undefined
+          } else if (exp?.schedules && exp.schedules.length > 0 && exp.schedules[0].startTime) {
+            departureTime = exp.schedules[0].startTime || undefined
+          }
 
           return {
             id: b.id,
             reference: b.bookingNumber,
             experienceTitle,
             experienceImage,
+            productTypeLabel,
+            destinationCity,
+            durationText,
             departureDate: b.startDate,
+            departureTime,
+            endDate: b.endDate,
+            destinationTimezone: b.destinationTimezone,
             status: b.status,
             passengersCount: b.travelers.length || 1,
             totalCost: formattedCost,
@@ -274,6 +384,11 @@ export class CustomerPortalLoader {
         travelerMultiple: localization.translateUiKey('dashboard.overview.travelerMultiple', ctx),
         tourType: localization.translateUiKey('dashboard.overview.tourType', ctx),
         type: localization.translateUiKey('dashboard.overview.type', ctx),
+        travelPackage: localization.translateUiKey('dashboard.overview.travelPackage', ctx) || 'Travel Package',
+        dailyTour: localization.translateUiKey('dashboard.overview.dailyTour', ctx) || 'Daily Tour',
+        duration: localization.translateUiKey('dashboard.overview.duration', ctx) || 'Duration',
+        departureTime: localization.translateUiKey('dashboard.overview.departureTime', ctx) || 'Departure Time',
+        travelDates: localization.translateUiKey('dashboard.overview.travelDates', ctx) || 'Travel Dates',
         paymentStatus: localization.translateUiKey('dashboard.overview.paymentStatus', ctx),
         standardSchedule: localization.translateUiKey('dashboard.overview.standardSchedule', ctx),
         signatureTour: localization.translateUiKey('dashboard.overview.signatureTour', ctx),

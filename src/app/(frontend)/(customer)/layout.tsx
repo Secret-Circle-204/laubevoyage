@@ -19,6 +19,7 @@ export default async function CustomerLayout({ children }: { children: React.Rea
   const layoutData = await LayoutLoader.load({
     locale: localeCtx.language,
     currency: localeCtx.currency,
+    customerId: session.customerId,
   })
   const sidebarData = await CustomerPortalLoader.loadSidebar(session.customerId, localeCtx.language)
 

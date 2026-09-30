@@ -79,7 +79,7 @@ export class CronDispatcher {
     }
     globalContext[CRON_TIMERS_KEY] = []
 
-    // 0. Immediate Startup Recovery Sweep (Complete Finished Bookings)
+    // 0. Immediate Startup Recovery Sweep (Complete Finished Bookings & Reconcile Currency Rates)
     getDomainServices()
       .then(({ maintenance }) => {
         maintenance
@@ -87,6 +87,13 @@ export class CronDispatcher {
           .catch((err: unknown) => {
             const errMsg = err instanceof Error ? err.message : String(err)
             console.error('[CronDispatcher] Startup trip completion sweep error:', errMsg)
+          })
+
+        maintenance
+          .triggerJob('currency_rate_refresh', 'scheduler', CronDispatcher.workerId)
+          .catch((err: unknown) => {
+            const errMsg = err instanceof Error ? err.message : String(err)
+            console.error('[CronDispatcher] Startup currency rate reconciliation error:', errMsg)
           })
       })
       .catch((err: unknown) => {

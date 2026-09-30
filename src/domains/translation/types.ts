@@ -16,3 +16,13 @@ export interface TranslationRecordEntity {
   cachedAt: string
 }
 
+export interface TranslationResultWithProvenance {
+  readonly text: string
+  readonly providerId: TranslationProviderId
+}
+
+export interface BatchTranslationResultWithProvenance {
+  readonly texts: string[]
+  readonly providerId: TranslationProviderId
+}
+

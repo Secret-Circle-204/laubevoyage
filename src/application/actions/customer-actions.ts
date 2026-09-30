@@ -91,11 +91,23 @@ export async function loginCustomerAction(email: string, password?: string) {
       path: '/',
     })
 
+    const canonicalSession = {
+      isAuthenticated: true,
+      customerId: user.customerId,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      tier: user.loyalty?.tier,
+      points: user.loyalty?.points,
+      role: 'customer' as const,
+    }
+
     return {
       success: true,
       customerId: user.customerId,
       email: user.email,
       fullName: user.fullName,
+      session: canonicalSession,
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Customer login failed'
@@ -105,6 +117,51 @@ export async function loginCustomerAction(email: string, password?: string) {
       success: false,
       error: message,
       code,
+    }
+  }
+}
+
+export async function getCurrentSessionAction(): Promise<{
+  success: boolean
+  session?: {
+    isAuthenticated: boolean
+    customerId?: number
+    email?: string
+    firstName?: string
+    lastName?: string
+    tier?: string
+    points?: number
+    role?: 'admin' | 'super_admin' | 'customer'
+  }
+  error?: string
+}> {
+  try {
+    const resolved = await SessionResolver.resolve()
+    if (!resolved.isAuthenticated) {
+      return {
+        success: true,
+        session: { isAuthenticated: false },
+      }
+    }
+    return {
+      success: true,
+      session: {
+        isAuthenticated: true,
+        customerId: resolved.customerId,
+        email: resolved.email,
+        firstName: resolved.firstName,
+        lastName: resolved.lastName,
+        tier: resolved.tier,
+        points: resolved.points,
+        role: resolved.role,
+      },
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Session revalidation failed'
+    console.error('[getCurrentSessionAction] Failed to resolve session from server:', err)
+    return {
+      success: false,
+      error: message,
     }
   }
 }

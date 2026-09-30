@@ -13,17 +13,25 @@ export interface CurrencySeedData {
   flagCode?: string
 }
 
+/**
+ * Recognized Currencies Catalog Definition
+ * Hermetic Bootstrap Contract:
+ * - Only the system base currency (EGP) is initially active without pre-existing live rates.
+ * - All foreign currencies are registered in the master catalog as inactive (isActive: false)
+ *   until live financial rates are officially provisioned via CurrencyService.syncExchangeRates().
+ * - NO hardcoded exchange rates, NO fabricated sync statuses.
+ */
 export const RECOGNIZED_CURRENCIES: CurrencySeedData[] = [
   { isoCode: 'EGP', numericCode: 818, name: 'Egyptian Pound', symbol: 'EGP', nativeSymbol: 'ج.م', decimals: 2, isActive: true, displayOrder: 1, isDefault: true, flagCode: 'eg' },
-  { isoCode: 'USD', numericCode: 840, name: 'US Dollar', symbol: '$', nativeSymbol: '$', decimals: 2, isActive: true, displayOrder: 2, isDefault: false, flagCode: 'us' },
-  { isoCode: 'EUR', numericCode: 978, name: 'Euro', symbol: '€', nativeSymbol: '€', decimals: 2, isActive: true, displayOrder: 3, isDefault: false, flagCode: 'eu' },
-  { isoCode: 'GBP', numericCode: 826, name: 'British Pound', symbol: '£', nativeSymbol: '£', decimals: 2, isActive: true, displayOrder: 4, isDefault: false, flagCode: 'gb' },
-  { isoCode: 'SAR', numericCode: 682, name: 'Saudi Riyal', symbol: 'SAR', nativeSymbol: 'ر.س', decimals: 2, isActive: true, displayOrder: 5, isDefault: false, flagCode: 'sa' },
-  { isoCode: 'AED', numericCode: 784, name: 'UAE Dirham', symbol: 'AED', nativeSymbol: 'د.إ', decimals: 2, isActive: true, displayOrder: 6, isDefault: false, flagCode: 'ae' },
-  { isoCode: 'KWD', numericCode: 414, name: 'Kuwaiti Dinar', symbol: 'KWD', nativeSymbol: 'د.ك', decimals: 3, isActive: true, displayOrder: 7, isDefault: false, flagCode: 'kw' },
-  { isoCode: 'QAR', numericCode: 634, name: 'Qatari Riyal', symbol: 'QAR', nativeSymbol: 'ر.ق', decimals: 2, isActive: true, displayOrder: 8, isDefault: false, flagCode: 'qa' },
-  { isoCode: 'BHD', numericCode: 48, name: 'Bahraini Dinar', symbol: 'BHD', nativeSymbol: 'د.ب', decimals: 3, isActive: true, displayOrder: 9, isDefault: false, flagCode: 'bh' },
-  { isoCode: 'OMR', numericCode: 512, name: 'Omani Rial', symbol: 'OMR', nativeSymbol: 'ر.ع.', decimals: 3, isActive: true, displayOrder: 10, isDefault: false, flagCode: 'om' },
+  { isoCode: 'USD', numericCode: 840, name: 'US Dollar', symbol: '$', nativeSymbol: '$', decimals: 2, isActive: false, displayOrder: 2, isDefault: false, flagCode: 'us' },
+  { isoCode: 'EUR', numericCode: 978, name: 'Euro', symbol: '€', nativeSymbol: '€', decimals: 2, isActive: false, displayOrder: 3, isDefault: false, flagCode: 'eu' },
+  { isoCode: 'GBP', numericCode: 826, name: 'British Pound', symbol: '£', nativeSymbol: '£', decimals: 2, isActive: false, displayOrder: 4, isDefault: false, flagCode: 'gb' },
+  { isoCode: 'SAR', numericCode: 682, name: 'Saudi Riyal', symbol: 'SAR', nativeSymbol: 'ر.س', decimals: 2, isActive: false, displayOrder: 5, isDefault: false, flagCode: 'sa' },
+  { isoCode: 'AED', numericCode: 784, name: 'UAE Dirham', symbol: 'AED', nativeSymbol: 'د.إ', decimals: 2, isActive: false, displayOrder: 6, isDefault: false, flagCode: 'ae' },
+  { isoCode: 'KWD', numericCode: 414, name: 'Kuwaiti Dinar', symbol: 'KWD', nativeSymbol: 'د.ك', decimals: 3, isActive: false, displayOrder: 7, isDefault: false, flagCode: 'kw' },
+  { isoCode: 'QAR', numericCode: 634, name: 'Qatari Riyal', symbol: 'QAR', nativeSymbol: 'ر.ق', decimals: 2, isActive: false, displayOrder: 8, isDefault: false, flagCode: 'qa' },
+  { isoCode: 'BHD', numericCode: 48, name: 'Bahraini Dinar', symbol: 'BHD', nativeSymbol: 'د.ب', decimals: 3, isActive: false, displayOrder: 9, isDefault: false, flagCode: 'bh' },
+  { isoCode: 'OMR', numericCode: 512, name: 'Omani Rial', symbol: 'OMR', nativeSymbol: 'ر.ع.', decimals: 3, isActive: false, displayOrder: 10, isDefault: false, flagCode: 'om' },
   { isoCode: 'JPY', numericCode: 392, name: 'Japanese Yen', symbol: '¥', nativeSymbol: '¥', decimals: 0, isActive: false, displayOrder: 11, isDefault: false, flagCode: 'jp' },
   { isoCode: 'CHF', numericCode: 756, name: 'Swiss Franc', symbol: 'CHF', nativeSymbol: 'CHF', decimals: 2, isActive: false, displayOrder: 12, isDefault: false, flagCode: 'ch' },
   { isoCode: 'CAD', numericCode: 124, name: 'Canadian Dollar', symbol: 'CA$', nativeSymbol: '$', decimals: 2, isActive: false, displayOrder: 13, isDefault: false, flagCode: 'ca' },
@@ -34,7 +42,7 @@ export const RECOGNIZED_CURRENCIES: CurrencySeedData[] = [
 ]
 
 export async function seedCurrencies(payload: Payload): Promise<void> {
-  console.log('💱 [Seed] Seeding Master Currencies Catalog...')
+  console.log('💱 [Seed] Seeding Master Currencies Catalog (Identity Only)...')
   let seededCount = 0
 
   for (const currency of RECOGNIZED_CURRENCIES) {
@@ -48,10 +56,15 @@ export async function seedCurrencies(payload: Payload): Promise<void> {
       })
 
       if (existing.docs.length > 0) {
+        // If updating an existing currency, preserve its runtime active status if already configured
+        const currentActive = existing.docs[0].isActive
         await payload.update({
           collection: 'currencies',
           id: existing.docs[0].id,
-          data: currency,
+          data: {
+            ...currency,
+            isActive: currentActive !== undefined ? currentActive : currency.isActive,
+          },
         })
       } else {
         await payload.create({
@@ -65,5 +78,5 @@ export async function seedCurrencies(payload: Payload): Promise<void> {
     }
   }
 
-  console.log(`   ✅ Currencies Catalog initialized (${seededCount} currencies upserted).`)
+  console.log(`   ✅ Currencies Catalog initialized (${seededCount} currencies upserted, zero fabricated FX rates).`)
 }

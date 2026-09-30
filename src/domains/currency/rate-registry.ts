@@ -97,6 +97,13 @@ export class ExchangeRateRegistry {
             }
 
             for (const [toCurr, doc] of dbRates.entries()) {
+              // Inactive Currency Isolation Invariant:
+              // Only load rates into runtime in-memory cache if currency is in activeIsoCodes (or is base currency).
+              // Inactive currencies with pre-provisioned rates in DB remain strictly dormant in DB.
+              if (toCurr !== this.baseCurrency && !activeIsoCodes.has(toCurr)) {
+                continue
+              }
+
               newCache.set(toCurr, {
                 fromCurrency: doc.fromCurrency,
                 toCurrency: doc.toCurrency,

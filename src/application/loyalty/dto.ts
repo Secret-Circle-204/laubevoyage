@@ -70,6 +70,7 @@ export interface CustomerLoyaltyPortalDTO {
     officialRate: string
     yourPointsValue: string
     transactionHistoryTitle: string
+    transactionHistorySubtitle: string
     noTransactions: string
     dateCol: string
     referenceCol: string

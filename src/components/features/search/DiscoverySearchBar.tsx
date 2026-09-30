@@ -4,6 +4,10 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLoadingNavigation } from '@/application/loading/use-loading-navigation'
 import { useTheme } from '@/providers/theme-provider'
+import { useLocale } from '@/providers'
+import { JsonTranslationDictionary } from '@/domains/translation/dictionary'
+
+const dict = new JsonTranslationDictionary()
 import type { DestinationOptionDTO, BudgetPresetsDTO } from '@/application/experience/dto'
 import type { ParsedExperienceSearchParams } from '@/application/shared/parsers/experience-search-parser'
 
@@ -35,6 +39,7 @@ export function DiscoverySearchBar({
   const router = useRouter()
   const loadingNav = useLoadingNavigation()
   const { theme } = useTheme()
+  const { locale } = useLocale()
   const isDark = theme === 'dark' || variant === 'hero'
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -59,6 +64,7 @@ export function DiscoverySearchBar({
     initialFilters?.duration !== undefined ? String(initialFilters.duration) : ''
   )
   const [isMoreOpen, setIsMoreOpen] = useState(false)
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false)
   const [activePopover, setActivePopover] = useState<ActivePopover>('none')
   const [countryFilterText, setCountryFilterText] = useState('')
   const [cityFilterText, setCityFilterText] = useState('')
@@ -80,21 +86,25 @@ export function DiscoverySearchBar({
 
   // Handle outside clicks and Escape key to collapse popovers and sheets
   useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent) => {
+    const handleGlobalClick = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setActivePopover('none')
+        setIsMobileExpanded(false)
       }
     }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setActivePopover('none')
         setIsMoreOpen(false)
+        setIsMobileExpanded(false)
       }
     }
     document.addEventListener('mousedown', handleGlobalClick)
+    document.addEventListener('touchstart', handleGlobalClick)
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('mousedown', handleGlobalClick)
+      document.removeEventListener('touchstart', handleGlobalClick)
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
@@ -127,6 +137,7 @@ export function DiscoverySearchBar({
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     setActivePopover('none')
+    setIsMobileExpanded(false)
     const params = new URLSearchParams()
 
     if (keyword.trim()) params.set('q', keyword.trim())
@@ -154,10 +165,10 @@ export function DiscoverySearchBar({
 
   const selectedTypeName =
     selectedType === 'package'
-      ? 'Tour Packages'
+      ? dict.get(locale, 'search.filterPackages')
       : selectedType === 'daily_tour'
-      ? 'Daily Excursions'
-      : 'All Experiences'
+      ? dict.get(locale, 'search.filterDailyTours')
+      : dict.get(locale, 'search.filterAll')
 
   const activeFilterCount =
     (minPrice ? 1 : 0) + (maxPrice ? 1 : 0) + (selectedDuration ? 1 : 0)
@@ -219,8 +230,10 @@ export function DiscoverySearchBar({
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Search destinations, bespoke voyages, Nile cruises, royal palaces..."
-              className={`w-full pl-11 pr-20 py-3.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-300 focus:outline-none ${
+              placeholder={dict.get(locale, 'search.placeholder')}
+              className={`w-full pl-11 ${
+                variant === 'hero' ? 'pr-24 sm:pr-20' : 'pr-20'
+              } py-3.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-300 focus:outline-none ${
                 variant === 'hero'
                   ? 'bg-white/[0.07] hover:bg-white/[0.1] border border-white/15 text-white placeholder-white/50 focus:border-secondary focus:ring-2 focus:ring-secondary/30'
                   : 'bg-card hover:border-secondary/50 border border-border text-foreground placeholder-muted-foreground focus:border-secondary focus:ring-2 focus:ring-secondary/30 shadow-xs'
@@ -230,7 +243,9 @@ export function DiscoverySearchBar({
               <button
                 type="button"
                 onClick={() => setKeyword('')}
-                className="absolute right-3 text-muted-foreground hover:text-accent p-1.5 transition-colors cursor-pointer"
+                className={`absolute ${
+                  variant === 'hero' ? 'right-12 sm:right-3' : 'right-3'
+                } text-muted-foreground hover:text-accent p-1.5 transition-colors cursor-pointer`}
                 aria-label="Clear keyword"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -242,10 +257,42 @@ export function DiscoverySearchBar({
                 Enter ↵
               </div>
             )}
+            {variant === 'hero' && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsMobileExpanded((prev) => !prev)
+                }}
+                className={`sm:hidden absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center p-2 rounded-lg border transition-all duration-300 cursor-pointer ${
+                  isMobileExpanded
+                    ? 'border-secondary bg-secondary/20 text-secondary shadow-sm shadow-secondary/20'
+                    : 'border-white/20 bg-white/10 text-white/90 hover:bg-white/20'
+                }`}
+                aria-label={isMobileExpanded ? 'Collapse filters' : 'Expand filters'}
+                title={isMobileExpanded ? 'Collapse filters' : 'Expand filters'}
+              >
+                <svg
+                  className={`w-4 h-4 transition-transform duration-300 ${
+                    isMobileExpanded ? 'rotate-180 text-secondary' : 'text-white'
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Primary Interactive Segments Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-stretch relative">
+          <div
+            className={`${
+              variant === 'hero' && !isMobileExpanded ? 'hidden sm:grid' : 'grid'
+            } grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-stretch relative transition-all duration-300`}
+          >
             
             {/* 1. Country Segment (2 cols) */}
             <div className={`sm:col-span-1 lg:col-span-2 relative ${activePopover === 'country' ? 'z-50' : 'z-20'}`}>
@@ -269,7 +316,7 @@ export function DiscoverySearchBar({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11.5 3a17 17 0 000 18m1-18a17 17 0 010 18" />
                     </svg>
-                    <span>Country</span>
+                    <span>{dict.get(locale, 'search.country')}</span>
                   </span>
                   <svg
                     className={`w-3.5 h-3.5 transition-transform duration-300 ${
@@ -286,7 +333,7 @@ export function DiscoverySearchBar({
                   </svg>
                 </div>
                 <div className="text-xs sm:text-sm font-semibold truncate mt-1 text-foreground dark:text-white">
-                  {selectedCountryObj ? selectedCountryObj.name : 'All Countries'}
+                  {selectedCountryObj ? selectedCountryObj.name : dict.get(locale, 'search.allCountries')}
                 </div>
 
                 {/* Orange Active Trace */}
@@ -303,7 +350,7 @@ export function DiscoverySearchBar({
                       type="text"
                       value={countryFilterText}
                       onChange={(e) => setCountryFilterText(e.target.value)}
-                      placeholder="Filter countries..."
+                      placeholder={dict.get(locale, 'search.filterCountries')}
                       className="w-full px-3 py-1.5 text-xs rounded-lg bg-white/10 dark:bg-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30"
                       autoFocus
                     />
@@ -321,7 +368,7 @@ export function DiscoverySearchBar({
                           : 'text-white/80 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <span>All Countries</span>
+                      <span>{dict.get(locale, 'search.allCountries')}</span>
                       {!selectedCountryId && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </button>
                     {displayedCountries.map((country) => (
@@ -368,7 +415,7 @@ export function DiscoverySearchBar({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                     </svg>
-                    <span>City</span>
+                    <span>{dict.get(locale, 'search.city')}</span>
                   </span>
                   <svg
                     className={`w-3.5 h-3.5 transition-transform duration-300 ${
@@ -385,7 +432,7 @@ export function DiscoverySearchBar({
                   </svg>
                 </div>
                 <div className="text-xs sm:text-sm font-semibold truncate mt-1 text-foreground dark:text-white">
-                  {selectedCityObj ? selectedCityObj.name : selectedCountryId ? 'All in Country' : 'All Cities'}
+                  {selectedCityObj ? selectedCityObj.name : selectedCountryId ? dict.get(locale, 'search.allInCountry') : dict.get(locale, 'search.allCities')}
                 </div>
 
                 {/* Orange Active Trace */}
@@ -402,7 +449,7 @@ export function DiscoverySearchBar({
                       type="text"
                       value={cityFilterText}
                       onChange={(e) => setCityFilterText(e.target.value)}
-                      placeholder="Filter cities..."
+                      placeholder={dict.get(locale, 'search.filterCities')}
                       className="w-full px-3 py-1.5 text-xs rounded-lg bg-white/10 dark:bg-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30"
                       autoFocus
                     />
@@ -420,7 +467,7 @@ export function DiscoverySearchBar({
                           : 'text-white/80 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <span>{selectedCountryId ? 'All Cities in Country' : 'All Cities'}</span>
+                      <span>{selectedCountryId ? dict.get(locale, 'search.allInCountry') : dict.get(locale, 'search.allCities')}</span>
                       {!selectedCityId && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </button>
                     {displayedCities.map((city) => (
@@ -466,7 +513,7 @@ export function DiscoverySearchBar({
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                     </svg>
-                    <span>Departure</span>
+                    <span>{dict.get(locale, 'search.departure')}</span>
                   </span>
                   <svg
                     className={`w-3.5 h-3.5 transition-transform duration-300 ${
@@ -483,7 +530,7 @@ export function DiscoverySearchBar({
                   </svg>
                 </div>
                 <div className="text-xs sm:text-sm font-semibold truncate mt-1 text-foreground dark:text-white">
-                  {selectedDate ? selectedDate : 'Flexible Dates'}
+                  {selectedDate ? selectedDate : dict.get(locale, 'search.flexibleDates')}
                 </div>
 
                 {/* Orange Active Trace */}
@@ -497,7 +544,7 @@ export function DiscoverySearchBar({
                 <div className="hidden sm:block absolute top-full left-0 sm:left-auto sm:right-0 lg:left-0 mt-2.5 z-[60] w-72 sm:w-80 rounded-2xl bg-[#141212] dark:bg-card border border-white/20 dark:border-border shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] p-4 text-white dropdown-emergence">
                   <div className="mb-3">
                     <span className="text-[10px] uppercase font-bold text-accent block mb-2">
-                      Specific Departure Date
+                      {dict.get(locale, 'search.specificDepartureDate')}
                     </span>
                     <input
                       type="date"
@@ -512,7 +559,7 @@ export function DiscoverySearchBar({
 
                   <div className="border-t border-white/10 pt-3">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-2">
-                      Quick Seasons
+                      {dict.get(locale, 'search.quickSeasons')}
                     </span>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -527,7 +574,7 @@ export function DiscoverySearchBar({
                             : 'border-white/10 hover:bg-white/10 text-white/80'
                         }`}
                       >
-                        Anytime
+                        {dict.get(locale, 'search.anytime')}
                       </button>
                       <button
                         type="button"
@@ -539,7 +586,7 @@ export function DiscoverySearchBar({
                         }}
                         className="px-3 py-2 text-xs rounded-xl border border-white/10 hover:border-secondary hover:bg-secondary/10 hover:text-secondary transition-all text-center text-white/80"
                       >
-                        In 2 Weeks
+                        {dict.get(locale, 'search.in2Weeks')}
                       </button>
                       <button
                         type="button"
@@ -551,7 +598,7 @@ export function DiscoverySearchBar({
                         }}
                         className="px-3 py-2 text-xs rounded-xl border border-white/10 hover:border-secondary hover:bg-secondary/10 hover:text-secondary transition-all text-center text-white/80"
                       >
-                        Next Month
+                        {dict.get(locale, 'search.nextMonth')}
                       </button>
                       <button
                         type="button"
@@ -563,7 +610,7 @@ export function DiscoverySearchBar({
                         }}
                         className="px-3 py-2 text-xs rounded-xl border border-white/10 hover:border-secondary hover:bg-secondary/10 hover:text-secondary transition-all text-center text-white/80"
                       >
-                        In 3 Months
+                        {dict.get(locale, 'search.in3Months')}
                       </button>
                     </div>
                   </div>
@@ -592,7 +639,7 @@ export function DiscoverySearchBar({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 9.192-9.192 3.536 3.536-9.192 9.192-3.536z" />
                     </svg>
-                    <span>Experience</span>
+                    <span>{dict.get(locale, 'search.experienceType')}</span>
                   </span>
                   <svg
                     className={`w-3.5 h-3.5 transition-transform duration-300 ${
@@ -634,11 +681,11 @@ export function DiscoverySearchBar({
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span>All Bespoke Experiences</span>
+                      <span>{dict.get(locale, 'search.filterAll')}</span>
                       {!selectedType && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </div>
                     <span className="text-[10px] text-muted-foreground font-normal">
-                      Explore our full global luxury portfolio
+                      {dict.get(locale, 'search.allExperiencesDesc')}
                     </span>
                   </button>
 
@@ -655,11 +702,11 @@ export function DiscoverySearchBar({
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span>Curated Tour Packages</span>
+                      <span>{dict.get(locale, 'search.filterPackages')}</span>
                       {selectedType === 'package' && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </div>
                     <span className="text-[10px] text-muted-foreground font-normal">
-                      Multi-day grand voyages with luxury stays
+                      {dict.get(locale, 'search.tourPackagesDesc')}
                     </span>
                   </button>
 
@@ -676,11 +723,11 @@ export function DiscoverySearchBar({
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span>Private Daily Excursions</span>
+                      <span>{dict.get(locale, 'search.filterDailyTours')}</span>
                       {selectedType === 'daily_tour' && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </div>
                     <span className="text-[10px] text-muted-foreground font-normal">
-                      Exclusive single-day expeditions & private guides
+                      {dict.get(locale, 'search.dailyExcursionsDesc')}
                     </span>
                   </button>
                 </div>
@@ -707,7 +754,7 @@ export function DiscoverySearchBar({
                 title="Toggle Advanced Voyage Filters"
               >
                 <span className="flex items-center gap-2">
-                  <span>Filters</span>
+                  <span>{dict.get(locale, 'search.moreFilters')}</span>
                   {activeFilterCount > 0 ? (
                     <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-accent text-white font-extrabold shadow-sm animate-pulse">
                       {String(activeFilterCount).padStart(2, '0')}
@@ -735,14 +782,20 @@ export function DiscoverySearchBar({
                 <svg className="w-4 h-4 transition-transform duration-300 group-hover:scale-110 text-accent shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
-                <span className="truncate">Explore</span>
+                <span className="truncate">{dict.get(locale, 'search.exploreAction')}</span>
               </button>
             </div>
           </div>
 
-          {/* Refine Your Journey - Intelligent Expandable Filters Console */}
+          {/* {dict.get(locale, 'search.refineJourney')} - Intelligent Expandable Filters Console */}
           {isMoreOpen && (
-            <div className={`pt-6 mt-3 border-t ${variant === 'hero' ? 'border-white/15' : 'border-border'} space-y-4 soft-reveal`}>
+            <div
+              className={`pt-6 mt-3 border-t ${
+                variant === 'hero' ? 'border-white/15' : 'border-border'
+              } space-y-4 soft-reveal ${
+                variant === 'hero' && !isMobileExpanded ? 'hidden sm:block' : 'block'
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase font-bold text-accent">
                   Refine Your Journey
@@ -753,7 +806,7 @@ export function DiscoverySearchBar({
                     onClick={handleResetFilters}
                     className="text-[11px] uppercase text-muted-foreground hover:text-accent transition-colors font-semibold cursor-pointer underline underline-offset-4"
                   >
-                    Reset Filters
+                    {dict.get(locale, 'search.resetFilters')}
                   </button>
                 )}
               </div>
@@ -763,7 +816,7 @@ export function DiscoverySearchBar({
                 <div className="p-3.5 rounded-xl border border-white/15 dark:border-border bg-white/[0.05] dark:bg-card-elevated transition-all flex flex-col justify-between">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-[10px] font-bold uppercase text-muted-foreground dark:text-white/75">
-                      Minimum Budget
+                      {dict.get(locale, 'search.minBudget')}
                     </span>
                     <span className="text-[9px] font-extrabold text-accent uppercase bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">
                       {budgetPresets.currencyCode}
@@ -795,7 +848,7 @@ export function DiscoverySearchBar({
                 <div className="p-3.5 rounded-xl border border-white/15 dark:border-border bg-white/[0.05] dark:bg-card-elevated transition-all flex flex-col justify-between">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-[10px] font-bold uppercase text-muted-foreground dark:text-white/75">
-                      Maximum Budget
+                      {dict.get(locale, 'search.maxBudget')}
                     </span>
                     <span className="text-[9px] font-extrabold text-accent uppercase bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">
                       {budgetPresets.currencyCode}
@@ -829,16 +882,16 @@ export function DiscoverySearchBar({
                     <svg className="w-3.5 h-3.5 text-accent shrink-0" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Voyage Duration</span>
+                    <span>{dict.get(locale, 'search.duration')}</span>
                   </label>
                   <div className="flex flex-wrap gap-1.5">
                     {[
-                      { val: '', lbl: 'Any' },
-                      { val: '1', lbl: '1 Day' },
-                      { val: '3', lbl: '3+ Days' },
-                      { val: '5', lbl: '5+ Days' },
-                      { val: '7', lbl: '7+ Days' },
-                      { val: '10', lbl: '10+ Days' },
+                      { val: '', lbl: dict.get(locale, 'search.anyDuration') },
+                      { val: '1', lbl: dict.get(locale, 'search.oneDay') },
+                      { val: '3', lbl: dict.get(locale, 'search.threePlusDays') },
+                      { val: '5', lbl: dict.get(locale, 'search.fivePlusDays') },
+                      { val: '7', lbl: dict.get(locale, 'search.sevenPlusDays') },
+                      { val: '10', lbl: dict.get(locale, 'search.tenPlusDays') },
                     ].map((dur) => (
                       <button
                         key={dur.val}
@@ -879,16 +932,16 @@ export function DiscoverySearchBar({
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10 shrink-0">
               <div>
                 <span className="text-[10px] uppercase font-bold text-accent block">
-                  {activePopover === 'country' && 'Select Country'}
-                  {activePopover === 'city' && 'Select City'}
-                  {activePopover === 'date' && 'Departure Date'}
-                  {activePopover === 'type' && 'Experience Type'}
+                  {activePopover === 'country' && dict.get(locale, 'search.selectCountry')}
+                  {activePopover === 'city' && dict.get(locale, 'search.selectCity')}
+                  {activePopover === 'date' && dict.get(locale, 'search.departure')}
+                  {activePopover === 'type' && dict.get(locale, 'search.experienceType')}
                 </span>
                 <span className="text-xs text-white/60 font-light">
-                  {activePopover === 'country' && 'Bespoke destinations worldwide'}
-                  {activePopover === 'city' && 'Curated urban & cultural centers'}
-                  {activePopover === 'date' && 'Flexible timing & seasonal departures'}
-                  {activePopover === 'type' && 'Tour packages or private excursions'}
+                  {activePopover === 'country' && dict.get(locale, 'search.selectCountryDesc')}
+                  {activePopover === 'city' && dict.get(locale, 'search.selectCityDesc')}
+                  {activePopover === 'date' && dict.get(locale, 'search.departureDateDesc')}
+                  {activePopover === 'type' && dict.get(locale, 'search.experienceTypeDesc')}
                 </span>
               </div>
               <button
@@ -912,7 +965,7 @@ export function DiscoverySearchBar({
                       type="text"
                       value={countryFilterText}
                       onChange={(e) => setCountryFilterText(e.target.value)}
-                      placeholder="Filter countries..."
+                      placeholder={dict.get(locale, 'search.filterCountries')}
                       className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-white/10 dark:bg-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-secondary"
                       autoFocus
                     />
@@ -929,7 +982,7 @@ export function DiscoverySearchBar({
                         : 'text-white/80 hover:bg-white/10 hover:text-white'
                     }`}
                   >
-                    <span>All Countries</span>
+                    <span>{dict.get(locale, 'search.allCountries')}</span>
                     {!selectedCountryId && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                   </button>
                   {displayedCountries.map((country) => (
@@ -960,7 +1013,7 @@ export function DiscoverySearchBar({
                       type="text"
                       value={cityFilterText}
                       onChange={(e) => setCityFilterText(e.target.value)}
-                      placeholder="Filter cities..."
+                      placeholder={dict.get(locale, 'search.filterCities')}
                       className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-white/10 dark:bg-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-secondary"
                       autoFocus
                     />
@@ -977,7 +1030,7 @@ export function DiscoverySearchBar({
                         : 'text-white/80 hover:bg-white/10 hover:text-white'
                     }`}
                   >
-                    <span>{selectedCountryId ? 'All Cities in Country' : 'All Cities'}</span>
+                    <span>{selectedCountryId ? dict.get(locale, 'search.allInCountry') : dict.get(locale, 'search.allCities')}</span>
                     {!selectedCityId && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                   </button>
                   {displayedCities.map((city) => (
@@ -1005,7 +1058,7 @@ export function DiscoverySearchBar({
                 <div className="p-2 space-y-4">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-accent block mb-2">
-                      Specific Departure Date
+                      {dict.get(locale, 'search.specificDepartureDate')}
                     </span>
                     <input
                       type="date"
@@ -1020,7 +1073,7 @@ export function DiscoverySearchBar({
 
                   <div className="border-t border-white/10 pt-3">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-2">
-                      Quick Seasons
+                      {dict.get(locale, 'search.quickSeasons')}
                     </span>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -1093,11 +1146,11 @@ export function DiscoverySearchBar({
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span>All Bespoke Experiences</span>
+                      <span>{dict.get(locale, 'search.filterAll')}</span>
                       {!selectedType && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </div>
                     <span className="text-[10px] text-muted-foreground">
-                      Explore our full global luxury portfolio
+                      {dict.get(locale, 'search.allExperiencesDesc')}
                     </span>
                   </button>
 
@@ -1114,11 +1167,11 @@ export function DiscoverySearchBar({
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span>Curated Tour Packages</span>
+                      <span>{dict.get(locale, 'search.filterPackages')}</span>
                       {selectedType === 'package' && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </div>
                     <span className="text-[10px] text-muted-foreground">
-                      Multi-day grand voyages with luxury stays
+                      {dict.get(locale, 'search.tourPackagesDesc')}
                     </span>
                   </button>
 
@@ -1135,11 +1188,11 @@ export function DiscoverySearchBar({
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
-                      <span>Private Daily Excursions</span>
+                      <span>{dict.get(locale, 'search.filterDailyTours')}</span>
                       {selectedType === 'daily_tour' && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </div>
                     <span className="text-[10px] text-muted-foreground">
-                      Exclusive single-day expeditions & private guides
+                      {dict.get(locale, 'search.dailyExcursionsDesc')}
                     </span>
                   </button>
                 </div>

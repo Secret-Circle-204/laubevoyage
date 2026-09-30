@@ -11,8 +11,18 @@ export interface CustomerSidebarProps {
   unreadCount?: number
 }
 
-function NavIcon({ href, className = 'w-4 h-4' }: { href: string; className?: string }) {
-  switch (href) {
+export function NavIcon({
+  href,
+  icon,
+  className = 'w-4 h-4',
+}: {
+  href?: string
+  icon?: string
+  className?: string
+}) {
+  const key = icon || href
+  switch (key) {
+    case 'overview':
     case '/dashboard':
       // Horizon / Compass
       return (
@@ -21,6 +31,7 @@ function NavIcon({ href, className = 'w-4 h-4' }: { href: string; className?: st
           <polygon points="12 7 15 12 12 17 9 12 12 7" stroke="currentColor" fill="currentColor" fillOpacity={0.15} />
         </svg>
       )
+    case 'bookings':
     case '/dashboard/bookings':
       // Travel Luggage
       return (
@@ -32,6 +43,7 @@ function NavIcon({ href, className = 'w-4 h-4' }: { href: string; className?: st
           <line x1="15" y1="20" x2="15" y2="21" />
         </svg>
       )
+    case 'loyalty':
     case '/dashboard/loyalty':
       // Faceted Jewel / Tier Crown
       return (
@@ -40,6 +52,7 @@ function NavIcon({ href, className = 'w-4 h-4' }: { href: string; className?: st
           <path d="M6 9h12" />
         </svg>
       )
+    case 'profile':
     case '/dashboard/profile':
       // Traveler Silhouette
       return (
@@ -48,6 +61,7 @@ function NavIcon({ href, className = 'w-4 h-4' }: { href: string; className?: st
           <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
         </svg>
       )
+    case 'invoices':
     case '/dashboard/invoices':
       // Ledger / Receipt
       return (
@@ -58,6 +72,7 @@ function NavIcon({ href, className = 'w-4 h-4' }: { href: string; className?: st
           <line x1="9" y1="17" x2="13" y2="17" />
         </svg>
       )
+    case 'notifications':
     case '/dashboard/notifications':
       // Slender Beacon Bell
       return (
@@ -66,6 +81,7 @@ function NavIcon({ href, className = 'w-4 h-4' }: { href: string; className?: st
           <path d="M13.73 21a2 2 0 01-3.46 0" />
         </svg>
       )
+    case 'settings':
     case '/dashboard/settings':
       // Sliders / Dial
       return (
@@ -79,6 +95,12 @@ function NavIcon({ href, className = 'w-4 h-4' }: { href: string; className?: st
           <circle cx="4" cy="12" r="2" />
           <circle cx="12" cy="10" r="2" />
           <circle cx="20" cy="14" r="2" />
+        </svg>
+      )
+    case 'signout':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
         </svg>
       )
     default:

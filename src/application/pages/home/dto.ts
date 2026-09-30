@@ -7,6 +7,8 @@ export interface HomeHeroDTO {
   backgroundImageUrl: string
   ctaExploreText?: string
   ctaDiscoverText?: string
+  ctaJoinVoyagersText?: string
+  ctaVoyagerPortalText?: string
   destinations?: DestinationOptionDTO
   budgetPresets: BudgetPresetsDTO
 }

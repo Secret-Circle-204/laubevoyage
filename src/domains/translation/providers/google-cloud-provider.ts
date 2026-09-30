@@ -1,5 +1,5 @@
 import type { ITranslationProvider } from './provider.interface'
-import type { TranslationProviderId } from '../types'
+import type { TranslationProviderId, TranslationResultWithProvenance, BatchTranslationResultWithProvenance } from '../types'
 
 function decodeHtmlEntities(str: string): string {
   return str
@@ -120,5 +120,23 @@ export class GoogleCloudTranslationProvider implements ITranslationProvider {
     } finally {
       clearTimeout(timeoutId)
     }
+  }
+
+  async translateTextWithProvenance(
+    text: string,
+    targetLocale: string,
+    sourceLocale: string = 'en'
+  ): Promise<TranslationResultWithProvenance> {
+    const res = await this.translateText(text, targetLocale, sourceLocale)
+    return { text: res, providerId: this.providerId }
+  }
+
+  async translateBatchWithProvenance(
+    texts: string[],
+    targetLocale: string,
+    sourceLocale: string = 'en'
+  ): Promise<BatchTranslationResultWithProvenance> {
+    const res = await this.translateBatch(texts, targetLocale, sourceLocale)
+    return { texts: res, providerId: this.providerId }
   }
 }

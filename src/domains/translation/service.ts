@@ -3,10 +3,12 @@ import { TranslationRepository } from './repository'
 import { TranslationEngine } from './engine'
 import type { ITranslationProvider } from './providers/provider.interface'
 import type { TranslationRecordEntity } from './types'
+import { TranslationBlackoutError } from './errors/provider-errors'
 
 /**
- * Translation Domain Service (Enterprise Thin Facade)
- * Single entry point for all multilingual translation requests via Constructor Dependency Injection.
+ * Translation Domain Service (Enterprise Facade)
+ * Single entry point for all customer-facing translation requests.
+ * Orchestrates cache lookups, provider executions, and safe source-text degradation.
  */
 export class TranslationService {
   private repository: TranslationRepository
@@ -31,13 +33,29 @@ export class TranslationService {
       const record = await this.engine.translate(text, locale)
       return record.translatedText
     } catch (err: unknown) {
-      console.error('[TranslationService] Single text translation failed, returning source string:', err)
-      return text
+      if (err instanceof TranslationBlackoutError) {
+        console.warn(
+          `[TranslationService] Single text translation blackout for "${text}". Safely degrading to source text with ZERO persistence.`
+        )
+        return text
+      }
+      // Internal application defects are re-thrown so monitoring and tests can observe them
+      throw err
     }
   }
 
   async translateBatch(texts: string[], locale: string): Promise<string[]> {
-    return this.engine.translateBatch(texts, locale)
+    try {
+      return await this.engine.translateBatch(texts, locale)
+    } catch (err: unknown) {
+      if (err instanceof TranslationBlackoutError) {
+        console.warn(
+          `[TranslationService] Batch translation blackout for ${texts.length} texts. Safely degrading to source texts with ZERO persistence.`
+        )
+        return texts
+      }
+      throw err
+    }
   }
 
   async translateFields(
@@ -57,4 +75,3 @@ export class TranslationService {
     return result
   }
 }
-

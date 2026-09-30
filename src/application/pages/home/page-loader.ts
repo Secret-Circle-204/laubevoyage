@@ -9,7 +9,16 @@ export class HomePageLoader {
     console.log(`[HomePageLoader.load] called with currency = "${ctx.currency}", requestContextId = "${ctx.requestContextId || ''}"`)
     try {
       const { destination, localization, experience } = await getDomainServices()
-      const overview = await destination.getHomePageOverview(ctx.currency)
+
+      const [overview, countriesRes, citiesRes, budgetPresets] = await Promise.all([
+        destination.getHomePageOverview(ctx.currency),
+        destination.getCountries({ limit: 100 }),
+        destination.getAllActiveCities({ limit: 200 }),
+        ExperiencesCatalogLoader.resolveBudgetPresets(ctx, localization),
+      ])
+
+      const heroCountryDocs = countriesRes.docs || []
+      const heroCityDocs = citiesRes.docs || []
 
       // Collect all raw texts for 1 Single Batch Request
       const rawTexts: string[] = []
@@ -22,6 +31,14 @@ export class HomePageLoader {
 
       for (const doc of overview.topCountries || []) {
         if (doc.name) rawTexts.push(doc.name)
+      }
+
+      for (const doc of heroCountryDocs) {
+        if (doc.name) rawTexts.push(String(doc.name))
+      }
+
+      for (const doc of heroCityDocs) {
+        if (doc.name) rawTexts.push(String(doc.name))
       }
 
       const translatedTexts = await localization.translateBatch(rawTexts, ctx)
@@ -141,25 +158,25 @@ export class HomePageLoader {
       })
 
 
-      const [countriesRes, citiesRes, budgetPresets] = await Promise.all([
-        destination.getCountries({ limit: 100 }),
-        destination.getAllActiveCities({ limit: 200 }),
-        ExperiencesCatalogLoader.resolveBudgetPresets(ctx, localization),
-      ])
-
-      const heroCountries = (countriesRes.docs || []).map((c: any) => ({
+      const heroCountries = heroCountryDocs.map((c: any) => ({
         id: Number(c.id),
-        name: String(c.name),
-        slug: String(c.slug),
+        name: c.name ? (translatedTexts[textIdx++] || String(c.name)) : '',
+        slug: String(c.slug || ''),
       }))
 
-      const heroCities = (citiesRes.docs || []).map((c: any) => ({
-        id: Number(c.id),
-        name: String(c.name),
-        slug: String(c.slug),
-        countryId: c.country ? (typeof c.country === 'object' ? Number(c.country.id) : Number(c.country)) : 0,
-        countryName: c.country && typeof c.country === 'object' ? String(c.country.name) : '',
-      }))
+      const heroCountryMap = new Map(heroCountries.map((c) => [c.id, c.name]))
+
+      const heroCities = heroCityDocs.map((c: any) => {
+        const cId = c.country ? (typeof c.country === 'object' ? Number(c.country.id) : Number(c.country)) : 0
+        const cName = heroCountryMap.get(cId) || (c.country && typeof c.country === 'object' ? String(c.country.name) : '')
+        return {
+          id: Number(c.id),
+          name: c.name ? (translatedTexts[textIdx++] || String(c.name)) : '',
+          slug: String(c.slug || ''),
+          countryId: cId,
+          countryName: cName,
+        }
+      })
 
       return {
         hero: {
@@ -167,6 +184,8 @@ export class HomePageLoader {
           subtitle: localization.translateUiKey('hero.subtitle', ctx),
           ctaExploreText: localization.translateUiKey('hero.cta.primary', ctx),
           ctaDiscoverText: localization.translateUiKey('hero.cta.secondary', ctx),
+          ctaJoinVoyagersText: localization.translateUiKey('hero.cta.joinVoyagers', ctx),
+          ctaVoyagerPortalText: localization.translateUiKey('hero.cta.voyagerPortal', ctx),
           backgroundImageUrl: '',
           destinations: {
             countries: heroCountries,

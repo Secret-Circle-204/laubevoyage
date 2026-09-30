@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState } from 'react'
-import { logoutCustomerAction } from '@/application/actions/customer-actions'
+import { logoutCustomerAction, getCurrentSessionAction } from '@/application/actions/customer-actions'
 
 export interface CustomerSessionState {
   isAuthenticated: boolean
@@ -17,6 +17,7 @@ export interface CustomerSessionState {
 interface SessionContextType {
   session: CustomerSessionState
   setSession: (session: CustomerSessionState) => void
+  refreshSession: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -30,9 +31,41 @@ export function SessionProvider({
   initialSession?: CustomerSessionState
 }) {
   const [session, setSessionState] = useState<CustomerSessionState>(initialSession)
+  const [prevSessionId, setPrevSessionId] = useState<string>(
+    `${initialSession?.isAuthenticated}:${initialSession?.customerId || ''}:${initialSession?.email || ''}`
+  )
+
+  const currentSessionId = `${initialSession?.isAuthenticated}:${initialSession?.customerId || ''}:${initialSession?.email || ''}`
+
+  // Adjust state during render when initialSession prop identity changes (React pattern: You Might Not Need an Effect)
+  if (currentSessionId !== prevSessionId) {
+    setPrevSessionId(currentSessionId)
+    if (initialSession) {
+      setSessionState(initialSession)
+    }
+  }
 
   const setSession = (newSession: CustomerSessionState) => {
     setSessionState(newSession)
+  }
+
+  const refreshSession = async () => {
+    try {
+      const res = await getCurrentSessionAction()
+      if (res.success && res.session) {
+        setSessionState(res.session)
+      } else {
+        console.warn(
+          '[SessionProvider] Session revalidation skipped due to server error. Preserving active session state.',
+          res.error
+        )
+      }
+    } catch (err) {
+      console.warn(
+        '[SessionProvider] Session revalidation transport failure. Preserving active session state.',
+        err
+      )
+    }
   }
 
   const logout = async () => {
@@ -46,7 +79,7 @@ export function SessionProvider({
   }
 
   return (
-    <SessionContext.Provider value={{ session, setSession, logout }}>
+    <SessionContext.Provider value={{ session, setSession, refreshSession, logout }}>
       {children}
     </SessionContext.Provider>
   )

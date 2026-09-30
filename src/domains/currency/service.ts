@@ -197,8 +197,23 @@ export class CurrencyService {
 
     console.log(`[CurrencyService] Starting rate sync cycle (forceSync: ${force}). Providers in priority: ${orderedProviders.map(p => p.name).join(', ')}`)
 
-    // 1. Freshness Policy check
-    if (!force) {
+    // 1. Catalog Completeness & Freshness Policy check
+    const activeCurrenciesRes = await this.repository.findActiveCurrencies()
+    const activeCodes = (activeCurrenciesRes.docs || [])
+      .map((c) => c.isoCode.toUpperCase().trim())
+      .filter((code) => code !== 'EGP')
+
+    const existingRatesRes = await this.repository.findExchangeRates('EGP')
+    const existingRateCurrencies = new Set(
+      (existingRatesRes.docs || [])
+        .filter((r) => typeof r.rate === 'number' && r.rate > 0 && r.fromCurrency === 'EGP')
+        .map((r) => r.toCurrency.toUpperCase().trim())
+    )
+
+    const missingCurrencies = activeCodes.filter((code) => !existingRateCurrencies.has(code))
+    const hasMissingRates = missingCurrencies.length > 0
+
+    if (!force && !hasMissingRates) {
       const latestSync = await this.repository.getLatestRateSync()
       if (latestSync) {
         const needsSync = CurrencySyncPolicy.shouldSync(latestSync.source, latestSync.lastSuccess, now)
@@ -212,6 +227,12 @@ export class CurrencyService {
           }
         }
       }
+    }
+
+    if (hasMissingRates) {
+      console.warn(
+        `[CurrencyService] Active currencies catalog is incomplete. Missing rates for: [${missingCurrencies.join(', ')}]. Bypassing freshness check to enforce catalog completeness.`
+      )
     }
 
     // 2. Fetch rates with failover
@@ -260,14 +281,14 @@ export class CurrencyService {
       }
     }
 
-    // Save rates
-    const activeCurrencies = await this.repository.findActiveCurrencies()
-    const activeIsoCodes = new Set(activeCurrencies.docs.map(c => c.isoCode.toUpperCase()))
+    // Save rates for all recognized currencies in the master catalog
+    const catalogCurrencies = await this.repository.findAllCatalogCurrencies()
+    const catalogIsoCodes = new Set(catalogCurrencies.docs.map(c => c.isoCode.toUpperCase().trim()))
 
     let updated = 0
     for (const [currency, rate] of Object.entries(fetchedRates)) {
       const normalizedCurrency = currency.toUpperCase().trim()
-      if (activeIsoCodes.has(normalizedCurrency) && normalizedCurrency !== 'EGP') {
+      if (catalogIsoCodes.has(normalizedCurrency) && normalizedCurrency !== 'EGP' && rate > 0) {
         await this.repository.upsertRate({
           fromCurrency: 'EGP',
           toCurrency: normalizedCurrency,
@@ -284,6 +305,7 @@ export class CurrencyService {
 
     return {
       success: true,
+
       message: `Successfully synchronized ${updated} exchange rates using provider: ${activeProviderUsed.name}`,
       timestamp: nowIso,
     }

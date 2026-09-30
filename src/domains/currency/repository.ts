@@ -30,6 +30,15 @@ export class CurrencyRepository {
     })
   }
 
+  async findAllCatalogCurrencies() {
+    return this.payload.find({
+      collection: 'currencies',
+      limit: 1000,
+      depth: 0,
+    })
+  }
+
+
   async markAllStale(errorMessage: string, attemptTime: string) {
     const existingRates = await this.payload.find({
       collection: 'exchange-rates',

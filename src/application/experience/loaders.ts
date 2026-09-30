@@ -80,31 +80,20 @@ export class ExperiencesCatalogLoader {
         destination.getAllActiveCities({ limit: 200 }),
       ])
 
-      const destinationCountries = (countriesResult.docs || []).map((c: any) => ({
-        id: Number(c.id),
-        name: String(c.name),
-        slug: String(c.slug),
-      }))
+      const countryDocs = countriesResult.docs || []
+      const cityDocs = citiesResult.docs || []
 
-      const destinationCities = (citiesResult.docs || []).map((c: any) => ({
-        id: Number(c.id),
-        name: String(c.name),
-        slug: String(c.slug),
-        heroUrl:
-          c.hero && typeof c.hero === 'object'
-            ? c.hero.url
-            : typeof c.hero === 'string'
-              ? c.hero
-              : '',
-        countryId: c.country
-          ? typeof c.country === 'object'
-            ? Number(c.country.id)
-            : Number(c.country)
-          : 0,
-        countryName: c.country && typeof c.country === 'object' ? String(c.country.name) : '',
-      }))
-
-      const citiesByIdMap = new Map(destinationCities.map((c) => [c.id, c]))
+      const rawCitiesByIdMap = new Map(
+        cityDocs.map((c: any) => [
+          Number(c.id),
+          {
+            id: Number(c.id),
+            name: String(c.name || ''),
+            countryName:
+              c.country && typeof c.country === 'object' ? String(c.country.name || '') : '',
+          },
+        ])
+      )
 
       const catalog = await experience.getCatalog({
         keyword: filters.query,
@@ -123,7 +112,7 @@ export class ExperiencesCatalogLoader {
       for (const exp of catalog.experiences || []) {
         const item = exp as Record<string, any>
         rawTexts.push(item.title || '')
-        const originCityObj = citiesByIdMap.get(Number(item.cityId))
+        const originCityObj = rawCitiesByIdMap.get(Number(item.cityId))
         const locationText = originCityObj
           ? originCityObj.countryName
             ? `${originCityObj.name}, ${originCityObj.countryName}`
@@ -132,7 +121,51 @@ export class ExperiencesCatalogLoader {
         rawTexts.push(locationText)
       }
 
+      const experienceTextsCount = rawTexts.length
+
+      for (const c of countryDocs) {
+        if (c.name) rawTexts.push(String(c.name))
+      }
+      for (const c of cityDocs) {
+        if (c.name) rawTexts.push(String(c.name))
+      }
+
       const translated = await localization.translateBatch(rawTexts, ctx)
+      let textIdx = experienceTextsCount
+
+      const destinationCountries = countryDocs.map((c: any) => ({
+        id: Number(c.id),
+        name: c.name ? (translated[textIdx++] || String(c.name)) : '',
+        slug: String(c.slug || ''),
+      }))
+
+      const destCountryMap = new Map(destinationCountries.map((c) => [c.id, c.name]))
+
+      const destinationCities = cityDocs.map((c: any) => {
+        const cId = c.country
+          ? typeof c.country === 'object'
+            ? Number(c.country.id)
+            : Number(c.country)
+          : 0
+        const cName =
+          destCountryMap.get(cId) ||
+          (c.country && typeof c.country === 'object' ? String(c.country.name) : '')
+        return {
+          id: Number(c.id),
+          name: c.name ? (translated[textIdx++] || String(c.name)) : '',
+          slug: String(c.slug || ''),
+          heroUrl:
+            c.hero && typeof c.hero === 'object'
+              ? c.hero.url
+              : typeof c.hero === 'string'
+                ? c.hero
+                : '',
+          countryId: cId,
+          countryName: cName,
+        }
+      })
+
+      const citiesByIdMap = new Map(destinationCities.map((c) => [c.id, c]))
       const todayStr = getBusinessDateString(ctx.timezone)
       const startingPricesMap = await experience.resolveStartingPricesBatch(
         catalog.experiences,

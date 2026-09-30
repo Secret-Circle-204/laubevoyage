@@ -1,4 +1,5 @@
 import { getDomainServices } from '@/domains/factory'
+import { CANONICAL_CUSTOMER_NAV_ITEMS } from '@/application/dashboard/navigation'
 import type { LayoutDTO, NavigationItemDTO, CurrencyOptionDTO, LocaleOptionDTO } from './dto'
 
 export class LayoutLoader {
@@ -54,10 +55,9 @@ export class LayoutLoader {
         }
 
         const { notification } = await getDomainServices()
-        const repo = (notification as any).workflowEngine?.repository
-        if (repo && typeof repo.findByRecipient === 'function' && customerDoc.email) {
-          const logs = await repo.findByRecipient(customerDoc.email, 20)
-          unreadNotificationsCount = logs.filter((log: any) => log.status === 'queued' || log.status === 'processing').length
+        if (customerDoc.email) {
+          const notifs = await notification.getNotificationsByRecipient(customerDoc.email, 1, 20)
+          unreadNotificationsCount = notifs.data.filter((log) => log.status === 'queued' || log.status === 'processing').length
         }
       } catch (err) {
         console.error('[LayoutLoader] Failed loading customer session data:', err)
@@ -65,11 +65,31 @@ export class LayoutLoader {
       }
     }
 
+    const customerNavLabels: Record<string, string> = {}
+    for (const item of CANONICAL_CUSTOMER_NAV_ITEMS) {
+      customerNavLabels[item.id] = localization.translateUiKey(item.translationKey, ctx)
+    }
+
     const uiLabels = {
       myAccount: localization.translateUiKey('layout.header.myAccount', ctx),
       signOut: localization.translateUiKey('layout.header.signOut', ctx),
       logIn: localization.translateUiKey('layout.header.logIn', ctx),
+      signIn: localization.translateUiKey('layout.header.signIn', ctx),
+      register: localization.translateUiKey('layout.header.register', ctx),
       bookNow: localization.translateUiKey('layout.header.bookNow', ctx),
+      adminPortal: localization.translateUiKey('layout.header.adminPortal', ctx),
+      travelCommand: localization.translateUiKey('layout.header.travelCommand', ctx),
+      searchPlaceholder: localization.translateUiKey('layout.header.searchPlaceholder', ctx),
+      searchButton: localization.translateUiKey('layout.header.searchButton', ctx),
+      clearSearch: localization.translateUiKey('layout.header.clearSearch', ctx),
+      searchAriaLabel: localization.translateUiKey('layout.header.searchAriaLabel', ctx),
+      exploreCollection: localization.translateUiKey('layout.header.exploreCollection', ctx),
+      languagePreferences: localization.translateUiKey('layout.header.languagePreferences', ctx),
+      currencyDisplay: localization.translateUiKey('layout.header.currencyDisplay', ctx),
+      selectLanguage: localization.translateUiKey('layout.header.selectLanguage', ctx),
+      selectCurrency: localization.translateUiKey('layout.header.selectCurrency', ctx),
+      openMenu: localization.translateUiKey('layout.header.openMenu', ctx),
+      closeMenu: localization.translateUiKey('layout.header.closeMenu', ctx),
       brandDescription: localization.translateUiKey('layout.footer.brandDescription', ctx),
     }
 
@@ -82,6 +102,7 @@ export class LayoutLoader {
       supportedLocales,
       userSession,
       unreadNotificationsCount,
+      customerNavLabels,
       uiLabels,
     }
   }

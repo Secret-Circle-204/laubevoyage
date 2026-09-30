@@ -13,6 +13,7 @@ export interface ResolvedSession {
   firstName?: string
   lastName?: string
   tier?: string
+  points?: number
   preferredCurrency?: string
   preferredLanguage?: string
   role?: 'admin' | 'super_admin' | 'customer'
@@ -79,6 +80,7 @@ export class SessionResolver {
         firstName: profile.firstName,
         lastName: profile.lastName,
         tier: profile.loyalty?.tier,
+        points: profile.loyalty?.points,
         preferredCurrency: profile.preferredCurrency,
         preferredLanguage: profile.preferredLanguage,
       }

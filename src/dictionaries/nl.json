@@ -4,7 +4,9 @@
     "subtitle": "Buitengewone Reizen op Maat: Uw Paspoort voor Exclusieve Ontdekkingen",
     "cta": {
       "primary": "Ervaringen Ontdekken →",
-      "secondary": "Bestemmingen Bekijken"
+      "secondary": "Bestemmingen Bekijken",
+      "joinVoyagers": "Word lid van Laube Voyagers",
+      "voyagerPortal": "Voyager-portaal"
     }
   },
   "layout": {
@@ -18,7 +20,22 @@
       "myAccount": "Mijn Account",
       "signOut": "Uitloggen",
       "logIn": "Inloggen",
-      "bookNow": "Nu Boeken"
+      "signIn": "Inloggen",
+      "register": "Registreren",
+      "bookNow": "Inloggen",
+      "adminPortal": "Beheerdersportaal",
+      "travelCommand": "Reiscommando",
+      "searchPlaceholder": "Zoek bestemmingen of reizen...",
+      "searchButton": "Zoeken",
+      "clearSearch": "Zoekopdracht wissen",
+      "searchAriaLabel": "Zoek bestemmingen of ervaringen",
+      "exploreCollection": "Ontdek de Collectie",
+      "languagePreferences": "Taal & Voorkeuren",
+      "currencyDisplay": "Weergegeven Valuta",
+      "selectLanguage": "Selecteer Taal",
+      "selectCurrency": "Selecteer Valuta",
+      "openMenu": "Reismenu openen",
+      "closeMenu": "Reismenu sluiten"
     },
     "sidebar": {
       "overview": "Overzicht",
@@ -64,7 +81,16 @@
     "filterDailyTours": "Privédagtours",
     "viewItinerary": "Reisschema Bekijken",
     "packageLabel": "Rondreispakket",
-    "dailyTourLabel": "Dagtour"
+    "dailyTourLabel": "Dagtour",
+    "activeCriteria": "Actieve Criteria",
+    "criteriaKeyword": "Trefwoord",
+    "criteriaCountry": "Land",
+    "criteriaCity": "Stad",
+    "criteriaFormat": "Formaat",
+    "criteriaDate": "Datum",
+    "criteriaBudget": "Budget",
+    "criteriaDuration": "Duur",
+    "clearAll": "Alles wissen"
   },
   "checkout": {
     "leadTravelerInfo": "Gegevens Hoofdreiziger",
@@ -190,29 +216,30 @@
       "referenceCol": "Transactiereferentie",
       "typeCol": "Type",
       "reasonCol": "Reden",
-      "pointsCol": "Punten"
+      "pointsCol": "Punten",
+      "transactionHistorySubtitle": "Een compleet overzicht van punten verdiend met uw reizen en ingewisseld voor boekingen."
     }
   },
   "dashboard": {
     "overview": {
-      "personalTravelHome": "Persoonlijk Reisportaal",
+      "personalTravelHome": "Reisdashboard",
       "welcomeBack": "Welkom terug",
       "welcomeSubtitle": "Uw persoonlijke reisportaal en exclusief reisoverzicht.",
-      "primaryVoyageDossier": "Hoofd-Reisdossier",
+      "primaryVoyageDossier": "Volgende Reis",
       "statusConfirmed": "Bevestigd",
       "statusPendingReview": "In Beoordeling",
       "viewDetails": "Details Weergeven",
       "hideDetails": "Details Verbergen",
       "details": "Details",
       "departure": "Vertrek",
-      "settlement": "Betaling",
-      "accessTravelDossier": "Reisdossier Openen",
+      "settlement": "Totale Prijs",
+      "accessTravelDossier": "Boekingsdetails bekijken",
       "schedule": "Schema",
-      "manifest": "Passagierslijst",
+      "manifest": "Reizigers",
       "travelerSingle": "Reiziger",
       "travelerMultiple": "Reizigers",
-      "tourType": "Type Tour",
-      "type": "Type",
+      "tourType": "Reistype",
+      "type": "Reistype",
       "paymentStatus": "Betalingsstatus",
       "standardSchedule": "Standaard",
       "signatureTour": "Signature Tour",
@@ -239,7 +266,10 @@
       "fullySettled": "Volledig Voldaan",
       "partiallyPaid": "Gedeeltelijk Betaald",
       "pending": "In Afwachting",
-      "balanceDue": "Openstaand Saldo"
+      "balanceDue": "Openstaand Saldo",
+      "travelPackage": "Reispakket",
+      "dailyTour": "Dagtour",
+      "duration": "Duur"
     }
   },
   "experience": {
@@ -532,7 +562,46 @@
     "previousPage": "← Vorige",
     "nextPage": "Volgende →",
     "pageOf": "Pagina {page} van {totalPages}",
-    "showingCount": "Pagina {page} van {totalPages} weergegeven ({total} totaal)"
+    "showingCount": "Pagina {page} van {totalPages} weergegeven ({total} totaal)",
+    "country": "Land",
+    "allCountries": "Alle Landen",
+    "filterCountries": "Filter landen...",
+    "city": "Stad",
+    "allCities": "Alle Steden",
+    "allInCountry": "Alle steden in land",
+    "filterCities": "Filter steden...",
+    "departure": "Vertrek",
+    "flexibleDates": "Flexibele Data",
+    "specificDepartureDate": "Specifieke vertrekdatum",
+    "quickSeasons": "Snelle Seizoenen",
+    "anytime": "Altijd",
+    "in2Weeks": "Binnen 2 weken",
+    "nextMonth": "Volgende maand",
+    "in3Months": "Binnen 3 maanden",
+    "experienceType": "Ervaring",
+    "allExperiencesDesc": "Ontdek onze wereldwijde luxe collectie",
+    "tourPackagesDesc": "Meerdaagse reizen met luxe accommodaties",
+    "dailyExcursionsDesc": "Exclusieve dagtochten & privégidsen",
+    "moreFilters": "Filters",
+    "refineJourney": "Verfijn Uw Reis",
+    "refineJourneySubtitle": "Stem de parameters af op uw luxewensen",
+    "resetFilters": "Filters wissen",
+    "minBudget": "Minimumbudget",
+    "maxBudget": "Maximumbudget",
+    "duration": "Reisduur",
+    "anyDuration": "Elke",
+    "oneDay": "1 Dag",
+    "threePlusDays": "3+ Dagen",
+    "fivePlusDays": "5+ Dagen",
+    "sevenPlusDays": "7+ Dagen",
+    "tenPlusDays": "10+ Dagen",
+    "selectCountry": "Selecteer Land",
+    "selectCity": "Selecteer Stad",
+    "selectCountryDesc": "Op maat gemaakte bestemmingen wereldwijd",
+    "selectCityDesc": "Verfijnde stedelijke en culturele centra",
+    "departureDateDesc": "Flexibele planning & seizoensvertrekken",
+    "experienceTypeDesc": "Tourpakketten of privé-excursies",
+    "exploreAction": "Ontdekken"
   },
   "emails": {
     "common": {

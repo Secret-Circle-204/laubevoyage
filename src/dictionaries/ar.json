@@ -4,7 +4,9 @@
     "subtitle": "رحلات مصممة خصيصاً: بوابتك لاكتشاف أروع المعالم والوجهات السياحية",
     "cta": {
       "primary": "استكشف رحلاتنا ←",
-      "secondary": "اكتشف الوجهات"
+      "secondary": "اكتشف الوجهات",
+      "joinVoyagers": "تسجيل جديد",
+      "voyagerPortal": "بوابة فوياجر"
     }
   },
   "layout": {
@@ -18,7 +20,22 @@
       "myAccount": "حسابي",
       "signOut": "تسجيل الخروج",
       "logIn": "تسجيل الدخول",
-      "bookNow": "احجز الآن"
+      "signIn": "تسجيل جديد",
+      "register": "إنشاء حساب",
+      "bookNow": "تسجيل الدخول",
+      "adminPortal": "بوابة الإدارة",
+      "travelCommand": "البحث السريع",
+      "searchPlaceholder": "ابحث عن وجهة أو رحلة...",
+      "searchButton": "بحث",
+      "clearSearch": "مسح البحث",
+      "searchAriaLabel": "البحث عن وجهات أو تجارب",
+      "exploreCollection": "استكشف الوجهات والرحلات",
+      "languagePreferences": "اللغة والتفضيلات",
+      "currencyDisplay": "العملة المعروضة",
+      "selectLanguage": "اختر اللغة",
+      "selectCurrency": "اختر العملة",
+      "openMenu": "فتح قائمة التنقل",
+      "closeMenu": "إغلاق قائمة التنقل"
     },
     "sidebar": {
       "overview": "نظرة عامة",
@@ -64,7 +81,16 @@
     "filterDailyTours": "الجولات اليومية",
     "viewItinerary": "تفاصيل برنامج الرحلة",
     "packageLabel": "برنامج متكامل",
-    "dailyTourLabel": "جولة يومية"
+    "dailyTourLabel": "جولة يومية",
+    "activeCriteria": "معايير التصفية النشطة",
+    "criteriaKeyword": "الكلمة المفتاحية",
+    "criteriaCountry": "الدولة",
+    "criteriaCity": "المدينة",
+    "criteriaFormat": "نوع الرحلة",
+    "criteriaDate": "التاريخ",
+    "criteriaBudget": "الميزانية",
+    "criteriaDuration": "المدة",
+    "clearAll": "مسح الكل"
   },
   "checkout": {
     "leadTravelerInfo": "بيانات المسافر الرئيسي",
@@ -190,7 +216,8 @@
       "referenceCol": "رقم المعاملة",
       "typeCol": "النوع",
       "reasonCol": "السبب",
-      "pointsCol": "النقاط"
+      "pointsCol": "النقاط",
+      "transactionHistorySubtitle": "سجل مفصل لجميع النقاط المكتسبة من رحلاتك وتلك المستخدمة في حجوزاتك."
     }
   },
   "dashboard": {
@@ -205,14 +232,14 @@
       "hideDetails": "إخفاء التفاصيل",
       "details": "التفاصيل",
       "departure": "تاريخ السفر",
-      "settlement": "قيمة الحجز",
+      "settlement": "إجمالي السعر",
       "accessTravelDossier": "تفاصيل الرحلة",
       "schedule": "المواعيد",
-      "manifest": "المسافرين",
+      "manifest": "المسافرون",
       "travelerSingle": "مسافر",
       "travelerMultiple": "مسافرين",
       "tourType": "نوع الرحلة",
-      "type": "النوع",
+      "type": "نوع الرحلة",
       "paymentStatus": "حالة الدفع",
       "standardSchedule": "الموعد المعتاد",
       "signatureTour": "رحلة مميزة",
@@ -239,7 +266,12 @@
       "fullySettled": "مدفوع بالكامل",
       "partiallyPaid": "مدفوع جزئياً",
       "pending": "في انتظار الدفع",
-      "balanceDue": "المبلغ المتبقي"
+      "balanceDue": "المبلغ المتبقي",
+      "travelPackage": "باقة سفر",
+      "dailyTour": "جولة يومية",
+      "duration": "المدة",
+      "departureTime": "وقت المغادرة",
+      "travelDates": "تواريخ الرحلة"
     }
   },
   "experience": {
@@ -531,7 +563,46 @@
     "previousPage": "→ السابق",
     "nextPage": "التالي ←",
     "pageOf": "صفحة {page} من {totalPages}",
-    "showingCount": "صفحة {page} من {totalPages} (الإجمالي {total})"
+    "showingCount": "صفحة {page} من {totalPages} (الإجمالي {total})",
+    "country": "الدولة",
+    "allCountries": "جميع الدول",
+    "filterCountries": "تصفية الدول...",
+    "city": "المدينة",
+    "allCities": "جميع المدن",
+    "allInCountry": "جميع مدن الدولة",
+    "filterCities": "تصفية المدن...",
+    "departure": "تاريخ الانطلاق",
+    "flexibleDates": "تواريخ مرنة",
+    "specificDepartureDate": "تحديد تاريخ الانطلاق",
+    "quickSeasons": "مواسم سريعة",
+    "anytime": "أي وقت",
+    "in2Weeks": "خلال أسبوعين",
+    "nextMonth": "الشهر القادم",
+    "in3Months": "خلال 3 أشهر",
+    "experienceType": "نوع التجربة",
+    "allExperiencesDesc": "استكشف مجموعتنا الفاخرة الكاملة حول العالم",
+    "tourPackagesDesc": "رحلات كبرى لعدة أيام مع إقامات فاخرة",
+    "dailyExcursionsDesc": "جولات يومية حصرية مع مرشدين خاصين",
+    "moreFilters": "خيارات التصفية",
+    "refineJourney": "تخصيص رحلتك",
+    "refineJourneySubtitle": "اضبط معايير رحلتك لتلائم تطلعاتك الفاخرة",
+    "resetFilters": "إعادة ضبط التصفية",
+    "minBudget": "الحد الأدنى للميزانية",
+    "maxBudget": "الحد الأقصى للميزانية",
+    "duration": "مدة الرحلة",
+    "anyDuration": "أي مدة",
+    "oneDay": "يوم واحد",
+    "threePlusDays": "3+ أيام",
+    "fivePlusDays": "5+ أيام",
+    "sevenPlusDays": "7+ أيام",
+    "tenPlusDays": "10+ أيام",
+    "selectCountry": "اختر الدولة",
+    "selectCity": "اختر المدينة",
+    "selectCountryDesc": "وجهات مصممة خصيصاً حول العالم",
+    "selectCityDesc": "مراكز حضرية وثقافية مختارة بعناية",
+    "departureDateDesc": "مواعيد مرنة وانطلاقات موسمية",
+    "experienceTypeDesc": "باقات رحلات أو جولات يومية خاصة",
+    "exploreAction": "استكشف"
   },
   "emails": {
     "common": {

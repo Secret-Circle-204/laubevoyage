@@ -158,6 +158,15 @@ function PrimaryJourneyCard({
               </div>
             </div>
 
+            {booking.paymentStatus === 'partially_paid' && booking.outstandingBalance && (
+              <div>
+                <span className="text-[11px] uppercase text-amber-500 block font-medium">{uiLabels.balanceDue}</span>
+                <div className="mt-0.5 text-amber-500 font-bold">
+                  <CurrencyDisplay price={booking.outstandingBalance} size="sm" />
+                </div>
+              </div>
+            )}
+
             <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
               <Button
                 variant="primary"
@@ -182,10 +191,22 @@ function PrimaryJourneyCard({
         <div className="overflow-hidden">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-card-elevated/70 p-3.5 rounded-2xl border border-border/60">
             <div>
-              <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.schedule}</span>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">
+                {booking.durationText
+                  ? (uiLabels.duration || 'Duration')
+                  : booking.departureTime
+                    ? (uiLabels.departureTime || 'Departure Time')
+                    : booking.endDate
+                      ? (uiLabels.travelDates || 'Travel Dates')
+                      : (uiLabels.departure || 'Departure')}
+              </span>
               <span className="font-semibold text-foreground mt-0.5 block">
-                {booking.departureTime || uiLabels.standardSchedule}
-                {booking.destinationTimezone ? ` (${booking.destinationTimezone})` : ''}
+                {booking.durationText ||
+                  (booking.departureTime
+                    ? `${booking.departureTime}${booking.destinationTimezone ? ` (${booking.destinationTimezone})` : ''}`
+                    : booking.endDate
+                      ? `${booking.departureDate} – ${booking.endDate}`
+                      : (booking.departureDate || '—'))}
               </span>
             </div>
             <div>
@@ -196,15 +217,21 @@ function PrimaryJourneyCard({
               </span>
             </div>
             <div>
-              <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.type}</span>
+              <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.tourType || uiLabels.type}</span>
               <span className="font-semibold text-foreground mt-0.5 block">
-                {booking.productTypeLabel || uiLabels.signatureTour}
+                {booking.productTypeLabel || '—'}
               </span>
             </div>
             <div>
               <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.paymentStatus}</span>
               <span className="font-semibold text-foreground mt-0.5 capitalize block">
-                {booking.paymentStatus?.replace(/_/g, ' ') || uiLabels.statusConfirmed}
+                {booking.paymentStatus === 'paid'
+                  ? uiLabels.fullySettled
+                  : booking.paymentStatus === 'partially_paid'
+                    ? uiLabels.partiallyPaid
+                    : booking.paymentStatus === 'unpaid'
+                      ? uiLabels.pending
+                      : (booking.paymentStatus?.replace(/_/g, ' ') || uiLabels.statusConfirmed)}
               </span>
             </div>
           </div>
@@ -468,7 +495,7 @@ function RecentReservationRow({
               <div>
                 <span className="text-[11px] uppercase text-muted-foreground block font-medium">{uiLabels.tourType}</span>
                 <span className="font-semibold text-foreground mt-0.5 block">
-                  {booking.productTypeLabel || uiLabels.signatureTour}
+                  {booking.productTypeLabel || '—'}
                 </span>
               </div>
 

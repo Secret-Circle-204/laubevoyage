@@ -1,15 +1,25 @@
 import type { ITranslationProvider } from '../providers/provider.interface'
-import type { TranslationProviderId } from '../types'
+import type { TranslationProviderId, TranslationResultWithProvenance, BatchTranslationResultWithProvenance } from '../types'
+import {
+  TranslationProviderError,
+  ProviderAuthError,
+  ProviderRateLimitError,
+  ProviderInvalidResponseError,
+  TranslationBlackoutError,
+  ApplicationDefectError,
+} from '../errors/provider-errors'
 
 export type PoolCircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN'
 
 export interface ProviderHealthState {
   circuit: PoolCircuitState
   failureCount: number
+  consecutiveThrottles: number
   cooldownUntil: number
   probeInFlight: boolean
   lastSuccess?: number
   lastFailure?: number
+  lastErrorMessage?: string
 }
 
 export class TranslationProviderPool implements ITranslationProvider {
@@ -19,14 +29,27 @@ export class TranslationProviderPool implements ITranslationProvider {
 
   private readonly failureThreshold: number
   private readonly defaultCooldownMs: number
-  private readonly minCooldownMs: number = 5000
-  private readonly maxCooldownMs: number = 300000
+  private readonly minCooldownMs: number = 30000 // 30 seconds minimum bounded cooldown
+  private readonly maxCooldownMs: number = 300000 // 5 minutes maximum bounded cooldown
 
   constructor(
     providers: ITranslationProvider[],
     options?: { failureThreshold?: number; defaultCooldownMs?: number }
   ) {
     this.providers = providers
+
+    // Enforce Azure Primary Invariant: Azure must be index 0 if configured
+    const azureIndex = this.providers.findIndex((p) => p.providerId === 'azure')
+    if (azureIndex > 0) {
+      console.warn(
+        `[TranslationProviderPool] Azure provider found at index ${azureIndex}. Enforcing Azure Primary invariant (Azure moved to index 0).`
+      )
+      const [azure] = this.providers.splice(azureIndex, 1)
+      if (azure) {
+        this.providers.unshift(azure)
+      }
+    }
+
     this.failureThreshold = options?.failureThreshold ?? (Number(process.env.TRANSLATION_FAILURE_THRESHOLD) || 3)
     this.defaultCooldownMs =
       options?.defaultCooldownMs ?? (Number(process.env.TRANSLATION_CIRCUIT_COOLDOWN_MS) || 60000)
@@ -35,6 +58,7 @@ export class TranslationProviderPool implements ITranslationProvider {
       this.states.set(provider.providerId, {
         circuit: 'CLOSED',
         failureCount: 0,
+        consecutiveThrottles: 0,
         cooldownUntil: 0,
         probeInFlight: false,
       })
@@ -64,12 +88,24 @@ export class TranslationProviderPool implements ITranslationProvider {
     return undefined
   }
 
+  getPoolCircuitState(): PoolCircuitState {
+    const configured = this.getConfiguredProviders()
+    if (configured.length === 0) return 'OPEN'
+
+    const states = configured.map((p) => this.getProviderState(p.providerId)?.circuit || 'CLOSED')
+    if (states.every((s) => s === 'OPEN')) return 'OPEN'
+    if (states.some((s) => s === 'HALF_OPEN')) return 'HALF_OPEN'
+    return 'CLOSED'
+  }
+
   resetAllCircuitsForTest(): void {
     for (const [_, state] of this.states) {
       state.circuit = 'CLOSED'
       state.failureCount = 0
+      state.consecutiveThrottles = 0
       state.cooldownUntil = 0
       state.probeInFlight = false
+      state.lastErrorMessage = undefined
     }
   }
 
@@ -90,61 +126,60 @@ export class TranslationProviderPool implements ITranslationProvider {
     }
     state.circuit = 'CLOSED'
     state.failureCount = 0
+    state.consecutiveThrottles = 0
     state.cooldownUntil = 0
     state.probeInFlight = false
     state.lastSuccess = Date.now()
+    state.lastErrorMessage = undefined
   }
 
-  private recordFailure(providerId: string, err: unknown): void {
+  private recordFailure(providerId: string, err: TranslationProviderError): void {
     const state = this.states.get(providerId)
     if (!state) return
 
     state.probeInFlight = false
     state.lastFailure = Date.now()
+    state.lastErrorMessage = err.message
 
-    const status = (err as any)?.status
-    const retryAfter = (err as any)?.retryAfter
-
-    // 1. HTTP 400 and 404 do NOT count towards circuit tripping
-    if (status === 400 || status === 404) {
-      return
-    }
-
-    // 2. HTTP 429 and HTTP 401/403 trip immediately to OPEN
-    if (status === 429 || status === 401 || status === 403) {
-      let cooldown = this.defaultCooldownMs
-      if (retryAfter) {
-        const parsed = parseInt(retryAfter, 10)
-        if (!isNaN(parsed)) {
-          cooldown = parsed * 1000
-        } else {
-          const parsedDate = new Date(retryAfter).getTime()
-          if (!isNaN(parsedDate)) {
-            cooldown = Math.max(0, parsedDate - Date.now())
-          }
-        }
-      }
-      const boundedCooldown = Math.min(Math.max(cooldown, this.minCooldownMs), this.maxCooldownMs)
+    // 1. Authentication / Configuration Incident (401 / 403)
+    if (err instanceof ProviderAuthError) {
+      const configCooldownMs = 300000 // 5 minutes administrative cooldown
       this.tripProvider(
         providerId,
         state,
-        status === 429 ? 'HTTP 429 (Rate Limited / Quota Exhausted)' : `HTTP ${status} (Auth Failure)`,
+        `[CONFIG_INCIDENT] Auth/Configuration Failure (${err.message})`,
+        configCooldownMs
+      )
+      return
+    }
+
+    // 2. Throttled / Rate Limited (429)
+    if (err instanceof ProviderRateLimitError) {
+      state.consecutiveThrottles = (state.consecutiveThrottles || 0) + 1
+      let parsedRetryAfterMs: number | undefined
+      if (err.retryAfterSeconds && err.retryAfterSeconds > 0) {
+        parsedRetryAfterMs = Math.min(err.retryAfterSeconds * 1000, this.maxCooldownMs)
+      }
+
+      // Bounded Exponential Backoff on 429: 30s -> 60s -> 120s -> 240s -> max 300s
+      const baseThrottleMs = 30000
+      const backoffCooldown = baseThrottleMs * Math.pow(2, state.consecutiveThrottles - 1)
+      const calculatedCooldown = parsedRetryAfterMs || backoffCooldown
+      const boundedCooldown = Math.min(Math.max(calculatedCooldown, this.minCooldownMs), this.maxCooldownMs)
+
+      this.tripProvider(
+        providerId,
+        state,
+        `[EXTERNAL_THROTTLED] HTTP 429 (Rate Limited - Throttle #${state.consecutiveThrottles})`,
         boundedCooldown
       )
       return
     }
 
-    // 3. 5xx, Timeout, Network failure increment failure count
+    // 3. Transient / Upstream / Timeout / Invalid Response
     state.failureCount++
     if (state.circuit === 'HALF_OPEN' || state.failureCount >= this.failureThreshold) {
-      const reason = (err as any)?.name === 'AbortError'
-        ? 'Request Timeout'
-        : status
-        ? `HTTP ${status}`
-        : err instanceof Error
-        ? err.message
-        : 'Unknown Provider Failure'
-      this.tripProvider(providerId, state, reason, this.defaultCooldownMs)
+      this.tripProvider(providerId, state, err.message, this.defaultCooldownMs)
     }
   }
 
@@ -162,23 +197,23 @@ export class TranslationProviderPool implements ITranslationProvider {
     }
   }
 
-  async translateText(text: string, targetLocale: string, sourceLocale: string = 'en'): Promise<string> {
+  async translateTextWithProvenance(
+    text: string,
+    targetLocale: string,
+    sourceLocale: string = 'en'
+  ): Promise<TranslationResultWithProvenance> {
     if (!text || !text.trim() || targetLocale === sourceLocale) {
-      return text
+      return { text, providerId: 'cache' }
     }
 
     const configured = this.getConfiguredProviders()
     if (configured.length === 0) {
-      const err = new Error(
-        '[TranslationProviderPool] All translation providers are currently unavailable or in OPEN circuit state.'
-      )
-      ;(err as any).status = 503
-      throw err
+      throw new TranslationBlackoutError('No translation providers configured in pool')
     }
 
     let lastError: unknown
 
-    // Strict priority traversal: iterate sequentially in configured priority order
+    // Strict priority traversal: sequential fallback (Azure -> Google -> Cloudflare)
     for (const provider of configured) {
       const state = this.states.get(provider.providerId)
       if (!state) continue
@@ -199,45 +234,55 @@ export class TranslationProviderPool implements ITranslationProvider {
       try {
         const result = await provider.translateText(text, targetLocale, sourceLocale)
         if (!result || !result.trim()) {
-          throw new Error(`[TranslationProviderPool] Provider "${provider.providerId}" returned empty translation.`)
+          throw new ProviderInvalidResponseError(provider.providerId, 'Empty translation string returned')
         }
         this.recordSuccess(provider.providerId)
-        return result
+        return { text: result, providerId: provider.providerId }
       } catch (err: unknown) {
-        this.recordFailure(provider.providerId, err)
-        lastError = err
+        if (err instanceof TranslationProviderError) {
+          this.recordFailure(provider.providerId, err)
+          lastError = err
+          // Proceed to next fallback provider
+          continue
+        }
+
+        // Internal programming defects MUST NOT be masked or sent through fallback
+        throw err
       }
     }
 
-    const blackoutErr = new Error(
-      `[TranslationProviderPool] All translation providers in the pool failed or are in OPEN circuit state. Last error: ${
+    throw new TranslationBlackoutError(
+      `All configured providers failed or are in OPEN circuit state. Last error: ${
         (lastError as any)?.message || lastError
       }`
     )
-    ;(blackoutErr as any).status = 503
-    throw blackoutErr
+  }
+
+  async translateText(text: string, targetLocale: string, sourceLocale: string = 'en'): Promise<string> {
+    const res = await this.translateTextWithProvenance(text, targetLocale, sourceLocale)
+    return res.text
   }
 
   async translateKey(translationKey: string, targetLocale: string): Promise<string> {
     return this.translateText(translationKey, targetLocale, 'en')
   }
 
-  async translateBatch(texts: string[], targetLocale: string, sourceLocale: string = 'en'): Promise<string[]> {
-    if (!texts || texts.length === 0) return []
-    if (targetLocale === sourceLocale) return texts
+  async translateBatchWithProvenance(
+    texts: string[],
+    targetLocale: string,
+    sourceLocale: string = 'en'
+  ): Promise<BatchTranslationResultWithProvenance> {
+    if (!texts || texts.length === 0) return { texts: [], providerId: 'cache' }
+    if (targetLocale === sourceLocale) return { texts, providerId: 'cache' }
 
     const configured = this.getConfiguredProviders()
     if (configured.length === 0) {
-      const err = new Error(
-        '[TranslationProviderPool] All translation providers are currently unavailable or in OPEN circuit state.'
-      )
-      ;(err as any).status = 503
-      throw err
+      throw new TranslationBlackoutError('No translation providers configured in pool')
     }
 
     let lastError: unknown
 
-    // Strict priority traversal: iterate sequentially in configured priority order
+    // Strict priority traversal: sequential fallback (Azure -> Google -> Cloudflare)
     for (const provider of configured) {
       const state = this.states.get(provider.providerId)
       if (!state) continue
@@ -258,24 +303,37 @@ export class TranslationProviderPool implements ITranslationProvider {
       try {
         const results = await provider.translateBatch(texts, targetLocale, sourceLocale)
         if (!Array.isArray(results) || results.length !== texts.length) {
-          throw new Error(
-            `[TranslationProviderPool] Provider "${provider.providerId}" returned invalid batch cardinality.`
+          throw new ProviderInvalidResponseError(
+            provider.providerId,
+            `Batch provider result count mismatch: expected ${texts.length}, got ${
+              Array.isArray(results) ? results.length : typeof results
+            }`
           )
         }
         this.recordSuccess(provider.providerId)
-        return results
+        return { texts: results, providerId: provider.providerId }
       } catch (err: unknown) {
-        this.recordFailure(provider.providerId, err)
-        lastError = err
+        if (err instanceof TranslationProviderError) {
+          this.recordFailure(provider.providerId, err)
+          lastError = err
+          // Proceed to next fallback provider
+          continue
+        }
+
+        // Internal programming defects MUST NOT be masked or sent through fallback
+        throw err
       }
     }
 
-    const blackoutErr = new Error(
-      `[TranslationProviderPool] All translation providers in the pool failed or are in OPEN circuit state. Last error: ${
+    throw new TranslationBlackoutError(
+      `All configured providers failed or are in OPEN circuit state. Last error: ${
         (lastError as any)?.message || lastError
       }`
     )
-    ;(blackoutErr as any).status = 503
-    throw blackoutErr
+  }
+
+  async translateBatch(texts: string[], targetLocale: string, sourceLocale: string = 'en'): Promise<string[]> {
+    const res = await this.translateBatchWithProvenance(texts, targetLocale, sourceLocale)
+    return res.texts
   }
 }

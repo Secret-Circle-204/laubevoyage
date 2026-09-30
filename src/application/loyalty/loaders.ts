@@ -125,6 +125,7 @@ export class CustomerLoyaltyLoader {
         officialRate: localization.translateUiKey('loyalty.portal.officialRate', ctx),
         yourPointsValue: localization.translateUiKey('loyalty.portal.yourPointsValue', ctx),
         transactionHistoryTitle: localization.translateUiKey('loyalty.portal.transactionHistoryTitle', ctx),
+        transactionHistorySubtitle: localization.translateUiKey('loyalty.portal.transactionHistorySubtitle', ctx),
         noTransactions: localization.translateUiKey('loyalty.portal.noTransactions', ctx),
         dateCol: localization.translateUiKey('loyalty.portal.dateCol', ctx),
         referenceCol: localization.translateUiKey('loyalty.portal.referenceCol', ctx),

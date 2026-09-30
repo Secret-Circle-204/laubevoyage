@@ -1,5 +1,14 @@
 import type { ITranslationProvider } from './provider.interface'
-import type { TranslationProviderId } from '../types'
+import type { TranslationProviderId, TranslationResultWithProvenance, BatchTranslationResultWithProvenance } from '../types'
+import {
+  ProviderAuthError,
+  ProviderRateLimitError,
+  ProviderTimeoutError,
+  ProviderNetworkError,
+  ProviderUnavailableError,
+  ProviderInvalidResponseError,
+  ProviderTransportLimitError,
+} from '../errors/provider-errors'
 
 export class GoogleTranslationProvider implements ITranslationProvider {
   readonly providerId: TranslationProviderId = 'google'
@@ -27,47 +36,66 @@ export class GoogleTranslationProvider implements ITranslationProvider {
 
     const url = this.buildUrl(text, targetLocale, sourceLocale)
     if (url.length > this.maxSafeUrlLength) {
-      throw new Error(
-        `[GoogleTranslationProvider] Single text exceeds maximum safe URL transport limit (${url.length} > ${this.maxSafeUrlLength})`
+      throw new ProviderTransportLimitError(
+        this.providerId,
+        `Single text exceeds maximum safe URL transport limit (${url.length} > ${this.maxSafeUrlLength})`
       )
     }
 
+    let response: Response
     try {
-      const response = await fetch(url, {
+      response = await fetch(url, {
         signal: AbortSignal.timeout(this.timeoutMs),
       })
-
-      if (!response.ok) {
-        const error = new Error(`[GoogleTranslationProvider] API returned status ${response.status}`)
-        ;(error as any).status = response.status
-        ;(error as any).retryAfter = response.headers.get('retry-after')
-        throw error
+    } catch (fetchErr: unknown) {
+      if ((fetchErr as any)?.name === 'TimeoutError' || (fetchErr as any)?.name === 'AbortError') {
+        throw new ProviderTimeoutError(this.providerId, `Request timed out after ${this.timeoutMs}ms`)
       }
-
-      const data = await response.json()
-
-      // Google Translate GTX structure: [[[translatedText, sourceText, ...]]]
-      if (data && Array.isArray(data[0])) {
-        const translatedSegments = data[0]
-          .filter((item: unknown): item is Array<string> => Array.isArray(item) && typeof item[0] === 'string')
-          .map((item: Array<string>) => item[0])
-          .join('')
-
-        if (translatedSegments) return translatedSegments
-      }
-
-      throw new Error('[GoogleTranslationProvider] Malformed or empty response payload from API')
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        if (error.name === 'TimeoutError' || error.name === 'AbortError') {
-          const timeoutErr = new Error(`[GoogleTranslationProvider] Request timed out after ${this.timeoutMs}ms`)
-          ;(timeoutErr as any).name = 'TimeoutError'
-          throw timeoutErr
-        }
-        throw error
-      }
-      throw new Error(String(error))
+      throw new ProviderNetworkError(
+        this.providerId,
+        fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+      )
     }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      if (response.status === 401 || response.status === 403) {
+        throw new ProviderAuthError(this.providerId, `HTTP ${response.status}: ${errorText.substring(0, 300)}`)
+      }
+      if (response.status === 429) {
+        const retryHeader = response.headers.get('retry-after')
+        let parsedSec: number | undefined
+        if (retryHeader) {
+          const s = parseInt(retryHeader, 10)
+          if (!isNaN(s) && s > 0) parsedSec = Math.min(s, 300)
+        }
+        throw new ProviderRateLimitError(
+          this.providerId,
+          `HTTP 429: ${errorText.substring(0, 300)}`,
+          parsedSec
+        )
+      }
+      throw new ProviderUnavailableError(this.providerId, response.status, errorText.substring(0, 300))
+    }
+
+    let data: any
+    try {
+      data = await response.json()
+    } catch (parseErr: unknown) {
+      throw new ProviderInvalidResponseError(this.providerId, 'Failed to parse JSON response from Google')
+    }
+
+    // Google Translate GTX structure: [[[translatedText, sourceText, ...]]]
+    if (data && Array.isArray(data[0])) {
+      const translatedSegments = data[0]
+        .filter((item: unknown): item is Array<string> => Array.isArray(item) && typeof item[0] === 'string')
+        .map((item: Array<string>) => item[0])
+        .join('')
+
+      if (translatedSegments) return translatedSegments
+    }
+
+    throw new ProviderInvalidResponseError(this.providerId, 'Malformed or empty response payload from API')
   }
 
   private async translateChunk(texts: string[], targetLocale: string, sourceLocale = 'en'): Promise<string[]> {
@@ -80,13 +108,15 @@ export class GoogleTranslationProvider implements ITranslationProvider {
     const translatedParts = translatedCombined.split(/\s*\|\|\|\s*/)
 
     if (translatedParts.length !== texts.length) {
-      throw new Error(
-        `[GoogleTranslationProvider] Batch delimiter split mismatch: expected ${texts.length}, got ${translatedParts.length}`
+      throw new ProviderInvalidResponseError(
+        this.providerId,
+        `Batch delimiter split mismatch: expected ${texts.length}, got ${translatedParts.length}`
       )
     }
 
     return translatedParts.map((t) => t.trim())
   }
+
 
   private buildSafeChunks(texts: string[], targetLocale: string, sourceLocale: string): string[][] {
     const chunks: string[][] = []
@@ -153,6 +183,24 @@ export class GoogleTranslationProvider implements ITranslationProvider {
 
   async translateKey(key: string, locale: string): Promise<string> {
     return this.translateText(key, locale)
+  }
+
+  async translateTextWithProvenance(
+    text: string,
+    targetLocale: string,
+    sourceLocale = 'en'
+  ): Promise<TranslationResultWithProvenance> {
+    const textRes = await this.translateText(text, targetLocale, sourceLocale)
+    return { text: textRes, providerId: this.providerId }
+  }
+
+  async translateBatchWithProvenance(
+    texts: string[],
+    targetLocale: string,
+    sourceLocale = 'en'
+  ): Promise<BatchTranslationResultWithProvenance> {
+    const textsRes = await this.translateBatch(texts, targetLocale, sourceLocale)
+    return { texts: textsRes, providerId: this.providerId }
   }
 }
 

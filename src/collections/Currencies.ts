@@ -13,6 +13,40 @@ export const Currencies: CollectionConfig = {
     read: () => true, // Publicly readable for active currencies
   },
   hooks: {
+    beforeValidate: [
+      async ({ data, req, originalDoc }) => {
+        if (!data) return data
+        const effectiveIsActive = data.isActive !== undefined ? data.isActive : originalDoc?.isActive
+        const effectiveIsoCode = ((data.isoCode || originalDoc?.isoCode || '') as string).toUpperCase().trim()
+
+        if (effectiveIsActive === true && effectiveIsoCode && effectiveIsoCode !== 'EGP') {
+          const existingRate = await req.payload.find({
+            collection: 'exchange-rates',
+            where: {
+              and: [
+                { fromCurrency: { equals: 'EGP' } },
+                { toCurrency: { equals: effectiveIsoCode } },
+                { rate: { greater_than: 0 } },
+              ],
+            },
+            limit: 1,
+          })
+
+          if (existingRate.docs.length === 0) {
+            const { ValidationError } = await import('payload')
+            throw new ValidationError({
+              errors: [
+                {
+                  message: `Cannot activate currency "${effectiveIsoCode}": A valid positive exchange rate (EGP -> ${effectiveIsoCode} with rate > 0) must exist in exchange-rates before activation. Please synchronize exchange rates first.`,
+                  path: 'isActive',
+                },
+              ],
+            })
+          }
+        }
+        return data
+      },
+    ],
     afterChange: [
       async ({ doc, req }) => {
         const eventBus = EventBus.getInstance()

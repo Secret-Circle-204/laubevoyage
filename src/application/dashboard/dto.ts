@@ -63,6 +63,11 @@ export interface CustomerPortalOverviewLabelsDTO {
   travelerMultiple: string
   tourType: string
   type: string
+  travelPackage?: string
+  dailyTour?: string
+  duration?: string
+  departureTime?: string
+  travelDates?: string
   paymentStatus: string
   standardSchedule: string
   signatureTour: string

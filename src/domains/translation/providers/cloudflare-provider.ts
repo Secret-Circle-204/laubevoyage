@@ -1,5 +1,13 @@
 import type { ITranslationProvider } from './provider.interface'
-import type { TranslationProviderId } from '../types'
+import type { TranslationProviderId, TranslationResultWithProvenance, BatchTranslationResultWithProvenance } from '../types'
+import {
+  ProviderAuthError,
+  ProviderRateLimitError,
+  ProviderTimeoutError,
+  ProviderNetworkError,
+  ProviderUnavailableError,
+  ProviderInvalidResponseError,
+} from '../errors/provider-errors'
 
 const CLOUDFLARE_LANGUAGE_MAP: Record<string, string> = {
   en: 'english',
@@ -42,11 +50,10 @@ export class CloudflareTranslatorProvider implements ITranslationProvider {
     }
 
     if (!this.isConfigured()) {
-      const err = new Error(
-        '[CloudflareTranslatorProvider] Provider is unconfigured: missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN.'
+      throw new ProviderAuthError(
+        this.providerId,
+        'Provider is unconfigured: missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN.'
       )
-      ;(err as any).status = 401
-      throw err
     }
 
     const endpoint = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run/${this.model}`
@@ -56,8 +63,9 @@ export class CloudflareTranslatorProvider implements ITranslationProvider {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs)
 
+    let response: Response
     try {
-      const response = await fetch(endpoint, {
+      response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiToken}`,
@@ -70,48 +78,64 @@ export class CloudflareTranslatorProvider implements ITranslationProvider {
         }),
         signal: controller.signal,
       })
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '')
-        const err = new Error(
-          `[CloudflareTranslatorProvider] HTTP ${response.status} ${response.statusText}: ${errorText.substring(
-            0,
-            300
-          )}`
-        )
-        ;(err as any).status = response.status
-        const retryAfter = response.headers.get('retry-after')
-        if (retryAfter) {
-          ;(err as any).retryAfter = retryAfter
-        }
-        throw err
+    } catch (fetchErr: unknown) {
+      clearTimeout(timeoutId)
+      if ((fetchErr as any)?.name === 'AbortError') {
+        throw new ProviderTimeoutError(this.providerId, `Request timed out after ${this.timeoutMs}ms`)
       }
-
-      const json = await response.json()
-      if (!json || json.success === false) {
-        const msg = json?.errors?.[0]?.message || 'Workers AI returned unsuccessful status'
-        const err = new Error(`[CloudflareTranslatorProvider] ${msg}`)
-        ;(err as any).status = 502
-        throw err
-      }
-
-      const translated = json?.result?.translated_text
-      if (typeof translated !== 'string' || !translated.trim()) {
-        return text
-      }
-
-      return translated
-    } catch (err: unknown) {
-      if ((err as any)?.name === 'AbortError') {
-        const timeoutErr = new Error(`[CloudflareTranslatorProvider] Request timed out after ${this.timeoutMs}ms`)
-        ;(timeoutErr as any).status = 504
-        throw timeoutErr
-      }
-      throw err
+      throw new ProviderNetworkError(
+        this.providerId,
+        fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+      )
     } finally {
       clearTimeout(timeoutId)
     }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      if (response.status === 401 || response.status === 403) {
+        throw new ProviderAuthError(
+          this.providerId,
+          `HTTP ${response.status}: ${errorText.substring(0, 300)}`,
+          response.status as 401 | 403
+        )
+      }
+      if (response.status === 429) {
+        const retryHeader = response.headers.get('retry-after')
+        let parsedSec: number | undefined
+        if (retryHeader) {
+          const s = parseInt(retryHeader, 10)
+          if (!isNaN(s) && s > 0) parsedSec = Math.min(s, 300)
+        }
+        throw new ProviderRateLimitError(
+          this.providerId,
+          `HTTP 429: ${errorText.substring(0, 300)}`,
+          parsedSec
+        )
+      }
+      throw new ProviderUnavailableError(this.providerId, response.status, errorText.substring(0, 300))
+    }
+
+    let json: any
+    try {
+      json = await response.json()
+    } catch (parseErr: unknown) {
+      throw new ProviderInvalidResponseError(this.providerId, 'Failed to parse JSON response from Cloudflare')
+    }
+
+    if (!json || json.success === false) {
+      const msg = json?.errors?.[0]?.message || 'Workers AI returned unsuccessful status'
+      throw new ProviderUnavailableError(this.providerId, 502, msg)
+    }
+
+    const translated = json?.result?.translated_text
+    if (typeof translated !== 'string' || !translated.trim()) {
+      return text
+    }
+
+    return translated
   }
+
 
   async translateKey(translationKey: string, targetLocale: string): Promise<string> {
     return this.translateText(translationKey, targetLocale, 'en')
@@ -131,5 +155,23 @@ export class CloudflareTranslatorProvider implements ITranslationProvider {
     )
 
     return results
+  }
+
+  async translateTextWithProvenance(
+    text: string,
+    targetLocale: string,
+    sourceLocale: string = 'en'
+  ): Promise<TranslationResultWithProvenance> {
+    const textRes = await this.translateText(text, targetLocale, sourceLocale)
+    return { text: textRes, providerId: this.providerId }
+  }
+
+  async translateBatchWithProvenance(
+    texts: string[],
+    targetLocale: string,
+    sourceLocale: string = 'en'
+  ): Promise<BatchTranslationResultWithProvenance> {
+    const textsRes = await this.translateBatch(texts, targetLocale, sourceLocale)
+    return { texts: textsRes, providerId: this.providerId }
   }
 }

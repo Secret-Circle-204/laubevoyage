@@ -22,6 +22,29 @@ export interface LocaleOptionDTO {
   name: string
 }
 
+export interface HeaderLabelsDTO {
+  myAccount: string
+  signOut: string
+  logIn: string
+  signIn: string
+  register: string
+  bookNow: string
+  adminPortal: string
+  travelCommand: string
+  searchPlaceholder: string
+  searchButton: string
+  clearSearch: string
+  searchAriaLabel: string
+  exploreCollection: string
+  languagePreferences: string
+  currencyDisplay: string
+  selectLanguage: string
+  selectCurrency: string
+  openMenu: string
+  closeMenu: string
+  brandDescription: string
+}
+
 export interface LayoutDTO {
   navigationMenu: NavigationItemDTO[]
   footerNavigation: FooterColumnDTO[]
@@ -38,12 +61,7 @@ export interface LayoutDTO {
     tier?: string
   }
   unreadNotificationsCount: number
-  uiLabels: {
-    myAccount: string
-    signOut: string
-    logIn: string
-    bookNow: string
-    brandDescription: string
-  }
+  customerNavLabels?: Record<string, string>
+  uiLabels: HeaderLabelsDTO
 }
 

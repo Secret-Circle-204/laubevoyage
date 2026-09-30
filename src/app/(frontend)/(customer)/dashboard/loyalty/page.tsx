@@ -65,7 +65,7 @@ export default async function Page(props: {
               {data.uiLabels.transactionHistoryTitle}
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Authoritative, immutable audit record of all earned rewards and redeemed checkout credits.
+              {data.uiLabels.transactionHistorySubtitle}
             </p>
           </div>
           {data.pagination && (

@@ -4,10 +4,13 @@ import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui'
+import { useSession } from '@/providers'
 import { DiscoverySearchBar } from '@/components/features/search/DiscoverySearchBar'
 import type { HomeHeroDTO } from '@/application/pages/home/dto'
 
 export function HeroWidget({ data }: { data: HomeHeroDTO }) {
+  const { session } = useSession()
+
   return (
     <section className="relative min-h-[90vh] lg:min-h-screen pt-32 pb-20 sm:pt-40 sm:pb-28 flex items-center justify-center bg-background text-foreground z-20">
       {/* Background Cinematic Image with Seamless Canvas Vignette - Strictly clips image & gradients */}
@@ -76,6 +79,17 @@ export function HeroWidget({ data }: { data: HomeHeroDTO }) {
               {data.ctaDiscoverText || 'Browse Destinations'}
             </Button>
           </Link>
+          {!session?.isAuthenticated && (
+            <Link href="/register">
+              <Button
+                variant="primary"
+                size="lg"
+                className="rounded-full px-8 uppercase text-xs font-semibold text-white bg-[#1a1e4e] hover:bg-[#252875] border border-white/20 shadow-lg shadow-[#1a1e4e]/40 transition-all duration-300 hover:scale-105"
+              >
+                {data.ctaJoinVoyagersText || 'Sign In'}
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </section>

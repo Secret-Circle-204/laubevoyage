@@ -58,8 +58,9 @@ export function registerCurrencyCacheSubscriber(): void {
     'CURRENCY_CATALOG_UPDATED',
     'CurrencyCacheSubscriber.invalidateCatalog',
     (event) => {
-      console.log('[CurrencyCacheSubscriber] CURRENCY_CATALOG_UPDATED Event received. Invalidating catalogRegistry cache.')
+      console.log('[CurrencyCacheSubscriber] CURRENCY_CATALOG_UPDATED Event received. Invalidating catalogRegistry and rateRegistry cache.')
       catalogRegistry.invalidate()
+      rateRegistry.invalidate()
     }
   )
 
