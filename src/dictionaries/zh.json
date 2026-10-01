@@ -1,13 +1,15 @@
 {
   "hero": {
-    "title": "L'Aube Voyage 奢华旅行体验",
+    "title": "超越地平线的定制之旅",
     "subtitle": "专属旅程定制：开启非凡探索之旅的尊贵通行证",
     "cta": {
       "primary": "探索体验项目 →",
       "secondary": "发现旅行目的地",
       "joinVoyagers": "加入 Laube Voyagers",
       "voyagerPortal": "Voyager 会员中心"
-    }
+    },
+    "eyebrow": "定制奢华旅行",
+    "imageAlt": "L'Aube Voyage 奢华旅行"
   },
   "layout": {
     "nav": {
@@ -269,7 +271,9 @@
       "balanceDue": "待付余额",
       "travelPackage": "旅游套餐",
       "dailyTour": "一日游",
-      "duration": "行程天数"
+      "duration": "行程天数",
+      "departureTime": "出发时间",
+      "travelDates": "出行日期"
     }
   },
   "experience": {
@@ -543,7 +547,8 @@
     "chooseAccommodation": "选择住宿",
     "changeAccommodation": "更改",
     "allTaxesIncluded": "包含所有税费",
-    "secureBookingNotice": "预订后立享出发保障确认。"
+    "secureBookingNotice": "预订后立享出发保障确认。",
+    "destinationPreview": "目的地预览"
   },
   "search": {
     "badge": "全局搜索引擎",
@@ -638,6 +643,53 @@
     "footer": {
       "support": "需要帮助？您可以直接回复此邮件。",
       "confidentiality": "此邮件因您注册 L'Aube Voyage 而发送给您。这是一封私密且受保护的信函。"
+    },
+    "templates": {
+      "bookingConfirmation": {
+        "subject": "预订确认 {bookingNumber}",
+        "body": "您好 {customerName}，您的预订 #{bookingNumber} 已成功确认。",
+        "badge": "预订已确认"
+      },
+      "paymentReceipt": {
+        "subject": "付款收据",
+        "body": "已成功收到您的付款 {amount} {currency}。",
+        "badge": "付款收据"
+      },
+      "tierUpgraded": {
+        "subject": "会员级别已升级为 {newTier}",
+        "body": "恭喜您！您的会员级别已升级至 {newTier}。{bonus}",
+        "badge": "级别升级"
+      },
+      "loyaltyEarned": {
+        "subject": "恭喜获得 {points} 积分！",
+        "body": "恭喜您！您已获得 {points} 新增奖励积分。{balanceText}",
+        "badge": "积分奖励"
+      },
+      "bookingPendingAdminReview": {
+        "subject": "已收到预订申请：{bookingNumber}",
+        "body": "您好 {customerName}，已收到您的预订申请 #{bookingNumber}{experienceTitle}{departureDate}{passengersCount}{totalCost}。我们的礼宾团队正在审核您的申请，并将尽快与您联系确认。",
+        "badge": "预订申请"
+      },
+      "adminBnplReviewAlert": {
+        "subject": "[需要处理] 新的先享后付预订申请：#{bookingNumber}",
+        "body": "用户 {customerName}（{customerEmail}）提交了新的先享后付预订申请 #{bookingNumber}。{experienceTitle}{departureDate}{passengersCount}。{totalAmount} 已付金额：0（未付款）。当前状态：等待管理员审核。{adminBookingUrl}",
+        "badge": "管理提醒"
+      }
     }
+  },
+  "featured": {
+    "badge": "精选典藏",
+    "title": "精选奢华体验",
+    "description": "非凡旅程，永恒目的地，难忘时刻。",
+    "viewAll": "查看全部体验",
+    "hallmark": "不仅是一次旅行 • 更是永恒传奇",
+    "carouselAria": "精选体验列表"
+  },
+  "destinations": {
+    "badge": "地理探索",
+    "title": "热门旅行目的地",
+    "viewAll": "查看全部目的地",
+    "featuredRegion": "精选地区",
+    "explore": "探索"
   }
 }

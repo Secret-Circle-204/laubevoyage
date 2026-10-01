@@ -10,27 +10,23 @@ export class HomePageLoader {
     try {
       const { destination, localization, experience } = await getDomainServices()
 
-      const [overview, countriesRes, citiesRes, budgetPresets] = await Promise.all([
+      const [overview, budgetPresets, countriesResult, citiesResult] = await Promise.all([
         destination.getHomePageOverview(ctx.currency),
-        destination.getCountries({ limit: 100 }),
-        destination.getAllActiveCities({ limit: 200 }),
         ExperiencesCatalogLoader.resolveBudgetPresets(ctx, localization),
+        destination.getCountries({ page: 1, limit: 20 }),
+        destination.getAllActiveCities({ page: 1, limit: 20 }),
       ])
 
-      const heroCountryDocs = countriesRes.docs || []
-      const heroCityDocs = citiesRes.docs || []
+      const heroCountryDocs = countriesResult.docs || []
+      const heroCityDocs = citiesResult.docs || []
 
-      // Collect all raw texts for 1 Single Batch Request
+      // Collect only required dynamic texts for 1 Single Bounded Batch Request
       const rawTexts: string[] = []
 
       for (const doc of overview.featuredExperiences || []) {
         if (doc.title) rawTexts.push(doc.title)
         const sub = (doc as any).subtitle
         if (sub) rawTexts.push(sub)
-      }
-
-      for (const doc of overview.topCountries || []) {
-        if (doc.name) rawTexts.push(doc.name)
       }
 
       for (const doc of heroCountryDocs) {
@@ -140,8 +136,16 @@ export class HomePageLoader {
         }),
       )
 
+      const heroCountries = heroCountryDocs.map((c: any) => ({
+        id: Number(c.id),
+        name: c.name ? (translatedTexts[textIdx++] || String(c.name)) : '',
+        slug: String(c.slug || ''),
+      }))
+
+      const heroCountryMap = new Map(heroCountries.map((c) => [c.id, c.name]))
+
       const topDestinations = (overview.topCountries || []).map((doc: any) => {
-        const translatedCountryName = doc.name ? (translatedTexts[textIdx++] || String(doc.name)) : ''
+        const translatedCountryName = heroCountryMap.get(Number(doc.id)) || String(doc.name || '')
         const countryBannerUrl = doc.hero && typeof doc.hero === 'object' && doc.hero.url
           ? doc.hero.url
           : (typeof doc.hero === 'string' ? doc.hero : '')
@@ -157,15 +161,6 @@ export class HomePageLoader {
         }
       })
 
-
-      const heroCountries = heroCountryDocs.map((c: any) => ({
-        id: Number(c.id),
-        name: c.name ? (translatedTexts[textIdx++] || String(c.name)) : '',
-        slug: String(c.slug || ''),
-      }))
-
-      const heroCountryMap = new Map(heroCountries.map((c) => [c.id, c.name]))
-
       const heroCities = heroCityDocs.map((c: any) => {
         const cId = c.country ? (typeof c.country === 'object' ? Number(c.country.id) : Number(c.country)) : 0
         const cName = heroCountryMap.get(cId) || (c.country && typeof c.country === 'object' ? String(c.country.name) : '')
@@ -180,8 +175,10 @@ export class HomePageLoader {
 
       return {
         hero: {
+          eyebrow: localization.translateUiKey('hero.eyebrow', ctx),
           title: localization.translateUiKey('hero.title', ctx),
           subtitle: localization.translateUiKey('hero.subtitle', ctx),
+          imageAlt: localization.translateUiKey('hero.imageAlt', ctx),
           ctaExploreText: localization.translateUiKey('hero.cta.primary', ctx),
           ctaDiscoverText: localization.translateUiKey('hero.cta.secondary', ctx),
           ctaJoinVoyagersText: localization.translateUiKey('hero.cta.joinVoyagers', ctx),
@@ -190,6 +187,22 @@ export class HomePageLoader {
           destinations: {
             countries: heroCountries,
             cities: heroCities,
+            countriesPagination: {
+              page: countriesResult.page ?? 1,
+              limit: countriesResult.limit ?? 20,
+              totalItems: countriesResult.totalDocs ?? heroCountries.length,
+              totalPages: countriesResult.totalPages ?? 1,
+              hasNextPage: Boolean(countriesResult.hasNextPage),
+              hasPrevPage: Boolean(countriesResult.hasPrevPage),
+            },
+            citiesPagination: {
+              page: citiesResult.page ?? 1,
+              limit: citiesResult.limit ?? 20,
+              totalItems: citiesResult.totalDocs ?? heroCityDocs.length,
+              totalPages: citiesResult.totalPages ?? 1,
+              hasNextPage: Boolean(citiesResult.hasNextPage),
+              hasPrevPage: Boolean(citiesResult.hasPrevPage),
+            },
           },
           budgetPresets,
         },

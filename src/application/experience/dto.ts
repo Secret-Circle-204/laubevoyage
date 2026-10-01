@@ -5,7 +5,10 @@ import type { ParsedExperienceSearchParams } from '../shared/parsers/experience-
 export interface DestinationOptionDTO {
   countries: { id: number; name: string; slug: string }[]
   cities: { id: number; name: string; slug: string; countryId: number; countryName: string }[]
+  countriesPagination?: PaginationDTO
+  citiesPagination?: PaginationDTO
 }
+
 
 export interface BudgetPresetOption {
   egpValue: number

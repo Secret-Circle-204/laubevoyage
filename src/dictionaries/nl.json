@@ -1,13 +1,15 @@
 {
   "hero": {
-    "title": "L'Aube Voyage Luxe Reiservaringen",
+    "title": "Reizen Gecreëerd Voorbij de Horizon",
     "subtitle": "Buitengewone Reizen op Maat: Uw Paspoort voor Exclusieve Ontdekkingen",
     "cta": {
       "primary": "Ervaringen Ontdekken →",
       "secondary": "Bestemmingen Bekijken",
       "joinVoyagers": "Word lid van Laube Voyagers",
       "voyagerPortal": "Voyager-portaal"
-    }
+    },
+    "eyebrow": "Op Maat Gemaakte Luxereizen",
+    "imageAlt": "L'Aube Voyage Luxereizen"
   },
   "layout": {
     "nav": {
@@ -269,7 +271,9 @@
       "balanceDue": "Openstaand Saldo",
       "travelPackage": "Reispakket",
       "dailyTour": "Dagtour",
-      "duration": "Duur"
+      "duration": "Duur",
+      "departureTime": "Vertrektijd",
+      "travelDates": "Reisdata"
     }
   },
   "experience": {
@@ -543,7 +547,8 @@
     "chooseAccommodation": "Accommodatie kiezen",
     "changeAccommodation": "Wijzigen",
     "allTaxesIncluded": "Inclusief alle belastingen en toeslagen",
-    "secureBookingNotice": "Gegarandeerde vertrekbevestiging bij boeking."
+    "secureBookingNotice": "Gegarandeerde vertrekbevestiging bij boeking.",
+    "destinationPreview": "Bestemming Voorbeeld"
   },
   "search": {
     "badge": "Globale Zoekmachine",
@@ -638,6 +643,53 @@
     "footer": {
       "support": "Hulp nodig? U kunt direct op deze e-mail antwoorden.",
       "confidentiality": "Deze e-mail is naar u verzonden omdat u zich hebt geregistreerd bij L'Aube Voyage. Dit is een vertrouwelijk bericht."
+    },
+    "templates": {
+      "bookingConfirmation": {
+        "subject": "Boekingsbevestiging {bookingNumber}",
+        "body": "Hallo {customerName}, uw boeking {bookingNumber} is succesvol bevestigd.",
+        "badge": "BOEKING BEVESTIGD"
+      },
+      "paymentReceipt": {
+        "subject": "Betalingsbewijs",
+        "body": "Betaling van {amount} {currency} succesvol ontvangen.",
+        "badge": "BETALINGSBEWIJS"
+      },
+      "tierUpgraded": {
+        "subject": "Loyaliteitsniveau verhoogd naar {newTier}",
+        "body": "Gefeliciteerd! Uw lidmaatschapsniveau is verhoogd naar {newTier}.{bonus}",
+        "badge": "NIVEAU VERHOOGD"
+      },
+      "loyaltyEarned": {
+        "subject": "U heeft {points} loyaliteitspunten verdiend!",
+        "body": "Gefeliciteerd! U heeft {points} nieuwe loyaliteitspunten verdiend.{balanceText}",
+        "badge": "LOYALITEITSBELONING"
+      },
+      "bookingPendingAdminReview": {
+        "subject": "Boekingsaanvraag ontvangen: {bookingNumber}",
+        "body": "Hallo {customerName}, uw boekingsaanvraag #{bookingNumber}{experienceTitle}{departureDate}{passengersCount}{totalCost} is ontvangen. Ons conciërgeteam beoordeelt uw aanvraag en neemt spoedig contact met u op.",
+        "badge": "BOEKINGSAANVRAAG"
+      },
+      "adminBnplReviewAlert": {
+        "subject": "[ACTIE VEREIST] Nieuwe BNPL-boekingsaanvraag: #{bookingNumber}",
+        "body": "Een nieuwe BNPL-boekingsaanvraag #{bookingNumber} is ingediend door {customerName}{customerEmail}{experienceTitle}{departureDate}{passengersCount}.{totalAmount} Betaald bedrag: 0 (ONBETAALD). Huidige status: In afwachting van beoordeling door beheerder.{adminBookingUrl}",
+        "badge": "BEHEERDER WAARSCHUWING"
+      }
     }
+  },
+  "featured": {
+    "badge": "Gecureerde Selectie",
+    "title": "Uitgelichte Luxe Ervaringen",
+    "description": "Buitengewone reizen. Tijdloze bestemmingen. Onvergetelijke momenten.",
+    "viewAll": "Bekijk Alle Ervaringen",
+    "hallmark": "Meer Dan Een Reis • Een Erfgoed",
+    "carouselAria": "Lijst met uitgelichte ervaringen"
+  },
+  "destinations": {
+    "badge": "Geografische Verkenning",
+    "title": "Top Reisbestemmingen",
+    "viewAll": "Bekijk Alle Bestemmingen",
+    "featuredRegion": "Uitgelichte Regio",
+    "explore": "Ontdekken"
   }
 }

@@ -74,27 +74,6 @@ export class ExperiencesCatalogLoader {
 
       const budgetPresets = await ExperiencesCatalogLoader.resolveBudgetPresets(ctx, localization)
 
-      // Fetch lightweight real database countries and cities for DiscoverySearchBar
-      const [countriesResult, citiesResult] = await Promise.all([
-        destination.getCountries({ limit: 100 }),
-        destination.getAllActiveCities({ limit: 200 }),
-      ])
-
-      const countryDocs = countriesResult.docs || []
-      const cityDocs = citiesResult.docs || []
-
-      const rawCitiesByIdMap = new Map(
-        cityDocs.map((c: any) => [
-          Number(c.id),
-          {
-            id: Number(c.id),
-            name: String(c.name || ''),
-            countryName:
-              c.country && typeof c.country === 'object' ? String(c.country.name || '') : '',
-          },
-        ])
-      )
-
       const catalog = await experience.getCatalog({
         keyword: filters.query,
         countryId: filters.countryId,
@@ -107,6 +86,51 @@ export class ExperiencesCatalogLoader {
         page,
         limit,
       })
+
+      // Demand-driven destination resolution for displayed experiences + bounded search bar
+      const expCityIds = Array.from(
+        new Set(
+          (catalog.experiences || [])
+            .map((e: any) => Number(e.cityId))
+            .filter((id: number) => id > 0)
+        )
+      )
+
+      const initialCitiesPromise = filters.countryId
+        ? destination.getCitiesByCountry(filters.countryId, { page: 1, limit: 20 })
+        : destination.getAllActiveCities({ page: 1, limit: 20 })
+
+      const [countriesResult, initialCitiesResult, expCities] = await Promise.all([
+        destination.getCountries({ page: 1, limit: 20 }),
+        initialCitiesPromise,
+        expCityIds.length > 0 ? destination.getCitiesByIds(expCityIds) : Promise.resolve([]),
+      ])
+
+      const countryDocs = countriesResult.docs || []
+      const dropdownCities = initialCitiesResult.docs || []
+
+      const combinedCityMap = new Map<number, any>()
+      for (const c of dropdownCities) {
+        combinedCityMap.set(Number(c.id), c)
+      }
+      for (const c of expCities) {
+        if (!combinedCityMap.has(Number(c.id))) {
+          combinedCityMap.set(Number(c.id), c)
+        }
+      }
+      const cityDocs = Array.from(combinedCityMap.values())
+
+      const rawCitiesByIdMap = new Map(
+        cityDocs.map((c: any) => [
+          Number(c.id),
+          {
+            id: Number(c.id),
+            name: String(c.name || ''),
+            countryName:
+              c.country && typeof c.country === 'object' ? String(c.country.name || '') : '',
+          },
+        ])
+      )
 
       const rawTexts: string[] = []
       for (const exp of catalog.experiences || []) {
@@ -271,6 +295,22 @@ export class ExperiencesCatalogLoader {
         destinations: {
           countries: destinationCountries,
           cities: destinationCities,
+          countriesPagination: {
+            page: countriesResult.page ?? 1,
+            limit: countriesResult.limit ?? 20,
+            totalItems: countriesResult.totalDocs ?? destinationCountries.length,
+            totalPages: countriesResult.totalPages ?? 1,
+            hasNextPage: Boolean(countriesResult.hasNextPage),
+            hasPrevPage: Boolean(countriesResult.hasPrevPage),
+          },
+          citiesPagination: {
+            page: initialCitiesResult.page ?? 1,
+            limit: initialCitiesResult.limit ?? 20,
+            totalItems: initialCitiesResult.totalDocs ?? destinationCities.length,
+            totalPages: initialCitiesResult.totalPages ?? 1,
+            hasNextPage: Boolean(initialCitiesResult.hasNextPage),
+            hasPrevPage: Boolean(initialCitiesResult.hasPrevPage),
+          },
         },
         budgetPresets,
         facets: catalog.facets,

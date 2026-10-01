@@ -1,9 +1,13 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useLocale } from '@/providers'
+import { JsonTranslationDictionary } from '@/domains/translation/dictionary'
 import { ExperienceCard } from './ExperienceCard'
 import type { HomeFeaturedExperienceDTO } from '@/application/pages/home/dto'
 import type { ExperienceCardLabels } from './ExperienceCard/ExperienceCard.types'
+
+const dict = new JsonTranslationDictionary()
 
 interface ExperienceCarouselProps {
   experiences: HomeFeaturedExperienceDTO[]
@@ -22,6 +26,7 @@ export function ExperienceCarousel({
   onHoverExperience,
   onActiveIndexChange,
 }: ExperienceCarouselProps) {
+  const { locale } = useLocale()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -59,7 +64,7 @@ export function ExperienceCarousel({
         ref={scrollRef}
         className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 overflow-x-auto md:overflow-x-visible snap-x snap-mandatory scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 pb-6 md:pb-0"
         tabIndex={0}
-        aria-label="Featured Experiences List"
+        aria-label={dict.get(locale, 'featured.carouselAria')}
       >
         {experiences.map((item, index) => (
           <div

@@ -1,13 +1,15 @@
 {
   "hero": {
-    "title": "L'Aube Voyage Luxuserlebnisse",
+    "title": "Reisen jenseits des Horizonts",
     "subtitle": "Maßgeschneiderte Reisekreationen: Ihr Reisepass zu globalen und lokalen Entdeckungen",
     "cta": {
       "primary": "Erlebnisse Entdecken →",
       "secondary": "Reiseziele Erkunden",
       "joinVoyagers": "Laube Voyagers Beitreten",
       "voyagerPortal": "Voyager-Portal"
-    }
+    },
+    "eyebrow": "Maßgeschneiderte Luxusreisen",
+    "imageAlt": "L'Aube Voyage Luxusreisen"
   },
   "layout": {
     "nav": {
@@ -269,7 +271,9 @@
       "balanceDue": "Fälliger Restbetrag",
       "travelPackage": "Reisepaket",
       "dailyTour": "Tagestour",
-      "duration": "Dauer"
+      "duration": "Dauer",
+      "departureTime": "Abfahrtszeit",
+      "travelDates": "Reisedaten"
     }
   },
   "experience": {
@@ -543,7 +547,8 @@
     "chooseAccommodation": "Unterkunft wählen",
     "changeAccommodation": "Ändern",
     "allTaxesIncluded": "Alle Steuern und Gebühren inbegriffen",
-    "secureBookingNotice": "Garantierte Abreisebestätigung bei Buchung."
+    "secureBookingNotice": "Garantierte Abreisebestätigung bei Buchung.",
+    "destinationPreview": "Zielort-Vorschau"
   },
   "search": {
     "badge": "Globale Suchmaschine",
@@ -638,6 +643,53 @@
     "footer": {
       "support": "Benötigen Sie Hilfe? Sie können direkt auf diese E-Mail antworten.",
       "confidentiality": "Diese E-Mail wurde an Sie gesendet, weil Sie sich bei L'Aube Voyage registriert haben. Dies ist eine vertrauliche Mitteilung."
+    },
+    "templates": {
+      "bookingConfirmation": {
+        "subject": "Buchungsbestätigung {bookingNumber}",
+        "body": "Hallo {customerName}, Ihre Buchung {bookingNumber} wurde erfolgreich bestätigt.",
+        "badge": "BUCHUNG BESTÄTIGT"
+      },
+      "paymentReceipt": {
+        "subject": "Zahlungsbeleg",
+        "body": "Zahlung von {amount} {currency} erfolgreich erhalten.",
+        "badge": "ZAHLUNGSBELEG"
+      },
+      "tierUpgraded": {
+        "subject": "Treuestufe auf {newTier} hochgestuft",
+        "body": "Herzlichen Glückwunsch! Ihre Mitgliedsstufe wurde auf {newTier} hochgestuft.{bonus}",
+        "badge": "STUFE ERHÖHT"
+      },
+      "loyaltyEarned": {
+        "subject": "Sie haben {points} Treuepunkte gesammelt!",
+        "body": "Herzlichen Glückwunsch! Sie haben {points} neue Treuepunkte erhalten.{balanceText}",
+        "badge": "TREUEBELOHNUNG"
+      },
+      "bookingPendingAdminReview": {
+        "subject": "Buchungsanfrage eingegangen: {bookingNumber}",
+        "body": "Hallo {customerName}, Ihre Buchungsanfrage #{bookingNumber}{experienceTitle}{departureDate}{passengersCount}{totalCost} ist eingegangen. Unser Concierge-Team prüft Ihre Anfrage und wird sich in Kürze mit Ihnen in Verbindung setzen.",
+        "badge": "BUCHUNGSANFRAGE"
+      },
+      "adminBnplReviewAlert": {
+        "subject": "[HANDLUNG ERFORDERLICH] Neue BNPL-Buchungsanfrage: #{bookingNumber}",
+        "body": "Eine neue BNPL-Buchungsanfrage #{bookingNumber} wurde von {customerName}{customerEmail}{experienceTitle}{departureDate}{passengersCount} übermittelt.{totalAmount} Bezahlter Betrag: 0 (UNBEZAHLT). Aktueller Status: Ausstehende Administratorprüfung.{adminBookingUrl}",
+        "badge": "ADMIN-WARNUNG"
+      }
     }
+  },
+  "featured": {
+    "badge": "Kuratierte Auswahl",
+    "title": "Ausgewählte Luxuserlebnisse",
+    "description": "Außergewöhnliche Reisen. Zeitlose Reiseziele. Unvergessliche Momente.",
+    "viewAll": "Alle Erlebnisse Anzeigen",
+    "hallmark": "Mehr als eine Reise • Ein Vermächtnis",
+    "carouselAria": "Liste ausgewählter Erlebnisse"
+  },
+  "destinations": {
+    "badge": "Geografische Erkundung",
+    "title": "Top-Reiseziele",
+    "viewAll": "Alle Reiseziele Anzeigen",
+    "featuredRegion": "Ausgewählte Region",
+    "explore": "Entdecken"
   }
 }

@@ -1,13 +1,15 @@
 {
   "hero": {
-    "title": "Experiencias de Lujo L'Aube Voyage",
+    "title": "Viajes Creados más allá del Horizonte",
     "subtitle": "Creando Viajes Exclusivos: Su Pasaporte a Descubrimientos Extraordinarios",
     "cta": {
       "primary": "Explorar Experiencias →",
       "secondary": "Descubrir Destinos",
       "joinVoyagers": "Únete a Laube Voyagers",
       "voyagerPortal": "Portal Voyager"
-    }
+    },
+    "eyebrow": "Viajes de Lujo a Medida",
+    "imageAlt": "Viajes de Lujo L'Aube Voyage"
   },
   "layout": {
     "nav": {
@@ -269,7 +271,9 @@
       "balanceDue": "Saldo Pendiente",
       "travelPackage": "Paquete de Viaje",
       "dailyTour": "Tour Diario",
-      "duration": "Duración"
+      "duration": "Duración",
+      "departureTime": "Hora de salida",
+      "travelDates": "Fechas del viaje"
     }
   },
   "experience": {
@@ -543,7 +547,8 @@
     "chooseAccommodation": "Elegir alojamiento",
     "changeAccommodation": "Cambiar",
     "allTaxesIncluded": "Todos los impuestos y cargos incluidos",
-    "secureBookingNotice": "Confirmación de salida garantizada tras la reserva."
+    "secureBookingNotice": "Confirmación de salida garantizada tras la reserva.",
+    "destinationPreview": "Vista previa del Destino"
   },
   "search": {
     "badge": "Motor de Búsqueda Global",
@@ -638,6 +643,53 @@
     "footer": {
       "support": "¿Necesita ayuda? Puede responder directamente a este correo electrónico.",
       "confidentiality": "Este correo le fue enviado porque se registró en L'Aube Voyage. Esta es una comunicación privada y confidencial."
+    },
+    "templates": {
+      "bookingConfirmation": {
+        "subject": "Confirmación de reserva {bookingNumber}",
+        "body": "Hola {customerName}, tu reserva {bookingNumber} ha sido confirmada con éxito.",
+        "badge": "RESERVA CONFIRMADA"
+      },
+      "paymentReceipt": {
+        "subject": "Recibo de pago",
+        "body": "Pago de {amount} {currency} recibido con éxito.",
+        "badge": "RECIBO DE PAGO"
+      },
+      "tierUpgraded": {
+        "subject": "Nivel de membresía mejorado a {newTier}",
+        "body": "¡Felicidades! Tu nivel de fidelidad ha sido actualizado a {newTier}.{bonus}",
+        "badge": "NIVEL MEJORADO"
+      },
+      "loyaltyEarned": {
+        "subject": "¡Has ganado {points} puntos de fidelidad!",
+        "body": "¡Felicidades! Has obtenido {points} nuevos puntos de fidelidad.{balanceText}",
+        "badge": "RECOMPENSA DE FIDELIDAD"
+      },
+      "bookingPendingAdminReview": {
+        "subject": "Solicitud de reserva recibida: {bookingNumber}",
+        "body": "Hola {customerName}, hemos recibido tu solicitud de reserva #{bookingNumber}{experienceTitle}{departureDate}{passengersCount}{totalCost}. Nuestro equipo de concierge está revisando tu solicitud y se pondrá en contacto contigo pronto.",
+        "badge": "SOLICITUD DE RESERVA"
+      },
+      "adminBnplReviewAlert": {
+        "subject": "[ACCIÓN REQUERIDA] Nueva solicitud de reserva BNPL: #{bookingNumber}",
+        "body": "Se ha enviado una nueva solicitud de reserva BNPL #{bookingNumber} por {customerName}{customerEmail}{experienceTitle}{departureDate}{passengersCount}.{totalAmount} Importe pagado: 0 (PENDIENTE). Estado actual: Pendiente de revisión del administrador.{adminBookingUrl}",
+        "badge": "ALERTA DE ADMIN"
+      }
     }
+  },
+  "featured": {
+    "badge": "Selección Exclusiva",
+    "title": "Experiencias de Lujo Destacadas",
+    "description": "Viajes extraordinarios. Destinos atemporales. Momentos inolvidables.",
+    "viewAll": "Ver Todas las Experiencias",
+    "hallmark": "Más que un Viaje • Un Legado",
+    "carouselAria": "Lista de Experiencias Destacadas"
+  },
+  "destinations": {
+    "badge": "Exploración Geográfica",
+    "title": "Los Mejores Destinos de Viaje",
+    "viewAll": "Ver Todos los Destinos",
+    "featuredRegion": "Región Destacada",
+    "explore": "Explorar"
   }
 }

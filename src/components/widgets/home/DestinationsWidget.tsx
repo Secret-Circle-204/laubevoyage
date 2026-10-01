@@ -4,9 +4,15 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui'
+import { useLocale } from '@/providers'
+import { JsonTranslationDictionary } from '@/domains/translation/dictionary'
 import type { HomeDestinationCardDTO } from '@/application/pages/home/dto'
 
+const dict = new JsonTranslationDictionary()
+
 export function DestinationsWidget({ destinations }: { destinations: HomeDestinationCardDTO[] }) {
+  const { locale } = useLocale()
+
   return (
     <section className="py-24 bg-background/50 text-foreground transition-colors duration-500 border-b border-border/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -14,10 +20,10 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
           <div>
             <span className="text-[11px] uppercase font-semibold text-secondary block mb-2">
-              Geographical Exploration
+              {dict.get(locale, 'destinations.badge')}
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-light tracking-tight text-foreground">
-              Top Travel Destinations
+              {dict.get(locale, 'destinations.title')}
             </h2>
           </div>
 
@@ -27,7 +33,7 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
               size="md"
               className="uppercase text-xs font-semibold px-7 rounded-full flex items-center gap-2 group"
             >
-              <span>View All Destinations</span>
+              <span>{dict.get(locale, 'destinations.viewAll')}</span>
               <svg className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1 text-secondary" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
@@ -67,14 +73,14 @@ export function DestinationsWidget({ destinations }: { destinations: HomeDestina
               {/* Editorial Card Content */}
               <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-7 flex flex-col justify-end">
                 <span className="text-[10px] uppercase font-medium text-white/75 mb-1.5 block">
-                  {dest.cityName ? `${dest.countryName} • ${dest.cityName}` : 'Featured Region'}
+                  {dest.cityName ? `${dest.countryName} • ${dest.cityName}` : dict.get(locale, 'destinations.featuredRegion')}
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-serif font-light text-white leading-tight transition-colors">
                   {dest.countryName}
                 </h3>
 
                 <div className="flex items-center gap-2 text-white/90 text-xs uppercase mt-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 font-medium">
-                  <span>Explore</span>
+                  <span>{dict.get(locale, 'destinations.explore')}</span>
                   <svg
                     className="w-3.5 h-3.5 text-secondary"
                     fill="none"

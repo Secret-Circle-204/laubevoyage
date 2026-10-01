@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useLoadingNavigation } from '@/application/loading/use-loading-navigation'
 import { useTheme } from '@/providers/theme-provider'
 import { useLocale } from '@/providers'
@@ -29,6 +28,29 @@ function CheckIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
   )
 }
 
+function areDestinationsEqual(
+  prev?: DiscoverySearchBarProps['destinations'],
+  next?: DiscoverySearchBarProps['destinations']
+): boolean {
+  if (prev === next) return true
+  if (!prev || !next) return prev === next
+  const prevCountries = prev.countries || []
+  const nextCountries = next.countries || []
+  if (prevCountries.length !== nextCountries.length) return false
+  for (let i = 0; i < prevCountries.length; i++) {
+    if (prevCountries[i]?.id !== nextCountries[i]?.id) return false
+  }
+
+  const prevCities = prev.cities || []
+  const nextCities = next.cities || []
+  if (prevCities.length !== nextCities.length) return false
+  for (let i = 0; i < prevCities.length; i++) {
+    if (prevCities[i]?.id !== nextCities[i]?.id) return false
+  }
+
+  return true
+}
+
 export function DiscoverySearchBar({
   destinations = { countries: [], cities: [] },
   initialFilters,
@@ -36,7 +58,6 @@ export function DiscoverySearchBar({
   variant = 'hero',
   className = '',
 }: DiscoverySearchBarProps) {
-  const router = useRouter()
   const loadingNav = useLoadingNavigation()
   const { theme } = useTheme()
   const { locale } = useLocale()
@@ -44,7 +65,6 @@ export function DiscoverySearchBar({
 
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const [prevFilters, setPrevFilters] = useState(initialFilters)
   const [keyword, setKeyword] = useState(initialFilters?.query || '')
   const [selectedCountryId, setSelectedCountryId] = useState<string>(
     initialFilters?.countryId ? String(initialFilters.countryId) : ''
@@ -69,65 +89,320 @@ export function DiscoverySearchBar({
   const [countryFilterText, setCountryFilterText] = useState('')
   const [cityFilterText, setCityFilterText] = useState('')
 
-  // Adjust local form state during render if initialFilters prop changes
-  if (initialFilters !== prevFilters) {
-    setPrevFilters(initialFilters)
-    setKeyword(initialFilters?.query || '')
-    setSelectedCountryId(initialFilters?.countryId ? String(initialFilters.countryId) : '')
-    setSelectedCityId(initialFilters?.cityId ? String(initialFilters.cityId) : '')
-    setSelectedType(initialFilters?.type || '')
-    setSelectedDate(initialFilters?.date || '')
-    setMinPrice(initialFilters?.minPrice !== undefined ? String(initialFilters.minPrice) : '')
-    setMaxPrice(initialFilters?.maxPrice !== undefined ? String(initialFilters.maxPrice) : '')
-    setSelectedDuration(
-      initialFilters?.duration !== undefined ? String(initialFilters.duration) : ''
-    )
+  // Demand-driven server-side destination state
+  const [countriesList, setCountriesList] = useState(destinations.countries || [])
+  const [citiesList, setCitiesList] = useState(destinations.cities || [])
+
+  const [countryPagination, setCountryPagination] = useState({
+    page: destinations.countriesPagination?.page || 1,
+    hasNextPage: Boolean(destinations.countriesPagination?.hasNextPage),
+    totalItems: destinations.countriesPagination?.totalItems ?? (destinations.countries?.length || 0),
+  })
+
+  const [cityPagination, setCityPagination] = useState({
+    page: destinations.citiesPagination?.page || 1,
+    hasNextPage: Boolean(destinations.citiesPagination?.hasNextPage),
+    totalItems: destinations.citiesPagination?.totalItems ?? (destinations.cities?.length || 0),
+  })
+
+  const [isCityLoading, setIsCityLoading] = useState(false)
+  const [isCityLoadingMore, setIsCityLoadingMore] = useState(false)
+  const [isCountryLoading, setIsCountryLoading] = useState(false)
+  const [isCountryLoadingMore, setIsCountryLoadingMore] = useState(false)
+
+  // Race condition and request identity tracking
+  const cityRequestIdRef = useRef(0)
+  const cityAbortControllerRef = useRef<AbortController | null>(null)
+  const countryRequestIdRef = useRef(0)
+  const countryAbortControllerRef = useRef<AbortController | null>(null)
+
+  // Adjust state during render ONLY if destinations prop genuinely changes in content (protecting against parent shallow re-renders)
+  const [prevDestinations, setPrevDestinations] = useState(destinations)
+  if (!areDestinationsEqual(prevDestinations, destinations)) {
+    setPrevDestinations(destinations)
+    setCountriesList(destinations.countries || [])
+    setCountryPagination({
+      page: destinations.countriesPagination?.page || 1,
+      hasNextPage: Boolean(destinations.countriesPagination?.hasNextPage),
+      totalItems: destinations.countriesPagination?.totalItems ?? (destinations.countries?.length || 0),
+    })
+    setCitiesList(destinations.cities || [])
+    setCityPagination({
+      page: destinations.citiesPagination?.page || 1,
+      hasNextPage: Boolean(destinations.citiesPagination?.hasNextPage),
+      totalItems: destinations.citiesPagination?.totalItems ?? (destinations.cities?.length || 0),
+    })
   }
 
-  // Handle outside clicks and Escape key to collapse popovers and sheets
+  // Refs for restoring initial data on search reset without re-triggering search effects on shallow parent renders
+  const isCitySearchActiveRef = useRef(false)
+  const initialCitiesRef = useRef(destinations.cities)
+  const initialCitiesPaginationRef = useRef(destinations.citiesPagination)
   useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setActivePopover('none')
-        setIsMobileExpanded(false)
-      }
-    }
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setActivePopover('none')
-        setIsMoreOpen(false)
-        setIsMobileExpanded(false)
-      }
-    }
-    document.addEventListener('mousedown', handleGlobalClick)
-    document.addEventListener('touchstart', handleGlobalClick)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleGlobalClick)
-      document.removeEventListener('touchstart', handleGlobalClick)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [])
+    initialCitiesRef.current = destinations.cities
+    initialCitiesPaginationRef.current = destinations.citiesPagination
+  }, [destinations.cities, destinations.citiesPagination])
 
-  // Filter cities by selected country if one is chosen
-  const filteredCities = selectedCountryId
-    ? destinations.cities.filter((c) => c.countryId === Number(selectedCountryId))
-    : destinations.cities
+  // Demand-driven search/filter for cities with AbortController + sequential request ID
+  useEffect(() => {
+    if (!cityFilterText.trim() && !selectedCountryId) {
+      if (isCitySearchActiveRef.current) {
+        isCitySearchActiveRef.current = false
+        const initialCities = initialCitiesRef.current || []
+        const initialPagination = initialCitiesPaginationRef.current
+        setCitiesList(initialCities)
+        setCityPagination({
+          page: initialPagination?.page || 1,
+          hasNextPage: Boolean(initialPagination?.hasNextPage),
+          totalItems: initialPagination?.totalItems ?? initialCities.length,
+        })
+      }
+      return
+    }
+
+    isCitySearchActiveRef.current = true
+
+    if (cityAbortControllerRef.current) {
+      cityAbortControllerRef.current.abort()
+    }
+
+    const controller = new AbortController()
+    cityAbortControllerRef.current = controller
+    const requestId = ++cityRequestIdRef.current
+
+    const timer = setTimeout(async () => {
+      setIsCityLoading(true)
+      try {
+        const params = new URLSearchParams()
+        params.set('page', '1')
+        params.set('limit', '20')
+        if (locale) params.set('locale', locale)
+        if (selectedCountryId) params.set('countryId', selectedCountryId)
+        if (cityFilterText.trim()) params.set('q', cityFilterText.trim())
+
+        const res = await fetch(`/api/destinations/cities?${params.toString()}`, {
+          signal: controller.signal,
+        })
+        if (!res.ok) throw new Error('Fetch failed')
+        const data = await res.json()
+
+        if (requestId === cityRequestIdRef.current) {
+          setCitiesList(data.docs || [])
+          setCityPagination({
+            page: data.page ?? 1,
+            hasNextPage: Boolean(data.hasNextPage),
+            totalItems: data.totalItems ?? (data.docs?.length || 0),
+          })
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('[DiscoverySearchBar] Error fetching cities:', err)
+        }
+      } finally {
+        if (requestId === cityRequestIdRef.current) {
+          setIsCityLoading(false)
+        }
+      }
+    }, 250)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [cityFilterText, selectedCountryId, locale])
+
+  // Load more cities (next page) with in-flight AbortController support
+  const handleLoadMoreCities = async () => {
+    if (isCityLoading || isCityLoadingMore || !cityPagination.hasNextPage) return
+
+    const nextPage = cityPagination.page + 1
+    setIsCityLoadingMore(true)
+    const requestId = ++cityRequestIdRef.current
+
+    if (cityAbortControllerRef.current) {
+      cityAbortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    cityAbortControllerRef.current = controller
+
+    try {
+      const params = new URLSearchParams()
+      params.set('page', String(nextPage))
+      params.set('limit', '20')
+      if (locale) params.set('locale', locale)
+      if (selectedCountryId) params.set('countryId', selectedCountryId)
+      if (cityFilterText.trim()) params.set('q', cityFilterText.trim())
+
+      const res = await fetch(`/api/destinations/cities?${params.toString()}`, {
+        signal: controller.signal,
+      })
+      if (!res.ok) throw new Error('Fetch failed')
+      const data = await res.json()
+
+      if (requestId === cityRequestIdRef.current) {
+        setCitiesList((prev) => {
+          const existingIds = new Set(prev.map((c) => c.id))
+          const newDocs = (data.docs || []).filter((d: any) => !existingIds.has(d.id))
+          return [...prev, ...newDocs]
+        })
+        setCityPagination({
+          page: data.page ?? nextPage,
+          hasNextPage: Boolean(data.hasNextPage),
+          totalItems: data.totalItems ?? cityPagination.totalItems,
+        })
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('[DiscoverySearchBar] Error loading more cities:', err)
+      }
+    } finally {
+      if (requestId === cityRequestIdRef.current) {
+        setIsCityLoadingMore(false)
+      }
+    }
+  }
+
+  // Refs for restoring initial countries on search reset without re-triggering search effects on shallow parent renders
+  const isCountrySearchActiveRef = useRef(false)
+  const initialCountriesRef = useRef(destinations.countries)
+  const initialCountriesPaginationRef = useRef(destinations.countriesPagination)
+  useEffect(() => {
+    initialCountriesRef.current = destinations.countries
+    initialCountriesPaginationRef.current = destinations.countriesPagination
+  }, [destinations.countries, destinations.countriesPagination])
+
+  // Demand-driven search for countries with AbortController + sequential request ID
+  useEffect(() => {
+    if (!countryFilterText.trim()) {
+      if (isCountrySearchActiveRef.current) {
+        isCountrySearchActiveRef.current = false
+        const initialCountries = initialCountriesRef.current || []
+        const initialPagination = initialCountriesPaginationRef.current
+        setCountriesList(initialCountries)
+        setCountryPagination({
+          page: initialPagination?.page || 1,
+          hasNextPage: Boolean(initialPagination?.hasNextPage),
+          totalItems: initialPagination?.totalItems ?? initialCountries.length,
+        })
+      }
+      return
+    }
+
+    isCountrySearchActiveRef.current = true
+
+    if (countryAbortControllerRef.current) {
+      countryAbortControllerRef.current.abort()
+    }
+
+    const controller = new AbortController()
+    countryAbortControllerRef.current = controller
+    const requestId = ++countryRequestIdRef.current
+
+    const timer = setTimeout(async () => {
+      setIsCountryLoading(true)
+      try {
+        const params = new URLSearchParams()
+        params.set('page', '1')
+        params.set('limit', '20')
+        if (locale) params.set('locale', locale)
+        if (countryFilterText.trim()) params.set('q', countryFilterText.trim())
+
+        const res = await fetch(`/api/destinations/countries?${params.toString()}`, {
+          signal: controller.signal,
+        })
+        if (!res.ok) throw new Error('Fetch failed')
+        const data = await res.json()
+
+        if (requestId === countryRequestIdRef.current) {
+          setCountriesList(data.docs || [])
+          setCountryPagination({
+            page: data.page ?? 1,
+            hasNextPage: Boolean(data.hasNextPage),
+            totalItems: data.totalItems ?? (data.docs?.length || 0),
+          })
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('[DiscoverySearchBar] Error fetching countries:', err)
+        }
+      } finally {
+        if (requestId === countryRequestIdRef.current) {
+          setIsCountryLoading(false)
+        }
+      }
+    }, 250)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [countryFilterText, locale])
+
+  // Load more countries (next page) with in-flight AbortController support
+  const handleLoadMoreCountries = async () => {
+    if (isCountryLoading || isCountryLoadingMore || !countryPagination.hasNextPage) return
+
+    const nextPage = countryPagination.page + 1
+    setIsCountryLoadingMore(true)
+    const requestId = ++countryRequestIdRef.current
+
+    if (countryAbortControllerRef.current) {
+      countryAbortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    countryAbortControllerRef.current = controller
+
+    try {
+      const params = new URLSearchParams()
+      params.set('page', String(nextPage))
+      params.set('limit', '20')
+      if (locale) params.set('locale', locale)
+      if (countryFilterText.trim()) params.set('q', countryFilterText.trim())
+
+      const res = await fetch(`/api/destinations/countries?${params.toString()}`, {
+        signal: controller.signal,
+      })
+      if (!res.ok) throw new Error('Fetch failed')
+      const data = await res.json()
+
+      if (requestId === countryRequestIdRef.current) {
+        setCountriesList((prev) => {
+          const existingIds = new Set(prev.map((c) => c.id))
+          const newDocs = (data.docs || []).filter((d: any) => !existingIds.has(d.id))
+          return [...prev, ...newDocs]
+        })
+        setCountryPagination({
+          page: data.page ?? nextPage,
+          hasNextPage: Boolean(data.hasNextPage),
+          totalItems: data.totalItems ?? countryPagination.totalItems,
+        })
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('[DiscoverySearchBar] Error loading more countries:', err)
+      }
+    } finally {
+      if (requestId === countryRequestIdRef.current) {
+        setIsCountryLoadingMore(false)
+      }
+    }
+  }
 
   const handleCountryChange = (countryIdStr: string) => {
-    setSelectedCountryId(countryIdStr)
-    if (countryIdStr) {
-      const cityMatches = destinations.cities.some(
-        (c) => c.countryId === Number(countryIdStr) && String(c.id) === selectedCityId
-      )
-      if (!cityMatches) setSelectedCityId('')
+    if (cityAbortControllerRef.current) {
+      cityAbortControllerRef.current.abort()
     }
+    setSelectedCountryId(countryIdStr)
+    setSelectedCityId('')
+    setCityFilterText('')
+    setCitiesList([])
+    setCityPagination({ page: 1, hasNextPage: false, totalItems: 0 })
   }
 
   const handleCityChange = (cityIdStr: string) => {
     setSelectedCityId(cityIdStr)
     if (cityIdStr) {
-      const cityObj = destinations.cities.find((c) => String(c.id) === cityIdStr)
+      const cityObj = citiesList.find((c) => String(c.id) === cityIdStr) || destinations.cities.find((c) => String(c.id) === cityIdStr)
       if (cityObj && cityObj.countryId) {
         setSelectedCountryId(String(cityObj.countryId))
       }
@@ -160,8 +435,8 @@ export function DiscoverySearchBar({
   }
 
   // Display labels helpers
-  const selectedCountryObj = destinations.countries.find((c) => String(c.id) === selectedCountryId)
-  const selectedCityObj = destinations.cities.find((c) => String(c.id) === selectedCityId)
+  const selectedCountryObj = countriesList.find((c) => String(c.id) === selectedCountryId) || destinations.countries.find((c) => String(c.id) === selectedCountryId)
+  const selectedCityObj = citiesList.find((c) => String(c.id) === selectedCityId) || destinations.cities.find((c) => String(c.id) === selectedCityId)
 
   const selectedTypeName =
     selectedType === 'package'
@@ -174,13 +449,8 @@ export function DiscoverySearchBar({
     (minPrice ? 1 : 0) + (maxPrice ? 1 : 0) + (selectedDuration ? 1 : 0)
 
   // Filtered lists for instant search inside popovers
-  const displayedCountries = destinations.countries.filter((c) =>
-    c.name.toLowerCase().includes(countryFilterText.toLowerCase().trim())
-  )
-
-  const displayedCities = filteredCities.filter((c) =>
-    c.name.toLowerCase().includes(cityFilterText.toLowerCase().trim())
-  )
+  const displayedCountries = countriesList
+  const displayedCities = citiesList
 
   // Spatial Recomposition Segment Styling
   const getSegmentClass = (popoverType: ActivePopover) => {
@@ -246,7 +516,7 @@ export function DiscoverySearchBar({
                 className={`absolute ${
                   variant === 'hero' ? 'right-12 sm:right-3' : 'right-3'
                 } text-muted-foreground hover:text-accent p-1.5 transition-colors cursor-pointer`}
-                aria-label="Clear keyword"
+                aria-label={dict.get(locale, 'layout.header.clearSearch')}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -269,8 +539,8 @@ export function DiscoverySearchBar({
                     ? 'border-secondary bg-secondary/20 text-secondary shadow-sm shadow-secondary/20'
                     : 'border-white/20 bg-white/10 text-white/90 hover:bg-white/20'
                 }`}
-                aria-label={isMobileExpanded ? 'Collapse filters' : 'Expand filters'}
-                title={isMobileExpanded ? 'Collapse filters' : 'Expand filters'}
+                aria-label={isMobileExpanded ? dict.get(locale, 'layout.header.closeMenu') : dict.get(locale, 'search.moreFilters')}
+                title={isMobileExpanded ? dict.get(locale, 'layout.header.closeMenu') : dict.get(locale, 'search.moreFilters')}
               >
                 <svg
                   className={`w-4 h-4 transition-transform duration-300 ${
@@ -345,7 +615,7 @@ export function DiscoverySearchBar({
               {/* Desktop Floating Command Surface (Solid Opaque - Zero Bleed-Through) */}
               {activePopover === 'country' && (
                 <div className="hidden sm:block absolute top-full left-0 mt-2.5 z-[60] w-72 sm:w-80 rounded-2xl bg-[#141212] dark:bg-card border border-white/20 dark:border-border shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] p-3.5 text-white dropdown-emergence">
-                  <div className="p-2 border-b border-white/10 dark:border-border/60 mb-2">
+                  <div className="p-2 border-b border-white/10 dark:border-border/60 mb-2 flex items-center justify-between gap-2">
                     <input
                       type="text"
                       value={countryFilterText}
@@ -354,8 +624,19 @@ export function DiscoverySearchBar({
                       className="w-full px-3 py-1.5 text-xs rounded-lg bg-white/10 dark:bg-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30"
                       autoFocus
                     />
+                    {isCountryLoading && (
+                      <span className="text-[10px] text-accent shrink-0 animate-pulse">...</span>
+                    )}
                   </div>
-                  <div className="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                  <div
+                    className="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar"
+                    onScroll={(e) => {
+                      const el = e.currentTarget
+                      if (el.scrollHeight - el.scrollTop <= el.clientHeight + 30) {
+                        handleLoadMoreCountries()
+                      }
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -389,6 +670,16 @@ export function DiscoverySearchBar({
                         {selectedCountryId === String(country.id) && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                       </button>
                     ))}
+                    {countryPagination.hasNextPage && (
+                      <button
+                        type="button"
+                        onClick={handleLoadMoreCountries}
+                        disabled={isCountryLoadingMore}
+                        className="w-full text-center py-2 text-xs text-accent hover:underline disabled:opacity-50"
+                      >
+                        {isCountryLoadingMore ? '...' : `${dict.get(locale, 'catalog.loadMore') || 'Load more'} (${countriesList.length} / ${countryPagination.totalItems})`}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -439,12 +730,10 @@ export function DiscoverySearchBar({
                 {activePopover === 'city' && (
                   <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent rounded-full pointer-events-none animate-pulse" />
                 )}
-              </button>
-
-              {/* Desktop Floating Command Surface (Solid Opaque) */}
+              </button>              {/* Desktop Floating Command Surface (Solid Opaque) */}
               {activePopover === 'city' && (
                 <div className="hidden sm:block absolute top-full left-0 mt-2.5 z-[60] w-72 sm:w-80 rounded-2xl bg-[#141212] dark:bg-card border border-white/20 dark:border-border shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] p-3.5 text-white dropdown-emergence">
-                  <div className="p-2 border-b border-white/10 dark:border-border/60 mb-2">
+                  <div className="p-2 border-b border-white/10 dark:border-border/60 mb-2 flex items-center justify-between gap-2">
                     <input
                       type="text"
                       value={cityFilterText}
@@ -453,8 +742,19 @@ export function DiscoverySearchBar({
                       className="w-full px-3 py-1.5 text-xs rounded-lg bg-white/10 dark:bg-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary/30"
                       autoFocus
                     />
+                    {isCityLoading && (
+                      <span className="text-[10px] text-accent shrink-0 animate-pulse">...</span>
+                    )}
                   </div>
-                  <div className="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                  <div
+                    className="max-h-60 overflow-y-auto space-y-1 pr-1 custom-scrollbar"
+                    onScroll={(e) => {
+                      const el = e.currentTarget
+                      if (el.scrollHeight - el.scrollTop <= el.clientHeight + 30) {
+                        handleLoadMoreCities()
+                      }
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -488,6 +788,16 @@ export function DiscoverySearchBar({
                         {selectedCityId === String(city.id) && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                       </button>
                     ))}
+                    {cityPagination.hasNextPage && (
+                      <button
+                        type="button"
+                        onClick={handleLoadMoreCities}
+                        disabled={isCityLoadingMore}
+                        className="w-full text-center py-2 text-xs text-accent hover:underline disabled:opacity-50"
+                      >
+                        {isCityLoadingMore ? '...' : `${dict.get(locale, 'catalog.loadMore') || 'Load more'} (${citiesList.length} / ${cityPagination.totalItems})`}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -751,7 +1061,7 @@ export function DiscoverySearchBar({
                     ? 'border-white/20 bg-white/10 text-white hover:border-secondary/60 hover:text-secondary hover:bg-white/15'
                     : 'border-border bg-card text-foreground hover:border-secondary/60 hover:text-secondary hover:bg-accent/5'
                 }`}
-                title="Toggle Advanced Voyage Filters"
+                title={dict.get(locale, 'search.moreFilters')}
               >
                 <span className="flex items-center gap-2">
                   <span>{dict.get(locale, 'search.moreFilters')}</span>
@@ -798,7 +1108,7 @@ export function DiscoverySearchBar({
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase font-bold text-accent">
-                  Refine Your Journey
+                  {dict.get(locale, 'search.refineJourney')}
                 </span>
                 {activeFilterCount > 0 && (
                   <button
@@ -948,7 +1258,7 @@ export function DiscoverySearchBar({
                 type="button"
                 onClick={() => setActivePopover('none')}
                 className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
-                aria-label="Close"
+                aria-label={dict.get(locale, 'layout.header.closeMenu')}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -957,10 +1267,19 @@ export function DiscoverySearchBar({
             </div>
 
             {/* Sheet Scrollable Content */}
-            <div className="overflow-y-auto max-h-[60vh] space-y-2 pr-1 custom-scrollbar">
+            <div
+              className="overflow-y-auto max-h-[60vh] space-y-2 pr-1 custom-scrollbar"
+              onScroll={(e) => {
+                const el = e.currentTarget
+                if (el.scrollHeight - el.scrollTop <= el.clientHeight + 40) {
+                  if (activePopover === 'country') handleLoadMoreCountries()
+                  if (activePopover === 'city') handleLoadMoreCities()
+                }
+              }}
+            >
               {activePopover === 'country' && (
                 <>
-                  <div className="p-1 mb-2">
+                  <div className="p-1 mb-2 flex items-center justify-between gap-2">
                     <input
                       type="text"
                       value={countryFilterText}
@@ -969,6 +1288,9 @@ export function DiscoverySearchBar({
                       className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-white/10 dark:bg-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-secondary"
                       autoFocus
                     />
+                    {isCountryLoading && (
+                      <span className="text-[10px] text-accent shrink-0 animate-pulse">...</span>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -1003,12 +1325,22 @@ export function DiscoverySearchBar({
                       {selectedCountryId === String(country.id) && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </button>
                   ))}
+                  {countryPagination.hasNextPage && (
+                    <button
+                      type="button"
+                      onClick={handleLoadMoreCountries}
+                      disabled={isCountryLoadingMore}
+                      className="w-full text-center py-2.5 text-xs text-accent hover:underline disabled:opacity-50"
+                    >
+                      {isCountryLoadingMore ? '...' : `${dict.get(locale, 'catalog.loadMore') || 'Load more'} (${countriesList.length} / ${countryPagination.totalItems})`}
+                    </button>
+                  )}
                 </>
               )}
 
               {activePopover === 'city' && (
                 <>
-                  <div className="p-1 mb-2">
+                  <div className="p-1 mb-2 flex items-center justify-between gap-2">
                     <input
                       type="text"
                       value={cityFilterText}
@@ -1017,6 +1349,9 @@ export function DiscoverySearchBar({
                       className="w-full px-3.5 py-2.5 text-xs rounded-xl bg-white/10 dark:bg-card border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-secondary"
                       autoFocus
                     />
+                    {isCityLoading && (
+                      <span className="text-[10px] text-accent shrink-0 animate-pulse">...</span>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -1051,6 +1386,16 @@ export function DiscoverySearchBar({
                       {selectedCityId === String(city.id) && <CheckIcon className="w-3.5 h-3.5 text-accent" />}
                     </button>
                   ))}
+                  {cityPagination.hasNextPage && (
+                    <button
+                      type="button"
+                      onClick={handleLoadMoreCities}
+                      disabled={isCityLoadingMore}
+                      className="w-full text-center py-2.5 text-xs text-accent hover:underline disabled:opacity-50"
+                    >
+                      {isCityLoadingMore ? '...' : `${dict.get(locale, 'catalog.loadMore') || 'Load more'} (${citiesList.length} / ${cityPagination.totalItems})`}
+                    </button>
+                  )}
                 </>
               )}
 
@@ -1088,7 +1433,7 @@ export function DiscoverySearchBar({
                             : 'border-white/10 hover:bg-white/10 text-white/80'
                         }`}
                       >
-                        Anytime
+                        {dict.get(locale, 'search.anytime')}
                       </button>
                       <button
                         type="button"
@@ -1100,7 +1445,7 @@ export function DiscoverySearchBar({
                         }}
                         className="px-3 py-2.5 text-xs rounded-xl border border-white/10 hover:border-secondary hover:text-secondary text-white/80"
                       >
-                        In 2 Weeks
+                        {dict.get(locale, 'search.in2Weeks')}
                       </button>
                       <button
                         type="button"
@@ -1112,7 +1457,7 @@ export function DiscoverySearchBar({
                         }}
                         className="px-3 py-2.5 text-xs rounded-xl border border-white/10 hover:border-secondary hover:text-secondary text-white/80"
                       >
-                        Next Month
+                        {dict.get(locale, 'search.nextMonth')}
                       </button>
                       <button
                         type="button"
@@ -1124,7 +1469,7 @@ export function DiscoverySearchBar({
                         }}
                         className="px-3 py-2.5 text-xs rounded-xl border border-white/10 hover:border-secondary hover:text-secondary text-white/80"
                       >
-                        In 3 Months
+                        {dict.get(locale, 'search.in3Months')}
                       </button>
                     </div>
                   </div>

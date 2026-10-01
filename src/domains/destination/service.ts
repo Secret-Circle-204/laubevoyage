@@ -5,6 +5,7 @@ import type { DestinationQueryOptions } from './types'
  * Destination Domain Service
  * Handles all destination, city, and experience queries.
  * Delegated 100% to DestinationRepository via Dependency Injection.
+ * Pure Domain Boundary: Zero external/cross-domain coupling.
  */
 export class DestinationService {
   private repository: DestinationRepository
@@ -86,6 +87,65 @@ export class DestinationService {
 
   async getCanonicalCity(query: string) {
     return this.repository.findCanonicalCity(query)
+  }
+
+  async searchCities(options?: {
+    countryId?: number
+    query?: string
+    page?: number
+    limit?: number
+    locale?: string
+  }) {
+    const res = await this.repository.findAllActiveCities(options)
+    const docs = res.docs || []
+
+    const formattedDocs = docs.map((doc: any) => {
+      const cId = doc.country ? (typeof doc.country === 'object' ? Number(doc.country.id) : Number(doc.country)) : undefined
+      const cName = doc.country && typeof doc.country === 'object' && 'name' in doc.country ? String(doc.country.name) : undefined
+      return {
+        id: Number(doc.id),
+        name: String(doc.name || ''),
+        slug: String(doc.slug || ''),
+        countryId: cId,
+        countryName: cName,
+      }
+    })
+
+    return {
+      docs: formattedDocs,
+      totalItems: res.totalDocs ?? docs.length,
+      page: res.page ?? (options?.page || 1),
+      limit: res.limit ?? (options?.limit || 20),
+      totalPages: res.totalPages ?? 1,
+      hasNextPage: Boolean(res.hasNextPage),
+      hasPrevPage: Boolean(res.hasPrevPage),
+    }
+  }
+
+  async searchCountries(options?: {
+    query?: string
+    page?: number
+    limit?: number
+    locale?: string
+  }) {
+    const res = await this.repository.findCountries(options)
+    const docs = res.docs || []
+
+    const formattedDocs = docs.map((doc: any) => ({
+      id: Number(doc.id),
+      name: String(doc.name || ''),
+      slug: String(doc.slug || ''),
+    }))
+
+    return {
+      docs: formattedDocs,
+      totalItems: res.totalDocs ?? docs.length,
+      page: res.page ?? (options?.page || 1),
+      limit: res.limit ?? (options?.limit || 20),
+      totalPages: res.totalPages ?? 1,
+      hasNextPage: Boolean(res.hasNextPage),
+      hasPrevPage: Boolean(res.hasPrevPage),
+    }
   }
 }
 

@@ -1,13 +1,15 @@
 {
   "hero": {
-    "title": "L'Aube Voyage Luxury Experiences",
+    "title": "Journeys Crafted Beyond the Horizon",
     "subtitle": "Crafting Bespoke Journeys: Your Passport to Global and Local Discoveries",
     "cta": {
       "primary": "Explore Experiences →",
       "secondary": "Discover Destinations",
       "joinVoyagers": "Sign In",
       "voyagerPortal": "Voyager Portal"
-    }
+    },
+    "eyebrow": "Bespoke Luxury Voyages",
+    "imageAlt": "L'Aube Voyage Luxury Travel"
   },
   "layout": {
     "nav": {
@@ -72,7 +74,9 @@
     "badge": "Curated Selection",
     "title": "Featured Luxury Experiences",
     "description": "Extraordinary journeys. Timeless destinations. Unforgettable moments.",
-    "viewAll": "View All Experiences"
+    "viewAll": "View All Experiences",
+    "hallmark": "More Than A Trip • A Legacy",
+    "carouselAria": "Featured Experiences List"
   },
   "catalog": {
     "meta": {
@@ -425,6 +429,7 @@
     "coversNightly": "Priced per night",
     "fixedDeparture": "Fixed Departure",
     "chooseDepartureDate": "Choose Departure Date",
+    "commercialSsotBadge": "Pricing",
     "allTaxesIncluded": "All taxes & fees included",
     "secureBookingNotice": "Guaranteed departure confirmation upon reservation.",
     "adultsCalculation": "Adults ({count} × {price}):",
@@ -550,7 +555,8 @@
     "toast": {
       "selectionRequiredTitle": "Accommodation Selection Required",
       "selectionRequiredMsg": "Please select an accommodation option for Stay #{order} before proceeding."
-    }
+    },
+    "destinationPreview": "Destination Preview"
   },
   "search": {
     "badge": "Global Search Engine",
@@ -678,5 +684,12 @@
       "support": "Need assistance? You can reply directly to this email.",
       "confidentiality": "This email was sent to you because you registered with L'Aube Voyage. This is a private and confidential communication."
     }
+  },
+  "destinations": {
+    "badge": "Geographical Exploration",
+    "title": "Top Travel Destinations",
+    "viewAll": "View All Destinations",
+    "featuredRegion": "Featured Region",
+    "explore": "Explore"
   }
 }

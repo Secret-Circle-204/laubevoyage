@@ -1,13 +1,15 @@
 {
   "hero": {
-    "title": "ローブ・ボヤージュ 贅沢な旅の体験",
+    "title": "地平線の先へと紡ぐ旅",
     "subtitle": "至高のオーダーメイド旅程：世界と地域を発見する極上のパスポート",
     "cta": {
       "primary": "体験プランを見る →",
       "secondary": "目的地を探す",
       "joinVoyagers": "Laube Voyagers に参加",
       "voyagerPortal": "Voyager ポータル"
-    }
+    },
+    "eyebrow": "オーダーメイドのラグジュアリーな旅",
+    "imageAlt": "L'Aube Voyage ラグジュアリートラベル"
   },
   "layout": {
     "nav": {
@@ -269,7 +271,9 @@
       "balanceDue": "未払い残高",
       "travelPackage": "パッケージ旅行",
       "dailyTour": "日帰りツアー",
-      "duration": "期間"
+      "duration": "期間",
+      "departureTime": "出発時間",
+      "travelDates": "旅行日程"
     }
   },
   "experience": {
@@ -543,7 +547,8 @@
     "chooseAccommodation": "宿泊施設を選択",
     "changeAccommodation": "変更",
     "allTaxesIncluded": "諸税・手数料込み",
-    "secureBookingNotice": "予約完了時に確実な出発確認をお届けします。"
+    "secureBookingNotice": "予約完了時に確実な出発確認をお届けします。",
+    "destinationPreview": "目的地のプレビュー"
   },
   "search": {
     "badge": "グローバル検索エンジン",
@@ -638,6 +643,53 @@
     "footer": {
       "support": "サポートが必要ですか？このメールに直接ご返信いただけます。",
       "confidentiality": "このメールは、L'Aube Voyageにご登録いただいたお客様にお送りしております。機密情報が含まれています。"
+    },
+    "templates": {
+      "bookingConfirmation": {
+        "subject": "ご予約の確認 {bookingNumber}",
+        "body": "{customerName}様、ご予約 #{bookingNumber} が正常に確認されました。",
+        "badge": "予約完了"
+      },
+      "paymentReceipt": {
+        "subject": "お支払い領収書",
+        "body": "{amount} {currency} のお支払いを正常に受領いたしました。",
+        "badge": "領収書"
+      },
+      "tierUpgraded": {
+        "subject": "ロイヤルティ会員ランクが {newTier} にアップグレードされました",
+        "body": "おめでとうございます！ 会員ランクが {newTier} にアップグレードされました。{bonus}",
+        "badge": "ランクアップ"
+      },
+      "loyaltyEarned": {
+        "subject": "{points} ロイヤルティポイントを獲得しました！",
+        "body": "おめでとうございます！ 新たに {points} ポイントを獲得しました。{balanceText}",
+        "badge": "ポイント獲得"
+      },
+      "bookingPendingAdminReview": {
+        "subject": "予約リクエストを受領いたしました: {bookingNumber}",
+        "body": "{customerName}様、予約リクエスト #{bookingNumber}{experienceTitle}{departureDate}{passengersCount}{totalCost} を受領いたしました。コンシェルジュチームが内容を確認の上、まもなくご連絡いたします。",
+        "badge": "予約リクエスト"
+      },
+      "adminBnplReviewAlert": {
+        "subject": "[要対応] 新規BNPL予約リクエスト: #{bookingNumber}",
+        "body": "{customerName}様（{customerEmail}）より新規BNPL予約リクエスト #{bookingNumber} が送信されました。{experienceTitle}{departureDate}{passengersCount}。{totalAmount} 支払済金額: 0（未払い）。現在のステータス: 管理者審査待ち。{adminBookingUrl}",
+        "badge": "管理者通知"
+      }
     }
+  },
+  "featured": {
+    "badge": "厳選コレクション",
+    "title": "注目のラグジュアリー体験",
+    "description": "特別な旅。色褪せない目的地。忘れられないひととき。",
+    "viewAll": "すべての体験を見る",
+    "hallmark": "旅を超えた、受け継がれる体験",
+    "carouselAria": "注目の体験一覧"
+  },
+  "destinations": {
+    "badge": "魅惑の地を巡る旅",
+    "title": "人気の旅行先",
+    "viewAll": "すべての旅行先を見る",
+    "featuredRegion": "注目の地域",
+    "explore": "探索する"
   }
 }

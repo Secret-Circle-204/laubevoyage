@@ -10,7 +10,6 @@ export interface FooterProps {
 }
 
 export function Footer({ data }: FooterProps) {
-  const currentYear = new Date().getFullYear()
   const columns = data.footerNavigation
 
   return (
@@ -62,13 +61,13 @@ export function Footer({ data }: FooterProps) {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/80 dark:text-muted">
-          <p>© {currentYear} L&apos;Aube Voyage. All rights reserved.</p>
+          <p>{data.uiLabels.rights}</p>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="hover:text-white dark:hover:text-secondary transition-colors underline-offset-4 hover:underline">
-              Privacy Policy
+              {data.uiLabels.privacyPolicy}
             </Link>
             <Link href="/terms" className="hover:text-white dark:hover:text-secondary transition-colors underline-offset-4 hover:underline">
-              Terms of Service
+              {data.uiLabels.termsOfService}
             </Link>
           </div>
         </div>

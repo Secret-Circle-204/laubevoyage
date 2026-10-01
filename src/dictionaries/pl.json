@@ -1,13 +1,15 @@
 {
   "hero": {
-    "title": "Ekskluzywne Podróże L'Aube Voyage",
+    "title": "Podróże Tworzone Ponad Horyzontem",
     "subtitle": "Kreujemy Niezwykłe Podróże: Twój Paszport do Ekskluzywnych Odkryć",
     "cta": {
       "primary": "Zobacz Doświadczenia →",
       "secondary": "Odkryj Kierunki",
       "joinVoyagers": "Dołącz do Laube Voyagers",
       "voyagerPortal": "Portal Voyager"
-    }
+    },
+    "eyebrow": "Ekskluzywne Podróże na Miarę",
+    "imageAlt": "Luksusowe Podróże L'Aube Voyage"
   },
   "layout": {
     "nav": {
@@ -269,7 +271,9 @@
       "balanceDue": "Pozostała kwota",
       "travelPackage": "Pakiet Podróżny",
       "dailyTour": "Wycieczka Jednodniowa",
-      "duration": "Czas trwania"
+      "duration": "Czas trwania",
+      "departureTime": "Godzina odjazdu",
+      "travelDates": "Daty podróży"
     }
   },
   "experience": {
@@ -543,7 +547,8 @@
     "chooseAccommodation": "Wybierz zakwaterowanie",
     "changeAccommodation": "Zmień",
     "allTaxesIncluded": "Wszystkie podatki i opłaty w cenie",
-    "secureBookingNotice": "Gwarantowane potwierdzenie wyjazdu przy rezerwacji."
+    "secureBookingNotice": "Gwarantowane potwierdzenie wyjazdu przy rezerwacji.",
+    "destinationPreview": "Podgląd Kierunku"
   },
   "search": {
     "badge": "Globalna Wyszukiwarka",
@@ -638,6 +643,53 @@
     "footer": {
       "support": "Potrzebujesz pomocy? Możesz odpowiedzieć bezpośrednio na tę wiadomość.",
       "confidentiality": "Ta wiadomość została wysłana w związku z rejestracją w L'Aube Voyage. Jest to korespondencja poufna."
+    },
+    "templates": {
+      "bookingConfirmation": {
+        "subject": "Potwierdzenie rezerwacji {bookingNumber}",
+        "body": "Witaj {customerName}, Twoja rezerwacja {bookingNumber} została pomyślnie potwierdzona.",
+        "badge": "REZERWACJA POTWIERDZONA"
+      },
+      "paymentReceipt": {
+        "subject": "Potwierdzenie płatności",
+        "body": "Płatność w wysokości {amount} {currency} została pomyślnie przyjęta.",
+        "badge": "POTWIERDZENIE PŁATNOŚCI"
+      },
+      "tierUpgraded": {
+        "subject": "Poziom lojalnościowy podniesiony do {newTier}",
+        "body": "Gratulacje! Twój poziom członkostwa został podniesiony do {newTier}.{bonus}",
+        "badge": "POZIOM PODNIESIONY"
+      },
+      "loyaltyEarned": {
+        "subject": "Zdobyto {points} punktów lojalnościowych!",
+        "body": "Gratulacje! Zdobyłeś {points} nowych punktów lojalnościowych.{balanceText}",
+        "badge": "NAGRODA LOJALNOŚCIOWA"
+      },
+      "bookingPendingAdminReview": {
+        "subject": "Otrzymano wniosek o rezerwację: {bookingNumber}",
+        "body": "Witaj {customerName}, Twój wniosek o rezerwację #{bookingNumber}{experienceTitle}{departureDate}{passengersCount}{totalCost} został odebrany. Nasz zespół concierge weryfikuje wniosek i skontaktuje się z Tobą wkrótce.",
+        "badge": "WNIOSEK O REZERWACJĘ"
+      },
+      "adminBnplReviewAlert": {
+        "subject": "[WYMAGANE DZIAŁANIE] Nowy wniosek o rezerwację BNPL: #{bookingNumber}",
+        "body": "Nowy wniosek o rezerwację BNPL #{bookingNumber} został przesłany przez {customerName}{customerEmail}{experienceTitle}{departureDate}{passengersCount}.{totalAmount} Zapłacona kwota: 0 (NIEOPŁACONE). Aktualny status: Oczekuje na weryfikację administratora.{adminBookingUrl}",
+        "badge": "ALERT ADMINISTRATORA"
+      }
     }
+  },
+  "featured": {
+    "badge": "Wyselekcjonowane Oferty",
+    "title": "Wyróżnione Luksusowe Podróże",
+    "description": "Niezwykłe podróże. Ponadczasowe miejsca. Niezapomniane chwile.",
+    "viewAll": "Zobacz Wszystkie Podróże",
+    "hallmark": "Więcej Niż Podróż • Dziedzictwo",
+    "carouselAria": "Lista wyróżnionych podróży"
+  },
+  "destinations": {
+    "badge": "Odkrycia Geograficzne",
+    "title": "Najpopularniejsze Kierunki Podróży",
+    "viewAll": "Zobacz Wszystkie Kierunki",
+    "featuredRegion": "Wyróżniony Region",
+    "explore": "Odkrywaj"
   }
 }

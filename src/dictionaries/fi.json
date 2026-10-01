@@ -1,13 +1,15 @@
 {
   "hero": {
-    "title": "L'Aube Voyage ylelliset matkaelämykset",
+    "title": "Matkat Horisontin Tuolle Puolen",
     "subtitle": "Räätälöityjä luksusmatkoja: Passisi ainutlaatuisiin elämyksiin",
     "cta": {
       "primary": "Tutustu elämyksiin →",
       "secondary": "Löydä kohteet",
       "joinVoyagers": "Liity Laube Voyagersiin",
       "voyagerPortal": "Voyager-portaali"
-    }
+    },
+    "eyebrow": "Räätälöidyt Ylellisyysmatkat",
+    "imageAlt": "L'Aube Voyage Ylellisyysmatkat"
   },
   "layout": {
     "nav": {
@@ -269,7 +271,9 @@
       "balanceDue": "Avoin Saldo",
       "travelPackage": "Matkapaketti",
       "dailyTour": "Päiväretki",
-      "duration": "Kesto"
+      "duration": "Kesto",
+      "departureTime": "Lähtöaika",
+      "travelDates": "Matkustuspäivät"
     }
   },
   "experience": {
@@ -543,7 +547,8 @@
     "chooseAccommodation": "Valitse majoitus",
     "changeAccommodation": "Muuta",
     "allTaxesIncluded": "Kaikki verot ja maksut sisältyvät hintaan",
-    "secureBookingNotice": "Taattu lähtövahvistus heti varauksen yhteydessä."
+    "secureBookingNotice": "Taattu lähtövahvistus heti varauksen yhteydessä.",
+    "destinationPreview": "Kohteen Esikatselu"
   },
   "search": {
     "badge": "Maailmanlaajuinen Hakukone",
@@ -638,6 +643,53 @@
     "footer": {
       "support": "Tarvitsetko apua? Voit vastata suoraan tähän sähköpostiin.",
       "confidentiality": "Tämä sähköposti on lähetetty sinulle, koska olet rekisteröitynyt L'Aube Voyageen. Tämä viesti on luottamuksellinen."
+    },
+    "templates": {
+      "bookingConfirmation": {
+        "subject": "Varausvahvistus {bookingNumber}",
+        "body": "Hei {customerName}, varauksesi {bookingNumber} on vahvistettu onnistuneesti.",
+        "badge": "VARAUS VAHVISTETTU"
+      },
+      "paymentReceipt": {
+        "subject": "Maksukuitti",
+        "body": "Maksu {amount} {currency} vastaanotettu onnistuneesti.",
+        "badge": "MAKSUKUITTI"
+      },
+      "tierUpgraded": {
+        "subject": "Jäsentaso korotettu tasolle {newTier}",
+        "body": "Onnittelut! Jäsentasosi on korotettu tasolle {newTier}.{bonus}",
+        "badge": "TASO KOROTETTU"
+      },
+      "loyaltyEarned": {
+        "subject": "Olet ansainnut {points} kanta-asiakaspistettä!",
+        "body": "Onnittelut! Olet ansainnut {points} uutta kanta-asiakaspistettä.{balanceText}",
+        "badge": "PISTE PALKINTO"
+      },
+      "bookingPendingAdminReview": {
+        "subject": "Varauspyyntö vastaanotettu: {bookingNumber}",
+        "body": "Hei {customerName}, varauspyyntösi #{bookingNumber}{experienceTitle}{departureDate}{passengersCount}{totalCost} on vastaanotettu. Concierge-tiimimme käsittelee pyyntöäsi ja ottaa pian yhteyttä.",
+        "badge": "VARAUSPYYNTÖ"
+      },
+      "adminBnplReviewAlert": {
+        "subject": "[TOIMENPIDE VAADITAAN] Uusi BNPL-varauspyyntö: #{bookingNumber}",
+        "body": "Uusi BNPL-varauspyyntö #{bookingNumber} on lähetetty käyttäjältä {customerName}{customerEmail}{experienceTitle}{departureDate}{passengersCount}.{totalAmount} Maksettu summa: 0 (MAKSAMATON). Nykyinen tila: Odottaa ylläpidon tarkistusta.{adminBookingUrl}",
+        "badge": "YLLÄPITOILMOITUS"
+      }
     }
+  },
+  "featured": {
+    "badge": "Valikoitu Kokoelma",
+    "title": "Esitellyt Ylellisyyselämykset",
+    "description": "Ainutlaatuisia matkoja. Ajattomia kohteita. Unohtumattomia hetkiä.",
+    "viewAll": "Katso Kaikki Elämykset",
+    "hallmark": "Enemmän Kuin Matka • Perintö",
+    "carouselAria": "Esiteltyjen elämysten luettelo"
+  },
+  "destinations": {
+    "badge": "Maantieteellinen Löytöretki",
+    "title": "Parhaat Matkakohteet",
+    "viewAll": "Katso Kaikki Kohteet",
+    "featuredRegion": "Esitelty Alue",
+    "explore": "Tutustu"
   }
 }

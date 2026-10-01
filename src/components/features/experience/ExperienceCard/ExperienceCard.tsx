@@ -239,7 +239,7 @@ export function ExperienceCard({
                     >
                       <Image
                         src={thumbUrl}
-                        alt="Destination Preview"
+                        alt={dict.get(locale, 'experience.destinationPreview')}
                         fill
                         sizes="32px"
                         className="object-cover"
@@ -317,7 +317,7 @@ export function ExperienceCard({
               {/* Price Block */}
               <div className="flex flex-col">
                 <span className="text-xs font-semibold text-neutral-400">
-                  {fromPerAdult || 'From'}
+                  {fromPerAdult}
                 </span>
                 <div className="flex items-baseline gap-1 mt-0.5">
                   <CurrencyDisplay

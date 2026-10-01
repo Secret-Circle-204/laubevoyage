@@ -17,7 +17,7 @@ export function HeroWidget({ data }: { data: HomeHeroDTO }) {
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <Image
           src={data.backgroundImageUrl || '/images/hero-bg.jpg'}
-          alt="L'Aube Voyage Luxury Travel"
+          alt={data.imageAlt}
           fill
           sizes="100vw"
           className="object-cover scale-100 transition-transform duration-1000"
@@ -33,14 +33,14 @@ export function HeroWidget({ data }: { data: HomeHeroDTO }) {
         <div className="flex items-center justify-center gap-4 soft-reveal [animation-delay:0ms]">
           <span className="h-px w-10 sm:w-16 bg-gradient-to-r from-transparent to-white/60" />
           <span className="text-white/90 text-[11px] sm:text-xs uppercase font-medium">
-            Bespoke Luxury Voyages
+            {data.eyebrow}
           </span>
           <span className="h-px w-10 sm:w-16 bg-gradient-to-l from-transparent to-white/60" />
         </div>
 
         {/* Grand Editorial Hornbill Headline */}
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-serif font-light text-white tracking-tight leading-[1.1] max-w-4xl mx-auto soft-reveal [animation-delay:80ms]">
-          Journeys Crafted Beyond the Horizon
+          {data.title}
         </h1>
 
         {/* Subtitle from DTO */}
@@ -67,7 +67,7 @@ export function HeroWidget({ data }: { data: HomeHeroDTO }) {
               size="lg"
               className="rounded-full px-8 uppercase text-xs font-semibold shadow-xl shadow-accent/25 border border-accent-light/30"
             >
-              {data.ctaExploreText || 'Explore Experiences'}
+              {data.ctaExploreText}
             </Button>
           </Link>
           <Link href="/destinations">
@@ -76,7 +76,7 @@ export function HeroWidget({ data }: { data: HomeHeroDTO }) {
               size="lg"
               className="rounded-full px-8 uppercase text-xs font-medium text-white hover:bg-white/20"
             >
-              {data.ctaDiscoverText || 'Browse Destinations'}
+              {data.ctaDiscoverText}
             </Button>
           </Link>
           {!session?.isAuthenticated && (
@@ -86,7 +86,7 @@ export function HeroWidget({ data }: { data: HomeHeroDTO }) {
                 size="lg"
                 className="rounded-full px-8 uppercase text-xs font-semibold text-white bg-[#1a1e4e] hover:bg-[#252875] border border-white/20 shadow-lg shadow-[#1a1e4e]/40 transition-all duration-300 hover:scale-105"
               >
-                {data.ctaJoinVoyagersText || 'Sign In'}
+                {data.ctaJoinVoyagersText}
               </Button>
             </Link>
           )}

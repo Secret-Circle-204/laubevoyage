@@ -2,14 +2,16 @@ import type { ConvertedPrice } from '@/domains/currency/types'
 import type { DestinationOptionDTO, BudgetPresetsDTO } from '@/application/experience/dto'
 
 export interface HomeHeroDTO {
+  eyebrow: string
   title: string
   subtitle: string
   backgroundImageUrl: string
-  ctaExploreText?: string
-  ctaDiscoverText?: string
-  ctaJoinVoyagersText?: string
-  ctaVoyagerPortalText?: string
-  destinations?: DestinationOptionDTO
+  imageAlt: string
+  ctaExploreText: string
+  ctaDiscoverText: string
+  ctaJoinVoyagersText: string
+  ctaVoyagerPortalText: string
+  destinations: DestinationOptionDTO
   budgetPresets: BudgetPresetsDTO
 }
 

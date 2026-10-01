@@ -1,13 +1,15 @@
 {
   "hero": {
-    "title": "Эксклюзивные Путешествия L'Aube Voyage",
+    "title": "Путешествия за Гранью Горизонта",
     "subtitle": "Создаем Исключительные Путешествия: Ваш Пропуск в Мир Уникальных Открытий",
     "cta": {
       "primary": "Смотреть Программы →",
       "secondary": "Открыть Направления",
       "joinVoyagers": "Присоединиться к Laube Voyagers",
       "voyagerPortal": "Портал Voyager"
-    }
+    },
+    "eyebrow": "Индивидуальные Роскошные Путешествия",
+    "imageAlt": "Роскошные Путешествия L'Aube Voyage"
   },
   "layout": {
     "nav": {
@@ -269,7 +271,9 @@
       "balanceDue": "Остаток к оплате",
       "travelPackage": "Турпакет",
       "dailyTour": "Однодневный тур",
-      "duration": "Длительность"
+      "duration": "Длительность",
+      "departureTime": "Время отправления",
+      "travelDates": "Даты поездки"
     }
   },
   "experience": {
@@ -543,7 +547,8 @@
     "chooseAccommodation": "Выбрать проживание",
     "changeAccommodation": "Изменить",
     "allTaxesIncluded": "Все налоги и сборы включены",
-    "secureBookingNotice": "Гарантированное подтверждение отправления при бронировании."
+    "secureBookingNotice": "Гарантированное подтверждение отправления при бронировании.",
+    "destinationPreview": "Обзор Направления"
   },
   "search": {
     "badge": "Глобальный Поисковик",
@@ -638,6 +643,53 @@
     "footer": {
       "support": "Нужна помощь? Вы можете ответить прямо на это письмо.",
       "confidentiality": "Это письмо отправлено вам в связи с регистрацией в L'Aube Voyage. Это конфиденциальное сообщение."
+    },
+    "templates": {
+      "bookingConfirmation": {
+        "subject": "Подтверждение бронирования {bookingNumber}",
+        "body": "Здравствуйте, {customerName}! Ваше бронирование {bookingNumber} успешно подтверждено.",
+        "badge": "БРОНИРОВАНИЕ ПОДТВЕРЖДЕНО"
+      },
+      "paymentReceipt": {
+        "subject": "Квитанция об оплате",
+        "body": "Платеж на сумму {amount} {currency} успешно получен.",
+        "badge": "КВИТАНЦИЯ ОБ ОПЛАТЕ"
+      },
+      "tierUpgraded": {
+        "subject": "Уровень лояльности повышен до {newTier}",
+        "body": "Поздравляем! Ваш статус участия повышен до {newTier}.{bonus}",
+        "badge": "СТАТУС ПОВЫШЕН"
+      },
+      "loyaltyEarned": {
+        "subject": "Вам начислено {points} баллов лояльности!",
+        "body": "Поздравляем! Вы получили {points} новых баллов лояльности.{balanceText}",
+        "badge": "НАЧИСЛЕНИЕ БАЛЛОВ"
+      },
+      "bookingPendingAdminReview": {
+        "subject": "Запрос на бронирование получен: {bookingNumber}",
+        "body": "Здравствуйте, {customerName}! Ваш запрос на бронирование #{bookingNumber}{experienceTitle}{departureDate}{passengersCount}{totalCost} принят. Наша служба консьержей рассматривает ваш запрос и свяжется с вами в ближайшее время.",
+        "badge": "ЗАПРОС НА БРОНИРОВАНИЕ"
+      },
+      "adminBnplReviewAlert": {
+        "subject": "[ТРЕБУЕТСЯ ДЕЙСТВИЕ] Новый запрос на бронирование BNPL: #{bookingNumber}",
+        "body": "Новый запрос на бронирование BNPL #{bookingNumber} отправлен пользователем {customerName}{customerEmail}{experienceTitle}{departureDate}{passengersCount}.{totalAmount} Оплаченная сумма: 0 (НЕ ОПЛАЧЕНО). Текущий статус: Ожидает проверки администратором.{adminBookingUrl}",
+        "badge": "ОПОВЕЩЕНИЕ АДМИНИСТРАТОРА"
+      }
     }
+  },
+  "featured": {
+    "badge": "Избранная Коллекция",
+    "title": "Эксклюзивные Роскошные Программы",
+    "description": "Необыкновенные путешествия. Вневременные направления. Незабываемые моменты.",
+    "viewAll": "Смотреть Все Программы",
+    "hallmark": "Больше, Чем Путешествие • Наследие",
+    "carouselAria": "Список избранных программ"
+  },
+  "destinations": {
+    "badge": "Географические Исследования",
+    "title": "Лучшие Туристические Направления",
+    "viewAll": "Смотреть Все Направления",
+    "featuredRegion": "Избранный Регион",
+    "explore": "Исследовать"
   }
 }

@@ -9,4 +9,6 @@ export interface DestinationQueryOptions {
   page?: number
   limit?: number
   type?: 'package' | 'daily_tour' | string
+  query?: string
+  countryId?: number
 }

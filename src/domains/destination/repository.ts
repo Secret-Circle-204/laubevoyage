@@ -15,12 +15,24 @@ export class DestinationRepository {
   }
 
   async findCountries(options?: DestinationQueryOptions) {
-    const page = options?.page ?? 1
-    const limit = options?.limit ?? 10
+    const page = Math.max(1, options?.page ?? 1)
+    const limit = Math.min(Math.max(1, options?.limit ?? 10), 50)
+    const andConditions: Where[] = [{ isActive: { equals: true } }]
+
+    if (options?.query && options.query.trim()) {
+      const keywords = await this.resolveMultilingualKeywords(options.query, options.locale)
+      const keywordOrConditions: Where[] = []
+      for (const kw of keywords) {
+        keywordOrConditions.push({ name: { contains: kw } })
+        keywordOrConditions.push({ slug: { contains: kw.toLowerCase() } })
+      }
+      andConditions.push({ or: keywordOrConditions })
+    }
+
     return this.payload.find({
       collection: 'countries',
       where: {
-        isActive: { equals: true },
+        and: andConditions,
       },
       page,
       limit,
@@ -163,13 +175,29 @@ export class DestinationRepository {
     return result.docs
   }
 
-  async findAllActiveCities(options?: { page?: number; limit?: number }) {
-    const page = options?.page || 1
-    const limit = options?.limit || 20
+  async findAllActiveCities(options?: DestinationQueryOptions & { countryId?: number; query?: string; page?: number; limit?: number; locale?: string }) {
+    const page = Math.max(1, options?.page || 1)
+    const limit = Math.min(Math.max(1, options?.limit || 20), 50)
+    const andConditions: Where[] = [{ isActive: { equals: true } }]
+
+    if (options?.countryId) {
+      andConditions.push({ country: { equals: options.countryId } })
+    }
+
+    if (options?.query && options.query.trim()) {
+      const keywords = await this.resolveMultilingualKeywords(options.query, options.locale)
+      const keywordOrConditions: Where[] = []
+      for (const kw of keywords) {
+        keywordOrConditions.push({ name: { contains: kw } })
+        keywordOrConditions.push({ slug: { contains: kw.toLowerCase() } })
+      }
+      andConditions.push({ or: keywordOrConditions })
+    }
+
     return this.payload.find({
       collection: 'cities',
       where: {
-        isActive: { equals: true },
+        and: andConditions,
       },
       select: {
         id: true,
@@ -179,6 +207,7 @@ export class DestinationRepository {
         description: true,
         hero: true,
       },
+      depth: 1,
       page,
       limit,
       sort: 'name',
@@ -343,6 +372,51 @@ export class DestinationRepository {
     }
 
     return null
+  }
+
+  /**
+   * Discovers multilingual keywords via translation-cache scoped to target locale.
+   * Matches either translatedText or sourceText, returning exact mapped keywords for DB queries.
+   */
+  async resolveMultilingualKeywords(query: string, locale?: string): Promise<string[]> {
+    const clean = query.trim()
+    if (!clean) return []
+    const keywords: string[] = [clean]
+
+    try {
+      const whereConditions: Where[] = [
+        {
+          or: [
+            { translatedText: { contains: clean } },
+            { sourceText: { contains: clean } },
+          ],
+        },
+      ]
+      if (locale) {
+        whereConditions.push({ language: { equals: locale } })
+      }
+
+      const transDocs = await this.payload.find({
+        collection: 'translation-cache',
+        where: {
+          and: whereConditions,
+        },
+        limit: 10,
+      })
+
+      for (const t of transDocs.docs) {
+        if (t.sourceText && !keywords.includes(t.sourceText)) {
+          keywords.push(t.sourceText)
+        }
+        if (t.translatedText && !keywords.includes(t.translatedText)) {
+          keywords.push(t.translatedText)
+        }
+      }
+    } catch (err) {
+      console.warn('[DestinationRepository.resolveMultilingualKeywords] Translation cache lookup error, falling back to raw keyword:', err)
+    }
+
+    return keywords
   }
 
 }

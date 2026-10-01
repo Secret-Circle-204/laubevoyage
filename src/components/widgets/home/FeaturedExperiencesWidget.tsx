@@ -25,10 +25,10 @@ export function FeaturedExperiencesWidget({
       .filter((url): url is string => Boolean(url))
   }, [experiences])
 
-  const badgeText = dict.get(locale, 'featured.badge') || 'Curated Selection'
-  const titleText = dict.get(locale, 'featured.title') || 'Featured Luxury Experiences'
-  const descText = dict.get(locale, 'featured.description') || 'Extraordinary journeys. Timeless destinations. Unforgettable moments.'
-  const viewAllText = dict.get(locale, 'featured.viewAll') || 'View All Experiences'
+  const badgeText = dict.get(locale, 'featured.badge')
+  const titleText = dict.get(locale, 'featured.title')
+  const descText = dict.get(locale, 'featured.description')
+  const viewAllText = dict.get(locale, 'featured.viewAll')
 
   return (
     <section className="relative py-24 sm:py-32 bg-[#0c0a0b] text-white transition-colors duration-500 overflow-hidden border-b border-white/10">
@@ -89,7 +89,7 @@ export function FeaturedExperiencesWidget({
         <div className="mt-16 sm:mt-20 pt-8 border-t border-white/10 flex items-center justify-center gap-4 text-center">
           <span className="h-[1px] w-12 sm:w-20 bg-gradient-to-r from-transparent to-accent/40" />
           <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] font-medium text-neutral-400">
-            More Than A Trip &bull; A Legacy
+            {dict.get(locale, 'featured.hallmark')}
           </span>
           <span className="h-[1px] w-12 sm:w-20 bg-gradient-to-l from-transparent to-accent/40" />
         </div>

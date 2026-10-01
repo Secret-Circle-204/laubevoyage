@@ -43,6 +43,9 @@ export interface HeaderLabelsDTO {
   openMenu: string
   closeMenu: string
   brandDescription: string
+  rights: string
+  privacyPolicy: string
+  termsOfService: string
 }
 
 export interface LayoutDTO {

@@ -91,6 +91,9 @@ export class LayoutLoader {
       openMenu: localization.translateUiKey('layout.header.openMenu', ctx),
       closeMenu: localization.translateUiKey('layout.header.closeMenu', ctx),
       brandDescription: localization.translateUiKey('layout.footer.brandDescription', ctx),
+      rights: localization.translateUiKey('layout.footer.rights', ctx),
+      privacyPolicy: localization.translateUiKey('layout.footer.privacyPolicy', ctx),
+      termsOfService: localization.translateUiKey('layout.footer.termsOfService', ctx),
     }
 
     return {
