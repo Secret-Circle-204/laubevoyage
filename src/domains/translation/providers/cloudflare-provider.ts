@@ -26,13 +26,29 @@ export class CloudflareTranslatorProvider implements ITranslationProvider {
   private readonly accountId: string
   private readonly apiToken: string
   private readonly model: string
+  private readonly maxConcurrency: number
   private readonly timeoutMs: number
 
-  constructor(options?: { accountId?: string; apiToken?: string; model?: string; timeoutMs?: number }) {
+  constructor(options?: {
+    accountId?: string
+    apiToken?: string
+    model?: string
+    timeoutMs?: number
+    maxConcurrency?: number
+  }) {
     this.accountId = options?.accountId ?? (process.env.CLOUDFLARE_ACCOUNT_ID || '')
     this.apiToken = options?.apiToken ?? (process.env.CLOUDFLARE_API_TOKEN || '')
     this.model = options?.model ?? '@cf/meta/m2m100-1.2b'
     this.timeoutMs = Math.min(Math.max(options?.timeoutMs ?? 5000, 500), 10000)
+
+    const envVal = process.env.CLOUDFLARE_MAX_CONCURRENCY
+    const rawConcurrency =
+      options?.maxConcurrency ?? (envVal !== undefined && envVal.trim() !== '' ? Number(envVal) : 5)
+    const normalized =
+      typeof rawConcurrency === 'number' && Number.isFinite(rawConcurrency)
+        ? Math.floor(rawConcurrency)
+        : 5
+    this.maxConcurrency = Math.min(Math.max(normalized, 1), 10)
   }
 
   isConfigured(): boolean {
@@ -145,14 +161,35 @@ export class CloudflareTranslatorProvider implements ITranslationProvider {
     if (!texts || texts.length === 0) return []
     if (targetLocale === sourceLocale) return texts
 
-    // Translate items concurrently
-    const results = await Promise.all(
-      texts.map((t) =>
-        this.translateText(t, targetLocale, sourceLocale).catch((err) => {
-          throw err
-        })
-      )
-    )
+    const results: string[] = new Array(texts.length)
+    let nextIndex = 0
+    let firstError: unknown = null
+
+    const worker = async (): Promise<void> => {
+      while (nextIndex < texts.length && !firstError) {
+        const index = nextIndex++
+        try {
+          results[index] = await this.translateText(texts[index]!, targetLocale, sourceLocale)
+        } catch (err: unknown) {
+          if (!firstError) {
+            firstError = err
+          }
+          break
+        }
+      }
+    }
+
+    const workerCount = Math.min(this.maxConcurrency, texts.length)
+    const workers: Promise<void>[] = []
+    for (let i = 0; i < workerCount; i++) {
+      workers.push(worker())
+    }
+
+    await Promise.all(workers)
+
+    if (firstError) {
+      throw firstError
+    }
 
     return results
   }

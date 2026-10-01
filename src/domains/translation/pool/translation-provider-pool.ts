@@ -3,6 +3,7 @@ import type { TranslationProviderId, TranslationResultWithProvenance, BatchTrans
 import {
   TranslationProviderError,
   ProviderAuthError,
+  ProviderQuotaExceededError,
   ProviderRateLimitError,
   ProviderInvalidResponseError,
   TranslationBlackoutError,
@@ -141,7 +142,20 @@ export class TranslationProviderPool implements ITranslationProvider {
     state.lastFailure = Date.now()
     state.lastErrorMessage = err.message
 
-    // 1. Authentication / Configuration Incident (401 / 403)
+    // 1. Quota Exhaustion Incident (403001 / Out of Quota)
+    if (err instanceof ProviderQuotaExceededError) {
+      const quotaCooldownMs =
+        Number(process.env.TRANSLATION_QUOTA_COOLDOWN_MS) || 300000 // 5 minutes administrative cooldown (prevents retry storm when quota is depleted)
+      this.tripProvider(
+        providerId,
+        state,
+        `[QUOTA_EXHAUSTED] Quota Depleted (${err.message})`,
+        quotaCooldownMs
+      )
+      return
+    }
+
+    // 2. Authentication / Configuration Incident (401 / 403 Auth)
     if (err instanceof ProviderAuthError) {
       const configCooldownMs = 300000 // 5 minutes administrative cooldown
       this.tripProvider(

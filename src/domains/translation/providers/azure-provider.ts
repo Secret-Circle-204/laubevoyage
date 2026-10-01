@@ -2,6 +2,7 @@ import type { ITranslationProvider } from './provider.interface'
 import type { TranslationProviderId, TranslationResultWithProvenance, BatchTranslationResultWithProvenance } from '../types'
 import {
   ProviderAuthError,
+  ProviderQuotaExceededError,
   ProviderRateLimitError,
   ProviderTimeoutError,
   ProviderNetworkError,
@@ -86,14 +87,48 @@ export class AzureTranslatorProvider implements ITranslationProvider {
     }
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => '')
-      if (response.status === 401 || response.status === 403) {
+      const rawText = await response.text().catch(() => '')
+      let errorJson: any = null
+      try {
+        errorJson = JSON.parse(rawText)
+      } catch {
+        errorJson = null
+      }
+
+      const azureErrorCode =
+        errorJson?.error?.code !== undefined ? Number(errorJson.error.code) : null
+      const azureErrorMessage =
+        errorJson?.error?.message || (rawText ? rawText.substring(0, 300) : `HTTP ${response.status}`)
+
+      if (response.status === 403) {
+        const isQuotaCode = azureErrorCode === 403001
+        const isQuotaText =
+          azureErrorCode === null &&
+          (rawText.includes('403001') ||
+            rawText.toLowerCase().includes('exceeded its quota') ||
+            rawText.toLowerCase().includes('out of quota'))
+
+        if (isQuotaCode || isQuotaText) {
+          throw new ProviderQuotaExceededError(
+            this.providerId,
+            `HTTP 403 (Quota Exceeded - code 403001): ${azureErrorMessage}`
+          )
+        }
         throw new ProviderAuthError(
           this.providerId,
-          `HTTP ${response.status}: ${errorText.substring(0, 300)}`,
-          response.status as 401 | 403
+          `HTTP 403 (Forbidden): ${azureErrorMessage}`,
+          403
         )
       }
+
+      if (response.status === 401) {
+        throw new ProviderAuthError(
+          this.providerId,
+          `HTTP 401 (Unauthorized): ${azureErrorMessage}`,
+          401
+        )
+      }
+
       if (response.status === 429) {
         const retryHeader = response.headers.get('retry-after')
         let parsedSec: number | undefined
@@ -103,11 +138,12 @@ export class AzureTranslatorProvider implements ITranslationProvider {
         }
         throw new ProviderRateLimitError(
           this.providerId,
-          `HTTP 429: ${errorText.substring(0, 300)}`,
+          `HTTP 429 (Rate Limited): ${azureErrorMessage}`,
           parsedSec
         )
       }
-      throw new ProviderUnavailableError(this.providerId, response.status, errorText.substring(0, 300))
+
+      throw new ProviderUnavailableError(this.providerId, response.status, azureErrorMessage)
     }
 
     let json: any

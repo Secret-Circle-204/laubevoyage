@@ -24,6 +24,20 @@ export class ProviderAuthError extends TranslationProviderError {
 }
 
 /**
+ * 403 (403001) / Quota Exceeded / Out of Quota.
+ * Distinguishes monthly quota depletion from credential/auth errors.
+ */
+export class ProviderQuotaExceededError extends TranslationProviderError {
+  readonly status = 403
+  constructor(
+    public readonly providerId: TranslationProviderId,
+    message: string
+  ) {
+    super(`[${providerId}] Quota Exceeded / Exhausted (HTTP 403): ${message}`)
+  }
+}
+
+/**
  * Client-side transport / request constraint (e.g. GET URL exceeds provider safe transport limit).
  * Distinct from external response errors since the server was never reached.
  */
