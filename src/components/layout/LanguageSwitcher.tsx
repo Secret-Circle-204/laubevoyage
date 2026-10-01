@@ -17,6 +17,9 @@ export const FLAG_MAP: Record<string, string> = {
   nl: 'nl',
   pl: 'pl',
   fi: 'fi',
+  th: 'th',
+  tr: 'tr',
+  el: 'gr',
 }
 
 const SHORT_CODE_MAP: Record<string, string> = {
@@ -33,6 +36,9 @@ const SHORT_CODE_MAP: Record<string, string> = {
   nl: 'NL',
   pl: 'PL',
   fi: 'FI',
+  th: 'TH',
+  tr: 'TR',
+  el: 'ΕΛ',
 }
 
 export interface LocaleOption {

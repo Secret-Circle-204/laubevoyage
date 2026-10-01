@@ -2,41 +2,32 @@ import type { Payload } from 'payload'
 import type { Language } from './types'
 
 export class LanguageRepository {
-  private static instances = new Set<LanguageRepository>()
   private payload: Payload
-  private activeLanguagesCache: Language[] | null = null
-  private defaultLanguageCache: Language | null = null
 
   constructor(payload: Payload) {
     this.payload = payload
-    LanguageRepository.instances.add(this)
   }
 
   /**
-   * Static method to invalidate caches across all active LanguageRepository instances.
+   * Maintained for backward compatibility.
+   * Caching is managed authoritatively by Next.js Server-side Data Cache (unstable_cache).
    */
   static invalidateAll(): void {
-    for (const inst of LanguageRepository.instances) {
-      inst.invalidateCache()
-    }
+    // No-op: eliminates split-brain dual caching across webpack boundaries
   }
 
   /**
-   * Invalidate the in-memory cache when changes occur.
+   * Maintained for backward compatibility.
    */
   invalidateCache(): void {
-    this.activeLanguagesCache = null
-    this.defaultLanguageCache = null
+    // No-op: eliminates split-brain dual caching across webpack boundaries
   }
 
   /**
-   * Fetch active languages sorted by displayOrder, using memory cache to prevent redundant DB calls.
+   * Fetch active languages sorted by displayOrder directly from database.
+   * Single source of truth. Authoritatively cached by LanguageService via unstable_cache.
    */
   async findActiveLanguages(): Promise<Language[]> {
-    if (this.activeLanguagesCache !== null) {
-      return this.activeLanguagesCache
-    }
-
     try {
       const res = await this.payload.find({
         collection: 'languages',
@@ -73,7 +64,6 @@ export class LanguageRepository {
         }
       })
 
-      this.activeLanguagesCache = languages
       return languages
     } catch (err: unknown) {
       console.error('[LanguageRepository] Error querying active languages:', err)
@@ -82,13 +72,9 @@ export class LanguageRepository {
   }
 
   /**
-   * Get the marked default fallback language, using memory cache.
+   * Get the marked default fallback language directly from database.
    */
   async getDefaultLanguage(): Promise<Language | null> {
-    if (this.defaultLanguageCache !== null) {
-      return this.defaultLanguageCache
-    }
-
     try {
       const res = await this.payload.find({
         collection: 'languages',
@@ -124,14 +110,12 @@ export class LanguageRepository {
           displayOrder: typeof doc.displayOrder === 'number' ? doc.displayOrder : 0,
           preferredDisplayCurrencyCode,
         }
-        this.defaultLanguageCache = lang
         return lang
       }
 
       // Fallback: If no default is marked, try the first active language
       const active = await this.findActiveLanguages()
       if (active.length > 0) {
-        this.defaultLanguageCache = active[0]
         return active[0]
       }
     } catch (err: unknown) {
