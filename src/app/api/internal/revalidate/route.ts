@@ -46,6 +46,9 @@ export async function POST(req: NextRequest) {
     } else if (type === 'currencies') {
       console.log('[API Revalidate] Purging currencies')
       await RevalidationService.purgeCurrencies({ forceLocal: true })
+    } else if (type === 'languages') {
+      console.log('[API Revalidate] Purging languages')
+      await RevalidationService.purgeLanguages({ forceLocal: true })
     } else if (type === 'layout') {
       console.log('[API Revalidate] Purging layout')
       await RevalidationService.purgeLayout({ forceLocal: true })

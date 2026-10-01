@@ -67,11 +67,11 @@ export function registerPresentationSubscriber(): void {
 
   eventBus.subscribe<LanguageCatalogUpdatedEvent>(
     'LANGUAGE_CATALOG_UPDATED',
-    'PresentationSubscriber.purgeLayoutOnLanguageCatalog',
+    'PresentationSubscriber.purgeLanguagesOnLanguageCatalog',
     async (event) => {
-      console.log('[PresentationSubscriber] LANGUAGE_CATALOG_UPDATED Event received. Purging Next.js layout cache.')
-      const result = await RevalidationService.purgeLayout()
-      handleRevalidationOutcome('purgeLayoutOnLanguageCatalog', result)
+      console.log('[PresentationSubscriber] LANGUAGE_CATALOG_UPDATED Event received. Purging Next.js languages cache tag.')
+      const result = await RevalidationService.purgeLanguages()
+      handleRevalidationOutcome('purgeLanguagesOnLanguageCatalog', result)
     }
   )
 

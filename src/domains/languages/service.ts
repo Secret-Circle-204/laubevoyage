@@ -1,18 +1,31 @@
+import { unstable_cache } from 'next/cache'
 import type { LanguageRepository } from './repository'
 import type { Language } from './types'
 
 export class LanguageService {
   private repository: LanguageRepository
+  private getCachedActiveLanguages: () => Promise<Language[]>
 
   constructor(repository: LanguageRepository) {
     this.repository = repository
+
+    this.getCachedActiveLanguages = unstable_cache(
+      async (): Promise<Language[]> => {
+        return this.repository.findActiveLanguages()
+      },
+      ['active-languages-catalog'],
+      {
+        tags: ['languages'],
+      }
+    )
   }
 
   /**
    * Domain Gateway method for retrieving all active languages.
+   * Cached by Next.js Server-side Data Cache with tag ['languages'].
    */
   async getActiveLanguages(): Promise<Language[]> {
-    return this.repository.findActiveLanguages()
+    return this.getCachedActiveLanguages()
   }
 
   /**

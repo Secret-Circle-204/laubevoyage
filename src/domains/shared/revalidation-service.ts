@@ -36,6 +36,7 @@ export class RevalidationService {
         | 'content'
         | 'translation'
         | 'currencies'
+        | 'languages'
       customerId?: number
       slices?: ('loyalty' | 'trips' | 'customer' | 'security')[]
       experienceSlug?: string
@@ -181,13 +182,26 @@ export class RevalidationService {
     )
   }
 
+  public static async purgeLanguages(options?: { forceLocal?: boolean }): Promise<RevalidationResult> {
+    console.log('[RevalidationService] Purging targeted languages cache tag (languages)')
+    return await this.executeRevalidation(
+      { type: 'languages' },
+      () => {
+        revalidateTag('languages', {})
+        revalidateTag('system-settings', {})
+      },
+      options,
+    )
+  }
+
   public static async purgeLayout(options?: { forceLocal?: boolean }): Promise<RevalidationResult> {
-    console.log('[RevalidationService] Purging layout tags (system-settings, currencies)')
+    console.log('[RevalidationService] Purging layout tags (system-settings, currencies, languages)')
     return await this.executeRevalidation(
       { type: 'layout' },
       () => {
         revalidateTag('system-settings', {})
         revalidateTag('currencies', {})
+        revalidateTag('languages', {})
         revalidateTag('exchange-rates', {})
       },
       options,

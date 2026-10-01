@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { EventBus } from '@/domains/events/event-bus'
+import { CacheInvalidationCoordinator } from '@/domains/events/coordination/cache-coordinator'
 
 export const Languages: CollectionConfig = {
   slug: 'languages',
@@ -64,7 +65,7 @@ export const Languages: CollectionConfig = {
       },
     ],
     afterChange: [
-      async ({ doc }) => {
+      async ({ doc, req }) => {
         const eventBus = EventBus.getInstance()
         await eventBus.publish({
           type: 'LANGUAGE_CATALOG_UPDATED',
@@ -74,11 +75,24 @@ export const Languages: CollectionConfig = {
           occurredAt: new Date().toISOString(),
           languageCode: doc.code,
         })
+
+        try {
+          const coordinator = CacheInvalidationCoordinator.getInstance(req?.payload)
+          const txId = req?.transactionID ? await req.transactionID : undefined
+          const dbTx = txId ? (req?.payload?.db as any)?.sessions?.[txId] : undefined
+          await coordinator.publish({ type: 'language' }, dbTx)
+        } catch (err: unknown) {
+          console.warn(
+            '[Languages Hook] Distributed language catalog cache invalidation failed:',
+            err instanceof Error ? err.message : String(err),
+          )
+        }
+
         return doc
       },
     ],
     afterDelete: [
-      async ({ doc }) => {
+      async ({ doc, req }) => {
         const eventBus = EventBus.getInstance()
         await eventBus.publish({
           type: 'LANGUAGE_CATALOG_UPDATED',
@@ -88,6 +102,19 @@ export const Languages: CollectionConfig = {
           occurredAt: new Date().toISOString(),
           languageCode: doc.code,
         })
+
+        try {
+          const coordinator = CacheInvalidationCoordinator.getInstance(req?.payload)
+          const txId = req?.transactionID ? await req.transactionID : undefined
+          const dbTx = txId ? (req?.payload?.db as any)?.sessions?.[txId] : undefined
+          await coordinator.publish({ type: 'language' }, dbTx)
+        } catch (err: unknown) {
+          console.warn(
+            '[Languages Hook] Distributed language catalog cache invalidation on delete failed:',
+            err instanceof Error ? err.message : String(err),
+          )
+        }
+
         return doc
       },
     ],
