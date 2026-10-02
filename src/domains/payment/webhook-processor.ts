@@ -111,6 +111,19 @@ export class WebhookProcessor {
           status: 'processed' as const,
         }
 
+        // Idempotency Guard: If transaction is already marked successful (e.g. settled by reconciliation),
+        // record the webhook in ledger to prevent future retries, commit, and return without duplicate attempt or event.
+        if (transaction.status === 'successful') {
+          console.log(
+            `[WebhookProcessor] Idempotency Guard: Transaction ${transaction.transactionId} already settled (status: successful). Recording webhook in ledger and skipping duplicate settlement.`,
+          )
+          await this.ledger.recordProcessed(transaction.transactionId, webhookRecord, context)
+          if (!isExternalTx && transactionID) {
+            await this.repository.commitTransaction(transactionID)
+          }
+          return { processed: true, transaction }
+        }
+
         const attemptNumber = transaction.attempts.length + 1
         const attemptId = `att_stripe_${eventId}_${attemptNumber}`
         const attemptRecord = {

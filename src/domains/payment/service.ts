@@ -10,6 +10,8 @@ import type { ExperienceRepository } from '../experience/repository'
 import { PaymentRepository } from './repository'
 import { PaymentAdapterFactory } from './adapters/factory'
 import { PaymentUrlBuilder } from './url-builder'
+import type { PaymentCompletedEvent } from '../events/payment-events'
+import type { IOutboxRepository } from '../events/contracts/outbox-repository.interface'
 
 /**
  * Payment Domain Service (Enterprise Thin Facade)
@@ -22,18 +24,20 @@ export class PaymentService {
   private customerRepository: CustomerRepository
   private experienceRepository: ExperienceRepository
   private workflowEngine: PaymentWorkflowEngine
+  private outboxRepository?: IOutboxRepository
 
   constructor(
     paymentRepository: PaymentRepository,
     bookingRepository?: BookingRepository,
     customerRepository?: CustomerRepository,
     experienceRepository?: ExperienceRepository,
-    outboxRepository?: import('../events/contracts/outbox-repository.interface').IOutboxRepository,
+    outboxRepository?: IOutboxRepository,
   ) {
     this.paymentRepository = paymentRepository
     this.bookingRepository = bookingRepository || ({} as BookingRepository)
     this.customerRepository = customerRepository || ({} as CustomerRepository)
     this.experienceRepository = experienceRepository || ({} as ExperienceRepository)
+    this.outboxRepository = outboxRepository
     this.workflowEngine = new PaymentWorkflowEngine(paymentRepository, outboxRepository)
   }
 
@@ -335,6 +339,8 @@ export class PaymentService {
 
   /**
    * Reconcile any pending payment transactions (called by CronDispatcher / background processes)
+   * Discovers Stripe status and emits canonical PAYMENT_COMPLETED via existing Outbox / EventBus boundary.
+   * Single settlement path ensures all traveler resolution, confirmation, and loyalty workflows execute uniformly.
    */
   async reconcilePendingPayments(): Promise<number> {
     const pendingTransactions = await this.paymentRepository.findPendingTransactions()
@@ -348,73 +354,92 @@ export class PaymentService {
 
       // Start database transaction at the infrastructure/repository level
       const transactionID = await this.paymentRepository.beginTransaction()
-      const context: RequestContext = { transactionId: transactionID }
+      const context: RequestContext = { transactionId: transactionID ? String(transactionID) : undefined }
 
       try {
+        // Re-read current transaction state inside active transaction context
+        const currentTx = await this.paymentRepository.findByTransactionId(tx.transactionId, context)
+        if (!currentTx || currentTx.status !== 'initiated') {
+          console.log(`[PaymentReconciliation] Transaction ${tx.transactionId} is already settled (status: ${currentTx?.status || 'not_found'}). Skipping.`)
+          await this.paymentRepository.rollbackTransaction(transactionID)
+          continue
+        }
+
         const adapter = PaymentAdapterFactory.resolve('stripe')
         const stripeStatus = await adapter.retrievePaymentStatus({ providerSessionId: sessionId })
         
         if (stripeStatus.status === 'paid') {
-          console.log(`[PaymentReconciliation] Found paid Stripe session for Transaction ${tx.transactionId}. Reconciling...`)
-          
-          const { getDomainServices } = await import('../factory')
-          const { booking } = await getDomainServices()
-          const bookingDoc = await booking.getById(tx.bookingId, context)
+          console.log(`[PaymentReconciliation] Found paid Stripe session for Transaction ${currentTx.transactionId}. Reconciling via PAYMENT_COMPLETED...`)
+
+          const attemptNumber = currentTx.attempts.length + 1
+          const attemptId = `att_recon_${currentTx.transactionId}_${attemptNumber}`
+          const amount = currentTx.attempts[0]?.amount || 0
+          const currency = currentTx.attempts[0]?.currency || 'EGP'
 
           const attemptRecord = {
-            attemptId: `att_recon_${tx.transactionId}`,
-            attemptNumber: tx.attempts.length + 1,
+            attemptId,
+            attemptNumber,
             provider: 'stripe' as const,
-            amount: tx.attempts[0]?.amount || 0,
-            currency: tx.attempts[0]?.currency || 'EGP',
+            amount,
+            currency,
             status: 'successful' as const,
             transactionReference: sessionId,
             timestamp: stripeStatus.completedAt || new Date().toISOString(),
           }
 
-          if (bookingDoc.status === BookingStatus.CANCELLED) {
-            console.warn(`[PaymentReconciliation] Warning: Received payment for already CANCELLED Booking #${tx.bookingId}. Recording payment attempt without reviving status.`)
-            
-            const updatedAttempts = [...(bookingDoc.paymentAttempts || []), attemptRecord]
-            const metadata = bookingDoc.metadata || {}
-            metadata.latePaymentReceivedOnCancelled = true
-            metadata.manualRefundRequired = true
-            metadata.reconciliationNotes = 'payment_received_after_cancellation'
+          // 1. Settle transaction aggregate in payment repository
+          await this.paymentRepository.appendAttempt(currentTx.transactionId, attemptRecord, context)
+          const updatedAggregate = await this.paymentRepository.updateStatus(currentTx.transactionId, 'successful', context)
 
-            await booking.update(tx.bookingId, {
-              paymentAttempts: updatedAttempts,
-              metadata,
-            }, context)
-
-            await this.paymentRepository.updateStatus(tx.transactionId, 'successful', context)
-          } else if (bookingDoc.status === BookingStatus.EXPIRED || BookingPolicy.isPaymentLate(bookingDoc, stripeStatus.completedAt)) {
-            console.warn(`[PaymentReconciliation] Late Payment: Booking #${tx.bookingId} is EXPIRED or payment completedAt (${stripeStatus.completedAt}) was late.`)
-            
-            const updatedAttempts = [...(bookingDoc.paymentAttempts || []), attemptRecord]
-            const metadata = bookingDoc.metadata || {}
-            metadata.paymentReceivedAfterExpiry = true
-            metadata.manualRefundRequired = true
-            metadata.reconciliationNotes = `payment_received_after_expiry (completedAt: ${stripeStatus.completedAt})`
-
-            await booking.update(tx.bookingId, {
-              status: BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY,
-              paymentAttempts: updatedAttempts,
-              metadata,
-            }, context)
-
-            await this.paymentRepository.updateStatus(tx.transactionId, 'successful', context)
-          } else {
-            console.log(`[PaymentReconciliation] On-time payment detected for Booking #${tx.bookingId}. Mark paid & confirm...`)
-            if (bookingDoc.status !== BookingStatus.PAID) {
-              await booking.markAsPaid(tx.bookingId, attemptRecord, context)
+          // 2. Resolve customer email if available
+          let customerEmail: string | undefined
+          if (currentTx.customerId && typeof this.customerRepository?.findById === 'function') {
+            try {
+              const userDoc = await this.customerRepository.findById(currentTx.customerId)
+              customerEmail = userDoc?.email || undefined
+            } catch {
+              // Graceful fallback: NotificationSubscriber resolves recipientEmail from customerId
             }
-            await booking.confirm(tx.bookingId, undefined, context)
-            await this.paymentRepository.updateStatus(tx.transactionId, 'successful', context)
           }
+
+          // 3. Construct canonical PAYMENT_COMPLETED event
+          const correlationId = `corr_recon_${currentTx.transactionId}`
+          const paymentCompletedEvent: PaymentCompletedEvent = {
+            type: 'PAYMENT_COMPLETED',
+            eventId: `evt_stripe_recon_${currentTx.transactionId}`,
+            correlationId,
+            eventVersion: 1,
+            occurredAt: stripeStatus.completedAt || new Date().toISOString(),
+            aggregateType: 'Payment',
+            aggregateId: updatedAggregate.transactionId,
+            transactionId: updatedAggregate.transactionId,
+            bookingId: updatedAggregate.bookingId,
+            customerId: updatedAggregate.customerId,
+            customerEmail,
+            provider: 'stripe',
+            amount,
+            currency,
+            gatewayReference: sessionId,
+            attemptId,
+            attemptNumber,
+          }
+
+          // 4. Publish strictly via canonical Transactional Outbox boundary
+          if (!this.outboxRepository) {
+            throw new Error(
+              `[PaymentReconciliation] OutboxRepository is required for transactional reconciliation of Transaction ${currentTx.transactionId}.`,
+            )
+          }
+          console.log(
+            `[PaymentReconciliation] 📤 Queueing PAYMENT_COMPLETED event into Outbox (EventID: ${paymentCompletedEvent.eventId}) with Transactional Context:`,
+            !!context.transactionId,
+          )
+          await this.outboxRepository.add(paymentCompletedEvent, context)
+
           reconciledCount++
         } else if (stripeStatus.status === 'failed') {
-          console.log(`[PaymentReconciliation] Stripe session expired/failed for Transaction ${tx.transactionId}. Marking attempt as failed.`)
-          await this.paymentRepository.updateStatus(tx.transactionId, 'failed', context)
+          console.log(`[PaymentReconciliation] Stripe session expired/failed for Transaction ${currentTx.transactionId}. Marking attempt as failed.`)
+          await this.paymentRepository.updateStatus(currentTx.transactionId, 'failed', context)
         }
 
         // Commit transaction

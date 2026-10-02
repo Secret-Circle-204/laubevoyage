@@ -92,8 +92,10 @@ export class MaintenanceWorkflowEngine {
         const res = await this.engine.expireStaleDraftHolds(20)
         itemsProcessed = res.processedCount
       } else if (jobName === 'financial_reconciliation') {
-        const res = await this.reconciliationService.reconcileTransactions()
-        itemsProcessed = res.discrepancies.length
+        const { getDomainServices } = await import('../factory')
+        const { payment } = await getDomainServices()
+        const count = await payment.reconcilePendingPayments()
+        itemsProcessed = count
       } else if (jobName === 'dlq_recovery') {
         const res = await this.dlqRecoveryService.processDLQRecovery()
         itemsProcessed = res.recoveredCount
