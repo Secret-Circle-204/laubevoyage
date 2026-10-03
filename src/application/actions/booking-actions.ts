@@ -12,6 +12,7 @@ import { BookingPolicy } from '@/domains/booking/policy'
 import { PaymentAttemptsService } from '@/domains/booking/payment-attempts'
 import { addDaysToDateString } from '@/lib/date'
 import type { TravelerInput, BookingPickupLocation } from '@/domains/booking/types'
+import { CustomerPaymentTruthPresenter } from '@/application/payment/customer-payment-truth'
 
 /**
  * Orchestrator Server Action to process the checkout submit flow.
@@ -560,91 +561,110 @@ export async function checkBookingStatusAction(params: {
       cookieCurrency,
     })
 
+    let bookingDoc: any = null
+    let tx: any = null
+
     if (params.transactionId) {
-      const tx = await payment.getByTransactionId(params.transactionId)
+      tx = await payment.getByTransactionId(params.transactionId)
       if (tx) {
-        const bookingDoc = await booking.getById(tx.bookingId)
-        if (bookingDoc && bookingDoc.customerId === session.customerId) {
-          const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
-          const earnEntry = ledgerEntries.find(
-            (e: any) => e.bookingId === bookingDoc.id && e.type === 'earn',
-          )
-          const earnedPoints = earnEntry ? earnEntry.points : undefined
-
-          const snap = bookingDoc.pricingSnapshot
-          let formattedTotalPrice = ''
-          if (snap) {
-            if (snap.displayAmount !== undefined && snap.displayCurrency) {
-              const formattedPriceDto = await localization.formatAlreadyConvertedPrice(
-                snap.displayAmount,
-                snap.basePriceEGP,
-                snap.displayCurrency,
-                snap.exchangeRate || 1,
-                ctx,
-              )
-              formattedTotalPrice = formattedPriceDto.formatted
-            } else {
-              const formattedPriceDto = await localization.formatPrice(snap.totalAmountEGP, ctx)
-              formattedTotalPrice = formattedPriceDto.formatted
-            }
-          }
-
-          return {
-            success: true,
-            status: bookingDoc.status,
-            paymentStatus: tx.status,
-            bookingNumber: bookingDoc.bookingNumber,
-            pricingSnapshot: bookingDoc.pricingSnapshot,
-            formattedTotalPrice,
-            earnedPoints,
-          }
-        }
+        bookingDoc = await booking.getById(tx.bookingId)
       }
     }
 
-    if (params.bookingNumber) {
-      const bookingDoc = await booking.getByBookingNumber(params.bookingNumber)
-      if (bookingDoc && bookingDoc.customerId === session.customerId) {
-        const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
-        const earnEntry = ledgerEntries.find(
-          (e: any) => e.bookingId === bookingDoc.id && e.type === 'earn',
+    if (!bookingDoc && params.bookingNumber) {
+      bookingDoc = await booking.getByBookingNumber(params.bookingNumber)
+      if (bookingDoc && !tx) {
+        tx = await payment.getByBookingId(bookingDoc.id)
+      }
+    }
+
+    if (!bookingDoc || bookingDoc.customerId !== session.customerId) {
+      return { success: false, error: 'Booking context not found or unauthorized' }
+    }
+
+    // 1. Authoritative hold and window expiration check
+    const isHoldExpired = Boolean(
+      (bookingDoc.capacityHold?.expiresAt && new Date() >= new Date(bookingDoc.capacityHold.expiresAt)) ||
+      (bookingDoc.paymentWindowExpiresAt && new Date() >= new Date(bookingDoc.paymentWindowExpiresAt))
+    )
+
+    // 2. Focused provider inquiry inside Payment Domain if transaction is unsettled
+    let providerStatus: 'paid' | 'failed' | 'open' | 'unknown' = 'unknown'
+    let effectivePaymentStatus = tx?.status || 'unknown'
+
+    if (tx && tx.status === 'initiated' && tx.session?.sessionId) {
+      const providerInquiry = await payment.checkProviderTransactionStatus(tx.transactionId)
+      providerStatus = providerInquiry.providerStatus
+
+      if (providerStatus === 'paid') {
+        effectivePaymentStatus = 'successful'
+        // Proactively reconcile so that booking transitions to paid/confirmed
+        await payment.reconcilePendingPayments().catch(() => {})
+        const refreshedBooking = await booking.getById(bookingDoc.id)
+        if (refreshedBooking) {
+          bookingDoc = refreshedBooking
+        }
+      } else if (providerStatus === 'failed') {
+        effectivePaymentStatus = 'failed'
+      }
+    }
+
+    // 3. Loyalty points resolution
+    const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
+    const earnEntry = ledgerEntries.find(
+      (e: any) => e.bookingId === bookingDoc.id && e.type === 'earn',
+    )
+    const earnedPoints = earnEntry ? earnEntry.points : undefined
+
+    // 4. Formatted price calculation
+    const snap = bookingDoc.pricingSnapshot
+    let formattedTotalPrice = ''
+    if (snap) {
+      if (snap.displayAmount !== undefined && snap.displayCurrency) {
+        const formattedPriceDto = await localization.formatAlreadyConvertedPrice(
+          snap.displayAmount,
+          snap.basePriceEGP,
+          snap.displayCurrency,
+          snap.exchangeRate || 1,
+          ctx,
         )
-        const earnedPoints = earnEntry ? earnEntry.points : undefined
-
-        const snap = bookingDoc.pricingSnapshot
-        let formattedTotalPrice = ''
-        if (snap) {
-          if (snap.displayAmount !== undefined && snap.displayCurrency) {
-            const formattedPriceDto = await localization.formatAlreadyConvertedPrice(
-              snap.displayAmount,
-              snap.basePriceEGP,
-              snap.displayCurrency,
-              snap.exchangeRate || 1,
-              ctx,
-            )
-            formattedTotalPrice = formattedPriceDto.formatted
-          } else {
-            const formattedPriceDto = await localization.formatPrice(
-              snap.totalAmountEGP || snap.basePriceEGP,
-              ctx,
-            )
-            formattedTotalPrice = formattedPriceDto.formatted
-          }
-        }
-
-        return {
-          success: true,
-          status: bookingDoc.status,
-          paymentStatus: 'unknown',
-          bookingNumber: bookingDoc.bookingNumber,
-          pricingSnapshot: bookingDoc.pricingSnapshot,
-          formattedTotalPrice,
-          earnedPoints,
-        }
+        formattedTotalPrice = formattedPriceDto.formatted
+      } else {
+        const formattedPriceDto = await localization.formatPrice(
+          snap.totalAmountEGP || snap.basePriceEGP,
+          ctx,
+        )
+        formattedTotalPrice = formattedPriceDto.formatted
       }
     }
 
-    return { success: false, error: 'Booking context not found' }
+    // 5. Checkout URL resolution (reusable only if hold is not expired)
+    const checkoutUrl = tx?.session?.url && !isHoldExpired ? tx.session.url : undefined
+
+    // 6. Canonical Customer Truth Resolution
+    const customerTruth = CustomerPaymentTruthPresenter.resolve({
+      bookingStatus: bookingDoc.status,
+      paymentStatus: effectivePaymentStatus,
+      providerStatus,
+      isHoldExpired,
+      bookingNumber: bookingDoc.bookingNumber,
+      transactionId: tx?.transactionId,
+      checkoutUrl,
+    })
+
+    return {
+      success: true,
+      status: bookingDoc.status,
+      paymentStatus: effectivePaymentStatus,
+      providerStatus,
+      isHoldExpired,
+      bookingNumber: bookingDoc.bookingNumber,
+      pricingSnapshot: bookingDoc.pricingSnapshot,
+      formattedTotalPrice,
+      earnedPoints,
+      checkoutUrl,
+      customerTruth,
+    }
   } catch (error: unknown) {
     return {
       success: false,

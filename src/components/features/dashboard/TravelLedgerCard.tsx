@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Badge, CurrencyDisplay, Button } from '@/components/ui'
 import type { CustomerBookingCardDTO } from '@/application/dashboard/dto'
+import { CustomerPaymentTruthPresenter } from '@/application/payment/customer-payment-truth'
 
 function PinIcon({ className = 'w-3 h-3' }: { className?: string }) {
   return (
@@ -45,8 +46,12 @@ export interface TravelLedgerCardProps {
 
 export function TravelLedgerCard({ booking }: TravelLedgerCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const isConfirmed = booking.status === 'confirmed' || booking.status === 'completed'
-  const isReview = booking.status === 'pending_admin_review'
+
+  const truth = CustomerPaymentTruthPresenter.resolve({
+    bookingStatus: booking.status,
+    paymentStatus: booking.paymentStatus,
+    bookingNumber: booking.reference,
+  })
 
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement
@@ -80,50 +85,13 @@ export function TravelLedgerCard({ booking }: TravelLedgerCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {isConfirmed ? (
-            <Badge
-              variant="secondary"
-              size="sm"
-              className="text-xs uppercase bg-secondary/10 text-secondary border-secondary/25 font-semibold"
-            >
-              {booking.status.toUpperCase()}
-            </Badge>
-          ) : isReview ? (
-            <Badge
-              variant="outline"
-              size="sm"
-              className="text-xs uppercase border-amber-500/30 text-amber-500 bg-amber-500/5 font-semibold"
-            >
-              PENDING REVIEW
-            </Badge>
-          ) : (
-            <Badge
-              variant="outline"
-              size="sm"
-              className="text-xs uppercase border-border text-muted-foreground font-semibold"
-            >
-              {booking.status.replace(/_/g, ' ').toUpperCase()}
-            </Badge>
-          )}
-
-          {booking.paymentStatus === 'partially_paid' && (
-            <Badge
-              variant="warning"
-              size="sm"
-              className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-xs font-semibold"
-            >
-              PARTIALLY PAID
-            </Badge>
-          )}
-          {booking.paymentStatus === 'paid' && (
-            <Badge
-              variant="outline"
-              size="sm"
-              className="text-emerald-500 border-emerald-500/30 text-xs font-semibold"
-            >
-              PAID
-            </Badge>
-          )}
+          <Badge
+            variant={truth.badgeVariant}
+            size="sm"
+            className="text-xs uppercase font-semibold tracking-wider"
+          >
+            {truth.badgeFallback}
+          </Badge>
 
           {/* Accessible Details Toggle Button */}
           <button
@@ -259,18 +227,40 @@ export function TravelLedgerCard({ booking }: TravelLedgerCardProps) {
               </div>
             </div>
 
-            {/* Direct Link to Full Travel Dossier */}
+            {/* Direct Contextual Action Button */}
             <div className="flex items-center gap-3 self-end md:self-center flex-shrink-0 pt-2 md:pt-0">
-              <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="font-bold shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
-                >
-                  <span>Access Travel Dossier</span>
-                  <span>→</span>
-                </Button>
-              </Link>
+              {truth.semanticState === 'PAYMENT_REQUIRED' || truth.semanticState === 'PAYMENT_FAILED' ? (
+                <Link href={`/checkout/${booking.reference || booking.id}`}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="font-bold shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                  >
+                    <span>{truth.primaryAction.labelFallback}</span>
+                  </Button>
+                </Link>
+              ) : truth.semanticState === 'BOOKING_EXPIRED' ? (
+                <Link href="/experiences">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-bold shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                  >
+                    <span>Book Again →</span>
+                  </Button>
+                </Link>
+              ) : (
+                <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="font-bold shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                  >
+                    <span>Access Travel Dossier</span>
+                    <span>→</span>
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>

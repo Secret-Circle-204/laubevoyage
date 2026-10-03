@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { Badge, CurrencyDisplay, EmptyState, Button } from '@/components/ui'
 import type { CustomerPortalOverviewDTO, CustomerBookingCardDTO, CustomerPortalOverviewLabelsDTO } from '@/application/dashboard/dto'
+import { CustomerPaymentTruthPresenter } from '@/application/payment/customer-payment-truth'
 
 function PinIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
   return (
@@ -46,8 +47,12 @@ function PrimaryJourneyCard({
   uiLabels: CustomerPortalOverviewLabelsDTO
 }) {
   const [isExpanded, setIsExpanded] = React.useState(false)
-  const isConfirmed = booking.status === 'confirmed' || booking.status === 'completed'
-  const isReview = booking.status === 'pending_admin_review'
+
+  const truth = CustomerPaymentTruthPresenter.resolve({
+    bookingStatus: booking.status,
+    paymentStatus: booking.paymentStatus,
+    bookingNumber: booking.reference,
+  })
 
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement
@@ -75,19 +80,13 @@ function PrimaryJourneyCard({
         </div>
 
         <div className="flex items-center gap-2">
-          {isConfirmed ? (
-            <Badge variant="secondary" size="sm" className="text-xs uppercase bg-secondary/10 text-secondary border-secondary/25 font-semibold">
-              {uiLabels.statusConfirmed}
-            </Badge>
-          ) : isReview ? (
-            <Badge variant="outline" size="sm" className="text-xs uppercase border-amber-500/30 text-amber-500 bg-amber-500/5 font-semibold">
-              {uiLabels.statusPendingReview}
-            </Badge>
-          ) : (
-            <Badge variant="outline" size="sm" className="text-xs uppercase border-border text-muted-foreground font-semibold">
-              {booking.status.replace(/_/g, ' ').toUpperCase()}
-            </Badge>
-          )}
+          <Badge
+            variant={truth.badgeVariant}
+            size="sm"
+            className="text-xs uppercase font-semibold tracking-wider"
+          >
+            {truth.badgeFallback}
+          </Badge>
 
           {/* Accessible Details Toggle Button */}
           <button
