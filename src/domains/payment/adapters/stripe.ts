@@ -6,6 +6,7 @@ import type {
   RefundParams,
   RefundResult,
   StripeWebhookPayload,
+  GatewaySessionExpirationResult,
 } from '../types'
 import { toSmallestUnit } from '@/domains/currency/rounding'
 
@@ -118,8 +119,82 @@ export class StripePaymentAdapter implements IPaymentAdapter {
     }
   }
 
-  async expireSession(sessionId: string): Promise<boolean> {
-    return this.cancelSession(sessionId)
+  async expireSession(sessionId: string): Promise<GatewaySessionExpirationResult> {
+    try {
+      await stripe.checkout.sessions.expire(sessionId)
+      return {
+        success: true,
+        outcome: 'expired_successfully',
+        sessionId,
+      }
+    } catch (err: unknown) {
+      const errorObj = err && typeof err === 'object' ? (err as Record<string, unknown>) : {}
+      const rawError = (errorObj.raw && typeof errorObj.raw === 'object' ? errorObj.raw : {}) as Record<string, unknown>
+
+      const code = (errorObj.code || rawError.code) as string | undefined
+      const statusCode = (errorObj.statusCode || errorObj.status || rawError.statusCode) as number | undefined
+      const errorType = (errorObj.type || rawError.type) as string | undefined
+      const msg = String(errorObj.message || rawError.message || err || '')
+
+      // Outcome E: Resource missing / 404 (structured attributes first)
+      if (code === 'resource_missing' || statusCode === 404) {
+        return {
+          success: false,
+          outcome: 'resource_missing',
+          sessionId,
+          errorDetails: msg,
+        }
+      }
+
+      // Check for Stripe invalid request / 400 state mismatch
+      const isInvalidRequest =
+        statusCode === 400 ||
+        errorType === 'invalid_request_error' ||
+        errorType === 'StripeInvalidRequestError'
+
+      if (isInvalidRequest) {
+        const lowerMsg = msg.toLowerCase()
+
+        // Outcome B: Already expired (idempotent final gateway state achieved)
+        // Matches exact real Stripe response: "Only Checkout Sessions with a status in ['open'] can be expired. This Checkout Session has a status of expired."
+        // Also matches legacy / variations: "This Checkout Session is already expired."
+        const isAlreadyExpired =
+          lowerMsg.includes('already expired') ||
+          (lowerMsg.includes('can be expired') && lowerMsg.includes('status of expired')) ||
+          /status (?:is|of|in)\s*['"`]?expired/i.test(lowerMsg)
+
+        if (isAlreadyExpired) {
+          return {
+            success: true,
+            outcome: 'already_expired',
+            sessionId,
+          }
+        }
+
+        // Outcome C: Concurrent payment complete (Do NOT treat as expiration success)
+        // Matches exact real Stripe response: "Only Checkout Sessions with a status in ['open'] can be expired. This Checkout Session has a status of complete."
+        const isComplete =
+          (lowerMsg.includes('can be expired') && lowerMsg.includes('status of complete')) ||
+          /status (?:is|of|in)\s*['"`]?complete/i.test(lowerMsg)
+
+        if (isComplete) {
+          return {
+            success: false,
+            outcome: 'concurrent_payment_complete',
+            sessionId,
+            errorDetails: msg,
+          }
+        }
+      }
+
+      // Outcome D: Network or unexpected API failure
+      return {
+        success: false,
+        outcome: 'network_error',
+        sessionId,
+        errorDetails: msg,
+      }
+    }
   }
 
   async refund(params: RefundParams): Promise<RefundResult> {

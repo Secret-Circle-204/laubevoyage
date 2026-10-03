@@ -21,6 +21,20 @@ export interface PaymentSessionResult {
   expiresAt?: number
 }
 
+export type GatewaySessionExpirationOutcome =
+  | 'expired_successfully'
+  | 'already_expired'
+  | 'concurrent_payment_complete'
+  | 'resource_missing'
+  | 'network_error'
+
+export interface GatewaySessionExpirationResult {
+  success: boolean
+  outcome: GatewaySessionExpirationOutcome
+  sessionId: string
+  errorDetails?: string
+}
+
 export interface PaymentAttemptRecord {
   attemptId: string
   attemptNumber: number

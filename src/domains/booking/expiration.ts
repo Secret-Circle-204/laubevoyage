@@ -1,5 +1,5 @@
 import { BookingStatus, RequestContext } from '@/types'
-import type { BookingAggregate } from './types'
+import type { BookingAggregate, IBookingPaymentGatewayCleanup } from './types'
 import { BookingRepository } from './repository'
 import { CapacityHoldService } from './capacity-hold'
 import { PointHoldService } from '../loyalty/point-hold'
@@ -13,11 +13,17 @@ import { ExperienceService } from '../experience/service'
 export class BookingExpiration {
   private repository: BookingRepository
   private experienceService: ExperienceService
+  private paymentGatewayCleanup?: IBookingPaymentGatewayCleanup
   private deadLetterQueue: BookingAggregate[] = []
 
-  constructor(repository: BookingRepository, experienceService: ExperienceService) {
+  constructor(
+    repository: BookingRepository,
+    experienceService: ExperienceService,
+    paymentGatewayCleanup?: IBookingPaymentGatewayCleanup,
+  ) {
     this.repository = repository
     this.experienceService = experienceService
+    this.paymentGatewayCleanup = paymentGatewayCleanup
   }
 
   /**
@@ -187,6 +193,23 @@ export class BookingExpiration {
       }
 
       await this.repository.commitTransaction(transactionID)
+
+      // ------------------------------------------------------------------------------------------------
+      // Gate 3A: Post-Commit External Stripe Gateway Cleanup (Decoupled Resiliency)
+      // The internal booking expiration and hold release are already permanently committed to PostgreSQL.
+      // Any external network/gateway error MUST NOT affect the committed expiration.
+      // ------------------------------------------------------------------------------------------------
+      try {
+        if (this.paymentGatewayCleanup) {
+          await this.paymentGatewayCleanup.expireSessionForBooking(expiredBooking.id)
+        }
+      } catch (gatewayErr: unknown) {
+        const errMsg = gatewayErr instanceof Error ? gatewayErr.message : String(gatewayErr)
+        console.error(
+          `[BookingExpiration] Post-commit gateway cleanup encountered an error for Booking #${expiredBooking.bookingNumber}:`,
+          errMsg,
+        )
+      }
 
       return expiredBooking
     } catch (error) {

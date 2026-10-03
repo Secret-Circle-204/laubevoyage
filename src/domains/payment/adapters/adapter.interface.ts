@@ -4,6 +4,7 @@ import type {
   RefundParams,
   RefundResult,
   StripeWebhookPayload,
+  GatewaySessionExpirationResult,
 } from '../types'
 
 /**
@@ -16,6 +17,6 @@ export interface IPaymentAdapter {
   verifyWebhook(rawBody: string | Buffer, signature: string): Promise<StripeWebhookPayload>
   retrievePaymentStatus(params: { providerSessionId?: string; providerTransactionId?: string }): Promise<{ status: 'paid' | 'failed' | 'open'; gatewayStatus: string; completedAt?: string }>
   cancelSession(sessionId: string): Promise<boolean>
-  expireSession(sessionId: string): Promise<boolean>
+  expireSession(sessionId: string): Promise<GatewaySessionExpirationResult>
   refund(params: RefundParams): Promise<RefundResult>
 }

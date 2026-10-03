@@ -283,4 +283,19 @@ export interface BookingUserFilter {
   or?: Array<Record<string, unknown>>
 }
 
+import type { GatewaySessionExpirationOutcome } from '../payment/types'
+
+/**
+ * Gate 3A: Minimal type-safe boundary for decoupled post-commit gateway session cleanup
+ */
+export interface IBookingPaymentGatewayCleanup {
+  expireSessionForBooking(bookingId: number): Promise<{
+    attempted: boolean
+    outcome?: GatewaySessionExpirationOutcome
+    sessionId?: string
+    errorDetails?: string
+  }>
+}
+
+
 

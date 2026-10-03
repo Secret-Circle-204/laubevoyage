@@ -194,14 +194,6 @@ export function createPureDomainServices(payload: any) {
   )
   const experienceService = new ExperienceService(experienceRepository, experienceWorkflowEngine)
 
-  const bookingService = new BookingService(
-    bookingRepository,
-    customerRepository,
-    experienceService,
-    loyaltyService,
-    pricingPipeline,
-  )
-  const reviewService = new ReviewService(reviewRepository, bookingService)
   const paymentService = new PaymentService(
     paymentRepository,
     bookingRepository,
@@ -209,6 +201,15 @@ export function createPureDomainServices(payload: any) {
     experienceRepository,
     outboxRepository,
   )
+  const bookingService = new BookingService(
+    bookingRepository,
+    customerRepository,
+    experienceService,
+    loyaltyService,
+    pricingPipeline,
+    paymentService,
+  )
+  const reviewService = new ReviewService(reviewRepository, bookingService)
   const searchService = new SearchService(experienceService)
 
   const dashboardQueryBus = new DashboardQueryBus(

@@ -1,7 +1,15 @@
 import { BookingStatus, RequestContext } from '@/types'
 import { BookingPolicy } from '../booking/policy'
 import { ExperiencePolicy } from '../experience/policy'
-import type { CreateSessionParams, RefundParams, RefundResult, PaymentProviderType, PaymentStatusType } from './types'
+import type {
+  CreateSessionParams,
+  RefundParams,
+  RefundResult,
+  PaymentProviderType,
+  PaymentStatusType,
+  GatewaySessionExpirationOutcome,
+  PaymentAuditRecord,
+} from './types'
 import type { PaymentAggregate } from './aggregate'
 import { PaymentWorkflowEngine } from './workflow'
 import type { BookingRepository } from '../booking/repository'
@@ -452,5 +460,79 @@ export class PaymentService {
     }
 
     return reconciledCount
+  }
+
+  /**
+   * Gate 3A: Expire gateway checkout session for an expired booking (Stripe only).
+   * Called post-commit by BookingExpiration.
+   * Performs NO booking state mutation, NO inventory mutation, NO payment settlement, NO refund.
+   */
+  async expireSessionForBooking(bookingId: number, context?: RequestContext): Promise<{
+    attempted: boolean
+    outcome?: GatewaySessionExpirationOutcome
+    sessionId?: string
+    errorDetails?: string
+  }> {
+    if (!bookingId) {
+      return { attempted: false }
+    }
+
+    const tx = await this.paymentRepository.findByBookingId(bookingId, context)
+    if (!tx) {
+      return { attempted: false }
+    }
+
+    if (tx.provider !== 'stripe') {
+      return { attempted: false }
+    }
+
+    // Only attempt expiration if transaction is still initiated (not already successful or failed)
+    if (tx.status !== 'initiated') {
+      return {
+        attempted: false,
+        outcome: tx.status === 'successful' ? 'concurrent_payment_complete' : 'already_expired',
+      }
+    }
+
+    const sessionId = tx.session?.sessionId
+    if (!sessionId) {
+      return { attempted: false }
+    }
+
+    const adapter = PaymentAdapterFactory.resolve('stripe')
+    const result = await adapter.expireSession(sessionId)
+
+    // Observability via existing payment transaction audit trail
+    const auditRecord: PaymentAuditRecord = {
+      auditId: `aud_exp_${Date.now()}`,
+      actor: { id: 'system', type: 'system', name: 'BookingExpiration' },
+      provider: 'stripe',
+      action: 'EXPIRE_GATEWAY_SESSION',
+      previousState: tx.status,
+      newState: result.outcome === 'expired_successfully' || result.outcome === 'already_expired' ? 'failed' : tx.status,
+      transactionId: tx.transactionId,
+      bookingId: tx.bookingId,
+      timestamp: new Date().toISOString(),
+      reason: `Gateway session expiration outcome: ${result.outcome}${result.errorDetails ? ` (${result.errorDetails})` : ''}`,
+    }
+
+    if (result.outcome === 'expired_successfully' || result.outcome === 'already_expired') {
+      console.log(`[PaymentService] Stripe session ${sessionId} for Booking #${bookingId} resolved as ${result.outcome}. Marking transaction as failed with atomic audit record.`)
+      await this.paymentRepository.updateStatus(tx.transactionId, 'failed', context, auditRecord, tx.version)
+    } else if (result.outcome === 'concurrent_payment_complete') {
+      console.warn(`[PaymentService] ⚠️ CONCURRENT PAYMENT DETECTED: Stripe session ${sessionId} for Booking #${bookingId} was completed concurrently. Leaving settlement to Phase 2 Webhook/Reconciliation path.`)
+      await this.paymentRepository.appendAudit(tx.transactionId, auditRecord, context, tx.version)
+      // DO NOT mark failed! DO NOT refund! DO NOT confirm!
+    } else {
+      console.error(`[PaymentService] Failed to expire Stripe session ${sessionId} for Booking #${bookingId}: [${result.outcome}] ${result.errorDetails || ''}`)
+      await this.paymentRepository.appendAudit(tx.transactionId, auditRecord, context, tx.version)
+    }
+
+    return {
+      attempted: true,
+      outcome: result.outcome,
+      sessionId,
+      errorDetails: result.errorDetails,
+    }
   }
 }

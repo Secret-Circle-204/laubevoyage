@@ -7,6 +7,7 @@ import type {
   CustomerTripSummary,
   BookingUserFilter,
   CustomerCompanionTravelerProjection,
+  IBookingPaymentGatewayCleanup,
 } from './types'
 import { BookingWorkflowEngine } from './workflow'
 import { BookingRepository } from './repository'
@@ -32,6 +33,7 @@ export class BookingService {
     experienceService: ExperienceService,
     loyaltyService: LoyaltyService,
     pricingPipeline: PricingPipeline,
+    paymentGatewayCleanup?: IBookingPaymentGatewayCleanup,
   ) {
     this.repository = repository
     this.experienceService = experienceService
@@ -42,6 +44,7 @@ export class BookingService {
       experienceService,
       loyaltyService,
       pricingPipeline,
+      paymentGatewayCleanup,
     )
   }
 

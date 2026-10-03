@@ -5,6 +5,7 @@ import type {
   RefundParams,
   RefundResult,
   StripeWebhookPayload,
+  GatewaySessionExpirationResult,
 } from '../types'
 
 /**
@@ -39,8 +40,12 @@ export class BNPLPaymentAdapter implements IPaymentAdapter {
     return true
   }
 
-  async expireSession(sessionId: string): Promise<boolean> {
-    return true
+  async expireSession(sessionId: string): Promise<GatewaySessionExpirationResult> {
+    return {
+      success: true,
+      outcome: 'expired_successfully',
+      sessionId,
+    }
   }
 
   async refund(params: RefundParams): Promise<RefundResult> {

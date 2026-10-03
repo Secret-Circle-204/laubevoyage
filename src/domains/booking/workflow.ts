@@ -1,7 +1,7 @@
 import type { Payload } from 'payload'
 import { BookingStatus } from '@/types'
 import type { RequestContext } from '@/types'
-import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt } from './types'
+import type { Actor, BookingAggregate, CreateBookingParams, PaymentAttempt, IBookingPaymentGatewayCleanup } from './types'
 import { BookingRepository } from './repository'
 import { BookingCreator } from './creator'
 import { BookingConfirmation } from './confirmation'
@@ -42,6 +42,7 @@ export class BookingWorkflowEngine {
     experienceService?: ExperienceService,
     loyaltyService?: LoyaltyService,
     pricingPipeline?: PricingPipeline,
+    paymentGatewayCleanup?: IBookingPaymentGatewayCleanup,
   ) {
     const activePayload = repository && 'find' in repository ? (repository as Payload) : undefined
     const isRepo = repository && typeof repository === 'object' && 'findById' in repository
@@ -60,7 +61,7 @@ export class BookingWorkflowEngine {
     this.creator = new BookingCreator(this.repository, custRepo, expSvc, loySvc, pipeline)
     this.confirmation = new BookingConfirmation(this.repository, expSvc, loySvc)
     this.cancellation = new BookingCancellation(this.repository, expSvc)
-    this.expiration = new BookingExpiration(this.repository, expSvc)
+    this.expiration = new BookingExpiration(this.repository, expSvc, paymentGatewayCleanup)
     this.completion = new BookingCompletion(this.repository)
     this.refund = new BookingRefund(this.repository, expSvc)
     this.queries = new BookingQueries(this.repository)
