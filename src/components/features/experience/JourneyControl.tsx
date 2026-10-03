@@ -524,17 +524,18 @@ export function JourneyControl({
   const roomSubtext = activeRoomCount ? `${activeRoomCount} ${roomUnit} · ${totalGuests} ${guestUnit}` : undefined
 
   const calculateYourJourneyLabel = dict.get(locale, 'experience.calculateYourJourney')
+  const bookJourneyLabel = (dict.get(locale, 'experience.bookThisJourney') || 'Book This Journey').replace(/[→←]/g, '').trim()
 
   return (
     <>
       {/* RIGHT COLUMN: THE "CALCULATE YOUR JOURNEY" WORKSPACE (5 Columns - Sticky on Desktop) */}
       <div className="lg:col-span-5">
-        <div className="lg:sticky lg:top-24">
+        <div className="lg:sticky lg:top-20">
           {/* Main Calculation & Configuration Instrument Panel */}
           <div
             ref={composerCardRef}
             id="journey-composer"
-            className="relative overflow-hidden rounded-3xl border-2 border-border dark:border-slate-800 bg-card dark:bg-[#070b14] text-foreground dark:text-white shadow-xl shadow-slate-300/40 dark:shadow-2xl dark:shadow-black/50 transition-colors duration-300 scroll-mt-24"
+            className="relative flex flex-col lg:max-h-[calc(100dvh-6rem)] overflow-hidden rounded-3xl border-2 border-border dark:border-slate-800 bg-card dark:bg-[#070b14] text-foreground dark:text-white shadow-xl shadow-slate-300/40 dark:shadow-2xl dark:shadow-black/50 transition-colors duration-300 scroll-mt-24"
           >
             {/* Ambient Corner Accent Glow */}
             <div
@@ -547,7 +548,7 @@ export function JourneyControl({
             />
 
             {/* 1. Instrument Header: Commercial Context & Baseline */}
-            <div className="relative z-10 p-6 sm:p-7 pb-5 flex flex-col gap-3 border-b border-slate-200 dark:border-slate-800/80">
+            <div className="relative z-10 shrink-0 p-5 sm:p-6 pb-4 flex flex-col gap-2.5 border-b border-slate-200 dark:border-slate-800/80 bg-card dark:bg-[#070b14]">
               {/* Top title line + Duration pill */}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -608,8 +609,8 @@ export function JourneyControl({
               </div>
             ) : (
               <>
-                {/* 2. Interactive Configuration Rows (Organized calm inset cards) */}
-                <div className="relative z-10 p-5 sm:p-6 flex flex-col gap-3.5">
+                {/* 2. Interactive Configuration Rows (Scrollable Middle Section on Desktop) */}
+                <div className="relative z-10 lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-y-auto p-4 sm:p-5 flex flex-col gap-3 lg:scrollbar-thin lg:[scrollbar-color:rgba(156,163,175,0.4)_transparent] dark:lg:[scrollbar-color:rgba(75,85,99,0.4)_transparent] lg:[&::-webkit-scrollbar]:w-1.5 lg:[&::-webkit-scrollbar-thumb]:rounded-full lg:[&::-webkit-scrollbar-thumb]:bg-slate-300 dark:lg:[&::-webkit-scrollbar-thumb]:bg-slate-700 lg:[&::-webkit-scrollbar-track]:bg-transparent">
                   {/* Row 1: Departure Card (Clickable Card Body & Interactive Slider) */}
                   <div
                     onClick={() => setIsDepartureModalOpen(true)}
@@ -646,17 +647,10 @@ export function JourneyControl({
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setIsDepartureModalOpen(true)
-                        }}
-                        className="group/change inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary group-hover/dep-card:text-primary-dark dark:group-hover/dep-card:text-secondary-light transition-colors cursor-pointer shrink-0"
-                      >
+                      <span className="group/change inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary group-hover/dep-card:text-primary-dark dark:group-hover/dep-card:text-secondary-light transition-colors shrink-0">
                         <span>{dict.get(locale, 'experience.changeArrangement')}</span>
                         <ChevronRightIcon className="w-3.5 h-3.5 rtl:rotate-180 group-hover/change:translate-x-0.5 rtl:group-hover/change:-translate-x-0.5 transition-transform duration-200" />
-                      </button>
+                      </span>
                     </div>
 
                     {/* Date & Time / Destination Section (Full Width, Free from Constraint) */}
@@ -932,7 +926,7 @@ export function JourneyControl({
                     )}
                   </div>
 
-                  {/* Row 2: Travellers Card (Clickable Card Body) */}
+                  {/* Row 2: Travellers Card (Compact & Fully Clickable Surface) */}
                   <div
                     onClick={() => setIsTravellersModalOpen(true)}
                     onKeyDown={(e) => {
@@ -943,369 +937,410 @@ export function JourneyControl({
                     }}
                     role="button"
                     tabIndex={0}
-                    aria-label={dict.get(locale, 'experience.whoIsTravelling')}
-                    className="group/trav-card p-4 sm:p-5 rounded-2xl bg-background/70 dark:bg-[#0c1222] border border-border dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-card dark:hover:bg-[#0e1628] shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-3.5 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary"
+                    aria-label={dict.get(locale, 'experience.whoIsTravelling') || 'Travelers'}
+                    className="group/trav-card p-3.5 sm:p-4 rounded-2xl bg-background/70 dark:bg-[#0c1222] border border-border dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-card dark:hover:bg-[#0e1628] shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer select-none flex flex-col gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary"
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 flex items-center justify-center text-primary dark:text-secondary shrink-0 group-hover/trav-card:scale-105 group-hover/trav-card:border-primary/40 dark:group-hover/trav-card:border-secondary/40 transition-transform shadow-2xs">
-                        <UsersIcon className="w-5 h-5" />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                          {dict.get(locale, 'experience.whoIsTravelling')}
-                        </span>
-                        <span className="font-hornbill text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate mt-0.5 group-hover/trav-card:text-primary dark:group-hover/trav-card:text-secondary transition-colors">
-                          {travellersSummaryText}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {totalGuests} {guestUnit}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setIsTravellersModalOpen(true)
-                      }}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary group-hover/trav-card:text-primary-dark dark:group-hover/trav-card:text-secondary-light transition-colors cursor-pointer shrink-0"
-                    >
-                      <span>{dict.get(locale, 'experience.changeArrangement')}</span>
-                      <ChevronRightIcon className="w-3.5 h-3.5 rtl:rotate-180 group-hover/trav-card:translate-x-0.5 rtl:group-hover/trav-card:-translate-x-0.5 transition-transform" />
-                    </button>
-                  </div>
-
-                  {/* Row 3: Stays & Accommodations Card(s) */}
-                  {isPackage && accommodations.length > 0 && (
-                    <div className="flex flex-col gap-3">
-                      {accommodations.map((stay) => {
-                        const options = Array.isArray(stay.options) ? stay.options : []
-                        const selectedOptionId =
-                          selectedAccommodationOptions[stay.order] ||
-                          (options.length === 1 ? options[0]?.id : undefined)
-                        const selectedOpt =
-                          options.find((opt) => opt.id === selectedOptionId) ||
-                          (options.length === 1 ? options[0] : null)
-                        const isMultiOption = options.length > 1
-
-                        const nightUnit =
-                          stay.nights === 1
-                            ? dict.get(locale, 'experience.nightSingular')
-                            : dict.get(locale, 'experience.nightPlural')
-
-                        const boardKey = selectedOpt?.boardBasis ? `experience.boardBasis.${selectedOpt.boardBasis}` : ''
-                        const boardLabel = boardKey ? dict.get(locale, boardKey) || selectedOpt?.boardBasis : ''
-
-                        const ratingCount = selectedOpt?.rating ? Math.min(Math.max(selectedOpt.rating, 1), 5) : 5
-
-                        return (
-                          <div
-                            key={stay.order}
-                            onClick={() => {
-                              if (isMultiOption) {
-                                setActiveAccommodationModalStayOrder(stay.order)
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (isMultiOption && (e.key === 'Enter' || e.key === ' ')) {
-                                e.preventDefault()
-                                setActiveAccommodationModalStayOrder(stay.order)
-                              }
-                            }}
-                            role={isMultiOption ? 'button' : undefined}
-                            tabIndex={isMultiOption ? 0 : undefined}
-                            className={`p-4 sm:p-5 rounded-2xl bg-background/70 dark:bg-[#0c1222] border border-border dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-card dark:hover:bg-[#0e1628] shadow-sm hover:shadow-md transition-all flex flex-col gap-3 ${
-                              isMultiOption ? 'cursor-pointer select-none group/stay-card focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary' : ''
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 flex items-center justify-center text-primary dark:text-secondary shrink-0 shadow-2xs">
-                                  <BedIcon className="w-5 h-5" />
-                                </div>
-                                <span className="text-[11px] font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                                  {accommodations.length > 1
-                                    ? dict.get(locale, 'experience.staysCountProgress', { current: String(stay.order), total: String(accommodations.length) })
-                                    : dict.get(locale, 'experience.staysCount', { count: String(accommodations.length) })}
-                                </span>
-                              </div>
-
-                              {isMultiOption && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setActiveAccommodationModalStayOrder(stay.order)
-                                  }}
-                                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary group-hover/stay-card:text-primary-dark dark:group-hover/stay-card:text-secondary-light transition-colors cursor-pointer shrink-0"
-                                >
-                                  <span>{dict.get(locale, 'experience.changeArrangement')}</span>
-                                  <ChevronRightIcon className="w-3.5 h-3.5 rtl:rotate-180 group-hover/stay-card:translate-x-0.5 rtl:group-hover/stay-card:-translate-x-0.5 transition-transform" />
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-3.5 pl-1 rtl:pl-0 rtl:pr-1 min-w-0">
-                              {selectedOpt?.heroUrl ? (
-                                <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700/60 shrink-0 bg-slate-100 dark:bg-[#141d30] shadow-2xs">
-                                  <Image
-                                    src={selectedOpt.heroUrl}
-                                    alt={selectedOpt.propertyName}
-                                    fill
-                                    className="object-cover"
-                                    sizes="56px"
-                                  />
-                                </div>
-                              ) : null}
-                              <div className="flex flex-col min-w-0">
-                                <span className="font-hornbill text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
-                                  {selectedOpt?.propertyName || dict.get(locale, 'experience.selectedHotel')}
-                                </span>
-                                <div className="flex items-center gap-1 text-amber-500 dark:text-amber-400 text-xs mt-0.5">
-                                  {'★'.repeat(ratingCount)}
-                                </div>
-                                <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                                  {stay.nights} {nightUnit}
-                                  {boardLabel ? ` · ${boardLabel}` : ''}
-                                  {selectedOpt?.roomCategory ? ` · ${selectedOpt.roomCategory}` : ''}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {/* Row 4: Your Rooms Card */}
-                  {isPackage && (
-                    <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-[#0c1222] border border-slate-300 dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-white dark:hover:bg-[#0e1628] shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-3.5">
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 flex items-center justify-center text-primary dark:text-secondary shrink-0 shadow-2xs">
-                          <DoorIcon className="w-5 h-5" />
+                    {/* Header Row: Label & Edit Trigger */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 flex items-center justify-center text-primary dark:text-secondary shrink-0 shadow-2xs">
+                          <UsersIcon className="w-3.5 h-3.5" />
                         </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[11px] font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                            {dict.get(locale, 'experience.yourRooms')}
-                          </span>
-                          <span className="font-hornbill text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate mt-0.5">
-                            {roomSummaryText}
-                          </span>
-                          {roomSubtext && (
-                            <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                              {roomSubtext}
-                            </span>
-                          )}
-                        </div>
+                        <span className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase truncate">
+                          {dict.get(locale, 'experience.whoIsTravelling') || 'Travelers'}
+                        </span>
                       </div>
-
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        {availableOptions.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => setIsArrangementModalOpen(true)}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary hover:text-primary-dark dark:hover:text-secondary-light transition-colors cursor-pointer"
-                          >
-                            <span>{dict.get(locale, 'experience.changeArrangement')}</span>
-                            <ChevronRightIcon className="w-3.5 h-3.5 rtl:rotate-180" />
-                          </button>
-                        )}
-
-                        {activeOption?.isRecommended && (
-                          <span className="px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/70 border border-emerald-500/30 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 text-xs font-semibold whitespace-nowrap">
-                            {dict.get(locale, 'experience.recommended')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Pricing Error Alert */}
-                {pricingError && (
-                  <div className="p-4 mx-6 my-2 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-medium flex flex-col gap-1 leading-relaxed">
-                    <div className="flex items-center gap-1.5 font-bold">
-                      <AlertIcon className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400" />
-                      <span>{pricingError}</span>
-                    </div>
-                    <p className="text-[11px] text-red-600/80 dark:text-red-400/80 font-normal">
-                      {dict.get(locale, 'experience.pricingErrorHint') || 'Try adjusting your room configuration or selecting another date.'}
-                    </p>
-                  </div>
-                )}
-
-                {/* 3. Authoritative Price Breakdown & Total Surface */}
-                <div className="relative z-10 p-5 sm:p-6 flex flex-col gap-3.5 bg-slate-50 dark:bg-[#090e1a] border-t border-slate-300 dark:border-slate-800 transition-colors duration-300">
-                  {/* Header: Label & Tax Notice */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 text-primary dark:text-secondary flex items-center justify-center shrink-0 shadow-2xs">
-                        <ReceiptIcon className="w-4 h-4" />
-                      </div>
-                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
-                        {dict.get(locale, 'experience.priceBreakdown')}
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary group-hover/trav-card:text-primary-dark dark:group-hover/trav-card:text-secondary-light transition-colors">
+                        <span>{dict.get(locale, 'experience.changeArrangement')}</span>
+                        <ChevronRightIcon className="w-3 h-3 rtl:rotate-180 group-hover/trav-card:translate-x-0.5 rtl:group-hover/trav-card:-translate-x-0.5 transition-transform" />
                       </span>
                     </div>
-                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400 shrink-0">
-                      {dict.get(locale, 'experience.allTaxesIncluded')}
-                    </span>
+
+                    {/* Content Row: Compact single summary */}
+                    <div className="flex items-baseline justify-between gap-2 pl-0.5 rtl:pl-0 rtl:pr-0.5">
+                      <span className="font-hornbill text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate group-hover/trav-card:text-primary dark:group-hover/trav-card:text-secondary transition-colors">
+                        {travellersSummaryText}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium shrink-0">
+                        {totalGuests} {guestUnit}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Authoritative Breakdown Rows */}
-                  {pricingState?.commercialBreakdown && (
-                    <div className="flex flex-col gap-2.5">
-                      {/* Row 1: Journey Base Price */}
-                      <div className="p-3.5 rounded-xl bg-white dark:bg-[#0c1222] border border-slate-300 dark:border-slate-800 flex items-center justify-between gap-3 shadow-xs">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                            {dict.get(locale, 'experience.journeyPrice')}
-                          </span>
-                          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                            {adults} {adultsLabel} × {pricingState.formattedBreakdown?.adultBasePrice.formatted || pricingState.unitPrice.formatted}
+                  {/* Row 3: Stays & Accommodations (Vertical Mini Cards) */}
+                  {isPackage && accommodations.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      {/* Section Header */}
+                      <div className="flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
+                            {dict.get(locale, 'experience.staysCount', { count: String(accommodations.length) }) || 'Stays'}
                           </span>
                         </div>
-                        <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white shrink-0">
-                          {pricingState.formattedBreakdown?.adultsTotalPrice.formatted || pricingState.totalPrice.formatted}
+                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                          {accommodations.reduce((sum, s) => sum + s.nights, 0)}{' '}
+                          {dict.get(locale, 'experience.nightPlural') || 'nights'}
                         </span>
                       </div>
 
-                      {/* Row 2: Children Breakdown (if any) */}
-                      {pricingState.commercialBreakdown.children &&
-                        pricingState.commercialBreakdown.children.length > 0 &&
-                        pricingState.commercialBreakdown.children.map((ch, idx) => {
-                          const formattedCh = pricingState.formattedBreakdown?.children?.[idx]
+                      {/* Mini Cards List */}
+                      <div className="flex flex-col gap-2">
+                        {accommodations.map((stay) => {
+                          const options = Array.isArray(stay.options) ? stay.options : []
+                          const selectedOptionId =
+                            selectedAccommodationOptions[stay.order] ||
+                            (options.length === 1 ? options[0]?.id : undefined)
+                          const selectedOpt =
+                            options.find((opt) => opt.id === selectedOptionId) ||
+                            (options.length === 1 ? options[0] : null)
+                          const isMultiOption = options.length > 1
+
+                          const nightUnit =
+                            stay.nights === 1
+                              ? dict.get(locale, 'experience.nightSingular')
+                              : dict.get(locale, 'experience.nightPlural')
+
+                          const boardKey = selectedOpt?.boardBasis ? `experience.boardBasis.${selectedOpt.boardBasis}` : ''
+                          const boardLabel = boardKey ? dict.get(locale, boardKey) || selectedOpt?.boardBasis : ''
+
                           return (
                             <div
-                              key={idx}
-                              className="p-3.5 rounded-xl bg-white dark:bg-[#0c1222] border border-slate-300 dark:border-slate-800 flex items-center justify-between gap-3 shadow-xs"
+                              key={stay.order}
+                              onClick={() => setActiveAccommodationModalStayOrder(stay.order)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  setActiveAccommodationModalStayOrder(stay.order)
+                                }
+                              }}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={selectedOpt?.propertyName || `Stay ${stay.order}`}
+                              className="group/stay-card p-3 sm:p-3.5 rounded-2xl bg-background/70 dark:bg-[#0c1222] border border-border dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-card dark:hover:bg-[#0e1628] shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer select-none flex items-center justify-between gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary"
                             >
-                              <div className="flex flex-col">
-                                <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                                  {dict.get(locale, 'experience.childIndex').replace('{index}', String(idx + 1)) || `Child ${idx + 1}`}
-                                </span>
-                                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                                  {ch.age} {ch.age === 1 ? dict.get(locale, 'experience.yearSingular') : dict.get(locale, 'experience.yearPlural')} ·{' '}
-                                  {ch.category === 'infant'
-                                    ? dict.get(locale, 'experience.infantCategory') || 'Infant'
-                                    : ch.beddingMode === 'sharing_bed'
-                                      ? dict.get(locale, 'experience.sharingBed') || 'Sharing Bed'
-                                      : dict.get(locale, 'experience.extraBed') || 'Extra Bed'}
-                                </span>
+                              <div className="flex items-center gap-3 min-w-0">
+                                {selectedOpt?.heroUrl ? (
+                                  <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700/60 shrink-0 bg-slate-100 dark:bg-[#141d30] shadow-2xs group-hover/stay-card:scale-105 transition-transform duration-200">
+                                    <Image
+                                      src={selectedOpt.heroUrl}
+                                      alt={selectedOpt.propertyName}
+                                      fill
+                                      className="object-cover"
+                                      sizes="48px"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-12 h-12 rounded-xl bg-primary/10 dark:bg-[#141d30] border border-primary/20 dark:border-slate-700/60 flex items-center justify-center text-primary dark:text-secondary shrink-0 shadow-2xs">
+                                    <BuildingIcon className="w-5 h-5" />
+                                  </div>
+                                )}
+
+                                <div className="flex flex-col min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate group-hover/stay-card:text-primary dark:group-hover/stay-card:text-secondary transition-colors">
+                                      {selectedOpt?.propertyName || dict.get(locale, 'experience.selectedHotel')}
+                                    </span>
+                                    {selectedOpt?.rating && (
+                                      <span className="text-amber-500 dark:text-amber-400 text-xs shrink-0">
+                                        {'★'.repeat(Math.min(Math.max(selectedOpt.rating, 1), 5))}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                    {stay.nights} {nightUnit}
+                                    {selectedOpt?.roomCategory ? ` · ${selectedOpt.roomCategory}` : ''}
+                                    {boardLabel ? ` · ${boardLabel}` : ''}
+                                  </span>
+                                </div>
                               </div>
-                              <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white shrink-0">
-                                {ch.priceEGP === 0
-                                  ? dict.get(locale, 'experience.free') || 'Free'
-                                  : formattedCh?.price.formatted || ''}
-                              </span>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isMultiOption ? (
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary group-hover/stay-card:text-primary-dark dark:group-hover/stay-card:text-secondary-light transition-colors">
+                                    <span>{dict.get(locale, 'experience.changeArrangement')}</span>
+                                    <ChevronRightIcon className="w-3 h-3 rtl:rotate-180 group-hover/stay-card:translate-x-0.5 rtl:group-hover/stay-card:-translate-x-0.5 transition-transform" />
+                                  </span>
+                                ) : (
+                                  <ChevronRightIcon className="w-4 h-4 text-slate-400 dark:text-slate-600 group-hover/stay-card:text-primary dark:group-hover/stay-card:text-secondary group-hover/stay-card:translate-x-0.5 rtl:group-hover/stay-card:-translate-x-0.5 transition-all" />
+                                )}
+                              </div>
                             </div>
                           )
                         })}
+                      </div>
+                    </div>
+                  )}
 
-                      {/* Row 3: Accommodations Price & Stays/Rooms Breakdown */}
-                      {pricingState.commercialBreakdown.accommodationTotalEGP > 0 && (
-                        <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-[#0c1222] border border-slate-300 dark:border-slate-800 flex flex-col gap-2.5 shadow-xs">
-                          {/* Accommodations Header & Total */}
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-md bg-primary/10 dark:bg-[#141d30] text-primary dark:text-secondary flex items-center justify-center shrink-0 shadow-2xs">
-                                <BedIcon className="w-3.5 h-3.5" />
-                              </span>
-                              <div className="flex flex-col">
-                                <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                                  {dict.get(locale, 'experience.luxuryAccommodations')}
+                  {/* Row 4: Your Rooms Card (Interactive Surface + Visual Shorthand) */}
+                  {isPackage && (
+                    <div
+                      onClick={() => setIsArrangementModalOpen(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setIsArrangementModalOpen(true)
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={dict.get(locale, 'experience.yourRooms') || 'Rooms'}
+                      className="group/room-card p-3.5 sm:p-4 rounded-2xl bg-background/70 dark:bg-[#0c1222] border border-border dark:border-slate-800 hover:border-primary dark:hover:border-slate-700 hover:bg-card dark:hover:bg-[#0e1628] shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer select-none flex flex-col gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-secondary"
+                    >
+                      {/* Header Row: Label & Actions */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 flex items-center justify-center text-primary dark:text-secondary shrink-0 shadow-2xs">
+                            <DoorIcon className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase truncate">
+                            {dict.get(locale, 'experience.yourRooms') || 'Rooms'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {activeOption?.isRecommended && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-950/70 border border-emerald-500/30 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold whitespace-nowrap">
+                              {dict.get(locale, 'experience.recommended') || 'Recommended'}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary dark:text-secondary group-hover/room-card:text-primary-dark dark:group-hover/room-card:text-secondary-light transition-colors">
+                            <span>{dict.get(locale, 'experience.changeArrangement')}</span>
+                            <ChevronRightIcon className="w-3 h-3 rtl:rotate-180 group-hover/room-card:translate-x-0.5 rtl:group-hover/room-card:-translate-x-0.5 transition-transform" />
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Visual Shorthand: Bed Icons + Room Summary */}
+                      <div className="flex items-center justify-between gap-3 pt-0.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {/* Repeated Bed Icons Visual Shorthand */}
+                          <div
+                            className="flex items-center gap-1 text-primary dark:text-secondary shrink-0"
+                            aria-hidden="true"
+                          >
+                            {Array.from({ length: Math.min(activeOption?.roomCount || activeRoomCount || 1, 6) }).map((_, i) => (
+                              <BedIcon key={i} className="w-4 h-4 text-primary dark:text-secondary group-hover/room-card:scale-110 transition-transform duration-200" />
+                            ))}
+                          </div>
+                          <span className="font-hornbill text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate group-hover/room-card:text-primary dark:group-hover/room-card:text-secondary transition-colors">
+                            {activeRoomCount} {roomUnit} · {totalGuests} {guestUnit}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Itemized Room Occupancy Breakdown */}
+                      {activeOption?.rooms && activeOption.rooms.length > 0 && (
+                        <div className="flex flex-col gap-1 pt-2 border-t border-slate-200/80 dark:border-slate-800/80">
+                          {activeOption.rooms.map((room) => {
+                            const occKey = `experience.occupancy.${room.occupancy}Room`
+                            const occLabel =
+                              dict.get(locale, occKey) ||
+                              dict.get(locale, `experience.occupancy.${room.occupancy}`) ||
+                              `${room.occupancy.charAt(0).toUpperCase() + room.occupancy.slice(1)} Room`
+                            const guestsInRoom = room.adults + room.children
+
+                            return (
+                              <div
+                                key={room.roomIndex}
+                                className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 pl-1 rtl:pl-0 rtl:pr-1"
+                              >
+                                <span className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200">
+                                  <BedIcon className="w-3.5 h-3.5 text-primary/70 dark:text-secondary/70 shrink-0" />
+                                  <span>{occLabel}</span>
                                 </span>
-                                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                                  {dict.get(locale, 'experience.staysCount', { count: String(pricingState.formattedBreakdown?.staysBreakdown?.length || 0) })}
-                                  {activeRoomCount ? ` · ${activeRoomCount} ${roomUnit}` : ''}
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  {guestsInRoom} {guestUnit}
                                 </span>
                               </div>
-                            </div>
-                            <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white shrink-0">
-                              {pricingState.formattedBreakdown?.accommodationTotalPrice?.formatted || ''}
-                            </span>
-                          </div>
-
-                          {/* Stay-by-Stay & Room-by-Room Transparent Lines */}
-                          {pricingState.formattedBreakdown?.staysBreakdown && pricingState.formattedBreakdown.staysBreakdown.length > 0 && (
-                            <div className="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/80">
-                              {pricingState.formattedBreakdown.staysBreakdown.map((stay) => {
-                                const nightUnit =
-                                  stay.nights === 1
-                                    ? dict.get(locale, 'experience.nightSingular')
-                                    : dict.get(locale, 'experience.nightPlural')
-
-                                return (
-                                  <div
-                                    key={stay.order}
-                                    className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#10172a] border border-slate-200 dark:border-slate-800/60 flex flex-col gap-1.5"
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex flex-col">
-                                          <span className="font-semibold text-xs text-slate-900 dark:text-white">
-                                            {stay.propertyName}
-                                          </span>
-                                          {stay.roomCategory && (
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                                              {stay.roomCategory}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <span className="font-hornbill text-xs font-semibold text-slate-900 dark:text-white shrink-0">
-                                        {stay.stayAccommodationTotalPrice.formatted}
-                                      </span>
-                                    </div>
-
-                                    {stay.appliedRoomRates && stay.appliedRoomRates.length > 0 && (
-                                      <div className="flex flex-col gap-1 pt-1 border-t border-slate-200 dark:border-slate-800/40">
-                                        {stay.appliedRoomRates.map((r, rIdx) => {
-                                          const occKey = `experience.occupancy.${r.occupancy}Room`
-                                          const occLabel =
-                                            dict.get(locale, occKey) ||
-                                            `${r.occupancy.charAt(0).toUpperCase() + r.occupancy.slice(1)} Room`
-                                          const rateMultiplierText =
-                                            r.pricingUnit === 'per_night'
-                                              ? `${r.nights} ${nightUnit} × ${r.unitRatePrice.formatted}`
-                                              : `${dict.get(locale, 'experience.perStayShort')} × ${r.unitRatePrice.formatted}`
-
-                                          return (
-                                            <div
-                                              key={rIdx}
-                                              className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pl-2 rtl:pl-0 rtl:pr-2 border-l-2 rtl:border-l-0 rtl:border-r-2 border-primary/30 dark:border-primary/40"
-                                            >
-                                              <span className="font-medium">
-                                                {dict.get(locale, 'experience.roomIndex').replace('{index}', String(r.roomIndex))} ({occLabel}) · {rateMultiplierText}
-                                              </span>
-                                              <span className="font-semibold text-slate-900 dark:text-white">
-                                                {r.totalRoomCostPrice.formatted}
-                                              </span>
-                                            </div>
-                                          )
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
+                            )
+                          })}
                         </div>
                       )}
                     </div>
                   )}
+                  {/* Pricing Error Alert */}
+                  {pricingError && (
+                    <div className="p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-medium flex flex-col gap-1 leading-relaxed">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <AlertIcon className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400" />
+                        <span>{pricingError}</span>
+                      </div>
+                      <p className="text-[11px] text-red-600/80 dark:text-red-400/80 font-normal">
+                        {dict.get(locale, 'experience.pricingErrorHint') || 'Try adjusting your room configuration or selecting another date.'}
+                      </p>
+                    </div>
+                  )}
 
-                  {/* Total Trip Price Summary Box */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#11192e] border-2 border-primary/20 dark:border-accent/40 shadow-md dark:shadow-lg dark:shadow-black/20 flex items-baseline justify-between gap-3">
-                    <div className="flex flex-col">
-                      <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                        {dict.get(locale, 'experience.totalTripPrice')}
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">
-                        {dict.get(locale, 'experience.secureBookingNotice')}
+                  {/* 5. Authoritative Price Breakdown (Always Visible & Transparent) */}
+                  <div className="flex flex-col gap-3 pt-3 border-t border-slate-200 dark:border-slate-800/80">
+                    {/* Header: Label & Tax Notice */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-primary/10 dark:bg-[#141d30] border border-primary/25 dark:border-slate-700/60 text-primary dark:text-secondary flex items-center justify-center shrink-0 shadow-2xs">
+                          <ReceiptIcon className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          {dict.get(locale, 'experience.priceBreakdown')}
+                        </span>
+                      </div>
+                      <span className="text-xs font-normal text-slate-500 dark:text-slate-400 shrink-0">
+                        {dict.get(locale, 'experience.allTaxesIncluded')}
                       </span>
                     </div>
+
+                    {/* Authoritative Breakdown Rows */}
+                    {pricingState?.commercialBreakdown && (
+                      <div className="flex flex-col gap-2.5">
+                        {/* Row 1: Journey Base Price */}
+                        <div className="p-3 rounded-xl bg-white dark:bg-[#0c1222] border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-2xs">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                              {dict.get(locale, 'experience.journeyPrice')}
+                            </span>
+                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                              {adults} {adultsLabel} × {pricingState.formattedBreakdown?.adultBasePrice.formatted || pricingState.unitPrice.formatted}
+                            </span>
+                          </div>
+                          <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white shrink-0">
+                            {pricingState.formattedBreakdown?.adultsTotalPrice.formatted || pricingState.totalPrice.formatted}
+                          </span>
+                        </div>
+
+                        {/* Row 2: Children Breakdown (if any) */}
+                        {pricingState.commercialBreakdown.children &&
+                          pricingState.commercialBreakdown.children.length > 0 &&
+                          pricingState.commercialBreakdown.children.map((ch, idx) => {
+                            const formattedCh = pricingState.formattedBreakdown?.children?.[idx]
+                            return (
+                              <div
+                                key={idx}
+                                className="p-3 rounded-xl bg-white dark:bg-[#0c1222] border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-2xs"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                                    {dict.get(locale, 'experience.childIndex').replace('{index}', String(idx + 1)) || `Child ${idx + 1}`}
+                                  </span>
+                                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                                    {ch.age} {ch.age === 1 ? dict.get(locale, 'experience.yearSingular') : dict.get(locale, 'experience.yearPlural')} ·{' '}
+                                    {ch.category === 'infant'
+                                      ? dict.get(locale, 'experience.infantCategory') || 'Infant'
+                                      : ch.beddingMode === 'sharing_bed'
+                                        ? dict.get(locale, 'experience.sharingBed') || 'Sharing Bed'
+                                        : dict.get(locale, 'experience.extraBed') || 'Extra Bed'}
+                                  </span>
+                                </div>
+                                <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white shrink-0">
+                                  {ch.priceEGP === 0
+                                    ? dict.get(locale, 'experience.free') || 'Free'
+                                    : formattedCh?.price.formatted || ''}
+                                </span>
+                              </div>
+                            )
+                          })}
+
+                        {/* Row 3: Accommodations Price & Stays/Rooms Breakdown */}
+                        {pricingState.commercialBreakdown.accommodationTotalEGP > 0 && (
+                          <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-[#0c1222] border border-slate-200 dark:border-slate-800 flex flex-col gap-2.5 shadow-2xs">
+                            {/* Accommodations Header & Total */}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-md bg-primary/10 dark:bg-[#141d30] text-primary dark:text-secondary flex items-center justify-center shrink-0 shadow-2xs">
+                                  <BedIcon className="w-3.5 h-3.5" />
+                                </span>
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                                    {dict.get(locale, 'experience.luxuryAccommodations')}
+                                  </span>
+                                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                                    {dict.get(locale, 'experience.staysCount', { count: String(pricingState.formattedBreakdown?.staysBreakdown?.length || 0) })}
+                                    {activeRoomCount ? ` · ${activeRoomCount} ${roomUnit}` : ''}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="font-hornbill text-sm sm:text-base font-bold text-slate-900 dark:text-white shrink-0">
+                                {pricingState.formattedBreakdown?.accommodationTotalPrice?.formatted || ''}
+                              </span>
+                            </div>
+
+                            {/* Stay-by-Stay & Room-by-Room Transparent Lines */}
+                            {pricingState.formattedBreakdown?.staysBreakdown && pricingState.formattedBreakdown.staysBreakdown.length > 0 && (
+                              <div className="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/80">
+                                {pricingState.formattedBreakdown.staysBreakdown.map((stay) => {
+                                  const nightUnit =
+                                    stay.nights === 1
+                                      ? dict.get(locale, 'experience.nightSingular')
+                                      : dict.get(locale, 'experience.nightPlural')
+
+                                  return (
+                                    <div
+                                      key={stay.order}
+                                      className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#10172a] border border-slate-200 dark:border-slate-800/60 flex flex-col gap-1.5"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex flex-col">
+                                            <span className="font-semibold text-xs text-slate-900 dark:text-white">
+                                              {stay.propertyName}
+                                            </span>
+                                            {stay.roomCategory && (
+                                              <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                {stay.roomCategory}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <span className="font-hornbill text-xs font-semibold text-slate-900 dark:text-white shrink-0">
+                                          {stay.stayAccommodationTotalPrice.formatted}
+                                        </span>
+                                      </div>
+
+                                      {stay.appliedRoomRates && stay.appliedRoomRates.length > 0 && (
+                                        <div className="flex flex-col gap-1 pt-1 border-t border-slate-200 dark:border-slate-800/40">
+                                          {stay.appliedRoomRates.map((r, rIdx) => {
+                                            const occKey = `experience.occupancy.${r.occupancy}Room`
+                                            const occLabel =
+                                              dict.get(locale, occKey) ||
+                                              `${r.occupancy.charAt(0).toUpperCase() + r.occupancy.slice(1)} Room`
+                                            const rateMultiplierText =
+                                              r.pricingUnit === 'per_night'
+                                                ? `${r.nights} ${nightUnit} × ${r.unitRatePrice.formatted}`
+                                                : `${dict.get(locale, 'experience.perStayShort')} × ${r.unitRatePrice.formatted}`
+
+                                            return (
+                                              <div
+                                                key={rIdx}
+                                                className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pl-2 rtl:pl-0 rtl:pr-2 border-l-2 rtl:border-l-0 rtl:border-r-2 border-primary/30 dark:border-primary/40"
+                                              >
+                                                <span className="font-medium">
+                                                  {dict.get(locale, 'experience.roomIndex').replace('{index}', String(r.roomIndex))} ({occLabel}) · {rateMultiplierText}
+                                                </span>
+                                                <span className="font-semibold text-slate-900 dark:text-white">
+                                                  {r.totalRoomCostPrice.formatted}
+                                                </span>
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Pinned Summary & Checkout Action Footer (Always Visible on Desktop) */}
+                <div className="relative z-20 shrink-0 border-t border-slate-200 dark:border-slate-800/90 bg-card/95 dark:bg-[#070b14]/95 backdrop-blur-md p-4 sm:p-5 flex flex-col gap-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
+                  {/* Total Trip Price Summary Box */}
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-[#11192e] border border-primary/20 dark:border-accent/30 shadow-xs flex items-center justify-between gap-3">
+                    <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                      {dict.get(locale, 'experience.totalTripPrice')}
+                    </span>
 
                     <div
                       className={
@@ -1318,21 +1353,19 @@ export function JourneyControl({
                         <CurrencyDisplay
                           price={displayPrice}
                           size="lg"
-                          className="font-hornbill font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white"
+                          className="font-hornbill font-bold text-xl sm:text-2xl text-slate-900 dark:text-white"
                         />
                       ) : (
-                        <span className="text-2xl font-hornbill text-slate-400 dark:text-slate-500">—</span>
+                        <span className="text-xl font-hornbill text-slate-400 dark:text-slate-500">—</span>
                       )}
                     </div>
                   </div>
-                </div>
 
-                {/* 4. Primary Decision Action: Proceed to Checkout */}
-                <div className="relative z-10 p-5 sm:p-6 bg-slate-50 dark:bg-[#090e1a] pt-0 transition-colors duration-300">
+                  {/* Primary Decision Action: Proceed to Checkout */}
                   <Button
                     variant="accent"
                     size="lg"
-                    className="w-full font-bold shadow-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all text-base shadow-accent/30 cursor-pointer rounded-xl"
+                    className="w-full font-bold shadow-xl py-3.5 sm:py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all text-base shadow-accent/30 cursor-pointer rounded-xl"
                     disabled={!canBook || loadingPrice}
                     onClick={onProceedToCheckout}
                   >
@@ -1341,7 +1374,7 @@ export function JourneyControl({
                     ) : displayPrice ? (
                       <span className="flex items-center justify-center gap-2">
                         <span>
-                          {displayPrice.formatted} · {dict.get(locale, 'experience.bookThisJourney')}
+                          {displayPrice.formatted} · {bookJourneyLabel}
                         </span>
                         <svg
                           className="w-4 h-4 rtl:rotate-180 shrink-0"

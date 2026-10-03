@@ -560,91 +560,93 @@ export async function checkBookingStatusAction(params: {
       cookieCurrency,
     })
 
+    let bookingDoc: any = null
+    let tx: any = null
+
     if (params.transactionId) {
-      const tx = await payment.getByTransactionId(params.transactionId)
+      tx = await payment.getByTransactionId(params.transactionId)
       if (tx) {
-        const bookingDoc = await booking.getById(tx.bookingId)
-        if (bookingDoc && bookingDoc.customerId === session.customerId) {
-          const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
-          const earnEntry = ledgerEntries.find(
-            (e: any) => e.bookingId === bookingDoc.id && e.type === 'earn',
-          )
-          const earnedPoints = earnEntry ? earnEntry.points : undefined
-
-          const snap = bookingDoc.pricingSnapshot
-          let formattedTotalPrice = ''
-          if (snap) {
-            if (snap.displayAmount !== undefined && snap.displayCurrency) {
-              const formattedPriceDto = await localization.formatAlreadyConvertedPrice(
-                snap.displayAmount,
-                snap.basePriceEGP,
-                snap.displayCurrency,
-                snap.exchangeRate || 1,
-                ctx,
-              )
-              formattedTotalPrice = formattedPriceDto.formatted
-            } else {
-              const formattedPriceDto = await localization.formatPrice(snap.totalAmountEGP, ctx)
-              formattedTotalPrice = formattedPriceDto.formatted
-            }
-          }
-
-          return {
-            success: true,
-            status: bookingDoc.status,
-            paymentStatus: tx.status,
-            bookingNumber: bookingDoc.bookingNumber,
-            pricingSnapshot: bookingDoc.pricingSnapshot,
-            formattedTotalPrice,
-            earnedPoints,
-          }
-        }
+        bookingDoc = await booking.getById(tx.bookingId)
       }
     }
 
-    if (params.bookingNumber) {
-      const bookingDoc = await booking.getByBookingNumber(params.bookingNumber)
-      if (bookingDoc && bookingDoc.customerId === session.customerId) {
-        const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
-        const earnEntry = ledgerEntries.find(
-          (e: any) => e.bookingId === bookingDoc.id && e.type === 'earn',
+    if (!bookingDoc && params.bookingNumber) {
+      bookingDoc = await booking.getByBookingNumber(params.bookingNumber)
+      if (bookingDoc && !tx) {
+        tx = await payment.getByBookingId(bookingDoc.id)
+      }
+    }
+
+    if (!bookingDoc || bookingDoc.customerId !== session.customerId) {
+      return { success: false, error: 'Booking context not found or unauthorized' }
+    }
+
+    // 1. Authoritative expiration check via BookingPolicy
+    const isPaymentWindowExpired = Boolean(
+      (bookingDoc.paymentWindowExpiresAt &&
+        BookingPolicy.isPaymentWindowExpired(bookingDoc.paymentWindowExpiresAt, new Date())) ||
+      (bookingDoc.capacityHold?.expiresAt &&
+        new Date() >= new Date(bookingDoc.capacityHold.expiresAt))
+    )
+
+    // 2. Focused pure read-only provider truth inquiry if transaction is initiated
+    let providerStatus: 'paid' | 'failed' | 'open' | 'unknown' = 'unknown'
+    const paymentStatus = tx?.status || 'unknown'
+
+    if (tx && tx.status === 'initiated' && tx.session?.sessionId) {
+      const providerInquiry = await payment.retrieveProviderStatus(tx.transactionId)
+      providerStatus = providerInquiry.providerStatus
+    }
+
+    // 3. Loyalty points resolution
+    const ledgerEntries = await loyalty.getCustomerLedgerHistory(session.customerId, 20)
+    const earnEntry = ledgerEntries.find(
+      (e: any) => e.bookingId === bookingDoc.id && e.type === 'earn',
+    )
+    const earnedPoints = earnEntry ? earnEntry.points : undefined
+
+    // 4. Formatted price calculation
+    const snap = bookingDoc.pricingSnapshot
+    let formattedTotalPrice = ''
+    if (snap) {
+      if (snap.displayAmount !== undefined && snap.displayCurrency) {
+        const formattedPriceDto = await localization.formatAlreadyConvertedPrice(
+          snap.displayAmount,
+          snap.basePriceEGP,
+          snap.displayCurrency,
+          snap.exchangeRate || 1,
+          ctx,
         )
-        const earnedPoints = earnEntry ? earnEntry.points : undefined
-
-        const snap = bookingDoc.pricingSnapshot
-        let formattedTotalPrice = ''
-        if (snap) {
-          if (snap.displayAmount !== undefined && snap.displayCurrency) {
-            const formattedPriceDto = await localization.formatAlreadyConvertedPrice(
-              snap.displayAmount,
-              snap.basePriceEGP,
-              snap.displayCurrency,
-              snap.exchangeRate || 1,
-              ctx,
-            )
-            formattedTotalPrice = formattedPriceDto.formatted
-          } else {
-            const formattedPriceDto = await localization.formatPrice(
-              snap.totalAmountEGP || snap.basePriceEGP,
-              ctx,
-            )
-            formattedTotalPrice = formattedPriceDto.formatted
-          }
-        }
-
-        return {
-          success: true,
-          status: bookingDoc.status,
-          paymentStatus: 'unknown',
-          bookingNumber: bookingDoc.bookingNumber,
-          pricingSnapshot: bookingDoc.pricingSnapshot,
-          formattedTotalPrice,
-          earnedPoints,
-        }
+        formattedTotalPrice = formattedPriceDto.formatted
+      } else {
+        const formattedPriceDto = await localization.formatPrice(
+          snap.totalAmountEGP || snap.basePriceEGP,
+          ctx,
+        )
+        formattedTotalPrice = formattedPriceDto.formatted
       }
     }
 
-    return { success: false, error: 'Booking context not found' }
+    // 5. Checkout URL: available for active/resumable session only if window is not expired.
+    // Invariant: If transaction failed or is unconfirmed, never return a dead session URL; always point to canonical checkout path.
+    const checkoutUrl = !isPaymentWindowExpired
+      ? tx?.status === 'initiated' && providerStatus === 'open' && tx?.session?.url
+        ? tx.session.url
+        : `/checkout/${bookingDoc.bookingNumber}`
+      : undefined
+
+    return {
+      success: true,
+      status: bookingDoc.status,
+      paymentStatus,
+      providerStatus,
+      isPaymentWindowExpired,
+      bookingNumber: bookingDoc.bookingNumber,
+      pricingSnapshot: bookingDoc.pricingSnapshot,
+      formattedTotalPrice,
+      earnedPoints,
+      checkoutUrl,
+    }
   } catch (error: unknown) {
     return {
       success: false,

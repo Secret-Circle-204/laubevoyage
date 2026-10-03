@@ -55,7 +55,7 @@ export function CheckoutOrderSummary({
   const drawerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
-  const orderSummaryTitle = dict.get(locale, 'checkout.orderSummary') || 'Reservation Ledger'
+  const orderSummaryTitle = dict.get(locale, 'checkout.orderSummary') || 'Order Summary'
   const confirmAndPayButton = dict.get(locale, 'checkout.confirmAndPay') || 'Confirm & Secure Journey'
   const packageLabel = dict.get(locale, 'catalog.packageLabel') || 'Package'
   const dailyTourLabel = dict.get(locale, 'catalog.dailyTourLabel') || 'Day Tour'
@@ -97,13 +97,24 @@ export function CheckoutOrderSummary({
         <Card
           variant="flat"
           padding="none"
-          className="border border-border/80 bg-card rounded-2xl shadow-xl overflow-hidden"
+          className="relative overflow-hidden border border-border/70 bg-gradient-to-b from-white via-card-elevated/80 to-card/30 dark:from-card dark:via-card dark:to-card rounded-2xl shadow-xl"
         >
-          {/* Top Ledger Header */}
+          {/* Subtle Luxury Atmospheric Blooms for Light & Dark Modes */}
+          <div
+            className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-secondary/12 via-secondary/5 to-transparent pointer-events-none blur-3xl opacity-75"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-tr from-accent/12 via-accent/5 to-transparent pointer-events-none blur-3xl opacity-75"
+            aria-hidden="true"
+          />
+
+          <div className="relative z-10">
+            {/* Top Ledger Header */}
           <div className="p-5 border-b border-border/70 bg-card-elevated/50 flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-[10px] text-secondary uppercase font-semibold">
-                FINANCIAL LEDGER
+                ORDER SUMMARY
               </span>
               <h3 className="text-lg font-hornbill font-semibold text-foreground tracking-tight mt-0.5">
                 {orderSummaryTitle}
@@ -196,6 +207,7 @@ export function CheckoutOrderSummary({
               Direct provider settlement • Guaranteed reservation
             </p>
           </div>
+          </div>
         </Card>
       </div>
 
@@ -214,7 +226,7 @@ export function CheckoutOrderSummary({
             className="flex flex-col text-left min-w-0 pr-2 group cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-secondary rounded-lg"
           >
             <span className="text-[10px] uppercase text-muted-foreground flex items-center gap-1 group-hover:text-secondary transition-colors font-semibold">
-              <span>Reservation Ledger</span>
+              <span>{orderSummaryTitle}</span>
               <ChevronUpIcon className="w-3 h-3 text-secondary group-hover:-translate-y-0.5 transition-transform" />
             </span>
             <div className="flex items-baseline gap-1.5">
@@ -259,8 +271,8 @@ export function CheckoutOrderSummary({
             ref={drawerRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Reservation Ledger"
-            className="relative z-50 bg-card border-t border-x border-border/80 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col animate-editorial-reveal safe-area-pb"
+            aria-label={orderSummaryTitle}
+            className="relative z-50 bg-gradient-to-b from-white via-card-elevated/95 to-card/60 dark:from-card dark:via-card dark:to-card border-t border-x border-border/80 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col animate-editorial-reveal safe-area-pb"
           >
             {/* Grab handle indicator */}
             <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mt-3 mb-1" />
@@ -269,7 +281,7 @@ export function CheckoutOrderSummary({
             <div className="px-5 py-3 border-b border-border/60 flex items-center justify-between">
               <div className="flex flex-col">
                 <span className="text-[10px] text-secondary uppercase font-semibold">
-                  RESERVATION VAULT
+                  ORDER SUMMARY
                 </span>
                 <h3 className="text-base font-hornbill font-semibold text-foreground">
                   {orderSummaryTitle}
@@ -279,7 +291,7 @@ export function CheckoutOrderSummary({
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
                 className="w-8 h-8 rounded-full bg-card-elevated border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-secondary/40 transition-colors cursor-pointer"
-                aria-label="Close Reservation Ledger"
+                aria-label={`Close ${orderSummaryTitle}`}
               >
                 <CloseIcon className="w-4 h-4" />
               </button>

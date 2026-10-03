@@ -142,7 +142,8 @@
       "failedTitle": "Prenotazione Incompleta",
       "failedDesc": "Non è stato possibile verificare la transazione per questa sessione di prenotazione.",
       "returnToExperiences": "Torna alle Esperienze →"
-    }
+    },
+    "pageTitle": "Complete Your Reservation"
   },
   "contact": {
     "vipConciergeBadge": "Concierge VIP 24/7",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "Conferma di prenotazione {bookingNumber}",
-        "body": "Gentile {customerName}, la sua prenotazione {bookingNumber} è stata confermata con successo.",
-        "badge": "PRENOTAZIONE CONFERMATA"
+        "subject": "Il vostro viaggio è confermato — {bookingNumber}",
+        "body": "Gentile {customerName}, il vostro viaggio {bookingNumber} è stato confermato con successo.",
+        "badge": "IL VOSTRO VIAGGIO È CONFERMATO",
+        "preheader": "La vostra prenotazione è confermata. Ecco i dettagli del viaggio e del pagamento.",
+        "bookingReference": "Codice di prenotazione",
+        "journeySummary": "Il vostro viaggio",
+        "travelDates": "Date del viaggio",
+        "duration": "Durata",
+        "destination": "Destinazione",
+        "yourStay": "Il vostro soggiorno",
+        "nights": "{count} notti",
+        "room": "Camera",
+        "boardBasis": "Trattamento",
+        "travelers": "Viaggiatori",
+        "travelersCount": "{count} viaggiatori",
+        "adultsCount": "{count} adulti",
+        "payment": "Riepilogo del pagamento",
+        "totalAmount": "Totale",
+        "amountPaid": "Saldato",
+        "remainingBalance": "Saldo rimanente",
+        "paidInFull": "PAGATO PER INTERO",
+        "depositPaid": "ACCONTO VERSATO",
+        "paymentPending": "IN ATTESA DI PAGAMENTO",
+        "loyaltyRewards": "Programma Fedeltà",
+        "pointsUsed": "{points} punti utilizzati",
+        "creditApplied": "{amount} di credito",
+        "cta": "Visualizza la prenotazione",
+        "supportNote": "Desiderate assistenza? Il team concierge di L'Aube Voyage è a vostra disposizione."
       },
       "paymentReceipt": {
         "subject": "Ricevuta di pagamento",

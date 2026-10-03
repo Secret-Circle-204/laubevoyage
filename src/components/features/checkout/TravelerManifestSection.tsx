@@ -216,15 +216,26 @@ export const TravelerManifestSection = forwardRef<
       <Card
         variant="flat"
         padding="lg"
-        className="border border-border/80 bg-card shadow-xs rounded-2xl"
+        className="relative overflow-hidden border border-border/70 bg-gradient-to-b from-white via-card-elevated/80 to-card/30 dark:from-card dark:via-card dark:to-card rounded-2xl shadow-xs"
       >
-        {/* Section Header with Step Badge & Progress Indicator */}
-        <div className="pb-5 border-b border-border/60">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3.5">
-              <span className="w-9 h-9 rounded-full bg-secondary text-background text-sm font-hornbill font-bold flex items-center justify-center shrink-0 shadow-xs">
-                01
-              </span>
+        {/* Subtle Luxury Atmospheric Blooms for Light & Dark Modes */}
+        <div
+          className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-secondary/12 via-secondary/5 to-transparent pointer-events-none blur-3xl opacity-75"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-tr from-accent/12 via-accent/5 to-transparent pointer-events-none blur-3xl opacity-75"
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10">
+          {/* Section Header with Step Badge & Progress Indicator */}
+          <div className="pb-5 border-b border-border/60">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3.5">
+                <span className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-secondary-dark text-white text-sm font-hornbill font-bold flex items-center justify-center shrink-0 shadow-xs">
+                  01
+                </span>
               <div>
                 <span className="text-[10px] text-secondary uppercase font-semibold block">
                   MANIFEST & ROSTER
@@ -587,6 +598,37 @@ export const TravelerManifestSection = forwardRef<
                       placeholder="e.g. +20 100 123 4567"
                     />
                   </>
+                ) : activeTraveler.type === 'adult' || (!activeTraveler.type && activeTravelerIndex < adultsCount) ? (
+                  <>
+                    <Input
+                      ref={emailInputRef}
+                      label="Email Address *"
+                      type="email"
+                      value={activeTraveler.email || ''}
+                      error={activeFieldErrors.email}
+                      helperText={
+                        !activeFieldErrors.email
+                          ? 'Required for passenger ticket & itinerary updates'
+                          : undefined
+                      }
+                      onChange={(e) => handleFieldChange('email', e.target.value)}
+                      placeholder="e.g. companion@example.com"
+                    />
+                    <Input
+                      ref={phoneInputRef}
+                      label="Phone Number *"
+                      type="tel"
+                      value={activeTraveler.phone || ''}
+                      error={activeFieldErrors.phone}
+                      helperText={
+                        !activeFieldErrors.phone
+                          ? 'Required for departure logistics & journey alerts'
+                          : undefined
+                      }
+                      onChange={(e) => handleFieldChange('phone', e.target.value)}
+                      placeholder="e.g. +20 100 987 6543"
+                    />
+                  </>
                 ) : (
                   <>
                     <Input
@@ -597,7 +639,7 @@ export const TravelerManifestSection = forwardRef<
                       error={activeFieldErrors.email}
                       helperText={
                         !activeFieldErrors.email
-                          ? 'Optional - for personalized tickets and itinerary notifications'
+                          ? 'Optional - guardian contact used if omitted'
                           : undefined
                       }
                       onChange={(e) => handleFieldChange('email', e.target.value)}
@@ -611,7 +653,7 @@ export const TravelerManifestSection = forwardRef<
                       error={activeFieldErrors.phone}
                       helperText={
                         !activeFieldErrors.phone
-                          ? 'Optional - for journey day updates and logistical notifications'
+                          ? 'Optional - guardian contact used if omitted'
                           : undefined
                       }
                       onChange={(e) => handleFieldChange('phone', e.target.value)}
@@ -685,6 +727,7 @@ export const TravelerManifestSection = forwardRef<
               </div>
             </div>
           )}
+        </div>
         </div>
       </Card>
     </div>

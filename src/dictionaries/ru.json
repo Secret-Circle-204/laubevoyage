@@ -142,7 +142,8 @@
       "failedTitle": "Бронирование Не Завершено",
       "failedDesc": "Не удалось подтвердить успешную оплату для данной сессии бронирования.",
       "returnToExperiences": "Вернуться к Путешествиям →"
-    }
+    },
+    "pageTitle": "Complete Your Reservation"
   },
   "contact": {
     "vipConciergeBadge": "VIP-Консьерж 24/7",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "Подтверждение бронирования {bookingNumber}",
-        "body": "Здравствуйте, {customerName}! Ваше бронирование {bookingNumber} успешно подтверждено.",
-        "badge": "БРОНИРОВАНИЕ ПОДТВЕРЖДЕНО"
+        "subject": "Ваше путешествие подтверждено — {bookingNumber}",
+        "body": "Здравствуйте, {customerName}! Ваше путешествие {bookingNumber} успешно подтверждено.",
+        "badge": "ВАШЕ ПУТЕШЕСТВИЕ ПОДТВЕРЖДЕНО",
+        "preheader": "Ваше бронирование подтверждено. Детали поездки и оплаты приведены ниже.",
+        "bookingReference": "Номер бронирования",
+        "journeySummary": "Ваше путешествие",
+        "travelDates": "Даты поездки",
+        "duration": "Продолжительность",
+        "destination": "Направление",
+        "yourStay": "Ваше проживание",
+        "nights": "{count} ночей",
+        "room": "Номер",
+        "boardBasis": "Питание",
+        "travelers": "Путешественники",
+        "travelersCount": "{count} путешественников",
+        "adultsCount": "{count} взрослых",
+        "payment": "Детали оплаты",
+        "totalAmount": "Итого",
+        "amountPaid": "Оплачено",
+        "remainingBalance": "Остаток к оплате",
+        "paidInFull": "ОПЛАЧЕНО ПОЛНОСТЬЮ",
+        "depositPaid": "ДЕПОЗИТ ВНЕСЕН",
+        "paymentPending": "ОЖИДАЕТ ОПЛАТЫ",
+        "loyaltyRewards": "Программа лояльности",
+        "pointsUsed": "Использовано {points} баллов",
+        "creditApplied": "Скидка {amount}",
+        "cta": "Посмотреть бронирование",
+        "supportNote": "Нужна помощь? Консьерж-служба L'Aube Voyage всегда к вашим услугам."
       },
       "paymentReceipt": {
         "subject": "Квитанция об оплате",

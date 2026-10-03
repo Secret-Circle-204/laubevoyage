@@ -986,19 +986,25 @@ export class BookingDetailsLoader {
         formattedOutstanding = await localization.formatPrice(outstandingEGP, ctx)
       }
 
-      const pickupLocation =
-        bookingDoc.pickupLocation &&
-        bookingDoc.pickupLocation.label &&
-        bookingDoc.pickupLocation.address
-          ? {
-              label: bookingDoc.pickupLocation.label,
-              address: bookingDoc.pickupLocation.address,
-              latitude: Number(bookingDoc.pickupLocation.latitude || 0),
-              longitude: Number(bookingDoc.pickupLocation.longitude || 0),
-              instructions: bookingDoc.pickupLocation.instructions || undefined,
-              source: bookingDoc.pickupLocation.source || undefined,
-            }
-          : null
+      // =========================================================================
+      // REACTIVATION: Pickup Location Mapping for Customer Confirmation & Dashboard
+      // To re-enable pickup location in the customer experience, uncomment this block:
+      //
+      // const pickupLocation =
+      //   bookingDoc.pickupLocation &&
+      //   bookingDoc.pickupLocation.label &&
+      //   bookingDoc.pickupLocation.address
+      //     ? {
+      //         label: bookingDoc.pickupLocation.label,
+      //         address: bookingDoc.pickupLocation.address,
+      //         latitude: Number(bookingDoc.pickupLocation.latitude || 0),
+      //         longitude: Number(bookingDoc.pickupLocation.longitude || 0),
+      //         instructions: bookingDoc.pickupLocation.instructions || undefined,
+      //         source: bookingDoc.pickupLocation.source || undefined,
+      //       }
+      //     : null
+      // =========================================================================
+      const pickupLocation = null
 
       const rawTravelers = Array.isArray(bookingDoc.travelers) ? bookingDoc.travelers : []
       const travelers: BookingTravelerDTO[] = rawTravelers.map((t, idx) => {

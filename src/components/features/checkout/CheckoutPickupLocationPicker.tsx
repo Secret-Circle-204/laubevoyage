@@ -541,12 +541,27 @@ export function CheckoutPickupLocationPicker({
   }
 
   return (
-    <Card variant="flat" padding="lg" className="border border-border/80 bg-card rounded-2xl shadow-xs">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3 pb-4 border-b border-border/60">
-        <div className="flex items-center gap-3.5">
-          <span className="w-9 h-9 rounded-full bg-secondary text-background text-sm font-hornbill font-bold flex items-center justify-center shrink-0 shadow-xs">
-            02
-          </span>
+    <Card
+      variant="flat"
+      padding="lg"
+      className="relative overflow-hidden border border-border/70 bg-gradient-to-b from-white via-card-elevated/80 to-card/30 dark:from-card dark:via-card dark:to-card rounded-2xl shadow-xs"
+    >
+      {/* Subtle Luxury Atmospheric Blooms for Light & Dark Modes */}
+      <div
+        className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-gradient-to-br from-secondary/12 via-secondary/5 to-transparent pointer-events-none blur-3xl opacity-75"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-tr from-accent/12 via-accent/5 to-transparent pointer-events-none blur-3xl opacity-75"
+        aria-hidden="true"
+      />
+
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3 pb-4 border-b border-border/60">
+          <div className="flex items-center gap-3.5">
+            <span className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-secondary-dark text-white text-sm font-hornbill font-bold flex items-center justify-center shrink-0 shadow-xs">
+              02
+            </span>
           <div>
             <span className="text-[10px] text-secondary uppercase font-semibold block">
               DEPARTURE LOGISTICS
@@ -754,6 +769,7 @@ export function CheckoutPickupLocationPicker({
           </div>
         </div>
       )}
+      </div>
     </Card>
   )
 }

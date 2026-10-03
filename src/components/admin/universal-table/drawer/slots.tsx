@@ -420,6 +420,7 @@ export const BookingCockpitSlot: React.FC<{
                 </div>
               </div>
 
+              {/* REACTIVATION: Pickup Location Subbox (Uncomment to re-enable in Admin Quick Summary)
               <div className="ut-peek-subbox">
                 <span className="ut-peek-subbox-icon" aria-hidden="true">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
@@ -434,6 +435,7 @@ export const BookingCockpitSlot: React.FC<{
                   </span>
                 </div>
               </div>
+              */}
             </div>
           </div>
         </div>
@@ -892,6 +894,7 @@ export const BookingCockpitSlot: React.FC<{
                 <span className="ut-peek-ops-val">{formatDate(doc.completionAt) || '—'}</span>
               </div>
 
+              {/* REACTIVATION: Pickup / Meeting Point Ops Row (Uncomment to re-enable in Admin Operations)
               {doc.pickupLocation?.address && (
                 <div className="ut-peek-ops-row">
                   <div className="ut-peek-ops-left">
@@ -908,6 +911,7 @@ export const BookingCockpitSlot: React.FC<{
                   </span>
                 </div>
               )}
+              */}
             </div>
           </div>
         </div>

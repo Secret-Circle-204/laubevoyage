@@ -16,13 +16,19 @@ import {
   type TravelerFormState,
   type TravelerManifestSectionHandle,
 } from './TravelerManifestSection'
-import {
-  CheckoutPickupLocationPicker,
-  type PickupLocationValue,
-} from './CheckoutPickupLocationPicker'
 import { LoyaltyRedemptionSection, type PricingPreviewState } from './LoyaltyRedemptionSection'
 import { PaymentGatewaySection } from './PaymentGatewaySection'
 import { CheckoutOrderSummary } from './CheckoutOrderSummary'
+
+// =========================================================================
+// REACTIVATION: Pickup Location Picker Component Import
+// To re-enable Pickup & Meeting Location in checkout, uncomment below:
+//
+// import {
+//   CheckoutPickupLocationPicker,
+//   type PickupLocationValue,
+// } from './CheckoutPickupLocationPicker'
+// =========================================================================
 
 export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
   const { addToast } = useToast()
@@ -33,19 +39,25 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
   const [keyRotationCounter, setKeyRotationCounter] = useState<number>(0)
   const [applyPoints, setApplyPoints] = useState<boolean>(false)
   const [pointsToRedeem, setPointsToRedeem] = useState<number | string>('')
-  const [pickupLocation, setPickupLocation] = useState<PickupLocationValue | null>(() => {
-    if (data.initialPickupLocation) {
-      return {
-        label: data.initialPickupLocation.label,
-        address: data.initialPickupLocation.address,
-        latitude: data.initialPickupLocation.latitude,
-        longitude: data.initialPickupLocation.longitude,
-        instructions: data.initialPickupLocation.instructions,
-        source: data.initialPickupLocation.source,
-      }
-    }
-    return null
-  })
+
+  // =========================================================================
+  // REACTIVATION: Pickup Location Local State
+  // To re-enable Pickup & Meeting Location state, uncomment below:
+  //
+  // const [pickupLocation, setPickupLocation] = useState<PickupLocationValue | null>(() => {
+  //   if (data.initialPickupLocation) {
+  //     return {
+  //       label: data.initialPickupLocation.label,
+  //       address: data.initialPickupLocation.address,
+  //       latitude: data.initialPickupLocation.latitude,
+  //       longitude: data.initialPickupLocation.longitude,
+  //       instructions: data.initialPickupLocation.instructions,
+  //       source: data.initialPickupLocation.source,
+  //     }
+  //   }
+  //   return null
+  // })
+  // =========================================================================
 
   const [previewPricing, setPreviewPricing] = useState<PricingPreviewState | null>(() => ({
     unitPrice: data.subtotalPrice,
@@ -164,7 +176,6 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
       // Automatically advance to the next step
       setTimeout(() => {
         const nextStepEl =
-          document.getElementById('checkout-step-pickup') ||
           document.getElementById('checkout-step-loyalty') ||
           document.getElementById('checkout-step-payment')
 
@@ -336,16 +347,21 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
         selectedAllocationId: data.selectedAllocationId,
         selectedAccommodationOptions: data.selectedAccommodationOptions,
         travelers: travelers as unknown as TravelerInput[],
-        pickupLocation: pickupLocation
-          ? {
-              label: pickupLocation.label,
-              address: pickupLocation.address,
-              latitude: pickupLocation.latitude,
-              longitude: pickupLocation.longitude,
-              source: pickupLocation.source,
-              instructions: pickupLocation.instructions,
-            }
-          : undefined,
+        // =========================================================================
+        // REACTIVATION: Pickup Location Payload Transmission
+        // To re-enable transmitting pickupLocation to confirmCheckoutAction, uncomment below:
+        //
+        // pickupLocation: pickupLocation
+        //   ? {
+        //       label: pickupLocation.label,
+        //       address: pickupLocation.address,
+        //       latitude: pickupLocation.latitude,
+        //       longitude: pickupLocation.longitude,
+        //       source: pickupLocation.source,
+        //       instructions: pickupLocation.instructions,
+        //     }
+        //   : undefined,
+        // =========================================================================
         gatewayId: selectedGateway,
         idempotencyKey,
         pointsToRedeem:
@@ -429,7 +445,10 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
               />
             </div>
 
-            {/* Step 2: Pickup & Meeting Location (SSOT directly reused) */}
+            {/* =========================================================================
+                REACTIVATION: Pickup & Meeting Location UI Section
+                To re-enable Pickup & Meeting Location in checkout UI, uncomment below:
+
             <div id="checkout-step-pickup" className="scroll-mt-24">
               <CheckoutPickupLocationPicker
                 value={pickupLocation}
@@ -440,8 +459,9 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
                 experienceType={data.experienceType}
               />
             </div>
+            ========================================================================= */}
 
-            {/* Step 3: Loyalty Redemption */}
+            {/* Step 2: Loyalty Redemption */}
             <div id="checkout-step-loyalty" className="scroll-mt-24">
               <LoyaltyRedemptionSection
                 availableLoyaltyPoints={data.availableLoyaltyPoints}
@@ -458,7 +478,7 @@ export function CheckoutPage({ data }: { data: CheckoutPageDTO }) {
               />
             </div>
 
-            {/* Step 4: Payment Gateway Selection */}
+            {/* Step 3: Payment Gateway Selection */}
             <div id="checkout-step-payment" className="scroll-mt-24">
               <PaymentGatewaySection
                 gateways={data.gateways}

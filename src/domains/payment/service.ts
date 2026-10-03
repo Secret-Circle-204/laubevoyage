@@ -535,4 +535,40 @@ export class PaymentService {
       errorDetails: result.errorDetails,
     }
   }
+
+  /**
+   * Pure read-only provider status query for an active or initiated transaction.
+   * Invariant: Strictly read-only inquiry. Zero DB writes, zero mutations, zero outbox events, zero reconciliation.
+   */
+  async retrieveProviderStatus(transactionId: string): Promise<{
+    providerStatus: 'paid' | 'failed' | 'open' | 'unknown'
+    gatewayStatus?: string
+    completedAt?: string
+  }> {
+    if (!transactionId) {
+      return { providerStatus: 'unknown' }
+    }
+
+    const tx = await this.paymentRepository.findByTransactionId(transactionId)
+    if (!tx || !tx.session?.sessionId) {
+      return { providerStatus: 'unknown' }
+    }
+
+    try {
+      const adapter = PaymentAdapterFactory.resolve(tx.provider as PaymentProviderType)
+      const res = await adapter.retrievePaymentStatus({ providerSessionId: tx.session.sessionId })
+      return {
+        providerStatus: res.status,
+        gatewayStatus: res.gatewayStatus,
+        completedAt: res.completedAt,
+      }
+    } catch (err) {
+      console.warn(
+        `[PaymentService] Provider status inquiry failed for Transaction ${transactionId}:`,
+        err instanceof Error ? err.message : err,
+      )
+      return { providerStatus: 'unknown' }
+    }
+  }
 }
+

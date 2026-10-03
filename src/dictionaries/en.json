@@ -103,9 +103,10 @@
     "clearAll": "Reset All"
   },
   "checkout": {
+    "pageTitle": "Complete Your Journey Reservation",
     "leadTravelerInfo": "Lead Traveler Information",
     "paymentMethod": "Payment Method",
-    "applyLoyaltyPoints": "Apply Loyalty Points",
+    "applyLoyaltyPoints": "Use your points",
     "orderSummary": "Order Summary",
     "confirmAndPay": "Confirm and Pay Now",
     "firstName": "First Name",
@@ -382,7 +383,7 @@
       "viewRoomDetails": "View room details",
       "roomNumber": "Room {number}",
       "verifyingPricing": "Verifying & Pricing...",
-      "applyArrangement": "Apply Arrangement"
+      "applyArrangement": "Apply Changes"
     },
     "chooseArrangement": "Choose preferred arrangement",
     "chooseRoomArrangement": "Choose room arrangement",
@@ -391,7 +392,7 @@
     "recommendedForGuests": "Recommended for {count} guests",
     "useRecommended": "Use Recommended",
     "buildArrangement": "Build your arrangement",
-    "applyArrangement": "Apply Arrangement",
+    "applyArrangement": "Apply Changes",
     "cancel": "Cancel",
     "smartSuggestion": "Smart suggestion",
     "useSuggestion": "Use suggestion",
@@ -443,8 +444,8 @@
     "perStayShort": "/ stay",
     "pricingErrorHint": "Try increasing the number of rooms or selecting another departure date.",
     "updatingCalculation": "Updating calculation...",
-    "bookThisJourney": "Book This Journey →",
-    "bookJourneyShort": "Book Journey →",
+    "bookThisJourney": "Book This Journey",
+    "bookJourneyShort": "Book Journey",
     "configureBooking": "Configure Booking",
     "journeyOverview": "Journey Overview",
     "staysTitle": "Your Stays and Accommodations",
@@ -550,7 +551,7 @@
     },
     "accommodationModal": {
       "title": "Choose Accommodation",
-      "viewFullDossier": "View full hotel dossiers in itinerary →"
+      "viewFullDossier": "View full hotel details in itinerary →"
     },
     "toast": {
       "selectionRequiredTitle": "Accommodation Selection Required",
@@ -650,9 +651,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "Booking Confirmation {bookingNumber}",
-        "body": "Hello {customerName}, your booking {bookingNumber} has been confirmed successfully.",
-        "badge": "BOOKING CONFIRMED"
+        "subject": "Your Journey is Confirmed — {bookingNumber}",
+        "body": "Hello {customerName}, your journey {bookingNumber} has been confirmed successfully.",
+        "badge": "YOUR JOURNEY IS CONFIRMED",
+        "preheader": "Your reservation is confirmed. Here are your journey and payment details.",
+        "bookingReference": "Booking Reference",
+        "journeySummary": "Your Journey",
+        "travelDates": "Travel Dates",
+        "duration": "Duration",
+        "destination": "Destination",
+        "yourStay": "Your Stay",
+        "nights": "{count} Nights",
+        "room": "Room",
+        "boardBasis": "Board",
+        "travelers": "Travelers",
+        "travelersCount": "{count} Travelers",
+        "adultsCount": "{count} Adults",
+        "payment": "Payment Summary",
+        "totalAmount": "Total",
+        "amountPaid": "Paid",
+        "remainingBalance": "Remaining",
+        "paidInFull": "PAID IN FULL",
+        "depositPaid": "DEPOSIT PAID",
+        "paymentPending": "PAYMENT PENDING",
+        "loyaltyRewards": "Loyalty",
+        "pointsUsed": "{points} points used",
+        "creditApplied": "{amount} credit",
+        "cta": "View Your Reservation",
+        "supportNote": "Need assistance? Your L'Aube Voyage concierge team is here to help."
       },
       "paymentReceipt": {
         "subject": "Payment Receipt",

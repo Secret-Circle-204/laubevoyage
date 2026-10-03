@@ -142,7 +142,8 @@
       "failedTitle": "Reserva Incompleta",
       "failedDesc": "Não foi possível verificar uma transação bem-sucedida para esta sessão de reserva.",
       "returnToExperiences": "Voltar para Experiências →"
-    }
+    },
+    "pageTitle": "Complete Your Reservation"
   },
   "contact": {
     "vipConciergeBadge": "Concierge VIP 24/7",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "Confirmação de reserva {bookingNumber}",
-        "body": "Olá {customerName}, a sua reserva {bookingNumber} foi confirmada com sucesso.",
-        "badge": "RESERVA CONFIRMADA"
+        "subject": "A sua viagem está confirmada — {bookingNumber}",
+        "body": "Olá {customerName}, a sua viagem {bookingNumber} foi confirmada com sucesso.",
+        "badge": "A SUA VIAGEM ESTÁ CONFIRMADA",
+        "preheader": "A sua reserva está confirmada. Aqui estão os detalhes da viagem e do pagamento.",
+        "bookingReference": "Referência da reserva",
+        "journeySummary": "A sua viagem",
+        "travelDates": "Datas da viagem",
+        "duration": "Duração",
+        "destination": "Destino",
+        "yourStay": "A sua estadia",
+        "nights": "{count} noites",
+        "room": "Quarto",
+        "boardBasis": "Regime",
+        "travelers": "Viajantes",
+        "travelersCount": "{count} viajantes",
+        "adultsCount": "{count} adultos",
+        "payment": "Resumo do pagamento",
+        "totalAmount": "Total",
+        "amountPaid": "Pago",
+        "remainingBalance": "Saldo restante",
+        "paidInFull": "PAGO NA TOTALIDADE",
+        "depositPaid": "SINAL PAGO",
+        "paymentPending": "PAGAMENTO PENDENTE",
+        "loyaltyRewards": "Fidelidade",
+        "pointsUsed": "{points} pontos utilizados",
+        "creditApplied": "{amount} de crédito",
+        "cta": "Ver a sua reserva",
+        "supportNote": "Precisa de ajuda? A equipa de concierge da L'Aube Voyage está ao seu dispor."
       },
       "paymentReceipt": {
         "subject": "Recibo de pagamento",

@@ -86,7 +86,7 @@ export function TravelLedgerCard({ booking }: TravelLedgerCardProps) {
               size="sm"
               className="text-xs uppercase bg-secondary/10 text-secondary border-secondary/25 font-semibold"
             >
-              {booking.status.toUpperCase()}
+              CONFIRMED
             </Badge>
           ) : isReview ? (
             <Badge
@@ -96,13 +96,45 @@ export function TravelLedgerCard({ booking }: TravelLedgerCardProps) {
             >
               PENDING REVIEW
             </Badge>
+          ) : booking.status === 'pending_payment' ? (
+            <Badge
+              variant="warning"
+              size="sm"
+              className="text-xs uppercase bg-amber-500/10 text-amber-500 border border-amber-500/25 font-semibold"
+            >
+              PAYMENT REQUIRED
+            </Badge>
+          ) : booking.status === 'payment_received_after_expiry' ? (
+            <Badge
+              variant="warning"
+              size="sm"
+              className="text-xs uppercase bg-amber-500/10 text-amber-500 border border-amber-500/25 font-semibold"
+            >
+              CONCIERGE REVIEW
+            </Badge>
+          ) : booking.status === 'expired' ? (
+            <Badge
+              variant="outline"
+              size="sm"
+              className="text-xs uppercase border-border text-muted-foreground font-semibold"
+            >
+              EXPIRED
+            </Badge>
+          ) : booking.status === 'cancelled' ? (
+            <Badge
+              variant="error"
+              size="sm"
+              className="text-xs uppercase border-rose-500/30 text-rose-500 bg-rose-500/10 font-semibold"
+            >
+              CANCELLED
+            </Badge>
           ) : (
             <Badge
               variant="outline"
               size="sm"
               className="text-xs uppercase border-border text-muted-foreground font-semibold"
             >
-              {booking.status.replace(/_/g, ' ').toUpperCase()}
+              {booking.status.toUpperCase()}
             </Badge>
           )}
 
@@ -259,18 +291,42 @@ export function TravelLedgerCard({ booking }: TravelLedgerCardProps) {
               </div>
             </div>
 
-            {/* Direct Link to Full Travel Dossier */}
+            {/* Direct Link to Full Travel Dossier or Payment Action */}
             <div className="flex items-center gap-3 self-end md:self-center flex-shrink-0 pt-2 md:pt-0">
-              <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="font-bold shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
-                >
-                  <span>Access Travel Dossier</span>
-                  <span>→</span>
-                </Button>
-              </Link>
+              {booking.status === 'pending_payment' ? (
+                <Link href={`/checkout/${booking.reference || booking.id}`}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="font-bold shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                  >
+                    <span>Complete Payment</span>
+                    <span>→</span>
+                  </Button>
+                </Link>
+              ) : booking.status === 'expired' ? (
+                <Link href="/experiences">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-bold shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                  >
+                    <span>Book Again</span>
+                    <span>→</span>
+                  </Button>
+                </Link>
+              ) : (
+                <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="font-bold shadow-sm cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                  >
+                    <span>Access Travel Dossier</span>
+                    <span>→</span>
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>

@@ -605,22 +605,26 @@ export class BookingPolicy {
       }
 
       // 3. Traveler Contact (Email & Phone)
-      if (isLead) {
+      const requiresContact = isLead || travelerType === 'adult'
+
+      if (requiresContact) {
         if (!t.email || !t.email.trim()) {
           addIssue(
             i,
             travelerType,
             'email',
-            'MISSING_LEAD_EMAIL',
-            'Booking contact email is required for tickets and itinerary updates.',
+            isLead ? 'MISSING_LEAD_EMAIL' : 'MISSING_COMPANION_EMAIL',
+            isLead
+              ? 'Booking contact email is required for tickets and itinerary updates.'
+              : `Email address is required for passenger ${i + 1}.`,
           )
         } else if (!emailRegex.test(t.email.trim())) {
           addIssue(
             i,
             travelerType,
             'email',
-            'INVALID_LEAD_EMAIL',
-            'Please provide a valid booking contact email address (e.g. name@example.com).',
+            isLead ? 'INVALID_LEAD_EMAIL' : 'INVALID_COMPANION_EMAIL',
+            'Please provide a valid email address (e.g. name@example.com).',
           )
         }
 
@@ -629,8 +633,10 @@ export class BookingPolicy {
             i,
             travelerType,
             'phone',
-            'MISSING_LEAD_PHONE',
-            'Booking contact phone number is required for urgent journey alerts.',
+            isLead ? 'MISSING_LEAD_PHONE' : 'MISSING_COMPANION_PHONE',
+            isLead
+              ? 'Booking contact phone number is required for urgent journey alerts.'
+              : `Phone number is required for passenger ${i + 1}.`,
           )
         } else {
           const digitsOnly = t.phone.replace(/\D/g, '')
@@ -641,19 +647,19 @@ export class BookingPolicy {
               i,
               travelerType,
               'phone',
-              'INVALID_LEAD_PHONE',
-              'Please provide a valid booking contact phone number with 7 to 15 digits (e.g. +20 100 123 4567).',
+              isLead ? 'INVALID_LEAD_PHONE' : 'INVALID_COMPANION_PHONE',
+              'Please provide a valid phone number with 7 to 15 digits (e.g. +20 100 123 4567).',
             )
           }
         }
       } else {
-        // Companion Contact: Optional, but if provided, must be syntactically valid
+        // Children and Infants: Optional, but if provided, must be syntactically valid
         if (t.email && t.email.trim() && !emailRegex.test(t.email.trim())) {
           addIssue(
             i,
             travelerType,
             'email',
-            'INVALID_COMPANION_EMAIL',
+            'INVALID_CHILD_EMAIL',
             'Please provide a valid email address (e.g. name@example.com).',
           )
         }
@@ -665,7 +671,7 @@ export class BookingPolicy {
               i,
               travelerType,
               'phone',
-              'INVALID_COMPANION_PHONE',
+              'INVALID_CHILD_PHONE',
               'Please provide a valid phone number with 7 to 15 digits (e.g. +20 100 123 4567).',
             )
           }

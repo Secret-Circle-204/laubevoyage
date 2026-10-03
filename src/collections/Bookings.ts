@@ -309,6 +309,7 @@ export const Bookings: CollectionConfig = {
       name: 'pickupLocation',
       type: 'group',
       admin: {
+        hidden: true,
         description: 'Frozen pickup or meeting point location snapshot for this booking',
       },
       fields: [

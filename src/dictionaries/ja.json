@@ -142,7 +142,8 @@
       "failedTitle": "予約が完了していません",
       "failedDesc": "この予約セッションで正常な決済を確認できませんでした。",
       "returnToExperiences": "エクスペリエンス一覧へ戻る →"
-    }
+    },
+    "pageTitle": "Complete Your Reservation"
   },
   "contact": {
     "vipConciergeBadge": "24時間年中無休 VIPコンシェルジュ",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "ご予約の確認 {bookingNumber}",
-        "body": "{customerName}様、ご予約 #{bookingNumber} が正常に確認されました。",
-        "badge": "予約完了"
+        "subject": "ご予約の旅程が確定いたしました — {bookingNumber}",
+        "body": "{customerName} 様、旅程 {bookingNumber} のご予約が正常に確定いたしました。",
+        "badge": "旅程確定",
+        "preheader": "ご予約が確定いたしました。旅程およびお支払い詳細は以下の通りです。",
+        "bookingReference": "予約番号",
+        "journeySummary": "旅程概要",
+        "travelDates": "旅行日程",
+        "duration": "期間",
+        "destination": "目的地",
+        "yourStay": "ご宿泊先",
+        "nights": "{count} 泊",
+        "room": "客室タイプ",
+        "boardBasis": "お食事条件",
+        "travelers": "旅行者",
+        "travelersCount": "{count} 名様",
+        "adultsCount": "大人 {count} 名",
+        "payment": "お支払い概要",
+        "totalAmount": "合計金額",
+        "amountPaid": "お支払い済み",
+        "remainingBalance": "未払い残高",
+        "paidInFull": "全額支払完了",
+        "depositPaid": "予約金支払い済み",
+        "paymentPending": "お支払い待ち",
+        "loyaltyRewards": "ロイヤルティプログラム",
+        "pointsUsed": "{points} ポイント利用",
+        "creditApplied": "{amount} クレジット適用",
+        "cta": "予約内容を確認する",
+        "supportNote": "ご不明な点がございましたら、L'Aube Voyage コンシェルジュデスクまでお気軽にお問い合わせください。"
       },
       "paymentReceipt": {
         "subject": "お支払い領収書",

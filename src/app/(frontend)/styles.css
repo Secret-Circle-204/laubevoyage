@@ -57,6 +57,10 @@
     text-wrap: balance;
   }
 
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
   /* Smooth transitions for all interactive elements */
   .transition-smooth {
     transition: all 0.3s var(--ease-smooth);

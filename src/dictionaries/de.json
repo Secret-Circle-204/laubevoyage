@@ -95,6 +95,7 @@
     "clearAll": "Zurücksetzen"
   },
   "checkout": {
+    "pageTitle": "Vervollständigen Sie Ihre Reisebuchung",
     "leadTravelerInfo": "Angaben zum Hauptreisenden",
     "paymentMethod": "Zahlungsart",
     "applyLoyaltyPoints": "Treuepunkte Einlösen",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "Buchungsbestätigung {bookingNumber}",
-        "body": "Hallo {customerName}, Ihre Buchung {bookingNumber} wurde erfolgreich bestätigt.",
-        "badge": "BUCHUNG BESTÄTIGT"
+        "subject": "Ihre Reise ist bestätigt — {bookingNumber}",
+        "body": "Guten Tag {customerName}, Ihre Reise {bookingNumber} wurde erfolgreich bestätigt.",
+        "badge": "IHRE REISE IST BESTÄTIGT",
+        "preheader": "Ihre Reservierung ist bestätigt. Hier sind Ihre Reise- und Zahlungsdetails.",
+        "bookingReference": "Buchungsnummer",
+        "journeySummary": "Ihre Reise",
+        "travelDates": "Reisedaten",
+        "duration": "Dauer",
+        "destination": "Reiseziel",
+        "yourStay": "Ihre Unterkunft",
+        "nights": "{count} Nächte",
+        "room": "Zimmer",
+        "boardBasis": "Verpflegung",
+        "travelers": "Reisende",
+        "travelersCount": "{count} Reisende",
+        "adultsCount": "{count} Erwachsene",
+        "payment": "Zahlungsübersicht",
+        "totalAmount": "Gesamtbetrag",
+        "amountPaid": "Bezahlt",
+        "remainingBalance": "Restbetrag",
+        "paidInFull": "VOLLSTÄNDIG BEZAHLT",
+        "depositPaid": "ANZAHLUNG GELEISTET",
+        "paymentPending": "ZAHLUNG AUSSTEHEND",
+        "loyaltyRewards": "Treuepunkte",
+        "pointsUsed": "{points} Punkte eingelöst",
+        "creditApplied": "{amount} Guthaben",
+        "cta": "Buchung ansehen",
+        "supportNote": "Brauchen Sie Hilfe? Das Concierge-Team von L'Aube Voyage ist gerne für Sie da."
       },
       "paymentReceipt": {
         "subject": "Zahlungsbeleg",

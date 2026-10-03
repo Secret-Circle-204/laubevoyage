@@ -142,7 +142,8 @@
       "failedTitle": "Varaus Keskeneräinen",
       "failedDesc": "Emme voineet vahvistaa onnistunutta maksua tälle varausistunnolle.",
       "returnToExperiences": "Palaa Elämyksiin →"
-    }
+    },
+    "pageTitle": "Complete Your Reservation"
   },
   "contact": {
     "vipConciergeBadge": "24/7 VIP-Concierge",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "Varausvahvistus {bookingNumber}",
-        "body": "Hei {customerName}, varauksesi {bookingNumber} on vahvistettu onnistuneesti.",
-        "badge": "VARAUS VAHVISTETTU"
+        "subject": "Matkanne on vahvistettu — {bookingNumber}",
+        "body": "Hei {customerName}, matkanne {bookingNumber} on vahvistettu onnistuneesti.",
+        "badge": "MATKANNE ON VAHVISTETTU",
+        "preheader": "Varauksenne on vahvistettu. Tässä ovat matka- ja maksutiedot.",
+        "bookingReference": "Varausnumero",
+        "journeySummary": "Matkanne",
+        "travelDates": "Matkustuspäivät",
+        "duration": "Kesto",
+        "destination": "Kohde",
+        "yourStay": "Majoituksenne",
+        "nights": "{count} yötä",
+        "room": "Huone",
+        "boardBasis": "Ateriat",
+        "travelers": "Matkustajat",
+        "travelersCount": "{count} matkustajaa",
+        "adultsCount": "{count} aikuista",
+        "payment": "Maksun yhteenveto",
+        "totalAmount": "Yhteensä",
+        "amountPaid": "Maksettu",
+        "remainingBalance": "Jäljellä oleva saldo",
+        "paidInFull": "MAKSETTU KOKONAAN",
+        "depositPaid": "ENNAKKOMAKSU SUORITETTU",
+        "paymentPending": "ODOTTAA MAKSUA",
+        "loyaltyRewards": "Kanta-asiakasedut",
+        "pointsUsed": "{points} pistettä käytetty",
+        "creditApplied": "{amount} hyvitystä",
+        "cta": "Tarkastele varaustasi",
+        "supportNote": "Tarvitsetko apua? L'Aube Voyagen concierge-tiimi on aina palveluksessasi."
       },
       "paymentReceipt": {
         "subject": "Maksukuitti",

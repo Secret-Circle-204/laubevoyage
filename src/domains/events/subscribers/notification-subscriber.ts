@@ -1,4 +1,6 @@
 import type { Payload } from 'payload'
+import { BookingStatus } from '@/types'
+import { BookingPolicy } from '../../booking/policy'
 import { EventBus } from '../event-bus'
 import type { BookingConfirmedEvent, BookingPendingAdminReviewEvent } from '../booking-events'
 import type { PaymentCompletedEvent } from '../payment-events'
@@ -18,7 +20,7 @@ export function registerNotificationSubscribers(payload: Payload): void {
   const notificationService = new NotificationService(payload)
   const customerRepository = new CustomerRepository(payload)
 
-  // 1. Booking Confirmed Event -> Fetch customer email & enqueue confirmation
+  // 1. Booking Confirmed Event -> Fetch customer email & enqueue rich confirmation
   eventBus.subscribe<BookingConfirmedEvent>(
     'BOOKING_CONFIRMED',
     'NotificationSubscriber.enqueueBookingConfirmation',
@@ -51,8 +53,97 @@ export function registerNotificationSubscribers(payload: Payload): void {
         }
 
         console.log(
-          `[NotificationSubscriber] Found customer email: ${customer.email}. Queueing notification...`,
+          `[NotificationSubscriber] Found customer email: ${customer.email}. Resolving rich confirmation payload...`,
         )
+
+        // 1. Resolve Experience details (title, destination, cover image, duration)
+        let experienceTitle: string | undefined
+        let destinationName: string | undefined
+        let durationText: string | undefined
+        let coverImageUrl: string | undefined
+
+        try {
+          const expDoc = (await payload.findByID({
+            collection: 'experiences',
+            id: event.booking.experienceId,
+            depth: 1,
+            req,
+          })) as any
+
+          if (expDoc) {
+            experienceTitle = expDoc.title
+            if (expDoc.city && typeof expDoc.city === 'object') {
+              destinationName = expDoc.city.name
+            }
+            if (expDoc.duration?.days) {
+              durationText = `${expDoc.duration.days} Days`
+            }
+            if (expDoc.hero && typeof expDoc.hero === 'object' && expDoc.hero.url) {
+              const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL?.replace(/\/$/, '') || ''
+              coverImageUrl = expDoc.hero.url.startsWith('http')
+                ? expDoc.hero.url
+                : `${serverUrl}${expDoc.hero.url}`
+            }
+          }
+        } catch (expErr) {
+          console.warn(
+            `[NotificationSubscriber] Could not fetch experience #${event.booking.experienceId} details for confirmation email:`,
+            expErr,
+          )
+        }
+
+        // 2. Resolve Stays and Accommodation details
+        const stays =
+          event.booking.pricingSnapshot?.commercialBreakdown?.staysBreakdown?.map((s) => ({
+            propertyName: s.propertyName,
+            nights: s.nights,
+            roomCategory: s.roomCategory,
+            boardBasis: s.boardBasis,
+          })) || []
+
+        const roomCount = event.booking.pricingSnapshot?.commercialBreakdown?.roomCount || 1
+
+        const adultsCount =
+          event.booking.pricingSnapshot?.commercialBreakdown?.adultsCount ||
+          event.booking.travelers?.length ||
+          1
+        const travelersSummary = `${adultsCount} Adults`
+        const travelerNames =
+          event.booking.travelers
+            ?.map((t) => `${t.firstName || ''} ${t.lastName || ''}`.trim())
+            .filter(Boolean) || []
+
+        // 4. Resolve Dynamic Financial Status
+        const snap = event.booking.pricingSnapshot
+        const currency = snap?.displayCurrency || 'GBP'
+        const totalAmount =
+          snap?.displayAmount !== undefined
+            ? Number(snap.displayAmount)
+            : Number(snap?.totalAmountEGP || 0)
+        const rate = snap?.exchangeRate || 1
+
+        const paidRaw = event.booking.amountPaid ?? 0
+        const outstandingRaw = event.booking.outstandingBalance ?? 0
+
+        const amountPaid = snap?.displayAmount !== undefined ? paidRaw * rate : paidRaw
+        const remainingBalance = snap?.displayAmount !== undefined ? outstandingRaw * rate : outstandingRaw
+
+        let financialStatus: 'paid_in_full' | 'deposit_paid' | 'pending' = 'pending'
+        if (outstandingRaw <= 0 || (paidRaw > 0 && paidRaw >= (snap?.totalAmountEGP || totalAmount))) {
+          financialStatus = 'paid_in_full'
+        } else if (paidRaw > 0 && outstandingRaw > 0) {
+          financialStatus = 'deposit_paid'
+        }
+
+        // 5. Resolve Loyalty Points Used (Redemption discount only)
+        const pointsUsed = event.booking.pointHold?.pointsHeld || 0
+        const pointsDiscountRaw = event.booking.pointHold?.valueEGP || snap?.loyaltyDiscountEGP || 0
+        const pointsDiscount =
+          snap?.displayAmount !== undefined ? pointsDiscountRaw * rate : pointsDiscountRaw
+
+        // 6. Actionable CTA URL
+        const appServerUrl = process.env.NEXT_PUBLIC_SERVER_URL?.replace(/\/$/, '') || 'https://laubevoyage.com'
+        const ctaUrl = `${appServerUrl}/booking/confirmation/${event.booking.bookingNumber}`
 
         await notificationService.enqueueNotification(
           {
@@ -66,7 +157,28 @@ export function registerNotificationSubscribers(payload: Payload): void {
             translationKey: 'booking.confirmed',
             templateData: {
               bookingNumber: event.booking.bookingNumber,
-              customerName: customer.fullName || 'Valued Customer',
+              customerName: customer.fullName || 'Valued Guest',
+              locale: customer.preferredLanguage || 'en',
+              startDate: event.booking.startDate,
+              endDate: event.booking.endDate,
+              travelersCount: event.booking.travelers?.length || 1,
+              adultsCount,
+              travelersSummary,
+              travelerNames,
+              experienceTitle: experienceTitle || 'Bespoke Luxury Journey',
+              destinationName: destinationName || 'Egypt',
+              durationText: durationText || '',
+              coverImageUrl: coverImageUrl || '',
+              stays,
+              roomCount,
+              currency,
+              totalAmount,
+              amountPaid,
+              remainingBalance,
+              financialStatus,
+              pointsUsed,
+              pointsDiscount,
+              ctaUrl,
             },
           },
           req,
@@ -74,7 +186,7 @@ export function registerNotificationSubscribers(payload: Payload): void {
 
         if (transactionID) await payload.db.commitTransaction(transactionID)
         console.log(
-          `[NotificationSubscriber] ✅ Successfully enqueued booking confirmation email for Booking #${event.booking.id}.`,
+          `[NotificationSubscriber] ✅ Successfully enqueued rich booking confirmation email for Booking #${event.booking.id}.`,
         )
       } catch (err: unknown) {
         if (transactionID) await payload.db.rollbackTransaction(transactionID)
@@ -87,7 +199,7 @@ export function registerNotificationSubscribers(payload: Payload): void {
     },
   )
 
-  // 3. Payment Completed Event -> Use event.customerEmail & enqueue receipt
+  // 3. Payment Completed Event -> Use event.customerEmail & enqueue receipt (for non-booking transactions)
   eventBus.subscribe<PaymentCompletedEvent>(
     'PAYMENT_COMPLETED',
     'NotificationSubscriber.enqueuePaymentReceipt',
@@ -110,6 +222,59 @@ export function registerNotificationSubscribers(payload: Payload): void {
             `[NotificationSubscriber] Idempotency Guard: Event ${event.eventId} already processed by ${subscriberName}. Skipping.`,
           )
           return
+        }
+
+        // Unified Booking Notification Architecture:
+        // When payment is linked to a booking (event.bookingId is present), check if the booking will
+        // canonically trigger (or has triggered) the comprehensive Journey Confirmation email upon BOOKING_CONFIRMED.
+        // Standalone payment_receipt is suppressed ONLY if the booking is confirmed or confirmable.
+        // If the booking is in an exceptional state (e.g. CANCELLED, EXPIRED, late payment), standalone payment_receipt
+        // is preserved so the customer is not left with zero communication after a successful charge.
+        if (event.bookingId) {
+          let isConfirmableOrConfirmed = false
+          try {
+            const bookingDoc = (await payload.findByID({
+              collection: 'bookings',
+              id: event.bookingId,
+              depth: 0,
+              req,
+            })) as any
+
+            if (bookingDoc) {
+              const status = bookingDoc.status
+              const isLate =
+                status === BookingStatus.EXPIRED ||
+                status === BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY ||
+                (bookingDoc.paymentWindowExpiresAt
+                  ? BookingPolicy.isPaymentLate(bookingDoc as any, event.occurredAt)
+                  : false)
+
+              if (
+                status === BookingStatus.CONFIRMED ||
+                ((status === BookingStatus.DRAFT || status === BookingStatus.PENDING_PAYMENT) &&
+                  !isLate)
+              ) {
+                isConfirmableOrConfirmed = true
+              }
+            }
+          } catch (lookupErr) {
+            console.warn(
+              `[NotificationSubscriber] Could not inspect booking #${event.bookingId} status during payment receipt resolution:`,
+              lookupErr,
+            )
+          }
+
+          if (isConfirmableOrConfirmed) {
+            if (transactionID) await payload.db.commitTransaction(transactionID)
+            console.log(
+              `[NotificationSubscriber] Unified Notification Flow: Suppressing redundant payment_receipt for confirmable Booking #${event.bookingId}. Confirmation and payment details are consolidated into canonical Journey Confirmation email.`,
+            )
+            return
+          }
+
+          console.warn(
+            `[NotificationSubscriber] Exceptional Payment Flow: Booking #${event.bookingId} is in non-confirmable state. Preserving standalone payment_receipt to prevent customer communication gap.`,
+          )
         }
 
         let recipientEmail = event.customerEmail

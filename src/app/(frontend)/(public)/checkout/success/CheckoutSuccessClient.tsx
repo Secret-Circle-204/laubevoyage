@@ -38,18 +38,29 @@ function FailedIcon({ className = 'w-8 h-8' }: { className?: string }) {
   )
 }
 
+type ViewState =
+  | 'verifying'
+  | 'payment_required'
+  | 'payment_failed'
+  | 'payment_received'
+  | 'confirmed'
+  | 'review'
+  | 'expired'
+  | 'late_payment_review'
+  | 'cancelled'
+  | 'unconfirmed'
+
 export function CheckoutSuccessClient({
   transactionId,
   bookingNumber,
 }: CheckoutSuccessClientProps) {
   const { locale } = useLocale()
-  const [status, setStatus] = useState<'pending' | 'confirmed' | 'failed' | 'timeout' | 'review'>('pending')
+  const [viewState, setViewState] = useState<ViewState>('verifying')
   const [_pollCount, setPollCount] = useState<number>(0)
-  const [confirmedBookingNumber, setConfirmedBookingNumber] = useState<string | undefined>(
-    bookingNumber,
-  )
+  const [confirmedBookingNumber, setConfirmedBookingNumber] = useState<string | undefined>(bookingNumber)
   const [earnedPoints, setEarnedPoints] = useState<number | undefined>(undefined)
   const [totalAmountDisplay, setTotalAmountDisplay] = useState<string | undefined>(undefined)
+  const [resolvedCheckoutUrl, setResolvedCheckoutUrl] = useState<string | undefined>(undefined)
   const isPollingRef = useRef<boolean>(true)
 
   useEffect(() => {
@@ -92,46 +103,96 @@ export function CheckoutSuccessClient({
         })
 
         if (res.success && res.status) {
-          const currentStatus = res.status.toLowerCase()
-          if (currentStatus === 'pending_admin_review') {
-            setStatus('review')
-            if (res.bookingNumber) {
-              setConfirmedBookingNumber(res.bookingNumber)
-            }
-            isPollingRef.current = false
-            return
-          } else if (currentStatus === 'confirmed' || currentStatus === 'paid') {
-            setStatus('confirmed')
-            if (res.bookingNumber) {
-              setConfirmedBookingNumber(res.bookingNumber)
-            }
-            if (res.formattedTotalPrice) {
-              setTotalAmountDisplay(res.formattedTotalPrice)
-            } else if (res.pricingSnapshot) {
-              const amountStr = res.pricingSnapshot.displayAmount
-                ? `${res.pricingSnapshot.displayCurrency || '$'}${res.pricingSnapshot.displayAmount}`
-                : `${res.pricingSnapshot.totalAmountEGP} EGP`
-              setTotalAmountDisplay(amountStr)
-            }
+          const bStatus = res.status.toLowerCase()
+          const pStatus = (res.paymentStatus || '').toLowerCase()
+          const provStatus = (res.providerStatus || '').toLowerCase()
+          const isExpired = Boolean(res.isPaymentWindowExpired || bStatus === 'expired')
 
-            if (typeof res.earnedPoints === 'number') {
-              setEarnedPoints(res.earnedPoints)
-              isPollingRef.current = false
-              return
-            }
-          } else if (currentStatus === 'cancelled' || currentStatus === 'failed') {
-            setStatus('failed')
+          if (res.bookingNumber) {
+            setConfirmedBookingNumber(res.bookingNumber)
+          }
+          if (res.checkoutUrl) {
+            setResolvedCheckoutUrl(res.checkoutUrl)
+          }
+
+          if (res.formattedTotalPrice) {
+            setTotalAmountDisplay(res.formattedTotalPrice)
+          } else if (res.pricingSnapshot) {
+            const amountStr = res.pricingSnapshot.displayAmount
+              ? `${res.pricingSnapshot.displayCurrency || '$'}${res.pricingSnapshot.displayAmount}`
+              : `${res.pricingSnapshot.totalAmountEGP} EGP`
+            setTotalAmountDisplay(amountStr)
+          }
+
+          if (typeof res.earnedPoints === 'number') {
+            setEarnedPoints(res.earnedPoints)
+          }
+
+          // 1. Confirmed / Completed -> Terminal Success
+          if (bStatus === 'confirmed' || bStatus === 'completed' || bStatus === 'paid') {
+            setViewState('confirmed')
             isPollingRef.current = false
             return
+          }
+
+          // 2. Pending Admin Review -> Terminal Review
+          if (bStatus === 'pending_admin_review') {
+            setViewState('review')
+            isPollingRef.current = false
+            return
+          }
+
+          // 3. Late Payment Received After Expiry -> Terminal Review
+          if (bStatus === 'payment_received_after_expiry') {
+            setViewState('late_payment_review')
+            isPollingRef.current = false
+            return
+          }
+
+          // 4. Cancelled -> Terminal Cancelled
+          if (bStatus === 'cancelled') {
+            setViewState('cancelled')
+            isPollingRef.current = false
+            return
+          }
+
+          // 5. Booking Expired or Payment Window Expired
+          if (isExpired) {
+            if (pStatus === 'successful' || provStatus === 'paid') {
+              setViewState('late_payment_review')
+            } else {
+              setViewState('expired')
+            }
+            isPollingRef.current = false
+            return
+          }
+
+          // 6. Payment verified by Provider or Transaction, but Booking transition in flight
+          if (pStatus === 'successful' || provStatus === 'paid') {
+            setViewState('payment_received')
+            // Continue polling to capture confirmed transition if attempts remain
+          } else if (pStatus === 'failed' || provStatus === 'failed') {
+            // 7. Explicit payment failure while window remains active
+            setViewState('payment_failed')
+            isPollingRef.current = false
+            return
+          } else if (pStatus === 'initiated' && provStatus === 'unknown') {
+            // 8. Payment transaction was initiated, but provider truth could not be confirmed yet.
+            // Invariant: UNKNOWN != FAILED != PAID. Must NEVER present a payment button or commercial timeout.
+            setViewState('unconfirmed')
+          } else if (bStatus === 'pending_payment' || bStatus === 'draft') {
+            // 9. Payment Required (no transaction initiated yet, awaiting customer action, window active)
+            setViewState('payment_required')
           }
         }
       } catch (err) {
         console.error('[CheckoutSuccessClient] Status check error:', err)
       }
 
+      // Check max attempts
       if (attempts >= maxAttempts) {
-        setStatus((prev) => (prev === 'confirmed' ? 'confirmed' : 'timeout'))
         isPollingRef.current = false
+        // Strictly preserve current truth; do NOT invent a "timeout" business status
         return
       }
 
@@ -148,6 +209,9 @@ export function CheckoutSuccessClient({
     }
   }, [transactionId, bookingNumber])
 
+  const retryOrResumeUrl =
+    resolvedCheckoutUrl || (confirmedBookingNumber ? `/checkout/${confirmedBookingNumber}` : '/experiences')
+
   return (
     <div className="py-16 sm:py-24 bg-background min-h-screen flex items-center justify-center text-foreground">
       <div className="max-w-xl w-full mx-auto px-4 sm:px-6">
@@ -156,7 +220,8 @@ export function CheckoutSuccessClient({
           padding="lg"
           className="text-center shadow-2xl border border-border/80 bg-card rounded-3xl space-y-6 p-6 sm:p-8"
         >
-          {status === 'pending' && (
+          {/* STATE 0: Initial Verifying */}
+          {viewState === 'verifying' && (
             <div className="space-y-6 py-6 animate-editorial-reveal">
               <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
                 <div className="absolute inset-0 rounded-full border-4 border-secondary/20 border-t-secondary animate-spin" />
@@ -167,14 +232,14 @@ export function CheckoutSuccessClient({
 
               <div>
                 <Badge variant="outline" size="md" className="mb-3 text-xs border-secondary/30 text-secondary bg-secondary/5 font-semibold">
-                  {dict.get(locale, 'checkout.success.pendingBadge') || 'SETTLEMENT CHECKPOINT'}
+                  {dict.get(locale, 'checkout.success.checkpointBadge') || 'CHECKPOINT'}
                 </Badge>
                 <h1 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground tracking-tight">
                   {dict.get(locale, 'checkout.success.verifyingTitle') || 'Verifying Reservation'}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
                   {dict.get(locale, 'checkout.success.verifyingDesc') ||
-                    'Transaction received. Securing your itinerary ledger and credentials...'}
+                    'Checking transaction status and securing your itinerary ledger...'}
                 </p>
               </div>
 
@@ -193,7 +258,8 @@ export function CheckoutSuccessClient({
             </div>
           )}
 
-          {status === 'confirmed' && (
+          {/* STATE 1: Confirmed */}
+          {viewState === 'confirmed' && (
             <div className="space-y-6 py-4 animate-editorial-reveal">
               <div className="w-20 h-20 rounded-full bg-secondary/10 border-2 border-secondary text-secondary flex items-center justify-center mx-auto shadow-lg shadow-secondary/10">
                 <CheckIcon className="w-10 h-10" />
@@ -271,7 +337,195 @@ export function CheckoutSuccessClient({
             </div>
           )}
 
-          {status === 'review' && (
+          {/* STATE 2: Payment Received — Confirmation Pending */}
+          {viewState === 'payment_received' && (
+            <div className="space-y-6 py-4 animate-editorial-reveal">
+              <div className="w-20 h-20 rounded-full bg-secondary/10 border-2 border-secondary text-secondary flex items-center justify-center mx-auto shadow-lg shadow-secondary/10">
+                <CheckIcon className="w-10 h-10" />
+              </div>
+
+              <div>
+                <Badge variant="secondary" size="md" className="mb-2 text-xs border border-secondary/25 bg-secondary/10 text-secondary font-semibold">
+                  {dict.get(locale, 'checkout.success.paymentReceivedBadge') || 'PAYMENT RECEIVED'}
+                </Badge>
+                <h1 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground tracking-tight">
+                  {dict.get(locale, 'checkout.success.paymentReceivedTitle') || 'Payment Received — Confirmation Pending'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  {dict.get(locale, 'checkout.success.paymentReceivedDesc') ||
+                    'Your payment has been received and verified. We are finalizing your booking confirmation. Please do not submit another payment.'}
+                </p>
+              </div>
+
+              <div className="bg-card-elevated/70 p-5 rounded-2xl border border-border/70 text-sm space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-xs uppercase font-medium">
+                    {dict.get(locale, 'checkout.success.bookingReference') || 'Booking Reference'}
+                  </span>
+                  <span dir="ltr" className="font-mono font-bold text-secondary">
+                    #{confirmedBookingNumber}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-xs uppercase font-medium">
+                    {dict.get(locale, 'checkout.success.status') || 'Status'}
+                  </span>
+                  <span className="text-xs font-bold text-secondary px-2.5 py-0.5 rounded-full bg-secondary/10 border border-secondary/25 uppercase">
+                    {dict.get(locale, 'checkout.success.settlementFinalizing') || 'Settlement Finalizing'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link href="/dashboard/bookings" className="w-full">
+                  <Button variant="primary" size="lg" className="w-full font-bold shadow-md cursor-pointer py-3.5">
+                    {dict.get(locale, 'checkout.success.viewInMemberVault') || 'View in Member Vault →'}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* STATE 3: Payment Failed (Hold still active -> Safe retry) */}
+          {viewState === 'payment_failed' && (
+            <div className="space-y-6 py-4 animate-editorial-reveal">
+              <div className="w-20 h-20 rounded-full bg-rose-500/10 border-2 border-rose-500 text-rose-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/10">
+                <FailedIcon className="w-8 h-8" />
+              </div>
+
+              <div>
+                <Badge variant="error" size="md" className="mb-2 font-medium text-xs">
+                  {dict.get(locale, 'checkout.success.paymentFailedBadge') || 'PAYMENT COULD NOT BE COMPLETED'}
+                </Badge>
+                <h1 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground tracking-tight">
+                  {dict.get(locale, 'checkout.success.paymentFailedTitle') || 'Payment Not Completed'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  {dict.get(locale, 'checkout.success.paymentFailedDesc') ||
+                    'Your payment transaction could not be completed. Your reservation hold is still active. You can retry your payment safely.'}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link
+                  href={confirmedBookingNumber ? `/checkout/${confirmedBookingNumber}` : '/experiences'}
+                  className="w-full"
+                >
+                  <Button variant="primary" size="lg" className="w-full font-bold shadow-md cursor-pointer py-3.5">
+                    {dict.get(locale, 'checkout.success.tryPaymentAgain') || 'Try Payment Again →'}
+                  </Button>
+                </Link>
+                <Link href="/experiences" className="w-full">
+                  <Button variant="outline" size="lg" className="w-full font-bold cursor-pointer py-3.5">
+                    {dict.get(locale, 'checkout.success.returnToExperiences') || 'Return to Experiences'}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* STATE 4: Payment Required (Awaiting payment completion, hold active) */}
+          {viewState === 'payment_required' && (
+            <div className="space-y-6 py-4 animate-editorial-reveal">
+              <div className="w-20 h-20 rounded-full bg-amber-500/10 border-2 border-amber-500 text-amber-500 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+                <ReviewIcon className="w-8 h-8" />
+              </div>
+
+              <div>
+                <Badge variant="warning" size="md" className="mb-2 font-medium text-xs">
+                  {dict.get(locale, 'checkout.success.paymentRequiredBadge') || 'PAYMENT REQUIRED'}
+                </Badge>
+                <h1 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground tracking-tight">
+                  {dict.get(locale, 'checkout.success.paymentRequiredTitle') || 'Payment Not Yet Completed'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  {dict.get(locale, 'checkout.success.paymentRequiredDesc') ||
+                    'Your reservation is awaiting payment confirmation. Please complete your settlement to confirm your journey.'}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <a href={retryOrResumeUrl} className="w-full">
+                  <Button variant="primary" size="lg" className="w-full font-bold shadow-md cursor-pointer py-3.5">
+                    {dict.get(locale, 'checkout.success.completePayment') || 'Complete Payment →'}
+                  </Button>
+                </a>
+                <Link href="/dashboard/bookings" className="w-full">
+                  <Button variant="outline" size="lg" className="w-full font-bold cursor-pointer py-3.5">
+                    {dict.get(locale, 'checkout.success.viewInMemberVault') || 'View in Member Vault'}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* STATE 5: Booking Expired */}
+          {viewState === 'expired' && (
+            <div className="space-y-6 py-4 animate-editorial-reveal">
+              <div className="w-20 h-20 rounded-full bg-muted border-2 border-border text-muted-foreground flex items-center justify-center mx-auto">
+                <ReviewIcon className="w-8 h-8" />
+              </div>
+
+              <div>
+                <Badge variant="outline" size="md" className="mb-2 text-xs border-border font-semibold">
+                  {dict.get(locale, 'checkout.success.expiredBadge') || 'RESERVATION WINDOW EXPIRED'}
+                </Badge>
+                <h1 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground tracking-tight">
+                  {dict.get(locale, 'checkout.success.expiredTitle') || 'Reservation Window Expired'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  {dict.get(locale, 'checkout.success.expiredDesc') ||
+                    'This reservation was not completed within the payment window. Accommodations have been released to maintain inventory integrity.'}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link href="/experiences" className="w-full">
+                  <Button variant="primary" size="lg" className="w-full font-bold shadow-md cursor-pointer py-3.5">
+                    {dict.get(locale, 'checkout.success.startNewReservation') || 'Start a New Reservation →'}
+                  </Button>
+                </Link>
+                <Link href="/dashboard/bookings" className="w-full">
+                  <Button variant="outline" size="lg" className="w-full font-bold cursor-pointer py-3.5">
+                    {dict.get(locale, 'checkout.success.viewInMemberVault') || 'Return to Member Vault'}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* STATE 6: Late Payment Review */}
+          {viewState === 'late_payment_review' && (
+            <div className="space-y-6 py-4 animate-editorial-reveal">
+              <div className="w-20 h-20 rounded-full bg-amber-500/10 border-2 border-amber-500 text-amber-500 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+                <ReviewIcon className="w-8 h-8" />
+              </div>
+
+              <div>
+                <Badge variant="warning" size="md" className="mb-2 text-xs font-semibold">
+                  {dict.get(locale, 'checkout.success.latePaymentBadge') || 'CONCIERGE REVIEW'}
+                </Badge>
+                <h1 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground tracking-tight">
+                  {dict.get(locale, 'checkout.success.latePaymentTitle') || 'Payment Under Concierge Review'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  {dict.get(locale, 'checkout.success.latePaymentDesc') ||
+                    'Your payment was received after the reservation window expired. Our concierge team is reviewing your itinerary or arranging resolution. Please do not submit another payment.'}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link href="/dashboard/bookings" className="w-full">
+                  <Button variant="primary" size="lg" className="w-full font-bold shadow-md cursor-pointer py-3.5">
+                    {dict.get(locale, 'checkout.success.viewInMemberVault') || 'View in Member Vault →'}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* STATE 7: Review (BNPL / Admin Review) */}
+          {viewState === 'review' && (
             <div className="space-y-6 py-4 animate-editorial-reveal">
               <div className="w-20 h-20 rounded-full bg-secondary/10 border-2 border-secondary text-secondary flex items-center justify-center mx-auto shadow-lg shadow-secondary/10">
                 <ReviewIcon className="w-10 h-10" />
@@ -319,36 +573,8 @@ export function CheckoutSuccessClient({
             </div>
           )}
 
-          {status === 'timeout' && (
-            <div className="space-y-6 py-4 animate-editorial-reveal">
-              <div className="w-20 h-20 rounded-full bg-card-elevated border-2 border-border text-muted-foreground flex items-center justify-center mx-auto">
-                <ReviewIcon className="w-8 h-8" />
-              </div>
-
-              <div>
-                <Badge variant="outline" size="md" className="mb-2 text-xs border-border font-semibold">
-                  {dict.get(locale, 'checkout.success.timeoutBadge') || 'PROCESSING IN VAULT'}
-                </Badge>
-                <h1 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground tracking-tight">
-                  {dict.get(locale, 'checkout.success.timeoutTitle') || 'Settlement Verification in Progress'}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                  {dict.get(locale, 'checkout.success.timeoutDesc') ||
-                    'Your reservation is being confirmed with the booking vault. You can review your status anytime in your dashboard.'}
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Link href="/dashboard/bookings" className="w-full">
-                  <Button variant="primary" size="lg" className="w-full font-bold shadow-md cursor-pointer py-3.5">
-                    {dict.get(locale, 'checkout.success.goToMemberVault') || 'Go to Member Vault →'}
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {status === 'failed' && (
+          {/* STATE 8: Cancelled */}
+          {viewState === 'cancelled' && (
             <div className="space-y-6 py-4 animate-editorial-reveal">
               <div className="w-20 h-20 rounded-full bg-rose-500/10 border-2 border-rose-500 text-rose-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/10">
                 <FailedIcon className="w-8 h-8" />
@@ -356,23 +582,81 @@ export function CheckoutSuccessClient({
 
               <div>
                 <Badge variant="error" size="md" className="mb-2 font-medium text-xs">
-                  {dict.get(locale, 'checkout.success.failedBadge') || 'TRANSACTION UNCONFIRMED'}
+                  {dict.get(locale, 'checkout.success.cancelledBadge') || 'RESERVATION CANCELLED'}
                 </Badge>
                 <h1 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground tracking-tight">
-                  {dict.get(locale, 'checkout.success.failedTitle') || 'Reservation Incomplete'}
+                  {dict.get(locale, 'checkout.success.cancelledTitle') || 'Reservation Cancelled'}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                  {dict.get(locale, 'checkout.success.failedDesc') ||
-                    'We could not verify a successful transaction for this reservation session.'}
+                  {dict.get(locale, 'checkout.success.cancelledDesc') || 'This reservation has been cancelled.'}
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Link href="/experiences" className="w-full">
                   <Button variant="outline" size="lg" className="w-full font-bold cursor-pointer py-3.5">
-                    {dict.get(locale, 'checkout.success.returnToExperiences') || 'Return to Experiences →'}
+                    {dict.get(locale, 'checkout.success.exploreExperiences') || 'Explore Other Experiences →'}
                   </Button>
                 </Link>
+              </div>
+            </div>
+          )}
+
+          {/* STATE 9: Payment Unconfirmed / Unknown Provider Status */}
+          {viewState === 'unconfirmed' && (
+            <div className="space-y-6 py-4 animate-editorial-reveal">
+              <div className="w-20 h-20 rounded-full bg-amber-500/10 border-2 border-amber-500 text-amber-500 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+                <ReviewIcon className="w-8 h-8" />
+              </div>
+
+              <div>
+                <Badge variant="warning" size="md" className="mb-2 font-medium text-xs">
+                  {dict.get(locale, 'checkout.success.unconfirmedBadge') || 'STATUS UNCONFIRMED'}
+                </Badge>
+                <h1 className="text-2xl sm:text-3xl font-hornbill font-light text-foreground tracking-tight">
+                  {dict.get(locale, 'checkout.success.unconfirmedTitle') || 'Payment Status Could Not Be Confirmed Yet'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  {dict.get(locale, 'checkout.success.unconfirmedDesc') ||
+                    'We are currently unable to confirm the status of your payment transaction. If you have already completed payment, please do not submit another payment. You can review your status in your Member Vault or check back shortly.'}
+                </p>
+              </div>
+
+              <div className="bg-card-elevated/70 p-5 rounded-2xl border border-border/70 text-sm space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-xs uppercase font-medium">
+                    {dict.get(locale, 'checkout.success.bookingReference') || 'Booking Reference'}
+                  </span>
+                  <span dir="ltr" className="font-mono font-bold text-secondary">
+                    #{confirmedBookingNumber}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-xs uppercase font-medium">
+                    {dict.get(locale, 'checkout.success.status') || 'Status'}
+                  </span>
+                  <span className="text-xs font-bold text-amber-500 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 uppercase">
+                    Verification In Progress
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link href="/dashboard/bookings" className="w-full">
+                  <Button variant="primary" size="lg" className="w-full font-bold shadow-md cursor-pointer py-3.5">
+                    {dict.get(locale, 'checkout.success.viewInMemberVault') || 'View in Member Vault →'}
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full font-bold cursor-pointer py-3.5"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') window.location.reload()
+                  }}
+                >
+                  {dict.get(locale, 'checkout.success.checkAgain') || 'Check Status Again'}
+                </Button>
               </div>
             </div>
           )}

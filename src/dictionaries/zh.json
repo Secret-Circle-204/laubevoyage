@@ -142,7 +142,8 @@
       "failedTitle": "预订未完成",
       "failedDesc": "未能确认该预订会话的有效支付。",
       "returnToExperiences": "返回探索行程 →"
-    }
+    },
+    "pageTitle": "Complete Your Reservation"
   },
   "contact": {
     "vipConciergeBadge": "24/7 VIP专属礼宾",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "预订确认 {bookingNumber}",
-        "body": "您好 {customerName}，您的预订 #{bookingNumber} 已成功确认。",
-        "badge": "预订已确认"
+        "subject": "您的尊贵旅程已确认 — {bookingNumber}",
+        "body": "尊敬的 {customerName}，您的旅程 {bookingNumber} 已成功确认。",
+        "badge": "旅程已确认",
+        "preheader": "您的预订已确认。以下是您的旅程与支付详情。",
+        "bookingReference": "预订编号",
+        "journeySummary": "您的旅程",
+        "travelDates": "旅行日期",
+        "duration": "行程时间",
+        "destination": "目的地",
+        "yourStay": "住宿安排",
+        "nights": "{count} 晚",
+        "room": "房型",
+        "boardBasis": "餐饮",
+        "travelers": "出行人",
+        "travelersCount": "{count} 位出行人",
+        "adultsCount": "{count} 位成人",
+        "payment": "支付明细",
+        "totalAmount": "总额",
+        "amountPaid": "已付",
+        "remainingBalance": "剩余待付",
+        "paidInFull": "已全额付清",
+        "depositPaid": "已付定金",
+        "paymentPending": "待支付",
+        "loyaltyRewards": "尊享积分",
+        "pointsUsed": "已使用 {points} 积分",
+        "creditApplied": "折抵 {amount}",
+        "cta": "查看您的预订",
+        "supportNote": "需要协助？L'Aube Voyage 专属礼宾团队随时为您服务。"
       },
       "paymentReceipt": {
         "subject": "付款收据",

@@ -92,6 +92,15 @@ export function registerLoyaltyNotificationSubscriber(
         return
       }
 
+      // Booking points are reflected in customer history and balance;
+      // standalone email is suppressed to prevent sending duplicate notifications on booking confirmation.
+      if (event.source === 'booking') {
+        console.log(
+          `[LoyaltyNotificationSubscriber] Suppressing separate loyalty_earned email for Customer #${event.customerId} (Booking #${event.bookingId}). Points safely credited to ledger and customer balance.`,
+        )
+        return
+      }
+
       const transactionID = await payload.db.beginTransaction()
       const req = { transactionID } as any
       try {

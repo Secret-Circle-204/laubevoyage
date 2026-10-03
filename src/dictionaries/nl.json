@@ -142,7 +142,8 @@
       "failedTitle": "Reservering Onvolledig",
       "failedDesc": "We konden geen succesvolle transactie verifiëren voor deze sessie.",
       "returnToExperiences": "Terug naar Belevenissen →"
-    }
+    },
+    "pageTitle": "Complete Your Reservation"
   },
   "contact": {
     "vipConciergeBadge": "24/7 VIP Conciërge",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "Boekingsbevestiging {bookingNumber}",
-        "body": "Hallo {customerName}, uw boeking {bookingNumber} is succesvol bevestigd.",
-        "badge": "BOEKING BEVESTIGD"
+        "subject": "Uw reis is bevestigd — {bookingNumber}",
+        "body": "Beste {customerName}, uw reis {bookingNumber} is succesvol bevestigd.",
+        "badge": "UW REIS IS BEVESTIGD",
+        "preheader": "Uw reservering is bevestigd. Hier zijn uw reis- en betalingsgegevens.",
+        "bookingReference": "Boekingsreferentie",
+        "journeySummary": "Uw reis",
+        "travelDates": "Reisdata",
+        "duration": "Reisduur",
+        "destination": "Bestemming",
+        "yourStay": "Uw verblijf",
+        "nights": "{count} nachten",
+        "room": "Kamer",
+        "boardBasis": "Verzorging",
+        "travelers": "Reizigers",
+        "travelersCount": "{count} reizigers",
+        "adultsCount": "{count} volwassenen",
+        "payment": "Betalingsoverzicht",
+        "totalAmount": "Totaal",
+        "amountPaid": "Betaald",
+        "remainingBalance": "Resterend saldo",
+        "paidInFull": "VOLLEDIG BETAALD",
+        "depositPaid": "AANBETALING VOLDAAN",
+        "paymentPending": "BETALING IN BEHANDELING",
+        "loyaltyRewards": "Loyaliteitsprogramma",
+        "pointsUsed": "{points} punten gebruikt",
+        "creditApplied": "{amount} tegoed toegepast",
+        "cta": "Bekijk uw reservering",
+        "supportNote": "Hulp nodig? Het conciërgeteam van L'Aube Voyage staat voor u klaar."
       },
       "paymentReceipt": {
         "subject": "Betalingsbewijs",

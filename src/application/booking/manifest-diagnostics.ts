@@ -141,14 +141,14 @@ export class ManifestDiagnosticsPresenter {
       const singleMissingField = incompleteTravelers[0].primaryMissingField
       if (singleMissingField === 'phone') {
         primaryActionLabel =
-          incompleteTravelers[0].issues[0]?.code === 'INVALID_LEAD_PHONE'
+          incompleteTravelers[0].issues[0]?.code?.startsWith('INVALID_')
             ? 'Fix phone number →'
             : 'Add phone number →'
       } else if (singleMissingField === 'email') {
         primaryActionLabel =
-          incompleteTravelers[0].issues[0]?.code === 'INVALID_LEAD_EMAIL'
-            ? 'Fix contact email →'
-            : 'Add contact email →'
+          incompleteTravelers[0].issues[0]?.code?.startsWith('INVALID_')
+            ? 'Fix email address →'
+            : 'Add email address →'
       } else if (singleMissingField === 'firstName') {
         primaryActionLabel = 'Add first name →'
       } else if (singleMissingField === 'lastName') {

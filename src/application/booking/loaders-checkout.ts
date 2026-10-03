@@ -157,16 +157,22 @@ export class CheckoutPageLoader {
             }))
           : undefined
 
-        const initialPickupLocation = bookingDoc.pickupLocation
-          ? {
-              label: bookingDoc.pickupLocation.label || '',
-              address: bookingDoc.pickupLocation.address || '',
-              latitude: bookingDoc.pickupLocation.latitude || 0,
-              longitude: bookingDoc.pickupLocation.longitude || 0,
-              instructions: bookingDoc.pickupLocation.instructions || undefined,
-              source: bookingDoc.pickupLocation.source as any,
-            }
-          : undefined
+        // =========================================================================
+        // REACTIVATION: Pickup Location Checkout Hydration
+        // To re-enable pickup location hydration in checkout, uncomment this block:
+        //
+        // const initialPickupLocation = bookingDoc.pickupLocation
+        //   ? {
+        //       label: bookingDoc.pickupLocation.label || '',
+        //       address: bookingDoc.pickupLocation.address || '',
+        //       latitude: bookingDoc.pickupLocation.latitude || 0,
+        //       longitude: bookingDoc.pickupLocation.longitude || 0,
+        //       instructions: bookingDoc.pickupLocation.instructions || undefined,
+        //       source: bookingDoc.pickupLocation.source as any,
+        //     }
+        //   : undefined
+        // =========================================================================
+        const initialPickupLocation = undefined
 
         return {
           bookingId: bookingDoc.bookingNumber,

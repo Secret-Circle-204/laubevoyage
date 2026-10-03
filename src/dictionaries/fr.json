@@ -95,6 +95,7 @@
     "clearAll": "Tout Réinitialiser"
   },
   "checkout": {
+    "pageTitle": "Finalisez la Réservation de Votre Voyage",
     "leadTravelerInfo": "Informations du Voyageur Principal",
     "paymentMethod": "Moyen de Paiement",
     "applyLoyaltyPoints": "Utiliser des Points de Fidélité",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "Confirmation de réservation {bookingNumber}",
-        "body": "Bonjour {customerName}, votre réservation {bookingNumber} a été confirmée avec succès.",
-        "badge": "RÉSERVATION CONFIRMÉE"
+        "subject": "Votre voyage est confirmé — {bookingNumber}",
+        "body": "Bonjour {customerName}, votre voyage {bookingNumber} est confirmé avec succès.",
+        "badge": "VOTRE VOYAGE EST CONFIRMÉ",
+        "preheader": "Votre réservation est confirmée. Voici les détails de votre voyage et du paiement.",
+        "bookingReference": "Référence de réservation",
+        "journeySummary": "Votre voyage",
+        "travelDates": "Dates du voyage",
+        "duration": "Durée",
+        "destination": "Destination",
+        "yourStay": "Votre séjour",
+        "nights": "{count} nuits",
+        "room": "Chambre",
+        "boardBasis": "Pension",
+        "travelers": "Voyageurs",
+        "travelersCount": "{count} voyageurs",
+        "adultsCount": "{count} adultes",
+        "payment": "Résumé du paiement",
+        "totalAmount": "Total",
+        "amountPaid": "Payé",
+        "remainingBalance": "Solde restant",
+        "paidInFull": "PAYÉ EN TOTALITÉ",
+        "depositPaid": "ACOMPTE VERSÉ",
+        "paymentPending": "EN ATTENTE DE PAIEMENT",
+        "loyaltyRewards": "Fidélité",
+        "pointsUsed": "{points} points utilisés",
+        "creditApplied": "{amount} de crédit",
+        "cta": "Voir votre réservation",
+        "supportNote": "Besoin d’aide ? L’équipe concierge L’Aube Voyage est à votre disposition."
       },
       "paymentReceipt": {
         "subject": "Reçu de paiement",

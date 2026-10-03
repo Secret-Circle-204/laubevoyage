@@ -142,7 +142,8 @@
       "failedTitle": "Rezerwacja Niekompletna",
       "failedDesc": "Nie udało się potwierdzić udanej płatności dla tej sesji rezerwacji.",
       "returnToExperiences": "Wróć do Ofert →"
-    }
+    },
+    "pageTitle": "Complete Your Reservation"
   },
   "contact": {
     "vipConciergeBadge": "Concierge VIP 24/7",
@@ -646,9 +647,34 @@
     },
     "templates": {
       "bookingConfirmation": {
-        "subject": "Potwierdzenie rezerwacji {bookingNumber}",
-        "body": "Witaj {customerName}, Twoja rezerwacja {bookingNumber} została pomyślnie potwierdzona.",
-        "badge": "REZERWACJA POTWIERDZONA"
+        "subject": "Twoja podróż została potwierdzona — {bookingNumber}",
+        "body": "Dzień dobry {customerName}, Twoja podróż {bookingNumber} została pomyślnie potwierdzona.",
+        "badge": "TWOJA PODRÓŻ ZOSTAŁA POTWIERDZONA",
+        "preheader": "Twoja rezerwacja jest potwierdzona. Oto szczegóły podróży oraz płatności.",
+        "bookingReference": "Numer rezerwacji",
+        "journeySummary": "Twoja podróż",
+        "travelDates": "Termin podróży",
+        "duration": "Czas trwania",
+        "destination": "Kierunek",
+        "yourStay": "Twój pobyt",
+        "nights": "{count} nocy",
+        "room": "Pokój",
+        "boardBasis": "Wyżywienie",
+        "travelers": "Podróżni",
+        "travelersCount": "{count} podróżnych",
+        "adultsCount": "{count} dorosłych",
+        "payment": "Podsumowanie płatności",
+        "totalAmount": "Łącznie",
+        "amountPaid": "Opłacono",
+        "remainingBalance": "Pozostała kwota",
+        "paidInFull": "OPŁACONE W CAŁOŚCI",
+        "depositPaid": "ZALICZKA OPŁACONA",
+        "paymentPending": "OCZEKUJE NA PŁATNOŚĆ",
+        "loyaltyRewards": "Program lojalnościowy",
+        "pointsUsed": "Wykorzystano {points} pkt",
+        "creditApplied": "{amount} zniżki",
+        "cta": "Zobacz swoją rezerwację",
+        "supportNote": "Potrzebujesz pomocy? Zespół concierge L'Aube Voyage z przyjemnością Ci pomoże."
       },
       "paymentReceipt": {
         "subject": "Potwierdzenie płatności",

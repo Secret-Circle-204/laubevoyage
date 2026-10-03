@@ -83,9 +83,25 @@ function PrimaryJourneyCard({
             <Badge variant="outline" size="sm" className="text-xs uppercase border-amber-500/30 text-amber-500 bg-amber-500/5 font-semibold">
               {uiLabels.statusPendingReview}
             </Badge>
+          ) : booking.status === 'pending_payment' ? (
+            <Badge variant="warning" size="sm" className="text-xs uppercase bg-amber-500/10 text-amber-500 border border-amber-500/25 font-semibold">
+              PAYMENT REQUIRED
+            </Badge>
+          ) : booking.status === 'payment_received_after_expiry' ? (
+            <Badge variant="warning" size="sm" className="text-xs uppercase bg-amber-500/10 text-amber-500 border border-amber-500/25 font-semibold">
+              CONCIERGE REVIEW
+            </Badge>
+          ) : booking.status === 'expired' ? (
+            <Badge variant="outline" size="sm" className="text-xs uppercase border-border text-muted-foreground font-semibold">
+              EXPIRED
+            </Badge>
+          ) : booking.status === 'cancelled' ? (
+            <Badge variant="error" size="sm" className="text-xs uppercase border-rose-500/30 text-rose-500 bg-rose-500/10 font-semibold">
+              CANCELLED
+            </Badge>
           ) : (
             <Badge variant="outline" size="sm" className="text-xs uppercase border-border text-muted-foreground font-semibold">
-              {booking.status.replace(/_/g, ' ').toUpperCase()}
+              {booking.status.toUpperCase()}
             </Badge>
           )}
 
@@ -167,16 +183,40 @@ function PrimaryJourneyCard({
               </div>
             )}
 
-            <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
-              <Button
-                variant="primary"
-                size="sm"
-                className="font-bold shadow-md cursor-pointer flex items-center gap-1.5"
-              >
-                <span>{uiLabels.accessTravelDossier}</span>
-                <span>→</span>
-              </Button>
-            </Link>
+            {booking.status === 'pending_payment' ? (
+              <Link href={`/checkout/${booking.reference || booking.id}`}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="font-bold shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>Complete Payment</span>
+                  <span>→</span>
+                </Button>
+              </Link>
+            ) : booking.status === 'expired' ? (
+              <Link href="/experiences">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-bold shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>Book Again</span>
+                  <span>→</span>
+                </Button>
+              </Link>
+            ) : (
+              <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="font-bold shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>{uiLabels.accessTravelDossier}</span>
+                  <span>→</span>
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -424,9 +464,25 @@ function RecentReservationRow({
                 <Badge variant="outline" size="sm" className="text-xs uppercase border-amber-500/30 text-amber-500 bg-amber-500/5 font-semibold">
                   {uiLabels.statusPendingReview}
                 </Badge>
+              ) : booking.status === 'pending_payment' ? (
+                <Badge variant="warning" size="sm" className="text-xs uppercase bg-amber-500/10 text-amber-500 border border-amber-500/25 font-semibold">
+                  PAYMENT REQUIRED
+                </Badge>
+              ) : booking.status === 'payment_received_after_expiry' ? (
+                <Badge variant="warning" size="sm" className="text-xs uppercase bg-amber-500/10 text-amber-500 border border-amber-500/25 font-semibold">
+                  CONCIERGE REVIEW
+                </Badge>
+              ) : booking.status === 'expired' ? (
+                <Badge variant="outline" size="sm" className="text-xs uppercase border-border text-muted-foreground font-semibold">
+                  EXPIRED
+                </Badge>
+              ) : booking.status === 'cancelled' ? (
+                <Badge variant="error" size="sm" className="text-xs uppercase border-rose-500/30 text-rose-500 bg-rose-500/10 font-semibold">
+                  CANCELLED
+                </Badge>
               ) : (
                 <Badge variant="outline" size="sm" className="text-xs uppercase border-border text-muted-foreground font-semibold">
-                  {booking.status.replace(/_/g, ' ').toUpperCase()}
+                  {booking.status.toUpperCase()}
                 </Badge>
               )}
             </div>
@@ -518,15 +574,37 @@ function RecentReservationRow({
                   <span className="font-bold text-amber-500">{booking.outstandingBalance.formatted}</span>
                 </div>
               )}
-              <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="font-bold shadow-sm cursor-pointer whitespace-nowrap"
-                >
-                  {uiLabels.accessTravelDossier} →
-                </Button>
-              </Link>
+              {booking.status === 'pending_payment' ? (
+                <Link href={`/checkout/${booking.reference || booking.id}`}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="font-bold shadow-sm cursor-pointer whitespace-nowrap"
+                  >
+                    Complete Payment →
+                  </Button>
+                </Link>
+              ) : booking.status === 'expired' ? (
+                <Link href="/experiences">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-bold shadow-sm cursor-pointer whitespace-nowrap"
+                  >
+                    Book Again →
+                  </Button>
+                </Link>
+              ) : (
+                <Link href={`/dashboard/bookings/${booking.reference || booking.id}`}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="font-bold shadow-sm cursor-pointer whitespace-nowrap"
+                  >
+                    {uiLabels.accessTravelDossier} →
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
