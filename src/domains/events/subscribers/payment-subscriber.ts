@@ -151,12 +151,7 @@ export function registerBookingPaymentSubscriber(payload: Payload): void {
           metadata.manualRefundRequired = true
           metadata.reconciliationNotes = 'payment_received_after_expiry_or_hold_expired'
 
-          // Transition strictly through EXPIRED if not already expired, preserving state-machine invariants
-          if (currentBooking.status !== BookingStatus.EXPIRED) {
-            await booking.transitionStatus(Number(bookingId), BookingStatus.EXPIRED, {}, context)
-          }
-
-          // Transition to PAYMENT_RECEIVED_AFTER_EXPIRY without holding/releasing capacity or confirming
+          // Transition directly to PAYMENT_RECEIVED_AFTER_EXPIRY without holding/releasing capacity or confirming
           await booking.transitionStatus(Number(bookingId), BookingStatus.PAYMENT_RECEIVED_AFTER_EXPIRY, {
             paymentAttempts: updatedAttempts,
             metadata,
