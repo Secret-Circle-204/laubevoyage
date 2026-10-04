@@ -23,6 +23,7 @@ import type { EventOutboxService } from '../events/outbox'
 import type { NotificationService } from '../notification/service'
 import type { CustomerService } from '../customer/service'
 import type { LoyaltyService } from '../loyalty/service'
+import type { PricingFacade } from '../currency/facade'
 import { CronDispatcher } from '@/application/jobs/cron-dispatcher'
 
 // Global key for tracking subscriber bootstrap status across request lifecycles
@@ -33,6 +34,7 @@ export interface SystemBootstrapOptions {
   notificationService?: NotificationService
   customerService?: CustomerService
   loyaltyService?: LoyaltyService
+  pricingFacade?: PricingFacade
 }
 
 /**
@@ -129,7 +131,13 @@ export class SystemIntegrationWorkflowEngine {
     )
     registerLoyaltySubscriber(this.payload, options.customerService, options.loyaltyService)
     registerBookingPaymentSubscriber(this.payload)
-    registerLoyaltyNotificationSubscriber(this.payload, options.customerService, options.notificationService)
+    registerLoyaltyNotificationSubscriber(
+      this.payload,
+      options.customerService,
+      options.notificationService,
+      options.loyaltyService,
+      options.pricingFacade,
+    )
     registerInventorySubscriber(this.payload)
 
     // Event-driven RAM registry cache invalidators (Safe for all node runtimes/workers)

@@ -1,6 +1,7 @@
 import type { DomainServices } from './factory'
 import { getDomainServices } from './factory'
 import { EventOutboxService } from './events/outbox'
+import type { PricingFacade } from './currency/facade'
 import { PHASE_PRODUCTION_BUILD } from 'next/constants'
 
 const BOOTSTRAP_STATE_KEY = Symbol.for('laube.system.bootstrap.state')
@@ -36,6 +37,7 @@ export interface BootstrapOptions {
   notificationService?: any
   customerService?: any
   loyaltyService?: any
+  pricingFacade?: PricingFacade
 }
 
 export interface BootstrapResult {
@@ -88,6 +90,7 @@ export async function bootstrapApplication(
         notificationService: options?.notificationService || container.notification,
         customerService: options?.customerService || container.customer,
         loyaltyService: options?.loyaltyService || container.loyalty,
+        pricingFacade: options?.pricingFacade || container.pricingFacade,
       })
 
       // Start Distributed Cache Coordination (PostgreSQL LISTEN) - Persistent Node runtimes only

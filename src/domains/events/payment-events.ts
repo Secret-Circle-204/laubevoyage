@@ -10,8 +10,8 @@ export interface PaymentCompletedEvent extends BaseDomainEvent {
   amount: number
   currency: string
   gatewayReference?: string
-  attemptId: string
-  attemptNumber: number
+  attemptId?: string
+  attemptNumber?: number
 }
 
 export interface PaymentFailedEvent extends BaseDomainEvent {

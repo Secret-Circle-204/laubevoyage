@@ -42,38 +42,43 @@ export function buildBrandEmailLayout(
   const logoUrl = `${serverUrl}/logos/LAube-Voyage-logo-horizontal-colors-and-white.svg`
 
   const fontStack = isArabic
-    ? `'Segoe UI', Tahoma, -apple-system, BlinkMacSystemFont, Arial, sans-serif`
-    : `'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`
+    ? `'IBM Plex Sans Arabic', 'Tajawal', 'Segoe UI', Tahoma, -apple-system, Arial, sans-serif`
+    : `'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`
 
   const headingFont = isArabic
-    ? `'Segoe UI', Tahoma, Arial, sans-serif`
+    ? `'IBM Plex Sans Arabic', 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif`
     : `'Playfair Display', Georgia, Cambria, 'Times New Roman', serif`
 
-  let badgeBg = '#EEF2FF'
-  let badgeColor = '#2E3192'
-  let badgeBorder = '#C7D2FE'
+  let badgeBg = '#F1F4F9'
+  let badgeColor = '#162447'
+  let badgeBorder = '#D5DEEC'
+
   if (options.badgeType === 'gold') {
-    badgeBg = '#FFFBEB'
-    badgeColor = '#B45309'
-    badgeBorder = '#FDE68A'
+    badgeBg = '#FAF6ED'
+    badgeColor = '#8F6B2C'
+    badgeBorder = '#ECD8B3'
   } else if (options.badgeType === 'primary') {
-    badgeBg = '#F0F9FF'
-    badgeColor = '#0284C7'
-    badgeBorder = '#BAE6FD'
+    badgeBg = '#F1F4F9'
+    badgeColor = '#162447'
+    badgeBorder = '#D5DEEC'
+  } else if (options.badgeType === 'security') {
+    badgeBg = '#F3F4F6'
+    badgeColor = '#374151'
+    badgeBorder = '#E5E7EB'
   }
 
   const badgeHtml = options.badgeText
-    ? `<tr><td style="padding: 0 0 16px 0;"><span style="display: inline-block; padding: 4px 14px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; border-radius: 20px; background-color: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder};">${options.badgeText}</span></td></tr>`
+    ? `<tr><td style="padding: 0 0 18px 0; text-align: ${textAlign};"><span style="display: inline-block; padding: 5px 14px; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; border-radius: 3px; background-color: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder}; font-family: ${fontStack};">${options.badgeText}</span></td></tr>`
     : ''
 
   const ctaHtml = (options.ctaText && options.ctaUrl)
-    ? `<table border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0; width: 100%;">
+    ? `<table border="0" cellspacing="0" cellpadding="0" style="margin: 32px 0 24px 0; width: 100%;">
         <tr>
           <td align="${isArabic ? 'right' : 'left'}">
             <table border="0" cellspacing="0" cellpadding="0">
               <tr>
-                <td align="center" style="border-radius: 8px; background-color: #2E3192;">
-                  <a href="${options.ctaUrl}" target="_blank" style="font-size: 15px; font-weight: 700; color: #FFFFFF; text-decoration: none; padding: 14px 34px; border-radius: 8px; display: inline-block; letter-spacing: 0.5px; font-family: ${fontStack};">
+                <td align="center" style="border-radius: 4px; background-color: #0C101C;">
+                  <a href="${options.ctaUrl}" target="_blank" style="font-size: 13px; font-weight: 700; color: #FFFFFF; text-decoration: none; padding: 16px 36px; border-radius: 4px; display: inline-block; letter-spacing: 1.2px; text-transform: uppercase; font-family: ${fontStack};">
                     ${options.ctaText}
                   </a>
                 </td>
@@ -99,35 +104,36 @@ export function buildBrandEmailLayout(
     body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
-    @media only screen and (max-width: 620px) {
+    @media only screen and (max-width: 640px) {
       .email-container { width: 100% !important; padding: 0 !important; }
-      .email-card { padding: 28px 20px !important; }
+      .email-card { padding: 32px 20px !important; }
+      .email-header { padding: 28px 20px !important; }
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F4F5F7; width: 100% !important; -webkit-font-smoothing: antialiased;">
+<body style="margin: 0; padding: 0; background-color: #F7F7F5; width: 100% !important; -webkit-font-smoothing: antialiased;">
   <!-- Preheader preview text -->
-  <span style="display:none;font-size:1px;color:#F4F5F7;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+  <span style="display:none;font-size:1px;color:#F7F7F5;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
     ${options.preheader}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
   </span>
 
-  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F4F5F7; table-layout: fixed;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F7F7F5; table-layout: fixed;">
     <tr>
-      <td align="center" style="padding: 40px 16px;">
+      <td align="center" style="padding: 44px 16px;">
         <!-- Container Table -->
-        <table border="0" cellpadding="0" cellspacing="0" width="600" class="email-container" style="max-width: 600px; width: 100%; margin: 0 auto;">
-          <!-- Top Accent Line -->
+        <table border="0" cellpadding="0" cellspacing="0" width="620" class="email-container" style="max-width: 620px; width: 100%; margin: 0 auto;">
+          <!-- Top Architectural Accent Line: Brushed Champagne Gold -->
           <tr>
-            <td height="4" style="background-color: #F58220; line-height: 4px; font-size: 4px; border-radius: 8px 8px 0 0;">&nbsp;</td>
+            <td height="3" style="background: linear-gradient(90deg, #9A7B4F 0%, #C5A880 50%, #9A7B4F 100%); background-color: #C5A880; line-height: 3px; font-size: 3px; border-radius: 6px 6px 0 0;">&nbsp;</td>
           </tr>
 
           <!-- Header / Brand Banner -->
           <tr>
-            <td align="center" style="background-color: #1B1E4B; padding: 32px 24px; text-align: center;">
+            <td align="center" class="email-header" style="background-color: #0C101C; padding: 36px 24px; text-align: center; border-bottom: 1px solid #1E2538;">
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td align="center">
-                    <img src="${logoUrl}" alt="L'Aube Voyage" width="180" style="display: block; max-width: 180px; width: 180px; height: auto; border: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; color: #FFFFFF; letter-spacing: 1.5px; text-align: center;" />
+                    <img src="${logoUrl}" alt="L'Aube Voyage" width="190" style="display: block; max-width: 190px; width: 190px; height: auto; border: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; color: #FFFFFF; letter-spacing: 2px; text-align: center;" />
                   </td>
                 </tr>
               </table>
@@ -136,18 +142,18 @@ export function buildBrandEmailLayout(
 
           <!-- Card Body -->
           <tr>
-            <td class="email-card" style="background-color: #FFFFFF; padding: 40px 36px; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 10px 10px; text-align: ${textAlign};" dir="${dir}">
+            <td class="email-card" style="background-color: #FFFFFF; padding: 44px 38px; border: 1px solid #EAE8E2; border-top: none; border-radius: 0 0 8px 8px; text-align: ${textAlign};" dir="${dir}">
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 ${badgeHtml}
                 <tr>
-                  <td style="padding: 0 0 18px 0;">
-                    <h1 style="font-family: ${headingFont}; font-size: 24px; font-weight: 700; color: #1B1E4B; line-height: 1.3; margin: 0;">
+                  <td style="padding: 0 0 22px 0;">
+                    <h1 style="font-family: ${headingFont}; font-size: 24px; font-weight: 700; color: #0C101C; line-height: 1.35; margin: 0; letter-spacing: -0.2px;">
                       ${options.heading}
                     </h1>
                   </td>
                 </tr>
                 <tr>
-                  <td style="font-family: ${fontStack}; color: #374151;">
+                  <td style="font-family: ${fontStack}; color: #2C3442; font-size: 15px; line-height: 1.7;">
                     ${options.contentHtml}
                     ${ctaHtml}
                     ${options.secondaryNoteHtml || ''}
@@ -159,14 +165,14 @@ export function buildBrandEmailLayout(
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 32px 20px; text-align: center; font-family: ${fontStack}; font-size: 12px; line-height: 1.8; color: #9CA3AF;" dir="${dir}">
-              <div style="font-weight: 600; color: #6B7280; letter-spacing: 0.5px; margin-bottom: 6px;">
+            <td style="padding: 36px 20px 24px 20px; text-align: center; font-family: ${fontStack}; font-size: 12px; line-height: 1.8; color: #888E99;" dir="${dir}">
+              <div style="font-weight: 600; color: #525866; letter-spacing: 1px; text-transform: uppercase; font-size: 11px; margin-bottom: 8px;">
                 ${footerTagline}
               </div>
-              <div style="margin-bottom: 6px;">
+              <div style="margin-bottom: 6px; color: #888E99;">
                 ${footerRights}
               </div>
-              <div>
+              <div style="color: #A3A8B3; font-size: 11px;">
                 ${footerSupport}
               </div>
             </td>

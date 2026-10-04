@@ -136,7 +136,10 @@
       "totalSettled": "Total Settled",
       "loyaltyCreditAccrued": "Loyalty Credit Accrued",
       "pointsUnit": "Points",
-      "accruing": "Accruing to account...",
+      "accruing": "Finalizing rewards...",
+      "finalizingRewards": "Finalizing rewards...",
+      "loyaltyPending": "Finalizing in Member Ledger",
+      "confirmedLoyaltyPendingDesc": "Your reservation is confirmed. Your loyalty rewards are being finalized.",
       "accessTravelDossier": "Access Travel Dossier →",
       "reviewBadge": "Request Submitted",
       "reviewTitle": "Awaiting Administrative Review",
@@ -691,9 +694,19 @@
         "badge": "TIER UPGRADED"
       },
       "loyaltyEarned": {
-        "subject": "You earned {points} loyalty points!",
+        "subject": "Voyage Rewards Credited: +{points} Loyalty Points",
         "body": "Congratulations! You have earned {points} new loyalty points.{balanceText}",
-        "badge": "LOYALTY REWARD"
+        "badge": "LOYALTY REWARDS",
+        "greeting": "Dear {customerName},",
+        "introWithBooking": "We are pleased to confirm that your recent journey reservation (#{bookingNumber}) has unlocked exclusive rewards within the L'Aube Voyage Circle.",
+        "introGeneral": "We are pleased to confirm that new loyalty rewards have been credited to your L'Aube Voyage Circle account.",
+        "pointsEarnedLabel": "POINTS CREDITED",
+        "currentBalanceLabel": "NEW AVAILABLE BALANCE",
+        "monetaryValueLabel": "ESTIMATED PRIVILEGE VALUE",
+        "bookingRefLabel": "RESERVATION REFERENCE",
+        "editorialText": "Every expedition with L'Aube Voyage deepens your travel standing. Your accumulated rewards may be redeemed towards bespoke itinerary customization, suite privileges, and private sanctuaries on future journeys.",
+        "ctaText": "Access Rewards Vault →",
+        "supportNote": "Your points are securely stored in your Member Vault. For inquiries or bespoke redemptions, our Private Client Concierge remains at your service."
       },
       "bookingPendingAdminReview": {
         "subject": "Booking Request Received: {bookingNumber}",

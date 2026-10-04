@@ -59,6 +59,7 @@ export function CheckoutSuccessClient({
   const [_pollCount, setPollCount] = useState<number>(0)
   const [confirmedBookingNumber, setConfirmedBookingNumber] = useState<string | undefined>(bookingNumber)
   const [earnedPoints, setEarnedPoints] = useState<number | undefined>(undefined)
+  const [isLoyaltyFinalizing, setIsLoyaltyFinalizing] = useState<boolean>(true)
   const [totalAmountDisplay, setTotalAmountDisplay] = useState<string | undefined>(undefined)
   const [resolvedCheckoutUrl, setResolvedCheckoutUrl] = useState<string | undefined>(undefined)
   const isPollingRef = useRef<boolean>(true)
@@ -83,7 +84,9 @@ export function CheckoutSuccessClient({
   useEffect(() => {
     isPollingRef.current = true
     let attempts = 0
+    let loyaltyAttempts = 0
     const maxAttempts = 8 // ~80s total timeout with exponential delay
+    const maxLoyaltyAttempts = 4 // Bounded window for ledger entry to arrive asynchronously
 
     const getNextDelay = (attemptCount: number): number => {
       const delay = Math.pow(2, attemptCount - 1) * 1000
@@ -126,12 +129,32 @@ export function CheckoutSuccessClient({
 
           if (typeof res.earnedPoints === 'number') {
             setEarnedPoints(res.earnedPoints)
+            setIsLoyaltyFinalizing(false)
           }
 
           // 1. Confirmed / Completed -> Terminal Success
           if (bStatus === 'confirmed' || bStatus === 'completed' || bStatus === 'paid') {
             setViewState('confirmed')
-            isPollingRef.current = false
+
+            // If authoritative ledger entry is already confirmed, stop polling immediately
+            if (typeof res.earnedPoints === 'number') {
+              isPollingRef.current = false
+              return
+            }
+
+            // Bounded loyalty polling: allow limited checks for the asynchronous ledger entry
+            loyaltyAttempts += 1
+            if (loyaltyAttempts >= maxLoyaltyAttempts) {
+              // Technical polling limit reached; keep truth as Confirmed with loyalty pending wording
+              setIsLoyaltyFinalizing(false)
+              isPollingRef.current = false
+              return
+            }
+
+            // Re-poll with focused short delay specifically to capture ledger record
+            if (isPollingRef.current) {
+              setTimeout(pollStatus, 1500)
+            }
             return
           }
 
@@ -191,6 +214,7 @@ export function CheckoutSuccessClient({
 
       // Check max attempts
       if (attempts >= maxAttempts) {
+        setIsLoyaltyFinalizing(false)
         isPollingRef.current = false
         // Strictly preserve current truth; do NOT invent a "timeout" business status
         return
@@ -273,8 +297,11 @@ export function CheckoutSuccessClient({
                   {dict.get(locale, 'checkout.success.confirmedTitle') || 'Journey Confirmed'}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                  {dict.get(locale, 'checkout.success.confirmedDesc') ||
-                    'Your reservation ledger is finalized and your travel dossier is confirmed.'}
+                  {typeof earnedPoints === 'number'
+                    ? (dict.get(locale, 'checkout.success.confirmedDesc') ||
+                        'Your reservation ledger is finalized and your travel dossier is confirmed.')
+                    : (dict.get(locale, 'checkout.success.confirmedLoyaltyPendingDesc') ||
+                        'Your reservation is confirmed. Your loyalty rewards are being finalized.')}
                 </p>
               </div>
 
@@ -311,10 +338,14 @@ export function CheckoutSuccessClient({
                     <span dir="ltr" className="font-bold text-secondary">
                       +{earnedPoints.toLocaleString()} {dict.get(locale, 'checkout.success.pointsUnit') || 'Points'}
                     </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1.5 animate-pulse font-medium">
+                  ) : isLoyaltyFinalizing ? (
+                    <span className="text-xs text-secondary flex items-center gap-1.5 font-medium">
                       <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-ping" />
-                      {dict.get(locale, 'checkout.success.accruing') || 'Accruing to account...'}
+                      {dict.get(locale, 'checkout.success.finalizingRewards') || 'Finalizing rewards...'}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {dict.get(locale, 'checkout.success.loyaltyPending') || 'Finalizing in Member Ledger'}
                     </span>
                   )}
                 </div>

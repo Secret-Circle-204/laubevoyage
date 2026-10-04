@@ -139,17 +139,25 @@ export function renderBookingConfirmationEmail(
     templateData['ctaUrl'] || `${serverUrl}/booking/confirmation/${bookingNumber}`,
   )
 
+  const fontStack = isArabic
+    ? `'IBM Plex Sans Arabic', 'Tajawal', 'Segoe UI', Tahoma, -apple-system, Arial, sans-serif`
+    : `'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`
+
+  const headingFont = isArabic
+    ? `'IBM Plex Sans Arabic', 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif`
+    : `'Playfair Display', Georgia, Cambria, 'Times New Roman', serif`
+
   // 1. Booking Reference Header Block
   const referenceBlockHtml = `
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #FAF8F5; border: 1px solid #E8E2D9; border-radius: 8px; margin-bottom: 24px;" dir="${dir}">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #FAF9F7; border: 1px solid #EAE7DF; border-radius: 4px; margin-bottom: 28px;" dir="${dir}">
       <tr>
         <td style="padding: 14px 20px; text-align: ${textAlign};">
-          <span style="font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #8C827A;">
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8C8479; font-family: ${fontStack};">
             ${bookingRefLabel}
           </span>
         </td>
         <td style="padding: 14px 20px; text-align: ${alignOpposite};">
-          <span style="font-size: 15px; font-weight: 700; color: #1B1E4B; letter-spacing: 1px; font-family: 'Courier New', Courier, monospace;">
+          <span style="font-size: 14px; font-weight: 700; color: #0C101C; letter-spacing: 1.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
             ${bookingNumber}
           </span>
         </td>
@@ -159,28 +167,39 @@ export function renderBookingConfirmationEmail(
 
   // 2. Journey Visual / Hero Card
   const heroVisualHtml = coverImageUrl
-    ? `<img src="${coverImageUrl}" alt="${experienceTitle}" width="100%" style="display: block; max-width: 100%; border-radius: 8px; margin-bottom: 16px; object-fit: cover; max-height: 220px;" />`
-    : `<div style="background: linear-gradient(135deg, #1B1E4B 0%, #2E3192 100%); border-radius: 8px; padding: 22px; color: #FFFFFF; text-align: center; margin-bottom: 16px;">
-        <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #F58220; margin-bottom: 6px;">
+    ? `<img src="${coverImageUrl}" alt="${experienceTitle}" width="100%" style="display: block; max-width: 100%; border-radius: 6px; border: 1px solid #EAE8E2; margin-bottom: 18px; object-fit: cover; max-height: 240px;" />`
+    : `<div style="background: linear-gradient(135deg, #1B1E4B 0%, #2E3192 100%); border-radius: 6px; padding: 26px 24px; color: #FFFFFF; text-align: center; margin-bottom: 18px;">
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #C5A880; margin-bottom: 8px;">
           ${yourJourneyLabel}
         </div>
-        <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; line-height: 1.3;">
+        <div style="font-family: ${headingFont}; font-size: 20px; font-weight: 700; line-height: 1.35; color: #FFFFFF;">
           ${experienceTitle}
         </div>
       </div>`
 
   const journeyDetailsHtml = `
-    <div style="margin-bottom: 28px;">
+    <div style="margin-bottom: 30px;">
       ${heroVisualHtml}
-      ${coverImageUrl ? `<h2 style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; color: #1B1E4B; margin: 0 0 12px 0; text-align: ${textAlign};">${experienceTitle}</h2>` : ''}
-      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 13px; color: #4B5563; line-height: 1.6;" dir="${dir}">
+      ${coverImageUrl ? `<h2 style="font-family: ${headingFont}; font-size: 20px; font-weight: 700; color: #0C101C; margin: 0 0 14px 0; text-align: ${textAlign}; letter-spacing: -0.2px;">${experienceTitle}</h2>` : ''}
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 13px; color: #374151; line-height: 1.6; border-collapse: collapse;" dir="${dir}">
         <tr>
-          <td style="padding: 4px 0; text-align: ${textAlign};" width="50%">
-            <strong style="color: #1F2937;">📍 ${destinationLabel}:</strong> ${destinationName}
+          <td style="padding: 6px 0; text-align: ${textAlign}; vertical-align: top;" width="50%">
+            <span style="font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #8C8479; display: block; margin-bottom: 2px;">${destinationLabel}</span>
+            <span style="font-size: 14px; font-weight: 600; color: #0C101C;">${destinationName}</span>
           </td>
-          ${durationText ? `<td style="padding: 4px 0; text-align: ${alignOpposite};" width="50%"><strong style="color: #1F2937;">⏳ ${durationLabel}:</strong> ${durationText}</td>` : ''}
+          ${durationText ? `
+          <td style="padding: 6px 0; text-align: ${alignOpposite}; vertical-align: top;" width="50%">
+            <span style="font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #8C8479; display: block; margin-bottom: 2px;">${durationLabel}</span>
+            <span style="font-size: 14px; font-weight: 600; color: #0C101C;">${durationText}</span>
+          </td>` : ''}
         </tr>
-        ${travelDatesFormatted ? `<tr><td colspan="2" style="padding: 4px 0; text-align: ${textAlign};"><strong style="color: #1F2937;">🗓️ ${travelDatesLabel}:</strong> ${travelDatesFormatted}</td></tr>` : ''}
+        ${travelDatesFormatted ? `
+        <tr>
+          <td colspan="2" style="padding: 10px 0 4px 0; text-align: ${textAlign}; border-top: 1px solid #F3F2EE;">
+            <span style="font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #8C8479; display: block; margin-bottom: 2px;">${travelDatesLabel}</span>
+            <span style="font-size: 14px; font-weight: 600; color: #0C101C;">${travelDatesFormatted}</span>
+          </td>
+        </tr>` : ''}
       </table>
     </div>
   `
@@ -196,9 +215,9 @@ export function renderBookingConfirmationEmail(
         const board = stay['boardBasis'] ? String(stay['boardBasis']).replace(/_/g, ' ') : ''
 
         return `
-          <div style="padding: 10px 0; border-bottom: 1px solid #F1F5F9;">
-            <div style="font-size: 14px; font-weight: 700; color: #1B1E4B;">${propName}</div>
-            <div style="font-size: 13px; color: #64748B; margin-top: 2px;">
+          <div style="padding: 10px 0; border-bottom: 1px solid #F3F2EE;">
+            <div style="font-size: 14px; font-weight: 700; color: #0C101C;">${propName}</div>
+            <div style="font-size: 13px; color: #525866; margin-top: 3px;">
               ${nights > 0 ? dict.get(locale, 'emails.templates.bookingConfirmation.nights', { count: nights }) : ''}
               ${roomCat ? ` · ${roomCat}` : ''}
               ${board ? ` · ${board}` : ''}
@@ -209,8 +228,8 @@ export function renderBookingConfirmationEmail(
       .join('')
 
     staysHtml = `
-      <div style="margin-bottom: 28px; padding-top: 16px; border-top: 1px solid #E5E7EB;">
-        <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #8C827A; margin-bottom: 8px; text-align: ${textAlign};">
+      <div style="margin-bottom: 30px; padding-top: 20px; border-top: 1px solid #ECE7DE;">
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8C8479; margin-bottom: 12px; text-align: ${textAlign};">
           ${yourStayLabel}
         </div>
         ${stayRows}
@@ -221,15 +240,15 @@ export function renderBookingConfirmationEmail(
   // 4. Travelers Card (Privacy Preserved)
   const travelerNamesHtml =
     travelerNames.length > 0
-      ? `<div style="font-size: 13px; color: #64748B; margin-top: 4px;">${travelerNames.join(' · ')}</div>`
+      ? `<div style="font-size: 13px; color: #525866; margin-top: 4px;">${travelerNames.join(' · ')}</div>`
       : ''
 
   const travelersHtml = `
-    <div style="margin-bottom: 28px; padding-top: 16px; border-top: 1px solid #E5E7EB;">
-      <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #8C827A; margin-bottom: 8px; text-align: ${textAlign};">
+    <div style="margin-bottom: 30px; padding-top: 20px; border-top: 1px solid #ECE7DE;">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8C8479; margin-bottom: 10px; text-align: ${textAlign};">
         ${travelersLabel}
       </div>
-      <div style="font-size: 14px; font-weight: 700; color: #1B1E4B;">
+      <div style="font-size: 14px; font-weight: 700; color: #0C101C;">
         ${travelersSummary}
       </div>
       ${travelerNamesHtml}
@@ -238,16 +257,16 @@ export function renderBookingConfirmationEmail(
 
   // 5. Payment Summary Card (Dynamic Status)
   const paymentHtml = `
-    <div style="margin-bottom: 28px; padding: 20px; background-color: #FAF8F5; border: 1px solid #E8E2D9; border-radius: 8px;" dir="${dir}">
+    <div style="margin-bottom: 30px; padding: 22px 24px; background-color: #FAF9F7; border: 1px solid #EAE7DF; border-radius: 6px;" dir="${dir}">
       <table border="0" cellpadding="0" cellspacing="0" width="100%">
         <tr>
-          <td style="text-align: ${textAlign}; padding-bottom: 12px;">
-            <span style="font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #8C827A;">
+          <td style="text-align: ${textAlign}; padding-bottom: 14px;">
+            <span style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8C8479;">
               ${paymentLabel}
             </span>
           </td>
-          <td style="text-align: ${alignOpposite}; padding-bottom: 12px;">
-            <span style="display: inline-block; padding: 4px 10px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border-radius: 12px; background-color: ${statusBadgeBg}; color: ${statusBadgeColor}; border: 1px solid ${statusBadgeBorder};">
+          <td style="text-align: ${alignOpposite}; padding-bottom: 14px;">
+            <span style="display: inline-block; padding: 4px 10px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border-radius: 3px; background-color: ${statusBadgeBg}; color: ${statusBadgeColor}; border: 1px solid ${statusBadgeBorder}; font-family: ${fontStack};">
               ${statusBadgeText}
             </span>
           </td>
@@ -255,18 +274,18 @@ export function renderBookingConfirmationEmail(
       </table>
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
         <tr>
-          <td style="color: #64748B; text-align: ${textAlign};">${totalAmountLabel}</td>
-          <td style="font-weight: 700; color: #1B1E4B; text-align: ${alignOpposite};">${formatMoney(totalAmount, currency)}</td>
+          <td style="color: #525866; text-align: ${textAlign}; padding: 3px 0;">${totalAmountLabel}</td>
+          <td style="font-weight: 700; color: #0C101C; text-align: ${alignOpposite}; padding: 3px 0;">${formatMoney(totalAmount, currency)}</td>
         </tr>
         <tr>
-          <td style="color: #64748B; text-align: ${textAlign};">${amountPaidLabel}</td>
-          <td style="font-weight: 700; color: #047857; text-align: ${alignOpposite};">${formatMoney(amountPaid, currency)}</td>
+          <td style="color: #525866; text-align: ${textAlign}; padding: 3px 0;">${amountPaidLabel}</td>
+          <td style="font-weight: 700; color: #047857; text-align: ${alignOpposite}; padding: 3px 0;">${formatMoney(amountPaid, currency)}</td>
         </tr>
         ${
           remainingBalance > 0
             ? `<tr>
-                <td style="color: #64748B; text-align: ${textAlign};">${remainingBalanceLabel}</td>
-                <td style="font-weight: 700; color: #B45309; text-align: ${alignOpposite};">${formatMoney(remainingBalance, currency)}</td>
+                <td style="color: #525866; text-align: ${textAlign}; padding: 3px 0;">${remainingBalanceLabel}</td>
+                <td style="font-weight: 700; color: #92400E; text-align: ${alignOpposite}; padding: 3px 0;">${formatMoney(remainingBalance, currency)}</td>
               </tr>`
             : ''
         }
@@ -287,11 +306,11 @@ export function renderBookingConfirmationEmail(
     )
 
     loyaltyHtml = `
-      <div style="margin-bottom: 28px; padding: 14px 18px; background-color: #FFFDF9; border: 1px solid #F5E6D3; border-radius: 8px;" dir="${dir}">
-        <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #D97706; margin-bottom: 6px; text-align: ${textAlign};">
-          💎 ${loyaltyRewardsLabel}
+      <div style="margin-bottom: 30px; padding: 16px 20px; background-color: #FAF7F0; border: 1px solid #EADBCA; border-radius: 6px;" dir="${dir}">
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8F6B2C; margin-bottom: 6px; text-align: ${textAlign};">
+          ${loyaltyRewardsLabel}
         </div>
-        <div style="font-size: 13px; color: #78350F; text-align: ${textAlign};">
+        <div style="font-size: 13px; color: #6D4C17; text-align: ${textAlign}; line-height: 1.5;">
           <strong>${pointsUsedText}</strong> · ${creditAppliedText}
         </div>
       </div>
@@ -309,7 +328,7 @@ export function renderBookingConfirmationEmail(
   `
 
   const secondaryNoteHtml = `
-    <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #F1F5F9; font-size: 13px; line-height: 1.6; color: #64748B; text-align: ${textAlign};" dir="${dir}">
+    <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #ECE7DE; font-size: 13px; line-height: 1.7; color: #6B7280; text-align: ${textAlign};" dir="${dir}">
       ${supportNote}
     </div>
   `

@@ -5,6 +5,9 @@ import { CustomerRepository } from '../../customer/repository'
 import { NotificationService } from '../../notification/service'
 import { PayloadInboxRepository } from '../repositories/payload-inbox-repository'
 import type { CustomerService } from '../../customer/service'
+import type { LoyaltyService } from '../../loyalty/service'
+import type { PricingFacade } from '../../currency/facade'
+import { PointCalculationPolicy } from '../../loyalty/points-calculation-policy'
 
 /**
  * Loyalty Notification Subscriber
@@ -15,6 +18,8 @@ export function registerLoyaltyNotificationSubscriber(
   payload: Payload,
   customerService: CustomerService,
   notificationService: NotificationService,
+  loyaltyService?: LoyaltyService,
+  pricingFacade?: PricingFacade,
 ): void {
   const eventBus = EventBus.getInstance()
   const inboxRepo = new PayloadInboxRepository(payload)
@@ -77,7 +82,7 @@ export function registerLoyaltyNotificationSubscriber(
     },
   )
 
-  // 2. LOYALTY_EARNED Event -> Enqueue points earned notification
+  // 2. LOYALTY_EARNED Event -> Enqueue points earned notification (Email #2 in 2-Email Customer Model)
   eventBus.subscribe<LoyaltyEarnedEvent>(
     'LOYALTY_EARNED',
     'LoyaltyNotificationSubscriber.enqueueLoyaltyEarnedNotification',
@@ -89,15 +94,6 @@ export function registerLoyaltyNotificationSubscriber(
 
       // Welcome bonus points are communicated in the consolidated Welcome Email
       if (event.source === 'welcome_bonus') {
-        return
-      }
-
-      // Booking points are reflected in customer history and balance;
-      // standalone email is suppressed to prevent sending duplicate notifications on booking confirmation.
-      if (event.source === 'booking') {
-        console.log(
-          `[LoyaltyNotificationSubscriber] Suppressing separate loyalty_earned email for Customer #${event.customerId} (Booking #${event.bookingId}). Points safely credited to ledger and customer balance.`,
-        )
         return
       }
 
@@ -117,6 +113,69 @@ export function registerLoyaltyNotificationSubscriber(
           )
         }
 
+        // 1. Resolve customer localization preferences
+        const preferredLanguage = customer.preferredLanguage || 'en'
+        const preferredCurrency = customer.preferredCurrency || 'EGP'
+
+        // 2. Resolve booking reference if available
+        let bookingNumber: string | undefined
+        if (event.bookingId) {
+          try {
+            const bookingDoc = (await payload.findByID({
+              collection: 'bookings',
+              id: event.bookingId,
+              depth: 0,
+              req,
+            })) as any
+            if (bookingDoc?.bookingNumber) {
+              bookingNumber = bookingDoc.bookingNumber
+            }
+          } catch (bErr) {
+            console.warn(
+              `[LoyaltyNotificationSubscriber] Could not resolve bookingNumber for bookingId #${event.bookingId}:`,
+              bErr,
+            )
+          }
+        }
+
+        // 3. Resolve authoritative monetary equivalent using Loyalty + Currency architecture
+        let baseValueEGP = 0
+        if (loyaltyService) {
+          try {
+            baseValueEGP = await loyaltyService.calculatePointValueInEGP(event.points)
+          } catch {
+            baseValueEGP = PointCalculationPolicy.calculatePointsValueEGP(event.points, {
+              redemptionPointsUnit: 100,
+              redemptionValueEGP: 10,
+            } as any)
+          }
+        } else {
+          baseValueEGP = PointCalculationPolicy.calculatePointsValueEGP(event.points, {
+            redemptionPointsUnit: 100,
+            redemptionValueEGP: 10,
+          } as any)
+        }
+
+        let monetaryValueFormatted: string | undefined
+        if (pricingFacade && baseValueEGP > 0) {
+          try {
+            const converted = await pricingFacade.getConvertedPrice(
+              baseValueEGP,
+              preferredCurrency,
+              preferredLanguage,
+            )
+            monetaryValueFormatted = converted.formatted
+          } catch {
+            monetaryValueFormatted = `${baseValueEGP.toLocaleString()} EGP`
+          }
+        } else if (baseValueEGP > 0) {
+          monetaryValueFormatted = `${baseValueEGP.toLocaleString()} EGP`
+        }
+
+        // 4. Actionable CTA URL to Member Rewards Vault
+        const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL?.replace(/\/$/, '') || 'https://laubevoyage.com'
+        const ctaUrl = `${serverUrl}/dashboard/loyalty`
+
         await notificationService.enqueueNotification(
           {
             referenceType: 'LOYALTY_EARN',
@@ -129,9 +188,15 @@ export function registerLoyaltyNotificationSubscriber(
             translationKey: 'loyalty.points_earned',
             templateData: {
               customerId: event.customerId,
+              customerName: customer.fullName || 'Valued Member',
+              locale: preferredLanguage,
+              currency: preferredCurrency,
               points: event.points,
               balance: event.balance,
               bookingId: event.bookingId,
+              bookingNumber,
+              monetaryValueFormatted,
+              ctaUrl,
             },
           },
           req,
