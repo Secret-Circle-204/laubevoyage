@@ -2,11 +2,12 @@ import type { JsonTranslationDictionary } from '../../translation/dictionary'
 import { buildBrandEmailLayout, getServerUrl } from '../email-layout'
 
 function formatMoney(amount: number, currency: string): string {
-  const normCurr = (currency || 'GBP').toUpperCase()
+  const normCurr = (currency || 'EGP').toUpperCase()
   const num = typeof amount === 'number' && !isNaN(amount) ? amount : 0
+  const hasCents = num % 1 !== 0
   const formatted = num.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: hasCents ? 2 : 0,
   })
 
   switch (normCurr) {
@@ -32,6 +33,28 @@ function formatDate(dateStr?: string): string {
   }
 }
 
+function formatBoardBasis(raw: string, dict: JsonTranslationDictionary, locale: string): string {
+  const key = String(raw || '').toLowerCase().trim().replace(/[\s-]+/g, '_')
+  if (key === 'bed_and_breakfast' || key === 'bb' || key === 'bed_&_breakfast') {
+    return dict.get(locale, 'emails.templates.bookingConfirmation.bedAndBreakfast') || 'Bed & Breakfast'
+  }
+  if (key === 'all_inclusive' || key === 'ai') {
+    return dict.get(locale, 'emails.templates.bookingConfirmation.allInclusive') || 'All-Inclusive'
+  }
+  if (key === 'half_board' || key === 'hb') {
+    return dict.get(locale, 'emails.templates.bookingConfirmation.halfBoard') || 'Half Board'
+  }
+  if (key === 'full_board' || key === 'fb') {
+    return dict.get(locale, 'emails.templates.bookingConfirmation.fullBoard') || 'Full Board'
+  }
+  if (key === 'room_only' || key === 'ro') {
+    return dict.get(locale, 'emails.templates.bookingConfirmation.roomOnly') || 'Room Only'
+  }
+  return String(raw || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 export function renderBookingConfirmationEmail(
   templateData: Record<string, unknown>,
   locale: string,
@@ -55,27 +78,33 @@ export function renderBookingConfirmationEmail(
 
   const bookingNumber = String(templateData['bookingNumber'])
   const customerName = String(templateData['customerName'])
-  const currency = String(templateData['currency'] || 'GBP')
+  const currency = String(templateData['currency'] || 'EGP')
 
   const subject = dict.get(locale, 'emails.templates.bookingConfirmation.subject', { bookingNumber })
   const preheader = dict.get(locale, 'emails.templates.bookingConfirmation.preheader')
   const badgeText = dict.get(locale, 'emails.templates.bookingConfirmation.badge')
 
   // Labels from dictionary
-  const bookingRefLabel = dict.get(locale, 'emails.templates.bookingConfirmation.bookingReference')
-  const yourJourneyLabel = dict.get(locale, 'emails.templates.bookingConfirmation.journeySummary')
-  const travelDatesLabel = dict.get(locale, 'emails.templates.bookingConfirmation.travelDates')
-  const durationLabel = dict.get(locale, 'emails.templates.bookingConfirmation.duration')
-  const destinationLabel = dict.get(locale, 'emails.templates.bookingConfirmation.destination')
-  const yourStayLabel = dict.get(locale, 'emails.templates.bookingConfirmation.yourStay')
-  const travelersLabel = dict.get(locale, 'emails.templates.bookingConfirmation.travelers')
-  const paymentLabel = dict.get(locale, 'emails.templates.bookingConfirmation.payment')
-  const totalAmountLabel = dict.get(locale, 'emails.templates.bookingConfirmation.totalAmount')
-  const amountPaidLabel = dict.get(locale, 'emails.templates.bookingConfirmation.amountPaid')
-  const remainingBalanceLabel = dict.get(locale, 'emails.templates.bookingConfirmation.remainingBalance')
-  const loyaltyRewardsLabel = dict.get(locale, 'emails.templates.bookingConfirmation.loyaltyRewards')
-  const ctaText = dict.get(locale, 'emails.templates.bookingConfirmation.cta')
-  const supportNote = dict.get(locale, 'emails.templates.bookingConfirmation.supportNote')
+  const bookingRefLabel = dict.get(locale, 'emails.templates.bookingConfirmation.bookingReference') || (isArabic ? 'رقم الحجز' : 'Booking Reference')
+  const yourJourneyLabel = dict.get(locale, 'emails.templates.bookingConfirmation.journeySummary') || (isArabic ? 'تفاصيل الرحلة' : 'Your Journey')
+  const travelDatesLabel = dict.get(locale, 'emails.templates.bookingConfirmation.travelDates') || (isArabic ? 'تواريخ الرحلة' : 'Travel Dates')
+  const durationLabel = dict.get(locale, 'emails.templates.bookingConfirmation.duration') || (isArabic ? 'المدة' : 'Duration')
+  const destinationLabel = dict.get(locale, 'emails.templates.bookingConfirmation.destination') || (isArabic ? 'الوجهة' : 'Destination')
+  const yourStayLabel = dict.get(locale, 'emails.templates.bookingConfirmation.yourStay') || (isArabic ? 'أماكن الإقامة' : 'Accommodations')
+  const travelersLabel = dict.get(locale, 'emails.templates.bookingConfirmation.travelers') || (isArabic ? 'بيانات المسافرين' : 'Travelers')
+  const travelersPartyLabel = dict.get(locale, 'emails.templates.bookingConfirmation.travelersParty') || (isArabic ? 'عدد المسافرين' : 'Number of Guests')
+  const leadGuestLabel = dict.get(locale, 'emails.templates.bookingConfirmation.leadGuest') || (isArabic ? 'المسافر الرئيسي' : 'Lead Guest')
+  const paymentLabel = dict.get(locale, 'emails.templates.bookingConfirmation.payment') || (isArabic ? 'تفاصيل الدفع' : 'Payment Details')
+  const totalAmountLabel = dict.get(locale, 'emails.templates.bookingConfirmation.totalAmount') || (isArabic ? 'إجمالي الرحلة' : 'Total Price')
+  const journeyTotalLabel = dict.get(locale, 'emails.templates.bookingConfirmation.journeyTotal') || (isArabic ? 'إجمالي الرحلة' : 'Journey Total')
+  const loyaltyDiscountLabel = dict.get(locale, 'emails.templates.bookingConfirmation.loyaltyDiscount') || (isArabic ? 'خصم نقاط الولاء' : 'Loyalty Discount')
+  const pointsLabel = dict.get(locale, 'emails.templates.bookingConfirmation.pointsLabel') || (isArabic ? 'نقطة' : 'Points')
+  const amountPaidLabel = dict.get(locale, 'emails.templates.bookingConfirmation.amountPaid') || (isArabic ? 'المبلغ المدفوع' : 'Amount Paid')
+  const remainingBalanceLabel = dict.get(locale, 'emails.templates.bookingConfirmation.remainingBalance') || (isArabic ? 'المبلغ المتبقي' : 'Remaining Balance')
+  const paymentMethodLabel = dict.get(locale, 'emails.templates.bookingConfirmation.paymentMethod') || (isArabic ? 'طريقة الدفع' : 'Payment Method')
+  const cardPaymentLabel = dict.get(locale, 'emails.templates.bookingConfirmation.cardPayment') || (isArabic ? 'بطاقة بنكية' : 'Credit / Debit Card')
+  const ctaText = dict.get(locale, 'emails.templates.bookingConfirmation.cta') || (isArabic ? 'عرض تفاصيل الحجز' : 'View Your Reservation')
+  const supportNote = dict.get(locale, 'emails.templates.bookingConfirmation.supportNote') || (isArabic ? 'هل تحتاج إلى مساعدة؟ فريق كونسيرج L\'Aube Voyage في خدمتكم دائماً.' : 'Need assistance? Your L\'Aube Voyage concierge team is here to help.')
 
   // Journey details
   const experienceTitle = String(templateData['experienceTitle'] || 'Bespoke Journey')
@@ -97,11 +126,11 @@ export function renderBookingConfirmationEmail(
 
   // Travelers
   const adultsCount = Number(templateData['adultsCount'] || templateData['travelersCount'] || 1)
-  const defaultTravelersText = dict.get(locale, 'emails.templates.bookingConfirmation.adultsCount', { count: adultsCount })
   const travelersSummary =
-    templateData['travelersSummary'] && !String(templateData['travelersSummary']).endsWith('Adults')
-      ? String(templateData['travelersSummary'])
-      : defaultTravelersText
+    adultsCount === 1
+      ? dict.get(locale, 'emails.templates.bookingConfirmation.guestCountSingle') || (isArabic ? 'مسافر واحد' : '1 Guest')
+      : dict.get(locale, 'emails.templates.bookingConfirmation.guestCountMultiple', { count: adultsCount }) || `${adultsCount} ${isArabic ? 'مسافرين' : 'Guests'}`
+
   const travelerNames = Array.isArray(templateData['travelerNames'])
     ? (templateData['travelerNames'] as string[])
     : []
@@ -112,18 +141,18 @@ export function renderBookingConfirmationEmail(
   const remainingBalance = Number(templateData['remainingBalance'] ?? 0)
   const financialStatus = String(templateData['financialStatus'] || 'paid_in_full')
 
-  let statusBadgeText = dict.get(locale, 'emails.templates.bookingConfirmation.paidInFull')
+  let statusBadgeText = dict.get(locale, 'emails.templates.bookingConfirmation.paid') || (isArabic ? 'مدفوع' : 'PAID')
   let statusBadgeBg = '#ECFDF5'
   let statusBadgeColor = '#047857'
   let statusBadgeBorder = '#A7F3D0'
 
   if (financialStatus === 'deposit_paid') {
-    statusBadgeText = dict.get(locale, 'emails.templates.bookingConfirmation.depositPaid')
+    statusBadgeText = dict.get(locale, 'emails.templates.bookingConfirmation.depositPaid') || (isArabic ? 'تم سداد العربون' : 'DEPOSIT PAID')
     statusBadgeBg = '#FFFBEB'
     statusBadgeColor = '#B45309'
     statusBadgeBorder = '#FDE68A'
   } else if (financialStatus === 'pending') {
-    statusBadgeText = dict.get(locale, 'emails.templates.bookingConfirmation.paymentPending')
+    statusBadgeText = dict.get(locale, 'emails.templates.bookingConfirmation.paymentPending') || (isArabic ? 'بانتظار السداد' : 'PENDING')
     statusBadgeBg = '#FFF7ED'
     statusBadgeColor = '#C2410C'
     statusBadgeBorder = '#FED7AA'
@@ -132,6 +161,16 @@ export function renderBookingConfirmationEmail(
   // Loyalty redemption (points used only)
   const pointsUsed = Number(templateData['pointsUsed'] ?? 0)
   const pointsDiscount = Number(templateData['pointsDiscount'] ?? 0)
+  const originalTotalBeforeDiscount = Number(
+    templateData['originalTotalAmount'] ?? (totalAmount + pointsDiscount),
+  )
+
+  // Payment method
+  const rawPaymentMethod = String(templateData['paymentMethod'] || '').toLowerCase()
+  const paymentMethodText =
+    rawPaymentMethod.includes('card') || rawPaymentMethod.includes('stripe') || !rawPaymentMethod
+      ? cardPaymentLabel
+      : String(templateData['paymentMethod'])
 
   // CTA Link
   const serverUrl = getServerUrl()
@@ -147,18 +186,18 @@ export function renderBookingConfirmationEmail(
     ? `'IBM Plex Sans Arabic', 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif`
     : `'Playfair Display', Georgia, Cambria, 'Times New Roman', serif`
 
-  // 1. Booking Reference Header Block
+  // 1. Booking Reference Header Block (Obsidian & Gold)
   const referenceBlockHtml = `
-    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #FAF9F7; border: 1px solid #EAE7DF; border-radius: 4px; margin-bottom: 28px;" dir="${dir}">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0C101C; border: 1px solid #1C2333; border-radius: 6px; margin-bottom: 28px;" dir="${dir}">
       <tr>
-        <td style="padding: 14px 20px; text-align: ${textAlign};">
-          <span style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8C8479; font-family: ${fontStack};">
+        <td style="padding: 16px 20px; text-align: ${textAlign};">
+          <span style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #C5A880; font-family: ${fontStack};">
             ${bookingRefLabel}
           </span>
         </td>
-        <td style="padding: 14px 20px; text-align: ${alignOpposite};">
-          <span style="font-size: 14px; font-weight: 700; color: #0C101C; letter-spacing: 1.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-            ${bookingNumber}
+        <td style="padding: 16px 20px; text-align: ${alignOpposite};">
+          <span style="font-size: 14px; font-weight: 700; color: #FFFFFF; letter-spacing: 1.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            #${bookingNumber}
           </span>
         </td>
       </tr>
@@ -168,11 +207,11 @@ export function renderBookingConfirmationEmail(
   // 2. Journey Visual / Hero Card
   const heroVisualHtml = coverImageUrl
     ? `<img src="${coverImageUrl}" alt="${experienceTitle}" width="100%" style="display: block; max-width: 100%; border-radius: 6px; border: 1px solid #EAE8E2; margin-bottom: 18px; object-fit: cover; max-height: 240px;" />`
-    : `<div style="background: linear-gradient(135deg, #1B1E4B 0%, #2E3192 100%); border-radius: 6px; padding: 26px 24px; color: #FFFFFF; text-align: center; margin-bottom: 18px;">
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #C5A880; margin-bottom: 8px;">
+    : `<div style="background: linear-gradient(135deg, #0C101C 0%, #1A2338 100%); border-radius: 6px; padding: 26px 24px; color: #FFFFFF; text-align: center; margin-bottom: 18px; border: 1px solid #1C2333;">
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #C5A880; margin-bottom: 8px; font-family: ${fontStack};">
           ${yourJourneyLabel}
         </div>
-        <div style="font-family: ${headingFont}; font-size: 20px; font-weight: 700; line-height: 1.35; color: #FFFFFF;">
+        <div style="font-family: ${headingFont}; font-size: 21px; font-weight: 700; line-height: 1.35; color: #FFFFFF;">
           ${experienceTitle}
         </div>
       </div>`
@@ -212,15 +251,16 @@ export function renderBookingConfirmationEmail(
         const propName = String(stay['propertyName'] || '')
         const nights = Number(stay['nights'] || 0)
         const roomCat = stay['roomCategory'] ? String(stay['roomCategory']) : ''
-        const board = stay['boardBasis'] ? String(stay['boardBasis']).replace(/_/g, ' ') : ''
+        const rawBoard = stay['boardBasis'] ? String(stay['boardBasis']) : ''
+        const boardFormatted = rawBoard ? formatBoardBasis(rawBoard, dict, locale) : ''
 
         return `
-          <div style="padding: 10px 0; border-bottom: 1px solid #F3F2EE;">
+          <div style="padding: 12px 0; border-bottom: 1px solid #F3F2EE;">
             <div style="font-size: 14px; font-weight: 700; color: #0C101C;">${propName}</div>
             <div style="font-size: 13px; color: #525866; margin-top: 3px;">
               ${nights > 0 ? dict.get(locale, 'emails.templates.bookingConfirmation.nights', { count: nights }) : ''}
               ${roomCat ? ` · ${roomCat}` : ''}
-              ${board ? ` · ${board}` : ''}
+              ${boardFormatted ? ` · ${boardFormatted}` : ''}
             </div>
           </div>
         `
@@ -237,25 +277,38 @@ export function renderBookingConfirmationEmail(
     `
   }
 
-  // 4. Travelers Card (Privacy Preserved)
-  const travelerNamesHtml =
-    travelerNames.length > 0
-      ? `<div style="font-size: 13px; color: #525866; margin-top: 4px;">${travelerNames.join(' · ')}</div>`
-      : ''
+  // 4. Travelers Card (Structured and Dignified)
+  const additionalTravelers = travelerNames.filter(
+    (name) => name.trim().toLowerCase() !== customerName.trim().toLowerCase(),
+  )
 
   const travelersHtml = `
-    <div style="margin-bottom: 30px; padding-top: 20px; border-top: 1px solid #ECE7DE;">
-      <div style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8C8479; margin-bottom: 10px; text-align: ${textAlign};">
+    <div style="margin-bottom: 30px; padding: 20px; background-color: #FAF9F7; border: 1px solid #EAE7DF; border-radius: 6px;" dir="${dir}">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8C8479; margin-bottom: 12px; text-align: ${textAlign};">
         ${travelersLabel}
       </div>
-      <div style="font-size: 14px; font-weight: 700; color: #0C101C;">
-        ${travelersSummary}
-      </div>
-      ${travelerNamesHtml}
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 13px; line-height: 1.7;">
+        <tr>
+          <td style="color: #6B7280; text-align: ${textAlign}; padding: 2px 0;">${leadGuestLabel}</td>
+          <td style="font-weight: 700; color: #0C101C; text-align: ${alignOpposite}; padding: 2px 0;">${customerName}</td>
+        </tr>
+        <tr>
+          <td style="color: #6B7280; text-align: ${textAlign}; padding: 2px 0;">${travelersPartyLabel}</td>
+          <td style="font-weight: 600; color: #0C101C; text-align: ${alignOpposite}; padding: 2px 0;">${travelersSummary}</td>
+        </tr>
+        ${
+          additionalTravelers.length > 0
+            ? `<tr>
+                <td style="color: #6B7280; text-align: ${textAlign}; padding: 4px 0 2px 0; vertical-align: top;">${isArabic ? 'المرافقون' : 'Additional Guests'}</td>
+                <td style="font-weight: 500; color: #525866; text-align: ${alignOpposite}; padding: 4px 0 2px 0;">${additionalTravelers.join(' · ')}</td>
+              </tr>`
+            : ''
+        }
+      </table>
     </div>
   `
 
-  // 5. Payment Summary Card (Dynamic Status)
+  // 5. Payment Details Card (Clean, clear breakdown)
   const paymentHtml = `
     <div style="margin-bottom: 30px; padding: 22px 24px; background-color: #FAF9F7; border: 1px solid #EAE7DF; border-radius: 6px;" dir="${dir}">
       <table border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -266,20 +319,31 @@ export function renderBookingConfirmationEmail(
             </span>
           </td>
           <td style="text-align: ${alignOpposite}; padding-bottom: 14px;">
-            <span style="display: inline-block; padding: 4px 10px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border-radius: 3px; background-color: ${statusBadgeBg}; color: ${statusBadgeColor}; border: 1px solid ${statusBadgeBorder}; font-family: ${fontStack};">
+            <span style="display: inline-block; padding: 4px 12px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border-radius: 3px; background-color: ${statusBadgeBg}; color: ${statusBadgeColor}; border: 1px solid ${statusBadgeBorder}; font-family: ${fontStack};">
               ${statusBadgeText}
             </span>
           </td>
         </tr>
       </table>
       <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px; line-height: 1.8;">
-        <tr>
-          <td style="color: #525866; text-align: ${textAlign}; padding: 3px 0;">${totalAmountLabel}</td>
-          <td style="font-weight: 700; color: #0C101C; text-align: ${alignOpposite}; padding: 3px 0;">${formatMoney(totalAmount, currency)}</td>
-        </tr>
-        <tr>
-          <td style="color: #525866; text-align: ${textAlign}; padding: 3px 0;">${amountPaidLabel}</td>
-          <td style="font-weight: 700; color: #047857; text-align: ${alignOpposite}; padding: 3px 0;">${formatMoney(amountPaid, currency)}</td>
+        ${
+          pointsDiscount > 0
+            ? `<tr>
+                <td style="color: #525866; text-align: ${textAlign}; padding: 3px 0;">${journeyTotalLabel}</td>
+                <td style="font-weight: 600; color: #0C101C; text-align: ${alignOpposite}; padding: 3px 0;">${formatMoney(originalTotalBeforeDiscount, currency)}</td>
+              </tr>
+              <tr>
+                <td style="color: #8F6B2C; text-align: ${textAlign}; padding: 3px 0;">${loyaltyDiscountLabel} (${pointsUsed.toLocaleString()} ${pointsLabel})</td>
+                <td style="font-weight: 600; color: #8F6B2C; text-align: ${alignOpposite}; padding: 3px 0;">- ${formatMoney(pointsDiscount, currency)}</td>
+              </tr>`
+            : `<tr>
+                <td style="color: #525866; text-align: ${textAlign}; padding: 3px 0;">${totalAmountLabel}</td>
+                <td style="font-weight: 600; color: #0C101C; text-align: ${alignOpposite}; padding: 3px 0;">${formatMoney(totalAmount, currency)}</td>
+              </tr>`
+        }
+        <tr style="border-top: 1px solid #EAE7DF;">
+          <td style="color: #0C101C; font-weight: 700; font-size: 14px; text-align: ${textAlign}; padding: 8px 0 3px 0;">${amountPaidLabel}</td>
+          <td style="font-weight: 800; color: #047857; font-size: 16px; text-align: ${alignOpposite}; padding: 8px 0 3px 0;">${formatMoney(amountPaid, currency)}</td>
         </tr>
         ${
           remainingBalance > 0
@@ -289,33 +353,13 @@ export function renderBookingConfirmationEmail(
               </tr>`
             : ''
         }
+        <tr>
+          <td style="color: #8C8479; font-size: 12px; text-align: ${textAlign}; padding: 4px 0 0 0;">${paymentMethodLabel}</td>
+          <td style="color: #525866; font-size: 12px; font-weight: 600; text-align: ${alignOpposite}; padding: 4px 0 0 0;">${paymentMethodText}</td>
+        </tr>
       </table>
     </div>
   `
-
-  // 6. Loyalty Rewards Card (Only rendered if points were used)
-  let loyaltyHtml = ''
-  if (pointsUsed > 0) {
-    const pointsUsedText = dict.get(locale, 'emails.templates.bookingConfirmation.pointsUsed', {
-      points: pointsUsed,
-    })
-    const creditAppliedText = dict.get(
-      locale,
-      'emails.templates.bookingConfirmation.creditApplied',
-      { amount: formatMoney(pointsDiscount, currency) },
-    )
-
-    loyaltyHtml = `
-      <div style="margin-bottom: 30px; padding: 16px 20px; background-color: #FAF7F0; border: 1px solid #EADBCA; border-radius: 6px;" dir="${dir}">
-        <div style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8F6B2C; margin-bottom: 6px; text-align: ${textAlign};">
-          ${loyaltyRewardsLabel}
-        </div>
-        <div style="font-size: 13px; color: #6D4C17; text-align: ${textAlign}; line-height: 1.5;">
-          <strong>${pointsUsedText}</strong> · ${creditAppliedText}
-        </div>
-      </div>
-    `
-  }
 
   // Combine full content HTML
   const contentHtml = `
@@ -324,7 +368,6 @@ export function renderBookingConfirmationEmail(
     ${staysHtml}
     ${travelersHtml}
     ${paymentHtml}
-    ${loyaltyHtml}
   `
 
   const secondaryNoteHtml = `
@@ -339,7 +382,7 @@ export function renderBookingConfirmationEmail(
       preheader,
       badgeText,
       badgeType: 'primary',
-      heading: subject,
+      heading: isArabic ? 'تم تأكيد حجز رحلتكم' : 'Your Journey is Confirmed',
       contentHtml,
       ctaText,
       ctaUrl,
@@ -349,35 +392,35 @@ export function renderBookingConfirmationEmail(
   )
 
   // Plain text fallback
-  const body = [
+  const bodyLines = [
     `L'AUBE VOYAGE`,
     `${badgeText}`,
-    `${bookingRefLabel}: ${bookingNumber}`,
+    `${bookingRefLabel}: #${bookingNumber}`,
     ``,
-    `YOUR JOURNEY:`,
+    `${yourJourneyLabel.toUpperCase()}:`,
     `${experienceTitle}`,
     `${destinationLabel}: ${destinationName}`,
     travelDatesFormatted ? `${travelDatesLabel}: ${travelDatesFormatted}` : '',
     durationText ? `${durationLabel}: ${durationText}` : '',
     ``,
-    `TRAVELERS:`,
-    travelersSummary,
-    travelerNames.length > 0 ? travelerNames.join(', ') : '',
+    `${travelersLabel.toUpperCase()}:`,
+    `${leadGuestLabel}: ${customerName}`,
+    `${travelersPartyLabel}: ${travelersSummary}`,
+    additionalTravelers.length > 0 ? `${isArabic ? 'المرافقون' : 'Additional Guests'}: ${additionalTravelers.join(', ')}` : '',
     ``,
-    `PAYMENT:`,
-    `${totalAmountLabel}: ${formatMoney(totalAmount, currency)}`,
-    `${amountPaidLabel}: ${formatMoney(amountPaid, currency)}`,
+    `${paymentLabel.toUpperCase()}:`,
+    pointsDiscount > 0 ? `${journeyTotalLabel}: ${formatMoney(originalTotalBeforeDiscount, currency)}` : `${totalAmountLabel}: ${formatMoney(totalAmount, currency)}`,
+    pointsDiscount > 0 ? `${loyaltyDiscountLabel}: -${formatMoney(pointsDiscount, currency)} (${pointsUsed.toLocaleString()} ${pointsLabel})` : '',
+    `${amountPaidLabel}: ${formatMoney(amountPaid, currency)} (${statusBadgeText})`,
     remainingBalance > 0 ? `${remainingBalanceLabel}: ${formatMoney(remainingBalance, currency)}` : '',
-    `Status: ${statusBadgeText}`,
-    ``,
-    pointsUsed > 0 ? `LOYALTY: ${pointsUsed} points used (${formatMoney(pointsDiscount, currency)} credit)` : '',
+    `${paymentMethodLabel}: ${paymentMethodText}`,
     ``,
     `${ctaText}: ${ctaUrl}`,
     ``,
     supportNote,
   ]
-    .filter(Boolean)
-    .join('\n')
+
+  const body = bodyLines.filter(Boolean).join('\n')
 
   return { subject, body, html }
 }
