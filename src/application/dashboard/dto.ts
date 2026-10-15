@@ -96,6 +96,27 @@ export interface CustomerPortalOverviewLabelsDTO {
   balanceDue: string
 }
 
+
+export interface WelcomeBonusModalDTO {
+  shouldShow: boolean
+  bonusPoints: number
+  formattedBonusPoints: string
+  pointsMonetaryValue?: string
+  title: string
+  subtitle: string
+  leadMessage: string
+  howItWorksTitle: string
+  earnMoreTitle: string
+  earnMoreDesc: string
+  yourChoiceTitle: string
+  yourChoiceDesc: string
+  exploreBtnText: string
+  exploreBtnHref: string
+  dismissBtnText: string
+  badgeText: string
+  pointsCreditedText: string
+}
+
 export interface CustomerPortalOverviewDTO {
   customerId: number
   fullName: string
@@ -122,6 +143,7 @@ export interface CustomerPortalOverviewDTO {
   tierThresholds: LoyaltyTierThresholdDTO[]
   redemptionRate: LoyaltyRedemptionRateDTO
   uiLabels: CustomerPortalOverviewLabelsDTO
+  welcomeModal: WelcomeBonusModalDTO
 }
 
 export interface CustomerSidebarDTO {

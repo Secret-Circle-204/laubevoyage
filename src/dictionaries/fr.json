@@ -142,7 +142,10 @@
       "failedBadge": "Transaction Non Confirmée",
       "failedTitle": "Réservation Incomplète",
       "failedDesc": "Nous n'avons pas pu valider la transaction pour cette session de réservation.",
-      "returnToExperiences": "Retour aux Expériences →"
+      "returnToExperiences": "Retour aux Expériences →",
+      "finalizingRewards": "Finalizing rewards...",
+      "loyaltyPending": "Finalizing in Member Ledger",
+      "confirmedLoyaltyPendingDesc": "Your reservation is confirmed. Your loyalty rewards are being finalized."
     }
   },
   "contact": {
@@ -274,7 +277,19 @@
       "dailyTour": "Excursion Journalière",
       "duration": "Durée",
       "departureTime": "Heure de départ",
-      "travelDates": "Dates du voyage"
+      "travelDates": "Dates du voyage",
+      "welcomeModalTitle": "Bienvenue chez L'Aube Voyage",
+      "welcomeModalSubtitle": "Votre voyage vers l'exception commence maintenant",
+      "welcomeModalLead": "Nous sommes ravis de vous compter parmi nous ! Pour bien commencer votre aventure, {points} points de fidélité viennent d'être crédités sur votre compte.",
+      "welcomeModalHowItWorks": "Comment ça fonctionne :",
+      "welcomeModalEarnMoreTitle": "Gagnez plus",
+      "welcomeModalEarnMoreDesc": "Chaque voyage réservé vous rapporte des points supplémentaires.",
+      "welcomeModalYourChoiceTitle": "Votre choix",
+      "welcomeModalYourChoiceDesc": "Conservez vos points pour l'escapade de vos rêves ou utilisez-les lors de votre prochain achat dès que vous le souhaitez !",
+      "welcomeModalExploreBtn": "Explorer les voyages",
+      "welcomeModalDismissBtn": "Compris, aller au tableau de bord",
+      "welcomeModalBadge": "Cadeau de bienvenue",
+      "welcomeModalPointsCredited": "Points crédités"
     }
   },
   "experience": {
@@ -674,7 +689,22 @@
         "pointsUsed": "{points} points utilisés",
         "creditApplied": "{amount} de crédit",
         "cta": "Voir votre réservation",
-        "supportNote": "Besoin d’aide ? L’équipe concierge L’Aube Voyage est à votre disposition."
+        "supportNote": "Besoin d’aide ? L’équipe concierge L’Aube Voyage est à votre disposition.",
+        "travelersParty": "Number of Guests",
+        "leadGuest": "Lead Guest",
+        "guestCountSingle": "1 Guest",
+        "guestCountMultiple": "{count} Guests",
+        "journeyTotal": "Journey Total",
+        "loyaltyDiscount": "Loyalty Discount",
+        "pointsLabel": "Points",
+        "paymentMethod": "Payment Method",
+        "cardPayment": "Credit / Debit Card",
+        "paid": "PAID",
+        "bedAndBreakfast": "Bed & Breakfast",
+        "allInclusive": "All-Inclusive",
+        "halfBoard": "Half Board",
+        "fullBoard": "Full Board",
+        "roomOnly": "Room Only"
       },
       "paymentReceipt": {
         "subject": "Reçu de paiement",
@@ -689,7 +719,17 @@
       "loyaltyEarned": {
         "subject": "Vous avez gagné {points} points de fidélité !",
         "body": "Félicitations ! Vous avez cumulé {points} nouveaux points de fidélité.{balanceText}",
-        "badge": "RÉCOMPENSE FIDÉLITÉ"
+        "badge": "RÉCOMPENSE FIDÉLITÉ",
+        "greeting": "Dear {customerName},",
+        "introWithBooking": "We are pleased to confirm that your recent journey reservation (#{bookingNumber}) has unlocked exclusive rewards within the L'Aube Voyage Circle.",
+        "introGeneral": "We are pleased to confirm that new loyalty rewards have been credited to your L'Aube Voyage Circle account.",
+        "pointsEarnedLabel": "POINTS CREDITED",
+        "currentBalanceLabel": "NEW AVAILABLE BALANCE",
+        "monetaryValueLabel": "ESTIMATED PRIVILEGE VALUE",
+        "bookingRefLabel": "RESERVATION REFERENCE",
+        "editorialText": "Every expedition with L'Aube Voyage deepens your travel standing. Your accumulated rewards may be redeemed towards bespoke itinerary customization, suite privileges, and private sanctuaries on future journeys.",
+        "ctaText": "Access Rewards Vault →",
+        "supportNote": "Your points are securely stored in your Member Vault. For inquiries or bespoke redemptions, our Private Client Concierge remains at your service."
       },
       "bookingPendingAdminReview": {
         "subject": "Demande de réservation reçue : {bookingNumber}",

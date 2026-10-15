@@ -141,7 +141,10 @@
       "failedBadge": "Транзакция Не Подтверждена",
       "failedTitle": "Бронирование Не Завершено",
       "failedDesc": "Не удалось подтвердить успешную оплату для данной сессии бронирования.",
-      "returnToExperiences": "Вернуться к Путешествиям →"
+      "returnToExperiences": "Вернуться к Путешествиям →",
+      "finalizingRewards": "Finalizing rewards...",
+      "loyaltyPending": "Finalizing in Member Ledger",
+      "confirmedLoyaltyPendingDesc": "Your reservation is confirmed. Your loyalty rewards are being finalized."
     },
     "pageTitle": "Complete Your Reservation"
   },
@@ -274,7 +277,19 @@
       "dailyTour": "Однодневный тур",
       "duration": "Длительность",
       "departureTime": "Время отправления",
-      "travelDates": "Даты поездки"
+      "travelDates": "Даты поездки",
+      "welcomeModalTitle": "Добро пожаловать в L'Aube Voyage",
+      "welcomeModalSubtitle": "Ваше путешествие к исключительным впечатлениям начинается сейчас",
+      "welcomeModalLead": "Мы рады приветствовать вас в нашем клубе! Чтобы дать старт вашим путешествиям, на ваш новый аккаунт начислено {points} бонусных баллов.",
+      "welcomeModalHowItWorks": "Как это работает:",
+      "welcomeModalEarnMoreTitle": "Копите больше",
+      "welcomeModalEarnMoreDesc": "За каждую забронированную поездку вы получаете дополнительные баллы.",
+      "welcomeModalYourChoiceTitle": "Ваш выбор",
+      "welcomeModalYourChoiceDesc": "Копите баллы на путешествие мечты или списывайте их при следующей покупке в любое удобное время!",
+      "welcomeModalExploreBtn": "Смотреть путешествия",
+      "welcomeModalDismissBtn": "Понятно, перейти в кабинет",
+      "welcomeModalBadge": "Приветственный подарок",
+      "welcomeModalPointsCredited": "Баллы начислены"
     }
   },
   "experience": {
@@ -674,7 +689,22 @@
         "pointsUsed": "Использовано {points} баллов",
         "creditApplied": "Скидка {amount}",
         "cta": "Посмотреть бронирование",
-        "supportNote": "Нужна помощь? Консьерж-служба L'Aube Voyage всегда к вашим услугам."
+        "supportNote": "Нужна помощь? Консьерж-служба L'Aube Voyage всегда к вашим услугам.",
+        "travelersParty": "Number of Guests",
+        "leadGuest": "Lead Guest",
+        "guestCountSingle": "1 Guest",
+        "guestCountMultiple": "{count} Guests",
+        "journeyTotal": "Journey Total",
+        "loyaltyDiscount": "Loyalty Discount",
+        "pointsLabel": "Points",
+        "paymentMethod": "Payment Method",
+        "cardPayment": "Credit / Debit Card",
+        "paid": "PAID",
+        "bedAndBreakfast": "Bed & Breakfast",
+        "allInclusive": "All-Inclusive",
+        "halfBoard": "Half Board",
+        "fullBoard": "Full Board",
+        "roomOnly": "Room Only"
       },
       "paymentReceipt": {
         "subject": "Квитанция об оплате",
@@ -689,7 +719,17 @@
       "loyaltyEarned": {
         "subject": "Вам начислено {points} баллов лояльности!",
         "body": "Поздравляем! Вы получили {points} новых баллов лояльности.{balanceText}",
-        "badge": "НАЧИСЛЕНИЕ БАЛЛОВ"
+        "badge": "НАЧИСЛЕНИЕ БАЛЛОВ",
+        "greeting": "Dear {customerName},",
+        "introWithBooking": "We are pleased to confirm that your recent journey reservation (#{bookingNumber}) has unlocked exclusive rewards within the L'Aube Voyage Circle.",
+        "introGeneral": "We are pleased to confirm that new loyalty rewards have been credited to your L'Aube Voyage Circle account.",
+        "pointsEarnedLabel": "POINTS CREDITED",
+        "currentBalanceLabel": "NEW AVAILABLE BALANCE",
+        "monetaryValueLabel": "ESTIMATED PRIVILEGE VALUE",
+        "bookingRefLabel": "RESERVATION REFERENCE",
+        "editorialText": "Every expedition with L'Aube Voyage deepens your travel standing. Your accumulated rewards may be redeemed towards bespoke itinerary customization, suite privileges, and private sanctuaries on future journeys.",
+        "ctaText": "Access Rewards Vault →",
+        "supportNote": "Your points are securely stored in your Member Vault. For inquiries or bespoke redemptions, our Private Client Concierge remains at your service."
       },
       "bookingPendingAdminReview": {
         "subject": "Запрос на бронирование получен: {bookingNumber}",

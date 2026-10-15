@@ -89,6 +89,9 @@ export class DashboardOverviewAggregator {
         activeDeviceCount: customer.lastLoginAt ? 1 : 0,
         lastLoginAt: customer.lastLoginAt,
       },
+      onboarding: {
+        hasSeenWelcomeModal: false,
+      },
       metrics: DashboardMetrics.createMetrics(false, durationMs),
       version: 1,
       updatedAt: new Date().toISOString(),

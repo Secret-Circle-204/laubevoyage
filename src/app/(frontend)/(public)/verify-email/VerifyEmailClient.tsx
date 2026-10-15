@@ -237,7 +237,7 @@ export default function VerifyEmailClient({ token, email, welcomeBonus }: Verify
                 : 'Your email is verified and your luxury traveler profile is now active.'}
             </p>
             <div className="mt-8">
-              <Link href="/login">
+              <Link href="/login?redirect=%2Fdashboard%3Fwelcome%3D1">
                 <Button variant="primary" size="md" className="w-full">
                   Sign In to Your Account →
                 </Button>

@@ -141,7 +141,10 @@
       "failedBadge": "交易未确认",
       "failedTitle": "预订未完成",
       "failedDesc": "未能确认该预订会话的有效支付。",
-      "returnToExperiences": "返回探索行程 →"
+      "returnToExperiences": "返回探索行程 →",
+      "finalizingRewards": "Finalizing rewards...",
+      "loyaltyPending": "Finalizing in Member Ledger",
+      "confirmedLoyaltyPendingDesc": "Your reservation is confirmed. Your loyalty rewards are being finalized."
     },
     "pageTitle": "Complete Your Reservation"
   },
@@ -274,7 +277,19 @@
       "dailyTour": "一日游",
       "duration": "行程天数",
       "departureTime": "出发时间",
-      "travelDates": "出行日期"
+      "travelDates": "出行日期",
+      "welcomeModalTitle": "Welcome to L'Aube Voyage",
+      "welcomeModalSubtitle": "Your journey to exceptional travel begins now",
+      "welcomeModalLead": "We’re thrilled to have you on board! To help kickstart your journey, {points} reward points have just been added to your new account.",
+      "welcomeModalHowItWorks": "How it works:",
+      "welcomeModalEarnMoreTitle": "Earn More",
+      "welcomeModalEarnMoreDesc": "Every trip you book earns you more points.",
+      "welcomeModalYourChoiceTitle": "Your Choice",
+      "welcomeModalYourChoiceDesc": "Save your points for a dream getaway or redeem them on your next purchase whenever you're ready!",
+      "welcomeModalExploreBtn": "Start Exploring Journeys",
+      "welcomeModalDismissBtn": "Got it, take me to Dashboard",
+      "welcomeModalBadge": "Welcome Gift",
+      "welcomeModalPointsCredited": "Points Credited"
     }
   },
   "experience": {
@@ -674,7 +689,22 @@
         "pointsUsed": "已使用 {points} 积分",
         "creditApplied": "折抵 {amount}",
         "cta": "查看您的预订",
-        "supportNote": "需要协助？L'Aube Voyage 专属礼宾团队随时为您服务。"
+        "supportNote": "需要协助？L'Aube Voyage 专属礼宾团队随时为您服务。",
+        "travelersParty": "Number of Guests",
+        "leadGuest": "Lead Guest",
+        "guestCountSingle": "1 Guest",
+        "guestCountMultiple": "{count} Guests",
+        "journeyTotal": "Journey Total",
+        "loyaltyDiscount": "Loyalty Discount",
+        "pointsLabel": "Points",
+        "paymentMethod": "Payment Method",
+        "cardPayment": "Credit / Debit Card",
+        "paid": "PAID",
+        "bedAndBreakfast": "Bed & Breakfast",
+        "allInclusive": "All-Inclusive",
+        "halfBoard": "Half Board",
+        "fullBoard": "Full Board",
+        "roomOnly": "Room Only"
       },
       "paymentReceipt": {
         "subject": "付款收据",
@@ -689,7 +719,17 @@
       "loyaltyEarned": {
         "subject": "恭喜获得 {points} 积分！",
         "body": "恭喜您！您已获得 {points} 新增奖励积分。{balanceText}",
-        "badge": "积分奖励"
+        "badge": "积分奖励",
+        "greeting": "Dear {customerName},",
+        "introWithBooking": "We are pleased to confirm that your recent journey reservation (#{bookingNumber}) has unlocked exclusive rewards within the L'Aube Voyage Circle.",
+        "introGeneral": "We are pleased to confirm that new loyalty rewards have been credited to your L'Aube Voyage Circle account.",
+        "pointsEarnedLabel": "POINTS CREDITED",
+        "currentBalanceLabel": "NEW AVAILABLE BALANCE",
+        "monetaryValueLabel": "ESTIMATED PRIVILEGE VALUE",
+        "bookingRefLabel": "RESERVATION REFERENCE",
+        "editorialText": "Every expedition with L'Aube Voyage deepens your travel standing. Your accumulated rewards may be redeemed towards bespoke itinerary customization, suite privileges, and private sanctuaries on future journeys.",
+        "ctaText": "Access Rewards Vault →",
+        "supportNote": "Your points are securely stored in your Member Vault. For inquiries or bespoke redemptions, our Private Client Concierge remains at your service."
       },
       "bookingPendingAdminReview": {
         "subject": "已收到预订申请：{bookingNumber}",

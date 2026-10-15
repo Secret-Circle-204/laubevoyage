@@ -141,7 +141,10 @@
       "failedBadge": "Tapahtumaa Ei Vahvistettu",
       "failedTitle": "Varaus Keskeneräinen",
       "failedDesc": "Emme voineet vahvistaa onnistunutta maksua tälle varausistunnolle.",
-      "returnToExperiences": "Palaa Elämyksiin →"
+      "returnToExperiences": "Palaa Elämyksiin →",
+      "finalizingRewards": "Finalizing rewards...",
+      "loyaltyPending": "Finalizing in Member Ledger",
+      "confirmedLoyaltyPendingDesc": "Your reservation is confirmed. Your loyalty rewards are being finalized."
     },
     "pageTitle": "Complete Your Reservation"
   },
@@ -274,7 +277,19 @@
       "dailyTour": "Päiväretki",
       "duration": "Kesto",
       "departureTime": "Lähtöaika",
-      "travelDates": "Matkustuspäivät"
+      "travelDates": "Matkustuspäivät",
+      "welcomeModalTitle": "Welcome to L'Aube Voyage",
+      "welcomeModalSubtitle": "Your journey to exceptional travel begins now",
+      "welcomeModalLead": "We’re thrilled to have you on board! To help kickstart your journey, {points} reward points have just been added to your new account.",
+      "welcomeModalHowItWorks": "How it works:",
+      "welcomeModalEarnMoreTitle": "Earn More",
+      "welcomeModalEarnMoreDesc": "Every trip you book earns you more points.",
+      "welcomeModalYourChoiceTitle": "Your Choice",
+      "welcomeModalYourChoiceDesc": "Save your points for a dream getaway or redeem them on your next purchase whenever you're ready!",
+      "welcomeModalExploreBtn": "Start Exploring Journeys",
+      "welcomeModalDismissBtn": "Got it, take me to Dashboard",
+      "welcomeModalBadge": "Welcome Gift",
+      "welcomeModalPointsCredited": "Points Credited"
     }
   },
   "experience": {
@@ -674,7 +689,22 @@
         "pointsUsed": "{points} pistettä käytetty",
         "creditApplied": "{amount} hyvitystä",
         "cta": "Tarkastele varaustasi",
-        "supportNote": "Tarvitsetko apua? L'Aube Voyagen concierge-tiimi on aina palveluksessasi."
+        "supportNote": "Tarvitsetko apua? L'Aube Voyagen concierge-tiimi on aina palveluksessasi.",
+        "travelersParty": "Number of Guests",
+        "leadGuest": "Lead Guest",
+        "guestCountSingle": "1 Guest",
+        "guestCountMultiple": "{count} Guests",
+        "journeyTotal": "Journey Total",
+        "loyaltyDiscount": "Loyalty Discount",
+        "pointsLabel": "Points",
+        "paymentMethod": "Payment Method",
+        "cardPayment": "Credit / Debit Card",
+        "paid": "PAID",
+        "bedAndBreakfast": "Bed & Breakfast",
+        "allInclusive": "All-Inclusive",
+        "halfBoard": "Half Board",
+        "fullBoard": "Full Board",
+        "roomOnly": "Room Only"
       },
       "paymentReceipt": {
         "subject": "Maksukuitti",
@@ -689,7 +719,17 @@
       "loyaltyEarned": {
         "subject": "Olet ansainnut {points} kanta-asiakaspistettä!",
         "body": "Onnittelut! Olet ansainnut {points} uutta kanta-asiakaspistettä.{balanceText}",
-        "badge": "PISTE PALKINTO"
+        "badge": "PISTE PALKINTO",
+        "greeting": "Dear {customerName},",
+        "introWithBooking": "We are pleased to confirm that your recent journey reservation (#{bookingNumber}) has unlocked exclusive rewards within the L'Aube Voyage Circle.",
+        "introGeneral": "We are pleased to confirm that new loyalty rewards have been credited to your L'Aube Voyage Circle account.",
+        "pointsEarnedLabel": "POINTS CREDITED",
+        "currentBalanceLabel": "NEW AVAILABLE BALANCE",
+        "monetaryValueLabel": "ESTIMATED PRIVILEGE VALUE",
+        "bookingRefLabel": "RESERVATION REFERENCE",
+        "editorialText": "Every expedition with L'Aube Voyage deepens your travel standing. Your accumulated rewards may be redeemed towards bespoke itinerary customization, suite privileges, and private sanctuaries on future journeys.",
+        "ctaText": "Access Rewards Vault →",
+        "supportNote": "Your points are securely stored in your Member Vault. For inquiries or bespoke redemptions, our Private Client Concierge remains at your service."
       },
       "bookingPendingAdminReview": {
         "subject": "Varauspyyntö vastaanotettu: {bookingNumber}",

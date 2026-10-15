@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers'
 import { cache } from 'react'
 import { getDomainServices } from '@/domains/factory'
 import { getBusinessDateString } from '@/lib/date'
@@ -13,6 +14,7 @@ import type {
   BookingTravelerDTO,
   BookingStaySnapshotDTO,
   BookingRoomAllocationDTO,
+  WelcomeBonusModalDTO,
 } from './dto'
 import { BookingLoyaltySummaryAssembler } from '@/application/loyalty/booking-summary-assembler'
 import { LoyaltyTier, BookingStatus } from '@/types'
@@ -417,7 +419,62 @@ export class CustomerPortalLoader {
         balanceDue: localization.translateUiKey('dashboard.overview.balanceDue', ctx),
       }
 
+      // Welcome Bonus Modal Assembly (SSOT: checks projection onboarding + cookies + zero bookings)
+      const bonusPoints = loyaltyConfig.welcomeBonus || 100
+      const formattedBonusPoints = localization.formatNumber(bonusPoints, ctx)
+      const hasSeenModal = projection?.onboarding?.hasSeenWelcomeModal === true
+      let hasDismissedCookie = false
+      try {
+        const cookieStore = await cookies()
+        hasDismissedCookie = cookieStore.get(`laube_welcome_dismissed_${customerId}`)?.value === '1'
+      } catch {
+        // Safe fallback when executed outside Next.js request scope (e.g. test runner)
+      }
+      const hasNoBookings = userBookings.length === 0
+      const shouldShowWelcomeModal = !hasSeenModal && !hasDismissedCookie && hasNoBookings
+
+      const welcomeLeadTemplate =
+        localization.translateUiKey('dashboard.overview.welcomeModalLead', ctx) ||
+        'We’re thrilled to have you on board! To help kickstart your journey, {points} reward points have just been added to your new account.'
+      const welcomeLeadMessage = welcomeLeadTemplate.replace('{points}', formattedBonusPoints)
+
+      const welcomeModal: WelcomeBonusModalDTO = {
+        shouldShow: shouldShowWelcomeModal,
+        bonusPoints,
+        formattedBonusPoints,
+        pointsMonetaryValue: valuationPresentation.pointsMonetaryValue?.formatted,
+        title: localization.translateUiKey('dashboard.overview.welcomeModalTitle', ctx) || "Welcome to L'Aube Voyage",
+        subtitle:
+          localization.translateUiKey('dashboard.overview.welcomeModalSubtitle', ctx) ||
+          'Your journey to exceptional travel begins now',
+        leadMessage: welcomeLeadMessage,
+        howItWorksTitle:
+          localization.translateUiKey('dashboard.overview.welcomeModalHowItWorks', ctx) || 'How it works:',
+        earnMoreTitle:
+          localization.translateUiKey('dashboard.overview.welcomeModalEarnMoreTitle', ctx) || 'Earn More',
+        earnMoreDesc:
+          localization.translateUiKey('dashboard.overview.welcomeModalEarnMoreDesc', ctx) ||
+          'Every trip you book earns you more points.',
+        yourChoiceTitle:
+          localization.translateUiKey('dashboard.overview.welcomeModalYourChoiceTitle', ctx) || 'Your Choice',
+        yourChoiceDesc:
+          localization.translateUiKey('dashboard.overview.welcomeModalYourChoiceDesc', ctx) ||
+          "Save your points for a dream getaway or redeem them on your next purchase whenever you're ready!",
+        exploreBtnText:
+          localization.translateUiKey('dashboard.overview.welcomeModalExploreBtn', ctx) ||
+          'Start Exploring Journeys',
+        exploreBtnHref: '/experiences',
+        dismissBtnText:
+          localization.translateUiKey('dashboard.overview.welcomeModalDismissBtn', ctx) ||
+          'Got it, take me to Dashboard',
+        badgeText:
+          localization.translateUiKey('dashboard.overview.welcomeModalBadge', ctx) || 'Welcome Gift',
+        pointsCreditedText:
+          localization.translateUiKey('dashboard.overview.welcomeModalPointsCredited', ctx) || 'Points Credited',
+      }
+
       return {
+        welcomeModal,
         customerId,
         fullName: rawTitle,
         email: projection?.customer?.email || '',

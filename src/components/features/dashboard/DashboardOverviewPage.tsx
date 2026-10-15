@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { Badge, CurrencyDisplay, EmptyState, Button } from '@/components/ui'
+import { WelcomeBonusModal } from './WelcomeBonusModal'
 import type { CustomerPortalOverviewDTO, CustomerBookingCardDTO, CustomerPortalOverviewLabelsDTO } from '@/application/dashboard/dto'
 
 function PinIcon({ className = 'w-3.5 h-3.5' }: { className?: string }) {
@@ -619,6 +620,10 @@ export function DashboardOverviewPage({ data }: { data: CustomerPortalOverviewDT
 
   return (
     <div className="flex flex-col gap-8 flex-grow">
+      {/* First-Time Welcome Bonus Modal */}
+      {data.welcomeModal && (
+        <WelcomeBonusModal welcomeModal={data.welcomeModal} customerId={data.customerId} />
+      )}
       {/* 5.1 Travel Home Header */}
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/30 bg-secondary/10 text-secondary text-xs font-bold uppercase">

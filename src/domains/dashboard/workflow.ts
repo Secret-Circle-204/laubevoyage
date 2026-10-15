@@ -6,7 +6,7 @@ import { DashboardBookingHub } from './booking-hub'
 import { DashboardLoyaltyHub } from './loyalty-hub'
 import { DashboardProfileHub } from './profile-hub'
 import { DashboardPolicy } from './policy'
-import type { CustomerPortalProjection, DashboardWidget } from './types'
+import type { CustomerPortalProjection, DashboardWidget, CustomerOnboardingDTO } from './types'
 import { DashboardWidgetProvider } from './widget-provider'
 import { DashboardMetrics } from './metrics'
 import type { CustomerRepository } from '../customer/repositories/customer-repository'
@@ -77,6 +77,20 @@ export class DashboardWorkflowEngine {
     await this.repository.saveProjection(projection)
 
     return projection
+  }
+
+
+  async dismissWelcomeModal(customerId: number): Promise<void> {
+    const onboardingData: CustomerOnboardingDTO = {
+      hasSeenWelcomeModal: true,
+      welcomeModalDismissedAt: new Date().toISOString(),
+    }
+    await this.repository.updateSlice(
+      customerId,
+      'onboarding' as any,
+      onboardingData,
+      () => this.overviewAggregator.aggregatePortalOverview(customerId),
+    )
   }
 
   async getWidgets(customerId: number): Promise<DashboardWidget[]> {

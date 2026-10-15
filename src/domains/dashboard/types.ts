@@ -28,6 +28,12 @@ export interface SecuritySessionDTO {
   lastLoginAt?: string
 }
 
+
+export interface CustomerOnboardingDTO {
+  hasSeenWelcomeModal: boolean
+  welcomeModalDismissedAt?: string
+}
+
 export interface DashboardMetricsDTO {
   cacheHit: boolean
   aggregationDurationMs: number
@@ -42,6 +48,7 @@ export interface CustomerPortalProjection {
   loyalty: LoyaltyWalletDTO
   trips: ActiveTripsSummaryDTO
   security: SecuritySessionDTO
+  onboarding?: CustomerOnboardingDTO
   metrics: DashboardMetricsDTO
   version: number
   updatedAt: string

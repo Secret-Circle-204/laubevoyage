@@ -6,6 +6,20 @@ import { ExperienceDetailsLoader } from '@/application/experience/loaders-detail
 import { ExperienceDetailsPage } from '@/components/features/experience/ExperienceDetailsPage'
 import { AccommodationParamsParser } from '@/application/shared/parsers/accommodation-params-parser'
 
+const getCachedExperienceDetails = React.cache(
+  async (
+    slug: string,
+    options?: {
+      locale?: string
+      currency?: string
+      adults?: number
+      selectedAccommodationOptions?: Record<number, string>
+    },
+  ) => {
+    return ExperienceDetailsLoader.loadBySlug(slug, options)
+  },
+)
+
 export async function generateMetadata(props: {
   params: Promise<{ slug: string }>
   searchParams: Promise<{ adults?: string; accommodations?: string; [key: string]: any }>
@@ -20,7 +34,7 @@ export async function generateMetadata(props: {
     ? AccommodationParamsParser.parse(searchParams.accommodations)
     : undefined
 
-  const data = await ExperienceDetailsLoader.loadBySlug(params.slug, {
+  const data = await getCachedExperienceDetails(params.slug, {
     locale,
     currency,
     adults,
@@ -51,7 +65,7 @@ export default async function Page(props: {
     ? AccommodationParamsParser.parse(searchParams.accommodations)
     : undefined
 
-  const data = await ExperienceDetailsLoader.loadBySlug(params.slug, {
+  const data = await getCachedExperienceDetails(params.slug, {
     locale,
     currency,
     adults,

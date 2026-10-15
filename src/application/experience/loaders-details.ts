@@ -81,6 +81,7 @@ export class ExperienceDetailsLoader {
     )
 
     const cityDocsMap = new Map<number, { id: number; name: string; slug: string; countryId: number; countryName: string; countrySlug: string }>()
+    const countryDocsCache = new Map<number, { name: string; slug: string } | null>()
     if (allCityIdsToFetch.length > 0) {
       const rawCityDocs = await destination.getCitiesByIds(allCityIdsToFetch)
       for (const c of rawCityDocs) {
@@ -96,10 +97,17 @@ export class ExperienceDetailsLoader {
           countrySlug = String(c.country.slug || '')
         } else if (c.country) {
           countryId = Number(c.country)
-          const cCountryDoc = (await destination.getCountryById(countryId)) as Record<string, any> | null
-          if (cCountryDoc) {
-            countryName = String(cCountryDoc.name || '')
-            countrySlug = String(cCountryDoc.slug || '')
+          if (!countryDocsCache.has(countryId)) {
+            const cCountryDoc = (await destination.getCountryById(countryId)) as Record<string, any> | null
+            countryDocsCache.set(
+              countryId,
+              cCountryDoc ? { name: String(cCountryDoc.name || ''), slug: String(cCountryDoc.slug || '') } : null,
+            )
+          }
+          const cachedCountry = countryDocsCache.get(countryId)
+          if (cachedCountry) {
+            countryName = cachedCountry.name
+            countrySlug = cachedCountry.slug
           }
         }
         cityDocsMap.set(cId, { id: cId, name: cName, slug: cSlug, countryId, countryName, countrySlug })

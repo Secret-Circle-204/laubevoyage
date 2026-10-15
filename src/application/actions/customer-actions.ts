@@ -452,3 +452,31 @@ export async function saveCustomerCompanionAction(params: {
     }
   }
 }
+
+
+export async function dismissWelcomeModalAction() {
+  try {
+    const session = await SessionResolver.resolve()
+    if (!session.isAuthenticated || !session.customerId) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const { dashboard } = await getDomainServices()
+    await dashboard.dismissWelcomeModal(session.customerId)
+
+    const cookieStore = await cookies()
+    cookieStore.set(`laube_welcome_dismissed_${session.customerId}`, '1', {
+      path: '/',
+      maxAge: 31536000,
+      sameSite: 'lax',
+    })
+
+    revalidatePath('/dashboard')
+    return { success: true }
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to dismiss welcome modal',
+    }
+  }
+}

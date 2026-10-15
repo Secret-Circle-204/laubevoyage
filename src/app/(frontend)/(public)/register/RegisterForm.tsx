@@ -64,7 +64,7 @@ export function RegisterForm({ welcomeBonus }: RegisterFormProps) {
               ? `Welcome to L'Aube Voyage. ${welcomeBonus} loyalty points awarded!`
               : "Welcome to L'Aube Voyage. Your traveler account is created!",
           })
-          const redirectPath = searchParams.get('redirect') || '/dashboard'
+          const redirectPath = searchParams.get('redirect') || '/dashboard?welcome=1'
           router.push(redirectPath)
           router.refresh()
         }

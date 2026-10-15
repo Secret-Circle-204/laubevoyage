@@ -21,6 +21,11 @@ export class DashboardService {
     return this.workflowEngine.executePortalOverviewWorkflow(customerId)
   }
 
+
+  async dismissWelcomeModal(customerId: number): Promise<void> {
+    return this.workflowEngine.dismissWelcomeModal(customerId)
+  }
+
   async getWidgets(customerId: number): Promise<DashboardWidget[]> {
     return this.workflowEngine.getWidgets(customerId)
   }

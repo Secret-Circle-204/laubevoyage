@@ -142,7 +142,10 @@
       "failedBadge": "Transaktion Unbestätigt",
       "failedTitle": "Buchung Unvollständig",
       "failedDesc": "Wir konnten keine erfolgreiche Transaktion für diese Buchungssitzung feststellen.",
-      "returnToExperiences": "Zurück zu den Erlebnissen →"
+      "returnToExperiences": "Zurück zu den Erlebnissen →",
+      "finalizingRewards": "Finalizing rewards...",
+      "loyaltyPending": "Finalizing in Member Ledger",
+      "confirmedLoyaltyPendingDesc": "Your reservation is confirmed. Your loyalty rewards are being finalized."
     }
   },
   "contact": {
@@ -274,7 +277,19 @@
       "dailyTour": "Tagestour",
       "duration": "Dauer",
       "departureTime": "Abfahrtszeit",
-      "travelDates": "Reisedaten"
+      "travelDates": "Reisedaten",
+      "welcomeModalTitle": "Willkommen bei L'Aube Voyage",
+      "welcomeModalSubtitle": "Ihre Reise zu außergewöhnlichen Erlebnissen beginnt jetzt",
+      "welcomeModalLead": "Wir freuen uns sehr, Sie an Bord zu haben! Als Startgeschenk wurden Ihrem neuen Konto {points} Bonuspunkte gutgeschrieben.",
+      "welcomeModalHowItWorks": "So funktioniert es:",
+      "welcomeModalEarnMoreTitle": "Mehr sammeln",
+      "welcomeModalEarnMoreDesc": "Mit jeder gebuchten Reise sammeln Sie weitere Punkte.",
+      "welcomeModalYourChoiceTitle": "Ihre Wahl",
+      "welcomeModalYourChoiceDesc": "Sparen Sie Ihre Punkte für Ihre Traumreise oder lösen Sie sie bei Ihrer nächsten Buchung ein, wann immer Sie möchten!",
+      "welcomeModalExploreBtn": "Reisen entdecken",
+      "welcomeModalDismissBtn": "Verstanden, weiter zum Dashboard",
+      "welcomeModalBadge": "Willkommensgeschenk",
+      "welcomeModalPointsCredited": "Punkte gutgeschrieben"
     }
   },
   "experience": {
@@ -674,7 +689,22 @@
         "pointsUsed": "{points} Punkte eingelöst",
         "creditApplied": "{amount} Guthaben",
         "cta": "Buchung ansehen",
-        "supportNote": "Brauchen Sie Hilfe? Das Concierge-Team von L'Aube Voyage ist gerne für Sie da."
+        "supportNote": "Brauchen Sie Hilfe? Das Concierge-Team von L'Aube Voyage ist gerne für Sie da.",
+        "travelersParty": "Number of Guests",
+        "leadGuest": "Lead Guest",
+        "guestCountSingle": "1 Guest",
+        "guestCountMultiple": "{count} Guests",
+        "journeyTotal": "Journey Total",
+        "loyaltyDiscount": "Loyalty Discount",
+        "pointsLabel": "Points",
+        "paymentMethod": "Payment Method",
+        "cardPayment": "Credit / Debit Card",
+        "paid": "PAID",
+        "bedAndBreakfast": "Bed & Breakfast",
+        "allInclusive": "All-Inclusive",
+        "halfBoard": "Half Board",
+        "fullBoard": "Full Board",
+        "roomOnly": "Room Only"
       },
       "paymentReceipt": {
         "subject": "Zahlungsbeleg",
@@ -689,7 +719,17 @@
       "loyaltyEarned": {
         "subject": "Sie haben {points} Treuepunkte gesammelt!",
         "body": "Herzlichen Glückwunsch! Sie haben {points} neue Treuepunkte erhalten.{balanceText}",
-        "badge": "TREUEBELOHNUNG"
+        "badge": "TREUEBELOHNUNG",
+        "greeting": "Dear {customerName},",
+        "introWithBooking": "We are pleased to confirm that your recent journey reservation (#{bookingNumber}) has unlocked exclusive rewards within the L'Aube Voyage Circle.",
+        "introGeneral": "We are pleased to confirm that new loyalty rewards have been credited to your L'Aube Voyage Circle account.",
+        "pointsEarnedLabel": "POINTS CREDITED",
+        "currentBalanceLabel": "NEW AVAILABLE BALANCE",
+        "monetaryValueLabel": "ESTIMATED PRIVILEGE VALUE",
+        "bookingRefLabel": "RESERVATION REFERENCE",
+        "editorialText": "Every expedition with L'Aube Voyage deepens your travel standing. Your accumulated rewards may be redeemed towards bespoke itinerary customization, suite privileges, and private sanctuaries on future journeys.",
+        "ctaText": "Access Rewards Vault →",
+        "supportNote": "Your points are securely stored in your Member Vault. For inquiries or bespoke redemptions, our Private Client Concierge remains at your service."
       },
       "bookingPendingAdminReview": {
         "subject": "Buchungsanfrage eingegangen: {bookingNumber}",

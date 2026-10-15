@@ -285,7 +285,19 @@
       "dailyTour": "Daily Tour",
       "duration": "Duration",
       "departureTime": "Departure Time",
-      "travelDates": "Travel Dates"
+      "travelDates": "Travel Dates",
+      "welcomeModalTitle": "Welcome to L'Aube Voyage",
+      "welcomeModalSubtitle": "Your journey to exceptional travel begins now",
+      "welcomeModalLead": "We’re thrilled to have you on board! To help kickstart your journey, {points} reward points have just been added to your new account.",
+      "welcomeModalHowItWorks": "How it works:",
+      "welcomeModalEarnMoreTitle": "Earn More",
+      "welcomeModalEarnMoreDesc": "Every trip you book earns you more points.",
+      "welcomeModalYourChoiceTitle": "Your Choice",
+      "welcomeModalYourChoiceDesc": "Save your points for a dream getaway or redeem them on your next purchase whenever you're ready!",
+      "welcomeModalExploreBtn": "Start Exploring Journeys",
+      "welcomeModalDismissBtn": "Got it, take me to Dashboard",
+      "welcomeModalBadge": "Welcome Gift",
+      "welcomeModalPointsCredited": "Points Credited"
     }
   },
   "experience": {

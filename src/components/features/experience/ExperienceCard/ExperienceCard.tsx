@@ -77,6 +77,7 @@ export function ExperienceCard({
       >
         <Link
           href={`/experiences/${experience.slug || experience.id}`}
+          prefetch={true}
           className="flex flex-col h-full grow focus:outline-none"
         >
           {/* Immersive Editorial Image Header (Taller, expansive 4:3 luxury ratio) */}
