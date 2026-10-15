@@ -19,6 +19,7 @@ import type {
 import { BookingLoyaltySummaryAssembler } from '@/application/loyalty/booking-summary-assembler'
 import { LoyaltyTier, BookingStatus } from '@/types'
 import { TierPolicy } from '@/domains/loyalty/tier-policy'
+import { PointCalculationPolicy } from '@/domains/loyalty/points-calculation-policy'
 import { LoyaltyProgressDTOFactory } from '@/application/loyalty/progress-factory'
 import { CANONICAL_CUSTOMER_NAV_ITEMS } from './navigation'
 
@@ -420,7 +421,8 @@ export class CustomerPortalLoader {
       }
 
       // Welcome Bonus Modal Assembly (SSOT: checks projection onboarding + cookies + zero bookings)
-      const bonusPoints = loyaltyConfig.welcomeBonus || 100
+      // Dynamic bonus points from authoritative LoyaltyProgramConfig (collection: loyalty-settings)
+      const bonusPoints = typeof loyaltyConfig?.welcomeBonus === 'number' && loyaltyConfig.welcomeBonus > 0 ? loyaltyConfig.welcomeBonus : 0
       const formattedBonusPoints = localization.formatNumber(bonusPoints, ctx)
       const hasSeenModal = projection?.onboarding?.hasSeenWelcomeModal === true
       let hasDismissedCookie = false
@@ -431,19 +433,39 @@ export class CustomerPortalLoader {
         // Safe fallback when executed outside Next.js request scope (e.g. test runner)
       }
       const hasNoBookings = userBookings.length === 0
-      const shouldShowWelcomeModal = !hasSeenModal && !hasDismissedCookie && hasNoBookings
+      const shouldShowWelcomeModal = bonusPoints > 0 && !hasSeenModal && !hasDismissedCookie && hasNoBookings
+
+      // SSOT: Calculate authoritative bonus points monetary valuation in EGP, then format in active user currency
+      const bonusBaseValueEGP =
+        typeof loyaltyService?.calculatePointValueInEGP === 'function'
+          ? await loyaltyService.calculatePointValueInEGP(bonusPoints, loyaltyConfig)
+          : PointCalculationPolicy.calculatePointsValueEGP(bonusPoints, loyaltyConfig)
+      const bonusMonetaryPrice = await localization.formatPrice(bonusBaseValueEGP, ctx)
+
+      const customerFirstName = customerDoc?.firstName?.trim() || (rawTitle ? rawTitle.trim().split(' ')[0] : '')
+      const titleTemplate =
+        localization.translateUiKey('dashboard.overview.welcomeModalTitle', ctx) || "Welcome to L'Aube Voyage, {name}"
+      const welcomeTitle = customerFirstName
+        ? titleTemplate.replace('{name}', customerFirstName)
+        : titleTemplate.replace(', {name}', '').replace('، {name}', '').replace('{name}様', '').replace('{name}', '').trim()
 
       const welcomeLeadTemplate =
         localization.translateUiKey('dashboard.overview.welcomeModalLead', ctx) ||
         'We’re thrilled to have you on board! To help kickstart your journey, {points} reward points have just been added to your new account.'
-      const welcomeLeadMessage = welcomeLeadTemplate.replace('{points}', formattedBonusPoints)
+      let welcomeLeadMessage = welcomeLeadTemplate.replace('{points}', formattedBonusPoints)
+      if (welcomeLeadMessage.includes('{name}')) {
+        welcomeLeadMessage = welcomeLeadMessage.replace('{name}', customerFirstName || '')
+      }
 
       const welcomeModal: WelcomeBonusModalDTO = {
         shouldShow: shouldShowWelcomeModal,
         bonusPoints,
         formattedBonusPoints,
-        pointsMonetaryValue: valuationPresentation.pointsMonetaryValue?.formatted,
-        title: localization.translateUiKey('dashboard.overview.welcomeModalTitle', ctx) || "Welcome to L'Aube Voyage",
+        pointsMonetaryValue: bonusMonetaryPrice.formatted,
+        travelCreditText:
+          localization.translateUiKey('dashboard.overview.welcomeModalTravelCredit', ctx) || 'Travel Credit',
+        customerName: customerFirstName,
+        title: welcomeTitle,
         subtitle:
           localization.translateUiKey('dashboard.overview.welcomeModalSubtitle', ctx) ||
           'Your journey to exceptional travel begins now',

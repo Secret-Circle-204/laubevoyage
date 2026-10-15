@@ -278,7 +278,7 @@
       "duration": "Длительность",
       "departureTime": "Время отправления",
       "travelDates": "Даты поездки",
-      "welcomeModalTitle": "Добро пожаловать в L'Aube Voyage",
+      "welcomeModalTitle": "Добро пожаловать в L'Aube Voyage, {name}",
       "welcomeModalSubtitle": "Ваше путешествие к исключительным впечатлениям начинается сейчас",
       "welcomeModalLead": "Мы рады приветствовать вас в нашем клубе! Чтобы дать старт вашим путешествиям, на ваш новый аккаунт начислено {points} бонусных баллов.",
       "welcomeModalHowItWorks": "Как это работает:",
@@ -289,7 +289,8 @@
       "welcomeModalExploreBtn": "Смотреть путешествия",
       "welcomeModalDismissBtn": "Понятно, перейти в кабинет",
       "welcomeModalBadge": "Приветственный подарок",
-      "welcomeModalPointsCredited": "Баллы начислены"
+      "welcomeModalPointsCredited": "Баллы начислены",
+      "welcomeModalTravelCredit": "Трэвел-кредит"
     }
   },
   "experience": {

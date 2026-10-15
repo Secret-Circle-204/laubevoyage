@@ -278,7 +278,7 @@
       "duration": "المدة",
       "departureTime": "وقت المغادرة",
       "travelDates": "تواريخ الرحلة",
-      "welcomeModalTitle": "مرحباً بك في لُأوب فويادج",
+      "welcomeModalTitle": "مرحباً بك في لُأوب فويادج، {name}",
       "welcomeModalSubtitle": "رحلتك إلى عالم السفر الاستثنائي تبدأ الآن",
       "welcomeModalLead": "يسعدنا جداً انضمامك إلينا! ولمساعدتك في بدء رحلتك الاستثنائية، تم إضافة {points} نقطة مكافأة إلى حسابك الجديد.",
       "welcomeModalHowItWorks": "كيف يعمل نظام النقاط:",
@@ -289,7 +289,8 @@
       "welcomeModalExploreBtn": "استكشف الرحلات الآن",
       "welcomeModalDismissBtn": "فهمت ذلك، تابع إلى لوحة التحكم",
       "welcomeModalBadge": "هدية الترحيب",
-      "welcomeModalPointsCredited": "تمت إضافة النقاط"
+      "welcomeModalPointsCredited": "تمت إضافة النقاط",
+      "welcomeModalTravelCredit": "رصيد سفر تقريبي"
     }
   },
   "experience": {

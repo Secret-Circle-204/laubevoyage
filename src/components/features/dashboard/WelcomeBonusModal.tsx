@@ -177,7 +177,7 @@ export function WelcomeBonusModal({ welcomeModal, customerId }: WelcomeBonusModa
                   </div>
                   {welcomeModal.pointsMonetaryValue && (
                     <span className="text-[11px] font-semibold text-[#00ADEE]">
-                      ≈ {welcomeModal.pointsMonetaryValue} Travel Credit
+                      ≈ {welcomeModal.pointsMonetaryValue} {welcomeModal.travelCreditText || 'Travel Credit'}
                     </span>
                   )}
                 </div>

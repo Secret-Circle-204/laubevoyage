@@ -278,7 +278,7 @@
       "duration": "期間",
       "departureTime": "出発時間",
       "travelDates": "旅行日程",
-      "welcomeModalTitle": "Welcome to L'Aube Voyage",
+      "welcomeModalTitle": "L'Aube Voyageへようこそ、{name}様",
       "welcomeModalSubtitle": "Your journey to exceptional travel begins now",
       "welcomeModalLead": "We’re thrilled to have you on board! To help kickstart your journey, {points} reward points have just been added to your new account.",
       "welcomeModalHowItWorks": "How it works:",
@@ -289,7 +289,8 @@
       "welcomeModalExploreBtn": "Start Exploring Journeys",
       "welcomeModalDismissBtn": "Got it, take me to Dashboard",
       "welcomeModalBadge": "Welcome Gift",
-      "welcomeModalPointsCredited": "Points Credited"
+      "welcomeModalPointsCredited": "Points Credited",
+      "welcomeModalTravelCredit": "トラベルクレジット"
     }
   },
   "experience": {

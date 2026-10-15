@@ -102,6 +102,8 @@ export interface WelcomeBonusModalDTO {
   bonusPoints: number
   formattedBonusPoints: string
   pointsMonetaryValue?: string
+  travelCreditText: string
+  customerName?: string
   title: string
   subtitle: string
   leadMessage: string

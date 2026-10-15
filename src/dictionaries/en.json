@@ -286,7 +286,7 @@
       "duration": "Duration",
       "departureTime": "Departure Time",
       "travelDates": "Travel Dates",
-      "welcomeModalTitle": "Welcome to L'Aube Voyage",
+      "welcomeModalTitle": "Welcome to L'Aube Voyage, {name}",
       "welcomeModalSubtitle": "Your journey to exceptional travel begins now",
       "welcomeModalLead": "We’re thrilled to have you on board! To help kickstart your journey, {points} reward points have just been added to your new account.",
       "welcomeModalHowItWorks": "How it works:",
@@ -297,7 +297,8 @@
       "welcomeModalExploreBtn": "Start Exploring Journeys",
       "welcomeModalDismissBtn": "Got it, take me to Dashboard",
       "welcomeModalBadge": "Welcome Gift",
-      "welcomeModalPointsCredited": "Points Credited"
+      "welcomeModalPointsCredited": "Points Credited",
+      "welcomeModalTravelCredit": "Travel Credit"
     }
   },
   "experience": {

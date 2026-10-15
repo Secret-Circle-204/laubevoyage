@@ -31,6 +31,10 @@ export class PointCalculationPolicy {
    * Computes EGP discount value for a given points balance.
    */
   static calculatePointsValueEGP(points: number, config: LoyaltyProgramConfig): number {
-    return Math.floor((points / config.redemptionPointsUnit) * config.redemptionValueEGP)
+    const raw = (points / config.redemptionPointsUnit) * config.redemptionValueEGP
+    if (points > 0 && raw > 0 && raw < 1) {
+      return Number(raw.toFixed(2))
+    }
+    return Math.floor(raw)
   }
 }
