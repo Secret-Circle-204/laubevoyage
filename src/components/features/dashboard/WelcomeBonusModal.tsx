@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useTransition } from 'react'
+import React, { useEffect, useState, useRef, useCallback, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import type { WelcomeBonusModalDTO } from '@/application/dashboard/dto'
@@ -11,6 +11,24 @@ const dict = new JsonTranslationDictionary()
 export interface WelcomeBonusModalProps {
   welcomeModal: WelcomeBonusModalDTO
   customerId: number
+}
+
+/**
+ * Safely strips ?welcome=1 (or welcome=true) from window.location without a full page reload
+ * or Next.js router refetch, while preserving all other query parameters, pathname, and hash.
+ */
+function stripWelcomeParam() {
+  if (typeof window === 'undefined') return
+  try {
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('welcome')) {
+      url.searchParams.delete('welcome')
+      const cleanPath = url.pathname + (url.search ? url.search : '') + url.hash
+      window.history.replaceState(window.history.state, '', cleanPath)
+    }
+  } catch {
+    // Safe fallback in non-standard test or sandboxed environments
+  }
 }
 
 /* Minimalist geometric luxury SVG icons */
@@ -55,23 +73,25 @@ export function WelcomeBonusModal({ welcomeModal, customerId }: WelcomeBonusModa
   const { locale } = useLocale()
   const closeAriaLabel = dict.get(locale, 'dashboard.overview.welcomeModalCloseAria') || 'Close welcome message'
 
-  useEffect(() => {
-    // If URL has ?welcome=1 or ?welcome=true, force open
-    const forceOpen = searchParams?.get('welcome') === '1' || searchParams?.get('welcome') === 'true'
-    const storageKey = `laube_welcome_dismissed_${customerId}`
-    const isDismissed = typeof window !== 'undefined' ? localStorage.getItem(storageKey) === '1' : false
+  // Ref guards to prioritize local dismissal and cleanly cancel pending open timers
+  const hasDismissedRef = useRef(false)
+  const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    if (forceOpen || (welcomeModal.shouldShow && !isDismissed)) {
-      // Gentle glide-in entrance after dashboard renders
-      const timer = setTimeout(() => {
-        setIsOpen(true)
-      }, 350)
-      return () => clearTimeout(timer)
+  const handleDismiss = useCallback((redirectHref?: string) => {
+    // 1. Immediately cancel any pending open timer so it cannot fire after dismissal
+    if (openTimerRef.current) {
+      clearTimeout(openTimerRef.current)
+      openTimerRef.current = null
     }
-  }, [welcomeModal.shouldShow, customerId, searchParams])
 
-  const handleDismiss = (redirectHref?: string) => {
+    // 2. Mark dismissed in local memory and close modal
+    hasDismissedRef.current = true
     setIsOpen(false)
+
+    // 3. Strip ?welcome parameter cleanly without page reload
+    stripWelcomeParam()
+
+    // 4. Persist dismissal locally in localStorage
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(`laube_welcome_dismissed_${customerId}`, '1')
@@ -80,6 +100,7 @@ export function WelcomeBonusModal({ welcomeModal, customerId }: WelcomeBonusModa
       }
     }
 
+    // 5. Asynchronously notify the server without blocking UI
     startTransition(async () => {
       try {
         await dismissWelcomeModalAction()
@@ -88,10 +109,58 @@ export function WelcomeBonusModal({ welcomeModal, customerId }: WelcomeBonusModa
       }
     })
 
+    // 6. Handle optional redirect
     if (redirectHref) {
       router.push(redirectHref)
     }
-  }
+  }, [customerId, router])
+
+  useEffect(() => {
+    const storageKey = `laube_welcome_dismissed_${customerId}`
+    const isDismissedInStorage = typeof window !== 'undefined' ? localStorage.getItem(storageKey) === '1' : false
+
+    // Requirement 1 & 2: Local dismissal takes absolute priority.
+    // If the user dismissed the modal during this component lifecycle or in localStorage,
+    // do NOT re-open under ANY condition (even if ?welcome=1 remains or props change via revalidatePath).
+    if (hasDismissedRef.current || isDismissedInStorage) {
+      if (openTimerRef.current) {
+        clearTimeout(openTimerRef.current)
+        openTimerRef.current = null
+      }
+      stripWelcomeParam()
+      return
+    }
+
+    // Evaluate open triggers: explicit URL parameter or server qualification
+    const forceOpen = searchParams?.get('welcome') === '1' || searchParams?.get('welcome') === 'true'
+    const shouldOpen = forceOpen || welcomeModal.shouldShow
+
+    if (shouldOpen) {
+      // Clear any previous timer to ensure single timer in Strict Mode or fast re-renders
+      if (openTimerRef.current) {
+        clearTimeout(openTimerRef.current)
+        openTimerRef.current = null
+      }
+
+      // Gentle glide-in entrance after dashboard renders
+      openTimerRef.current = setTimeout(() => {
+        // Double-check dismissal ref before setting state
+        if (!hasDismissedRef.current) {
+          setIsOpen(true)
+          // Strip ?welcome query param after consumption
+          stripWelcomeParam()
+        }
+        openTimerRef.current = null
+      }, 350)
+    }
+
+    return () => {
+      if (openTimerRef.current) {
+        clearTimeout(openTimerRef.current)
+        openTimerRef.current = null
+      }
+    }
+  }, [welcomeModal.shouldShow, customerId, searchParams])
 
   // Keyboard accessibility: Escape to dismiss
   useEffect(() => {
@@ -103,7 +172,7 @@ export function WelcomeBonusModal({ welcomeModal, customerId }: WelcomeBonusModa
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen])
+  }, [isOpen, handleDismiss])
 
   return (
     <AnimatePresence>
